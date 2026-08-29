@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>20260817-1 Beads Fuzz Campaign</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-fail { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>20260817-1 Beads Fuzz Campaign</h1>
+    <p class="subtitle">Post-hoc durable evidence reconstruction</p>
+    <p class="generated-at">Generated: 2026-08-28</p>
+    <p class="source-label">Source: Promoted regression tests at commit 12cfef8</p>
+    <div class="top-status"><span class="status status-fail">FAIL</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+    </div>
+    <p>The original campaign report was not committed. This durable reconstruction preserves the three promoted findings and their minimized reproducers without claiming to reproduce missing worker transcripts.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Legacy JSON null representation at different nesting depths</th>
+          <td>1</td>
+          <td>0/1</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">TOML formula interpolation containing quotes and backslashes</th>
+          <td>1</td>
+          <td>0/1</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Distinct formula render failures retain distinguishable diagnostics</th>
+          <td>2</td>
+          <td>0/2</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="toc">
+    <strong>Worker Sections</strong>
+    <ul>
+      <li><a href="#shape-probe">shape-probe</a> <span class="status status-fail">FAIL</span></li>
+      <li><a href="#template-probe">template-probe</a> <span class="status status-fail">FAIL</span></li>
+      <li><a href="#boundary-probe">boundary-probe</a> <span class="status status-fail">FAIL</span></li>
+    </ul>
+  </nav>
+
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-1 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-1&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Legacy JSON null representation at different nesting depths&quot;,&quot;iterations&quot;:1,&quot;passed&quot;:0,&quot;failed&quot;:1,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer renderer_json_legacy_mode_null_representation_diverges_by_nesting_depth&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The test demonstrates that Legacy JSON rendering emits different textual null representations by nesting depth.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-SHAPE-001&quot;,&quot;description&quot;:&quot;Render `{ \&quot;n\&quot;: \&quot;{{ n }}\&quot; }` under Legacy mode with top-level, array-nested, and object-nested JSON null values.&quot;,&quot;minimal_template&quot;:&quot;{ \&quot;n\&quot;: \&quot;{{ n }}\&quot; }&quot;,&quot;minimal_input&quot;:&quot;n=null; n=[null]; n={\&quot;x\&quot;:null}&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: output diverges as empty string, `[none]`, and `{\\\&quot;x\\\&quot;: none}` rather than one JSON-safe null representation.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-SHAPE-001&quot;,&quot;minimal_template&quot;:&quot;{ \&quot;n\&quot;: \&quot;{{ n }}\&quot; }&quot;,&quot;minimal_input&quot;:&quot;n=null; n=[null]; n={\&quot;x\&quot;:null}&quot;,&quot;expected_oracle&quot;:&quot;A JSON null leaf has one consistent JSON-safe representation regardless of structured nesting.&quot;,&quot;observed_result&quot;:&quot;Legacy mode emits an empty string for a top-level null but minijinja-style `none` for nested null values.&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers this Legacy-mode null rendering invariant.&quot;,&quot;requirement_follow_up&quot;:&quot;Treat as a renderer compatibility decision; preserve the minimized regression until the intended Legacy representation is selected.&quot;,&quot;root_cause&quot;:&quot;Nested values reach minijinja&#x27;s Python-style null formatting while a top-level null takes a separate coercion path.&quot;,&quot;recommended_fix&quot;:&quot;Serialize JSON null consistently at every nesting depth, then update this test to the selected contract.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The test demonstrates that Legacy JSON rendering emits different textual null representations by nesting depth.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Legacy JSON null representation at different nesting depths</th>
+        <td>1</td>
+        <td>0/1</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-SHAPE-001</th><td><code>Render `{ &quot;n&quot;: &quot;{{ n }}&quot; }` under Legacy mode with top-level, array-nested, and object-nested JSON null values.</code></td><td>FAIL: output diverges as empty string, `[none]`, and `{\&quot;x\&quot;: none}` rather than one JSON-safe null representation.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-SHAPE-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{ &quot;n&quot;: &quot;{{ n }}&quot; }</code></dd>
+        <dt>Input</dt><dd><code>n=null; n=[null]; n={&quot;x&quot;:null}</code></dd>
+        <dt>Expected</dt><dd>A JSON null leaf has one consistent JSON-safe representation regardless of structured nesting.</dd>
+        <dt>Observed</dt><dd>Legacy mode emits an empty string for a top-level null but minijinja-style `none` for nested null values.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers this Legacy-mode null rendering invariant.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Treat as a renderer compatibility decision; preserve the minimized regression until the intended Legacy representation is selected.</dd>
+        <dt>Root cause</dt><dd>Nested values reach minijinja&#x27;s Python-style null formatting while a top-level null takes a separate coercion path.</dd>
+        <dt>Recommended fix</dt><dd>Serialize JSON null consistently at every nesting depth, then update this test to the selected contract.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-1 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-1&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;TOML formula interpolation containing quotes and backslashes&quot;,&quot;iterations&quot;:1,&quot;passed&quot;:0,&quot;failed&quot;:1,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer-beads toml_formula_templates_embed_unescaped_quotes_and_backslashes&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The template probe shows that TOML formula suffixes do not receive string-safe escaping.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-TEMPLATE-001&quot;,&quot;description&quot;:&quot;Render TOML template `a = \&quot;{{{ x }}}\&quot;` with literal quotes and a backslash in `x`.&quot;,&quot;minimal_template&quot;:&quot;a = \&quot;{{{ x }}}\&quot;&quot;,&quot;minimal_input&quot;:&quot;x=has \&quot;quotes\&quot; and \\backslash&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: interpolated quotes and backslashes are unescaped, producing invalid quoted TOML.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-TEMPLATE-001&quot;,&quot;minimal_template&quot;:&quot;a = \&quot;{{{ x }}}\&quot;&quot;,&quot;minimal_input&quot;:&quot;x=has \&quot;quotes\&quot; and \\backslash&quot;,&quot;expected_oracle&quot;:&quot;A quoted TOML formula value either renders as valid TOML or fails with an explicit diagnostic.&quot;,&quot;observed_result&quot;:&quot;The value is embedded without TOML string escaping.&quot;,&quot;requirement_trace&quot;:&quot;ADR-0021 makes formula rendering a sc-composer-beads responsibility but does not define TOML escaping semantics.&quot;,&quot;requirement_follow_up&quot;:&quot;Define the intended TOML formula rendering contract before implementing format-aware escaping or a fail-closed validation error.&quot;,&quot;root_cause&quot;:&quot;`.formula.toml.j2` receives the generic auto-escape mode, which has no TOML string-safety branch.&quot;,&quot;recommended_fix&quot;:&quot;Add a TOML-aware render path or reject unsafe interpolated TOML strings before emitting a formula.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The template probe shows that TOML formula suffixes do not receive string-safe escaping.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">TOML formula interpolation containing quotes and backslashes</th>
+        <td>1</td>
+        <td>0/1</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-TEMPLATE-001</th><td><code>Render TOML template `a = &quot;{{{ x }}}&quot;` with literal quotes and a backslash in `x`.</code></td><td>FAIL: interpolated quotes and backslashes are unescaped, producing invalid quoted TOML.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-TEMPLATE-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>a = &quot;{{{ x }}}&quot;</code></dd>
+        <dt>Input</dt><dd><code>x=has &quot;quotes&quot; and \backslash</code></dd>
+        <dt>Expected</dt><dd>A quoted TOML formula value either renders as valid TOML or fails with an explicit diagnostic.</dd>
+        <dt>Observed</dt><dd>The value is embedded without TOML string escaping.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 makes formula rendering a sc-composer-beads responsibility but does not define TOML escaping semantics.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Define the intended TOML formula rendering contract before implementing format-aware escaping or a fail-closed validation error.</dd>
+        <dt>Root cause</dt><dd>`.formula.toml.j2` receives the generic auto-escape mode, which has no TOML string-safety branch.</dd>
+        <dt>Recommended fix</dt><dd>Add a TOML-aware render path or reject unsafe interpolated TOML strings before emitting a formula.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-1 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-1&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Distinct formula render failures retain distinguishable diagnostics&quot;,&quot;iterations&quot;:2,&quot;passed&quot;:0,&quot;failed&quot;:2,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer-beads render_failed_message_is_identical_for_distinct_failure_causes&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. Two structurally different render errors collapse into one opaque message.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-4177-BOUNDARY-01&quot;,&quot;description&quot;:&quot;Compare malformed-template and missing-variable formula render failures.&quot;,&quot;minimal_template&quot;:&quot;An unterminated triple-brace expression and a separate missing-variable expression.&quot;,&quot;minimal_input&quot;:&quot;No additional compose variables for the missing-variable case.&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: both conditions report the same fixed `template rendering failed` message.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-4177-BOUNDARY-01&quot;,&quot;minimal_template&quot;:&quot;hello {{{ unterminated; and a separate template referencing a missing value&quot;,&quot;minimal_input&quot;:&quot;structured compose variables lacking the referenced value&quot;,&quot;expected_oracle&quot;:&quot;Distinct render failures retain cause-specific details for diagnostics.&quot;,&quot;observed_result&quot;:&quot;`RenderError::Display` collapses both causes to the same opaque text.&quot;,&quot;requirement_trace&quot;:&quot;ADR-0021 requires retained rendering failure details for Beads diagnostics.&quot;,&quot;requirement_follow_up&quot;:&quot;No new ADR is needed; implementation must satisfy the existing retained-detail contract.&quot;,&quot;root_cause&quot;:&quot;The adapter uses `RenderError::to_string()` instead of its cause-specific `message()` accessor.&quot;,&quot;recommended_fix&quot;:&quot;Use the cause-specific render error message when constructing `BeadComposeError::RenderFailed`.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. Two structurally different render errors collapse into one opaque message.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Distinct formula render failures retain distinguishable diagnostics</th>
+        <td>2</td>
+        <td>0/2</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-4177-BOUNDARY-01</th><td><code>Compare malformed-template and missing-variable formula render failures.</code></td><td>FAIL: both conditions report the same fixed `template rendering failed` message.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-4177-BOUNDARY-01</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>hello {{{ unterminated; and a separate template referencing a missing value</code></dd>
+        <dt>Input</dt><dd><code>structured compose variables lacking the referenced value</code></dd>
+        <dt>Expected</dt><dd>Distinct render failures retain cause-specific details for diagnostics.</dd>
+        <dt>Observed</dt><dd>`RenderError::Display` collapses both causes to the same opaque text.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 requires retained rendering failure details for Beads diagnostics.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR is needed; implementation must satisfy the existing retained-detail contract.</dd>
+        <dt>Root cause</dt><dd>The adapter uses `RenderError::to_string()` instead of its cause-specific `message()` accessor.</dd>
+        <dt>Recommended fix</dt><dd>Use the cause-specific render error message when constructing `BeadComposeError::RenderFailed`.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">Session</th><td>sc-compose-fuzz-20260817-1</td></tr>
+      <tr><th scope="row">Provenance</th><td>post_hoc_reconstruction</td></tr>
+      <tr><th scope="row">Promoted tests</th><td>crates/sc-composer/src/renderer.rs::renderer_json_legacy_mode_null_representation_diverges_by_nesting_depth; crates/sc-composer-beads/src/render.rs::toml_formula_templates_embed_unescaped_quotes_and_backslashes; crates/sc-composer-beads/src/render.rs::render_failed_message_is_identical_for_distinct_failure_causes</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+    <p>Post-hoc evidence reconstruction; see the JSON sidecar for complete worker envelopes.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

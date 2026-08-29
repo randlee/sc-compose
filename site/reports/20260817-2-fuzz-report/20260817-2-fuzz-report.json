@@ -1,0 +1,98 @@
+{
+  "schema_version": "fuzz-session/v1",
+  "campaign": {
+    "session_id": "sc-compose-fuzz-20260817-2",
+    "date": "2026-08-17",
+    "seed": 4177,
+    "target": "sc-composer-beads subprocess execution and argv boundaries",
+    "provenance": "post_hoc_reconstruction",
+    "provenance_note": "The original campaign sprint document and report package were not committed. This package reconstructs durable evidence from the promoted regression tests and their source comments at commit 12cfef8; it is not an original worker transcript."
+  },
+  "summary": {
+    "status": "FAIL",
+    "description": "Two promoted 20260817-2 findings document subprocess argv attribution and descendant output-pipe containment.",
+    "iterations": 2,
+    "passed": 0,
+    "failed": 2
+  },
+  "workers": [
+    {
+      "session_id": "sc-compose-fuzz-20260817-2",
+      "agent_id": "path-encoding-probe",
+      "worker_correlation_id": "path-encoding-probe",
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "Embedded NUL in Beads variable value is attributed to an unavailable executable",
+      "iterations": 1,
+      "passed": 0,
+      "failed": 1,
+      "result": "FAIL",
+      "command": "cargo test -p sc-composer-beads nul_byte_poisoned_bead_variable_value_is_misreported_as_bd_unavailable",
+      "context_text": "Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. A valid UTF-8 value containing U+0000 poisons argv construction before the configured executable can start.",
+      "test_inputs": [
+        {
+          "case_id": "FUZZ-4177-ENC-01",
+          "description": "Run Validate with `/bin/echo` and bead variable `payload=legit\\u0000withnul`.",
+          "minimal_template": "A valid in-workspace formula template.",
+          "minimal_input": "bead_variables.payload contains U+0000; bd_executable=/bin/echo",
+          "passed": false,
+          "outcome": "FAIL: OS argv construction rejects the NUL, but the receipt code is BEADS_BD_UNAVAILABLE."
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-4177-ENC-01",
+          "minimal_template": "valid formula template; no template defect required",
+          "minimal_input": "payload=legit\\u0000withnul; bd_executable=/bin/echo",
+          "expected_oracle": "An invalid Beads variable value is rejected before spawn or receives a cause-specific argv-construction diagnostic.",
+          "observed_result": "`Command::spawn` returns InvalidInput for an interior NUL and the stage maps it to BEADS_BD_UNAVAILABLE.",
+          "requirement_trace": "ADR-0021 defines BEADS_BD_UNAVAILABLE as inability to start the configured executable.",
+          "requirement_follow_up": "No new ADR is needed; validate variable values before spawn or add a distinct stable argv-construction code.",
+          "root_cause": "Only Beads variable keys are validated; values reach `Command::args` unchecked and the generic I/O mapping erases the cause.",
+          "recommended_fix": "Reject control bytes in Beads variable values before process creation, or map argv construction errors separately.",
+          "reproduction_count": 3
+        }
+      ]
+    },
+    {
+      "session_id": "sc-compose-fuzz-20260817-2",
+      "agent_id": "output-bound-probe",
+      "worker_correlation_id": "output-bound-probe",
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "Output limit terminates a descendant holding the inherited pipe open",
+      "iterations": 1,
+      "passed": 0,
+      "failed": 1,
+      "result": "FAIL",
+      "command": "cargo test -p sc-composer-beads orphaned_descendant_holding_the_output_pipe_open_hangs_the_runner",
+      "context_text": "Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. The test was later replaced by the cross-platform process-tree regression after the production fix.",
+      "test_inputs": [
+        {
+          "case_id": "FUZZ-4177-OUT-01",
+          "description": "A shell starts `( sleep 1 ) &` then floods stdout past the cap, leaving the descendant with the inherited stdout descriptor.",
+          "minimal_template": "not applicable; subprocess runner probe",
+          "minimal_input": "#!/bin/sh; ( sleep 1 ) &; while :; do printf X; done",
+          "passed": false,
+          "outcome": "FAIL: killing only the direct child leaves the reader blocked until the descendant exits."
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-4177-OUT-01",
+          "minimal_template": "not applicable; subprocess runner probe",
+          "minimal_input": "background descendant inherits stdout, direct child floods past the 64 KiB cap",
+          "expected_oracle": "An over-limit command terminates every descendant holding captured output pipes and returns promptly.",
+          "observed_result": "The original runner killed only the direct PID, so the pipe remained open until the orphaned descendant exited.",
+          "requirement_trace": "ADR-0021 requires bounded captured stdout/stderr and termination after an output cap breach.",
+          "requirement_follow_up": "No new ADR is needed; the production fix must retain process-tree termination on Unix and Job Object containment on Windows.",
+          "root_cause": "Direct-child-only termination did not close inherited pipe descriptors held by descendants.",
+          "recommended_fix": "Terminate the process group on Unix and the assigned Job Object on Windows, with a regression proving prompt return.",
+          "reproduction_count": 3
+        }
+      ]
+    }
+  ],
+  "promoted_tests": [
+    "crates/sc-composer-beads/src/execute.rs::nul_byte_poisoned_bead_variable_value_is_misreported_as_bd_unavailable",
+    "crates/sc-composer-beads/src/runner.rs::orphaned_descendant_holding_the_output_pipe_open_hangs_the_runner"
+  ]
+}

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["maturin>=1.9.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "sc-composer-beads"
+version = "1.6.0"
+description = "Typed Python adapter for host-neutral Beads formula composition"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Randlee" }]
+
+[tool.maturin]
+python-source = "python"
+module-name = "sc_composer_beads._native"
+features = ["python-extension"]
+include = [
+  { path = "python/sc_composer_beads/_native.pyi", format = ["sdist", "wheel"] },
+  { path = "python/sc_composer_beads/py.typed", format = ["sdist", "wheel"] },
+]

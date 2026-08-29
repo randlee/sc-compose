@@ -1,0 +1,37 @@
+[package]
+name = "sc-composer-beads"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Host-neutral Beads formula composition and validation library."
+readme = "README.md"
+keywords = ["beads", "template", "jinja", "workflow"]
+categories = ["development-tools", "template-engine"]
+
+[dependencies]
+sc-composer.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+toml.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+process-wrap = { version = "=10.0.0", default-features = false, features = ["std", "process-group"] }
+
+[target.'cfg(windows)'.dependencies]
+process-wrap = { version = "=10.0.0", default-features = false, features = ["std", "job-object"] }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "sc-composer-beads-runner-fixture"
+path = "tests/fixtures/runner_orphan_fixture.rs"
+test = false
+bench = false

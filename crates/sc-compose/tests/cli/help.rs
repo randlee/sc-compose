@@ -30,7 +30,7 @@ fn help_list_is_stable_and_scriptable() {
     assert!(output.status.success(), "{output:?}");
     assert_eq!(
         String::from_utf8_lossy(&output.stdout),
-        "exit-codes\nrender\nresolve\nvalidate\nverify\nextract\ntemplate-init\nfrontmatter-init\ninit\nexamples\ntemplates\nreports\nobservability-health\n"
+        "exit-codes\nrender\nresolve\nvalidate\nverify\nextract\ntemplate-init\nfrontmatter-init\ninit\nexamples\ntemplates\nreports\nbead\nobservability-health\n"
     );
 }
 
@@ -82,6 +82,19 @@ fn reports_manual_documents_catalog_and_publish_workflow() {
             "reports smoke",
             "reports/catalog/reports.toml",
             "publish-manifest",
+        ],
+    );
+}
+
+#[test]
+fn bead_manual_documents_the_versioned_request_protocol() {
+    assert_topic_contains(
+        "bead",
+        &[
+            "sc-compose bead validate",
+            "compose_variables",
+            "bead_variables",
+            "CreatePersistentBeads",
         ],
     );
 }

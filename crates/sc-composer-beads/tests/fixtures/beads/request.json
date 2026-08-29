@@ -1,0 +1,25 @@
+{
+  "schema": "sc-compose/beads/v1",
+  "operation": "validate",
+  "working_directory": ".",
+  "template": "crates/sc-composer-beads/tests/fixtures/beads/toml-workflow.formula.toml.j2",
+  "rendered_formula": ".beads/formulas/toml-workflow.formula.toml",
+  "compose_variables": {
+    "project": {
+      "name": "sc-compose",
+      "notes": "Canonical R.2 CLI request fixture"
+    },
+    "reviewers": [
+      {
+        "id": "ada",
+        "name": "Ada"
+      }
+    ]
+  },
+  "formula_name": "toml-workflow",
+  "bead_variables": {
+    "release_name": "1.5.0"
+  },
+  "bd_executable": null,
+  "pour_authorization": null
+}

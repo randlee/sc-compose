@@ -1,0 +1,58 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>path-encoding-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-2 · Worker path-encoding-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-2&quot;,&quot;agent_id&quot;:&quot;path-encoding-probe&quot;,&quot;worker_correlation_id&quot;:&quot;path-encoding-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Embedded NUL in Beads variable value is attributed to an unavailable executable&quot;,&quot;iterations&quot;:1,&quot;passed&quot;:0,&quot;failed&quot;:1,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer-beads nul_byte_poisoned_bead_variable_value_is_misreported_as_bd_unavailable&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. A valid UTF-8 value containing U+0000 poisons argv construction before the configured executable can start.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-4177-ENC-01&quot;,&quot;description&quot;:&quot;Run Validate with `/bin/echo` and bead variable `payload=legit\\u0000withnul`.&quot;,&quot;minimal_template&quot;:&quot;A valid in-workspace formula template.&quot;,&quot;minimal_input&quot;:&quot;bead_variables.payload contains U+0000; bd_executable=/bin/echo&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: OS argv construction rejects the NUL, but the receipt code is BEADS_BD_UNAVAILABLE.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-4177-ENC-01&quot;,&quot;minimal_template&quot;:&quot;valid formula template; no template defect required&quot;,&quot;minimal_input&quot;:&quot;payload=legit\\u0000withnul; bd_executable=/bin/echo&quot;,&quot;expected_oracle&quot;:&quot;An invalid Beads variable value is rejected before spawn or receives a cause-specific argv-construction diagnostic.&quot;,&quot;observed_result&quot;:&quot;`Command::spawn` returns InvalidInput for an interior NUL and the stage maps it to BEADS_BD_UNAVAILABLE.&quot;,&quot;requirement_trace&quot;:&quot;ADR-0021 defines BEADS_BD_UNAVAILABLE as inability to start the configured executable.&quot;,&quot;requirement_follow_up&quot;:&quot;No new ADR is needed; validate variable values before spawn or add a distinct stable argv-construction code.&quot;,&quot;root_cause&quot;:&quot;Only Beads variable keys are validated; values reach `Command::args` unchecked and the generic I/O mapping erases the cause.&quot;,&quot;recommended_fix&quot;:&quot;Reject control bytes in Beads variable values before process creation, or map argv construction errors separately.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. A valid UTF-8 value containing U+0000 poisons argv construction before the configured executable can start.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Embedded NUL in Beads variable value is attributed to an unavailable executable</th>
+        <td>1</td>
+        <td>0/1</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-4177-ENC-01</th><td><code>Run Validate with `/bin/echo` and bead variable `payload=legit\u0000withnul`.</code></td><td>FAIL: OS argv construction rejects the NUL, but the receipt code is BEADS_BD_UNAVAILABLE.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-4177-ENC-01</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>valid formula template; no template defect required</code></dd>
+        <dt>Input</dt><dd><code>payload=legit\u0000withnul; bd_executable=/bin/echo</code></dd>
+        <dt>Expected</dt><dd>An invalid Beads variable value is rejected before spawn or receives a cause-specific argv-construction diagnostic.</dd>
+        <dt>Observed</dt><dd>`Command::spawn` returns InvalidInput for an interior NUL and the stage maps it to BEADS_BD_UNAVAILABLE.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 defines BEADS_BD_UNAVAILABLE as inability to start the configured executable.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR is needed; validate variable values before spawn or add a distinct stable argv-construction code.</dd>
+        <dt>Root cause</dt><dd>Only Beads variable keys are validated; values reach `Command::args` unchecked and the generic I/O mapping erases the cause.</dd>
+        <dt>Recommended fix</dt><dd>Reject control bytes in Beads variable values before process creation, or map argv construction errors separately.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

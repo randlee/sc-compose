@@ -13,6 +13,14 @@ This document is the authoritative release plan. It replaces the earlier
 implementation-history view with one sprint sequence that contains all work
 required to ship.
 
+## Follow-on Phase R
+
+The post-release Beads formula-composition integration is planned separately
+in [Phase R — Beads Formula Composition Integration](phase-R/phase-R-plan.md).
+It is an additive adapter track: it does not reopen or redefine this release
+plan's core renderer contract. ADR-0021 and the Phase R pre-source boundary
+gate are authoritative for that work.
+
 ## Release Rules
 
 - `requirements.md`, `architecture.md`, and this plan are the release source of
@@ -25,13 +33,21 @@ required to ship.
 - Deferred work is allowed only when it is explicitly out of scope for the
   initial release and does not reduce production readiness.
 - `sc-composer` remains a pure library.
-- `sc-compose` may depend on `sc-composer` and standalone observability crates
-  only.
+- `sc-compose` may depend on `sc-composer`, `sc-composer-beads`, and
+  standalone observability crates only.
 - `bindings/python` is a Python-facing adapter package that may depend on
   `sc-composer` only.
 - `bindings/python` must not depend on `sc-compose`, `sc-observability`, or
   ATM-specific crates.
 - `sc-composer` must not depend on `bindings/python`.
+- `sc-composer-beads` may depend only on `sc-composer`, workspace serde/error
+  dependencies, and the approved `process-wrap` platform-containment
+  dependency. It must not depend on the CLI, a foreign-language adapter, Beads
+  source/database libraries, or ATM/runtime code.
+- `bindings/sc-composer-beads-python` may depend only on
+  `sc-composer-beads` plus approved PyO3/maturin/serde dependencies; it must
+  not depend on the CLI, `sc-composer`, Beads source/database libraries, or
+  ATM/runtime code.
 - No ATM-specific runtime assumptions may enter code or manifests.
 
 ## Release Blocker Inventory
@@ -896,9 +912,47 @@ Sprint entries:
 - [Sprint Q.3 — Consume sc-publish Develop Update](phase-Q/sprint-q-3-sc-publish-consume-update.md)
 - [Sprint Q.4 — Consume sc-publish Release-Candidate Provenance Update](phase-Q/sprint-q-4-sc-publish-rc-provenance-consume.md)
 
+### Phase R Sprint Plans
+
+Status:
+
+- in progress: Phase R is the ADR-0021-gated, host-neutral Beads
+  formula-composition track; R.1 is complete and R.2 and R.3 may proceed in
+  parallel;
+- R.1 pre-source gate: ADR-0021 is accepted; the architecture, CLAUDE, and
+  sc-lint boundary inventories must record and enforce
+  `sc-compose -> sc-composer-beads -> sc-composer` and
+  `bindings/sc-composer-beads-python -> sc-composer-beads` before R.1 source
+  is authored;
+- target: `integrate/phase-r`
+
+Sprint entries:
+
+- [Phase R plan](phase-R/phase-R-plan.md)
+- [Sprint R.1 — Beads contract and execution engine](phase-R/sprint-r-1-beads-contract-and-engine.md)
+- [Sprint R.2 — Bead CLI and JSON protocol](phase-R/sprint-r-2-bead-cli-and-json-protocol.md)
+- [Sprint R.3 — Beads Python bindings](phase-R/sprint-r-3-beads-python-bindings.md)
+- [FIX-BEADS-FUZZ-OUT-001 — Orphaned descendant output-cap containment](sprints/fix-beads-output-cap-orphan-descendant.md)
+
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
 - [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
+
+### Follow-on Fix Sprint: FIX-554
+
+Status:
+
+- implementation complete on `fix/sc-lint-bootstrap-fixture-version-drift` at
+  `c558613`; awaiting PR #554 merge into `develop`
+
+Sprint entry:
+
+- [Sprint FIX-554 — sc-lint Bootstrap Lockfile Regeneration](sprints/fix-554-sc-lint-bootstrap-lock-regeneration.md)
+
+FIX-554 regenerates the `sc-lint` bootstrap fixture lockfile from the current
+workspace patches and verifies that the committed lockfile matches an offline
+Cargo metadata regeneration. It also hardens temporary Beads workspace cleanup
+against transient Windows sharing violations.
 
 ### Follow-on Fix Sprint: FIX-O13
 
@@ -2014,6 +2068,8 @@ boundary defined by:
 
 ## Fuzz-Queue Fix Sprint Index
 
+- `docs/sprints/fix-beads-toml-formula-escaping.md`
+- `docs/sprints/fix-beads-legacy-json-null-depth.md`
 - `docs/sprints/fix-homebrew-publish-asset-shape.md`
 - `docs/sprints/cleanup-293-frontmatter-yaml-filter-chain.md`
 - `docs/sprints/cleanup-298-path-containment-centralize.md`
@@ -2030,6 +2086,9 @@ boundary defined by:
 - `docs/sprints/fix-283-unbound-variable-policy-noop.md`
 - `docs/sprints/fix-372-chained-ternary-dynamic-classification.md`
 - `docs/sprints/fix-386-cli-json-envelope-clap-bypass.md`
+- `docs/sprints/fuzz-beads-integration-campaign.md`
+- `docs/sprints/fix-beads-render-error-message.md`
+- `docs/sprints/fix-beads-nul-byte-argv-misattribution.md`
 
 The current follow-on implementation track is:
 

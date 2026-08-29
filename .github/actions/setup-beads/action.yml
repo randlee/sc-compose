@@ -1,0 +1,78 @@
+name: Setup Beads
+description: Download a checksum-verified, target-native Beads release binary.
+
+inputs:
+  version:
+    description: Beads release version, without the leading v.
+    required: false
+    default: "1.2.2"
+
+outputs:
+  bd-path:
+    description: Absolute path to the pinned bd executable.
+    value: ${{ steps.install.outputs.bd-path }}
+
+runs:
+  using: composite
+  steps:
+    - id: install
+      name: Download and verify Beads
+      shell: bash
+      env:
+        BEADS_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        case "${RUNNER_OS}-${RUNNER_ARCH}" in
+          Linux-X64) archive="beads_${BEADS_VERSION}_linux_amd64.tar.gz" ;;
+          Linux-ARM64) archive="beads_${BEADS_VERSION}_linux_arm64.tar.gz" ;;
+          macOS-X64) archive="beads_${BEADS_VERSION}_darwin_amd64.tar.gz" ;;
+          macOS-ARM64) archive="beads_${BEADS_VERSION}_darwin_arm64.tar.gz" ;;
+          Windows-X64) archive="beads_${BEADS_VERSION}_windows_amd64.zip" ;;
+          Windows-ARM64) archive="beads_${BEADS_VERSION}_windows_arm64.zip" ;;
+          *) echo "Unsupported Beads target: ${RUNNER_OS}-${RUNNER_ARCH}" >&2; exit 1 ;;
+        esac
+
+        release_url="https://github.com/gastownhall/beads/releases/download/v${BEADS_VERSION}"
+        download_dir="${RUNNER_TEMP}/sc-compose-beads/${BEADS_VERSION}/${RUNNER_OS}-${RUNNER_ARCH}"
+        install_dir="${download_dir}/install"
+        mkdir -p "${download_dir}" "${install_dir}"
+        curl --fail --location --retry 3 --retry-all-errors --output "${download_dir}/${archive}" "${release_url}/${archive}"
+        curl --fail --location --retry 3 --retry-all-errors --output "${download_dir}/checksums.txt" "${release_url}/checksums.txt"
+
+        expected_sha="$(awk -v archive="${archive}" '$2 == archive { print $1 }' "${download_dir}/checksums.txt")"
+        if [[ -z "${expected_sha}" ]]; then
+          echo "Release checksum was not published for ${archive}" >&2
+          exit 1
+        fi
+        # GNU checksum tools prefix the digest with `\` when they escape a
+        # Windows pathname in their output.  Remove only that marker before
+        # comparing the 64-hex-digit digest from the signed release manifest.
+        if command -v sha256sum >/dev/null 2>&1; then
+          actual_sha="$(sha256sum -b "${download_dir}/${archive}" | awk '{ print $1 }' | sed 's/^\\//')"
+        elif command -v shasum >/dev/null 2>&1; then
+          actual_sha="$(shasum -a 256 -b "${download_dir}/${archive}" | awk '{ print $1 }' | sed 's/^\\//')"
+        else
+          echo "No SHA-256 checksum utility is available" >&2
+          exit 1
+        fi
+        if [[ "${actual_sha}" != "${expected_sha}" ]]; then
+          echo "Checksum verification failed for ${archive}" >&2
+          echo "Expected SHA-256: ${expected_sha}" >&2
+          echo "Actual SHA-256:   ${actual_sha}" >&2
+          exit 1
+        fi
+
+        if [[ "${archive}" == *.zip ]]; then
+          unzip -q "${download_dir}/${archive}" -d "${install_dir}"
+          bd_path="${install_dir}/bd.exe"
+        else
+          tar -xzf "${download_dir}/${archive}" -C "${install_dir}"
+          bd_path="${install_dir}/bd"
+        fi
+        if [[ ! -f "${bd_path}" ]]; then
+          echo "The Beads archive did not contain ${bd_path}" >&2
+          exit 1
+        fi
+        chmod +x "${bd_path}"
+        printf 'bd-path=%s\n' "${bd_path}" >> "${GITHUB_OUTPUT}"

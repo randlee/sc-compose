@@ -1,0 +1,58 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-1 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-1&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Distinct formula render failures retain distinguishable diagnostics&quot;,&quot;iterations&quot;:2,&quot;passed&quot;:0,&quot;failed&quot;:2,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer-beads render_failed_message_is_identical_for_distinct_failure_causes&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. Two structurally different render errors collapse into one opaque message.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-4177-BOUNDARY-01&quot;,&quot;description&quot;:&quot;Compare malformed-template and missing-variable formula render failures.&quot;,&quot;minimal_template&quot;:&quot;An unterminated triple-brace expression and a separate missing-variable expression.&quot;,&quot;minimal_input&quot;:&quot;No additional compose variables for the missing-variable case.&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: both conditions report the same fixed `template rendering failed` message.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-4177-BOUNDARY-01&quot;,&quot;minimal_template&quot;:&quot;hello {{{ unterminated; and a separate template referencing a missing value&quot;,&quot;minimal_input&quot;:&quot;structured compose variables lacking the referenced value&quot;,&quot;expected_oracle&quot;:&quot;Distinct render failures retain cause-specific details for diagnostics.&quot;,&quot;observed_result&quot;:&quot;`RenderError::Display` collapses both causes to the same opaque text.&quot;,&quot;requirement_trace&quot;:&quot;ADR-0021 requires retained rendering failure details for Beads diagnostics.&quot;,&quot;requirement_follow_up&quot;:&quot;No new ADR is needed; implementation must satisfy the existing retained-detail contract.&quot;,&quot;root_cause&quot;:&quot;The adapter uses `RenderError::to_string()` instead of its cause-specific `message()` accessor.&quot;,&quot;recommended_fix&quot;:&quot;Use the cause-specific render error message when constructing `BeadComposeError::RenderFailed`.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. Two structurally different render errors collapse into one opaque message.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Distinct formula render failures retain distinguishable diagnostics</th>
+        <td>2</td>
+        <td>0/2</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-4177-BOUNDARY-01</th><td><code>Compare malformed-template and missing-variable formula render failures.</code></td><td>FAIL: both conditions report the same fixed `template rendering failed` message.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-4177-BOUNDARY-01</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>hello {{{ unterminated; and a separate template referencing a missing value</code></dd>
+        <dt>Input</dt><dd><code>structured compose variables lacking the referenced value</code></dd>
+        <dt>Expected</dt><dd>Distinct render failures retain cause-specific details for diagnostics.</dd>
+        <dt>Observed</dt><dd>`RenderError::Display` collapses both causes to the same opaque text.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 requires retained rendering failure details for Beads diagnostics.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR is needed; implementation must satisfy the existing retained-detail contract.</dd>
+        <dt>Root cause</dt><dd>The adapter uses `RenderError::to_string()` instead of its cause-specific `message()` accessor.</dd>
+        <dt>Recommended fix</dt><dd>Use the cause-specific render error message when constructing `BeadComposeError::RenderFailed`.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

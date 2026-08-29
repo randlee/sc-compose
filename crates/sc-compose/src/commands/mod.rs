@@ -1,3 +1,4 @@
+pub(crate) mod bead;
 pub(crate) mod compose;
 pub(crate) mod dispatch;
 pub(crate) mod examples;
