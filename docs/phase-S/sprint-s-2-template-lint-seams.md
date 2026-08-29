@@ -1,7 +1,7 @@
 ---
 id: S.2
 title: Template Lint Seams
-status: planned
+status: complete
 branch: sprint/s-2-template-lint-seams
 worktree: ../sc-compose-worktrees/sprint/s-2-template-lint-seams
 target: sprint/s-1-extractor-internal-seams
@@ -61,11 +61,11 @@ second parser or a new public lint-policy API.
 
 ## Acceptance Criteria
 
-- [ ] `template_lint` uses exactly the existing scanner and retains diagnostic
+- [x] `template_lint` uses exactly the existing scanner and retains diagnostic
   codes and locations.
-- [ ] Source analysis, traversal, and report assembly have independently
+- [x] Source analysis, traversal, and report assembly have independently
   exercisable regression coverage.
-- [ ] No `sc-composer` public API, CLI grammar, or dependency direction changes.
+- [x] No `sc-composer` public API, CLI grammar, or dependency direction changes.
 
 ## gh-stack Workflow
 
