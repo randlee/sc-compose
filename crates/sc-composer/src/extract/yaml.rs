@@ -720,6 +720,24 @@ mod tests {
     }
 
     #[test]
+    fn rejects_adjacent_variable_expressions_as_ambiguous() {
+        let request = ExtractRequest::new(
+            "value: \"{{ first }}{{ second }}\"\n",
+            "value: AB\n",
+            ExtractFormat::Yaml,
+            &[],
+            &[],
+        );
+
+        let error = extract_yaml(&request).unwrap_err();
+
+        assert_eq!(
+            error.code(),
+            crate::diagnostics::DiagnosticCode::ErrExtractYamlAmbiguous
+        );
+    }
+
+    #[test]
     fn flow_style_anchor_alias_bypass_is_rejected() {
         let request = ExtractRequest::new("[1, 1]\n", "[&v 1,*v]\n", ExtractFormat::Yaml, &[], &[]);
         let error = extract_yaml(&request).unwrap_err();
