@@ -4,7 +4,7 @@ title: Template Lint Seams
 status: planned
 branch: sprint/s-2-template-lint-seams
 worktree: ../sc-compose-worktrees/sprint/s-2-template-lint-seams
-target: integrate/phase-s
+target: sprint/s-1-extractor-internal-seams
 ---
 
 # Sprint S.2 — Template Lint Seams
@@ -17,9 +17,8 @@ command grammar, and output. This closes S-T4.
 
 ## Hard Dependencies
 
-- `integrate/phase-s` exists from `develop` before this sprint branch exists.
-- No hard code dependency on S.1; merge-forward the latest integration branch
-  before implementation and submission.
+- S.1 is this branch's required `gh stack` parent. There is no functional code
+  dependency on S.1; the parent exists to make this PR an incremental layer.
 
 ## Exact Targets
 
@@ -71,16 +70,15 @@ second parser or a new public lint-policy API.
 ## gh-stack Workflow
 
 ```bash
-git switch integrate/phase-s
-git pull --ff-only origin integrate/phase-s
+# The phase plan added this branch directly on top of S.1.
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base integrate/phase-s sprint/s-2-template-lint-seams
 git add crates/sc-compose/src/commands/template_lint.rs crates/sc-compose/tests docs/plans/phase-S.md docs/phase-S/sprint-s-2-template-lint-seams.md
 git commit -m "refactor(lint): isolate private template-lint seams"
 gh stack submit --auto
+gh pr ready <sprint-s-2-pr-number>
 gh stack view --json
-gh stack merge <sprint-s-2-pr-number> --yes --merge
+# Do not merge an individual sprint layer; phase close merges the full stack.
 ```
 
 ## Required Validation

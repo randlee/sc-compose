@@ -4,7 +4,7 @@ title: Checked Validation Seams
 status: planned
 branch: sprint/s-3-checked-validation-seams
 worktree: ../sc-compose-worktrees/sprint/s-3-checked-validation-seams
-target: integrate/phase-s
+target: sprint/s-2-template-lint-seams
 ---
 
 # Sprint S.3 — Checked Validation Seams
@@ -17,9 +17,8 @@ byte-for-byte compatible text/JSON results. This closes S-T5.
 
 ## Hard Dependencies
 
-- `integrate/phase-s` exists from `develop` before this sprint branch exists.
-- No hard code dependency on S.1 or S.2; merge-forward the latest integration
-  branch before implementation and submission.
+- S.2 is this branch's required `gh stack` parent. There is no functional code
+  dependency on S.1 or S.2; the parent keeps this PR incremental.
 
 ## Exact Targets
 
@@ -72,16 +71,15 @@ presentation and status behavior remain the contract under test.
 ## gh-stack Workflow
 
 ```bash
-git switch integrate/phase-s
-git pull --ff-only origin integrate/phase-s
+# The phase plan added this branch directly on top of S.2.
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base integrate/phase-s sprint/s-3-checked-validation-seams
 git add crates/sc-compose/src/commands/compose.rs crates/sc-compose/tests/cli/validate.rs crates/sc-compose/tests/json_cli/validate.rs docs/plans/phase-S.md docs/phase-S/sprint-s-3-checked-validation-seams.md
 git commit -m "refactor(validate): isolate checked-validation seams"
 gh stack submit --auto
+gh pr ready <sprint-s-3-pr-number>
 gh stack view --json
-gh stack merge <sprint-s-3-pr-number> --yes --merge
+# Do not merge an individual sprint layer; phase close merges the full stack.
 ```
 
 ## Required Validation

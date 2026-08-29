@@ -4,7 +4,7 @@ title: Beads Runner Reliability
 status: planned
 branch: sprint/s-8-beads-runner-reliability
 worktree: ../sc-compose-worktrees/sprint/s-8-beads-runner-reliability
-target: integrate/phase-s
+target: sprint/s-7-path-normalization-contract
 ---
 
 # Sprint S.8 — Beads Runner Reliability
@@ -17,10 +17,10 @@ contract and platform-specific containment strategy. This closes S-T8.
 
 ## Hard Dependencies
 
-- No code dependency on S.1–S.7; merge-forward the latest integration branch
-  before implementation and submission.
-- **Merge-order dependency:** S.1 through S.7 must all be merged into
-  `integrate/phase-s` before the S.8 PR may merge there.
+- S.7 is this branch's required `gh stack` parent. There is no functional code
+  dependency on S.1–S.7; the parent keeps this final PR incremental.
+- **Phase-close dependency:** S.1 through S.7 must be reviewed and CI-green
+  before the S.8-top stack can merge atomically at phase close.
 - The existing `process-wrap` containment contract remains approved; a new
   process library or OS-containment policy requires ADR review.
 
@@ -91,16 +91,15 @@ lifecycle boundaries independently.
 ## gh-stack Workflow
 
 ```bash
-git switch integrate/phase-s
-git pull --ff-only origin integrate/phase-s
+# The phase plan added this branch directly on top of S.7.
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base integrate/phase-s sprint/s-8-beads-runner-reliability
 git add crates/sc-composer-beads/src/runner.rs crates/sc-composer-beads/tests/runner.rs crates/sc-composer-beads/tests/bd_integration.rs .github/workflows/ci.yml docs/plans/phase-S.md docs/phase-S/sprint-s-8-beads-runner-reliability.md
 git commit -m "refactor(beads): isolate bounded runner lifecycle"
 gh stack submit --auto
+gh pr ready <sprint-s-8-pr-number>
 gh stack view --json
-gh stack merge <sprint-s-8-pr-number> --yes --merge
+# The phase plan owns the sole final `gh stack merge` command.
 ```
 
 ## Required Validation

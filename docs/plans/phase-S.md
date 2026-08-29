@@ -81,53 +81,84 @@ or reinterpret any Top-10 verdict.
 | S-T9 | `crates/sc-composer/src/diagnostics.rs`; high-dependent public diagnostic facade | Add contract tests that freeze the current facade's schema-version value and public re-exports: `DiagnosticEnvelope`, `Diagnostic`, `DiagnosticCode`, and `DiagnosticSeverity`. | Rule 1: test the existing public contract only; no new types, exports, or serialized schema. | S.6 |
 | S-T10 | `crates/sc-compose/src/path_utils.rs` and `crates/sc-compose/src/reporting/publish_manifest/tests.rs`; high-dependent normalization and manifest-path coverage | Add focused regression coverage for `is_normalized_relative_path` and `normalize_relative_path`, including serialization-adjacent path cases. | Rule 2: preserve CLI-owned path policy; no policy relocation or format change. | S.7 |
 
-## Sprint sequence and dependencies
+## Sprint stack and dependencies
 
-| Sprint | Goal | Hard dependencies | Merge order |
+Phase S is one strictly linear `gh stack`, ordered bottom to top. This is
+deliberate: each PR contains only its sprint's incremental diff and runs CI
+once for that increment, instead of repeatedly merging every independently
+rooted sprint into the integration branch and re-running CI on every growing
+combination.
+
+```text
+develop
+└── integrate/phase-s              (draft phase-close PR → develop)
+    └── S.1 extractor seams        (PR → integrate/phase-s)
+        └── S.2 template lint      (PR → S.1)
+            └── S.3 validation     (PR → S.2)
+                └── S.4 capability (PR → S.3)
+                    └── S.5 boundaries (PR → S.4)
+                        └── S.6 diagnostics (PR → S.5)
+                            └── S.7 paths (PR → S.6)
+                                └── S.8 Beads runner (PR → S.7)
+```
+
+| Sprint | Goal | Stack parent / PR base | Merge order |
 | --- | --- | --- | --- |
-| [S.1](../phase-S/sprint-s-1-extractor-internal-seams.md) | Bound private JSON/YAML/XML extraction seams. | None. | First; establishes extractor regression fixtures. |
-| [S.2](../phase-S/sprint-s-2-template-lint-seams.md) | Split private template-lint source analysis, traversal, and report assembly. | None. | May implement in parallel with S.1; merge forward from the latest `integrate/phase-s`. |
-| [S.3](../phase-S/sprint-s-3-checked-validation-seams.md) | Isolate checked-validation report construction from presentation and exit choice. | None. | May implement in parallel; merge forward from the latest `integrate/phase-s`. |
-| [S.4](../phase-S/sprint-s-4-json-capability-seams.md) | Decompose JSON-capability dispatch and exhaustively freeze the command matrix. | None. | May implement in parallel; merge forward from the latest `integrate/phase-s`. |
-| [S.5](../phase-S/sprint-s-5-boundary-invariant-guardrails.md) | Split boundary discovery and invariant-family assertions. | None. | May implement independently; merge forward from the latest `integrate/phase-s`. |
-| [S.6](../phase-S/sprint-s-6-diagnostics-facade-contract.md) | Freeze the existing diagnostics facade and envelope defaults. | None. | May implement independently; merge forward from the latest `integrate/phase-s`. |
-| [S.7](../phase-S/sprint-s-7-path-normalization-contract.md) | Freeze CLI-owned path normalization and serialization-adjacent coverage. | None. | May implement independently; merge forward from the latest `integrate/phase-s`. |
-| [S.8](../phase-S/sprint-s-8-beads-runner-reliability.md) | Isolate the cross-platform output-capture lifecycle and prove containment. | S.1–S.7 have merged into `integrate/phase-s` before S.8 may merge. | Last; high-risk runner work merges after the independent guardrail slices. |
+| [S.1](../phase-S/sprint-s-1-extractor-internal-seams.md) | Bound private JSON/YAML/XML extraction seams. | `integrate/phase-s`; no functional dependency. | Bottom sprint layer. |
+| [S.2](../phase-S/sprint-s-2-template-lint-seams.md) | Split private template-lint source analysis, traversal, and report assembly. | S.1; no functional dependency. | Second layer. |
+| [S.3](../phase-S/sprint-s-3-checked-validation-seams.md) | Isolate checked-validation report construction from presentation and exit choice. | S.2; no functional dependency. | Third layer. |
+| [S.4](../phase-S/sprint-s-4-json-capability-seams.md) | Decompose JSON-capability dispatch and exhaustively freeze the command matrix. | S.3; no functional dependency. | Fourth layer. |
+| [S.5](../phase-S/sprint-s-5-boundary-invariant-guardrails.md) | Split boundary discovery and invariant-family assertions. | S.4; no functional dependency. | Fifth layer. |
+| [S.6](../phase-S/sprint-s-6-diagnostics-facade-contract.md) | Freeze the existing diagnostics facade and envelope defaults. | S.5; no functional dependency. | Sixth layer. |
+| [S.7](../phase-S/sprint-s-7-path-normalization-contract.md) | Freeze CLI-owned path normalization and serialization-adjacent coverage. | S.6; no functional dependency. | Seventh layer. |
+| [S.8](../phase-S/sprint-s-8-beads-runner-reliability.md) | Isolate the cross-platform output-capture lifecycle and prove containment. | S.7; no functional dependency. | Top and final sprint layer. |
 
-`integrate/phase-s` is created from `develop`. Individual sprint PRs target
-that integration branch; only the phase-close PR targets `develop`, per
-`docs/git-workflows.md`. The phrase “against develop” in the assignment is
-therefore satisfied by the integration stack's bottom layer, not by bypassing
-the required phase-integration rule.
+The stack parent is a delivery dependency, not permission to mix concerns:
+each sprint keeps its own exact targets and validation. A reviewer can review
+each layer independently because its PR base is its immediate predecessor.
 
 ## Phase integration setup and close
 
-This phase plan is the sole owner of phase setup and phase close. Every sprint
-doc contains only the commands for its own sprint layer. This follows the
-[Phase Integration Rule](../git-workflows.md#phase-integration-rule): create
-the integration branch before S.1, merge every reviewed sprint into it, then
-run the phase-ending review before the only `develop`-targeted PR.
+This phase plan is the sole owner of stack setup and phase close. Sprint docs
+contain only their own layer's commit/submit commands. This follows the
+[Phase Integration Rule](../git-workflows.md#phase-integration-rule)'s explicit
+linear-stack mode: create one integration root, add each child at the top of
+the same stack, and merge the reviewed stack once after the phase-ending
+review.
 
 ```bash
-# One-time setup before any Phase S sprint starts.
+# One-time setup before S.1. This is the only `gh stack init` in Phase S.
 git switch develop
 git pull --ff-only origin develop
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base develop integrate/phase-s
+gh stack init --base develop integrate/phase-s sprint/s-1-extractor-internal-seams
 
-# Phase close: all S.1–S.8 PRs must already be merged into integrate/phase-s.
+# After committing the current top sprint and before beginning the next sprint,
+# add exactly one child from that top branch, then work and submit it as the
+# next incremental layer. Do not pre-create independent sprint roots.
+gh stack top
+gh stack add sprint/s-2-template-lint-seams
+# Repeat, in order, for S.3 through S.8 with the branch names in the table.
+
+# If develop advances during the phase, update all layers together:
+gh stack sync
+
+# `gh stack submit --auto` creates the integration PR as a draft plus the
+# sprint PRs with their immediate-parent bases. Mark only reviewed sprint PRs
+# ready; leave the integration PR draft until phase close.
+
+# Phase close: all S.1–S.8 PRs must be open, reviewed, and CI-green.
 # REQUIRED GATE: phase-ending review per docs/git-workflows.md Phase Integration
-# Rule step 5 must PASS before executing the develop merge below.
-git switch develop
-git pull --ff-only origin develop
+# Rule step 5 must PASS before making the draft integration PR ready.
 gh stack view --json
-gh stack merge <phase-s-integration-pr-number> --yes --merge
+gh pr ready <phase-s-integration-pr-number>
+gh stack merge <sprint-s-8-pr-number> --yes --merge
 ```
 
-`gh stack merge` merges lower layers, so sprint branches remain rooted directly
-at `integrate/phase-s`; no sprint command may merge the integration branch to
-`develop`.
+No sprint doc may run `gh stack init` or `gh stack merge`. The final command
+merges the integration PR and every reviewed sprint layer bottom-to-top as one
+atomic stack operation; it is the only Phase S path to `develop`.
 
 ## Non-goals and ADR gate
 
@@ -154,8 +185,9 @@ approved phase.
   moving CLI path policy or changing serialized path output.
 - [ ] Runner tests prove bounded output and containment behavior on supported
   Unix and Windows implementations without a shell.
-- [ ] The required phase-ending review passes after S.1–S.8 merge into
-  `integrate/phase-s` and before the phase-close PR merges it into `develop`.
+- [ ] Every S.1–S.8 PR passes its own CI and review as a linear stack layer;
+  the required phase-ending review passes before the draft integration PR and
+  its descendants merge atomically into `develop`.
 - [ ] No Phase S change violates any `CLAUDE.md` Boundary Rule; any exception
   is stopped for ADR review rather than implemented.
 

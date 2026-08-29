@@ -48,11 +48,12 @@
 
 Every change should follow:
 1. Create a feature branch from `develop`, or, for phase sprint work, from
-   that phase's `integrate/phase-x` branch (see Phase Integration Rule
-   below).
+   the parent declared by that phase's `integrate/phase-x` integration model
+   (see Phase Integration Rule below).
 2. Run local validation.
 3. Push the branch.
-4. Open a PR to `develop`, or, for phase sprint work, to `integrate/phase-x`.
+4. Open a PR to `develop`, or, for phase sprint work, to the declared phase
+   parent branch.
 5. Wait for CI and review before merge.
 
 ## Phase Integration Rule
@@ -62,17 +63,29 @@ Convention above) — sprint work never merges straight into `develop`:
 
 1. Create `integrate/phase-x` from `develop` before the phase's first sprint
    starts, if it does not already exist.
-2. Every sprint branch in the phase branches from `integrate/phase-x`, and
-   its PR targets `integrate/phase-x`, not `develop`.
-3. Sprint PRs merge into `integrate/phase-x` once that sprint's own review
-   passes and CI is green.
-4. `integrate/phase-x` should periodically merge `develop` forward in-phase
-   to avoid large end-of-phase conflicts.
-5. Only after every sprint in the phase has merged into `integrate/phase-x`
-   does the phase-ending review run.
+2. By default, every sprint branch in the phase branches from
+   `integrate/phase-x`, and its PR targets `integrate/phase-x`, not `develop`.
+   A phase plan may instead explicitly declare one linear `gh stack` chain.
+   In that mode, `integrate/phase-x` is the bottom branch, the first sprint
+   targets it, and every later sprint targets its immediately preceding sprint.
+   The declared parent chain is authoritative; no sprint may create an
+   independent root at `integrate/phase-x`.
+3. In the default model, sprint PRs merge into `integrate/phase-x` once that
+   sprint's own review passes and CI is green. In the explicit linear-stack
+   model, all sprint PRs remain open as reviewed stack layers and are merged
+   bottom-to-top only at phase close with `gh stack merge --yes`.
+4. In the default model, `integrate/phase-x` should periodically merge
+   `develop` forward in-phase to avoid large end-of-phase conflicts. In the
+   explicit linear-stack model, use `gh stack sync` to cascade-rebase the
+   complete stack onto the updated trunk; do not ad-hoc merge `develop` into
+   only the integration root.
+5. Only after every sprint has either merged into `integrate/phase-x` (the
+   default model) or passed review and CI as a stack layer (the explicit
+   linear-stack model) does the phase-ending review run.
 6. Only after the phase-ending review passes does `integrate/phase-x` merge
    into `develop`. This is the only PR in the phase that targets `develop`
-   directly.
+   directly; in linear-stack mode it is the bottom PR merged atomically with
+   its reviewed sprint descendants.
 7. A phase plan doc's `branch:` frontmatter value must match this phase's
    `integrate/phase-x` name.
 

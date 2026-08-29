@@ -4,7 +4,7 @@ title: Diagnostics Facade Contract
 status: planned
 branch: sprint/s-6-diagnostics-facade-contract
 worktree: ../sc-compose-worktrees/sprint/s-6-diagnostics-facade-contract
-target: integrate/phase-s
+target: sprint/s-5-boundary-invariant-guardrails
 ---
 
 # Sprint S.6 — Diagnostics Facade Contract
@@ -18,9 +18,8 @@ only in the sense that the existing contract is frozen, not refactored.
 
 ## Hard Dependencies
 
-- `integrate/phase-s` exists from `develop` before this sprint branch exists.
-- No hard code dependency on S.1–S.5; merge-forward the latest integration
-  branch before implementation and submission.
+- S.5 is this branch's required `gh stack` parent. There is no functional code
+  dependency on S.1–S.5; the parent keeps this PR incremental.
 
 ## Exact Targets
 
@@ -73,16 +72,15 @@ pub use schema::{DiagnosticCode, DiagnosticSeverity};
 ## gh-stack Workflow
 
 ```bash
-git switch integrate/phase-s
-git pull --ff-only origin integrate/phase-s
+# The phase plan added this branch directly on top of S.5.
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base integrate/phase-s sprint/s-6-diagnostics-facade-contract
 git add crates/sc-composer/src/diagnostics.rs crates/sc-composer/src/diagnostics docs/plans/phase-S.md docs/phase-S/sprint-s-6-diagnostics-facade-contract.md
 git commit -m "test(diagnostics): freeze facade contract"
 gh stack submit --auto
+gh pr ready <sprint-s-6-pr-number>
 gh stack view --json
-gh stack merge <sprint-s-6-pr-number> --yes --merge
+# Do not merge an individual sprint layer; phase close merges the full stack.
 ```
 
 ## Required Validation

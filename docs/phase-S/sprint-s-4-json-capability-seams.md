@@ -4,7 +4,7 @@ title: JSON Capability Seams
 status: planned
 branch: sprint/s-4-json-capability-seams
 worktree: ../sc-compose-worktrees/sprint/s-4-json-capability-seams
-target: integrate/phase-s
+target: sprint/s-3-checked-validation-seams
 ---
 
 # Sprint S.4 — JSON Capability Seams
@@ -17,9 +17,8 @@ or JSON-mode behavior. This closes S-T6.
 
 ## Hard Dependencies
 
-- `integrate/phase-s` exists from `develop` before this sprint branch exists.
-- No hard code dependency on S.1–S.3; merge-forward the latest integration
-  branch before implementation and submission.
+- S.3 is this branch's required `gh stack` parent. There is no functional code
+  dependency on S.1–S.3; the parent keeps this PR incremental.
 
 ## Exact Targets
 
@@ -66,16 +65,15 @@ clap-argument redesign is authorized merely to reduce CCN.
 ## gh-stack Workflow
 
 ```bash
-git switch integrate/phase-s
-git pull --ff-only origin integrate/phase-s
+# The phase plan added this branch directly on top of S.3.
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base integrate/phase-s sprint/s-4-json-capability-seams
 git add crates/sc-compose/src/cli/capability.rs crates/sc-compose/src/cli/mod.rs crates/sc-compose/tests docs/plans/phase-S.md docs/phase-S/sprint-s-4-json-capability-seams.md
 git commit -m "refactor(cli): isolate JSON-capability seams"
 gh stack submit --auto
+gh pr ready <sprint-s-4-pr-number>
 gh stack view --json
-gh stack merge <sprint-s-4-pr-number> --yes --merge
+# Do not merge an individual sprint layer; phase close merges the full stack.
 ```
 
 ## Required Validation

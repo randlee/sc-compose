@@ -4,7 +4,7 @@ title: Path Normalization Contract
 status: planned
 branch: sprint/s-7-path-normalization-contract
 worktree: ../sc-compose-worktrees/sprint/s-7-path-normalization-contract
-target: integrate/phase-s
+target: sprint/s-6-diagnostics-facade-contract
 ---
 
 # Sprint S.7 — Path Normalization Contract
@@ -19,9 +19,8 @@ refactored.
 
 ## Hard Dependencies
 
-- `integrate/phase-s` exists from `develop` before this sprint branch exists.
-- No hard code dependency on S.1–S.6; merge-forward the latest integration
-  branch before implementation and submission.
+- S.6 is this branch's required `gh stack` parent. There is no functional code
+  dependency on S.1–S.6; the parent keeps this PR incremental.
 
 ## Exact Targets
 
@@ -67,16 +66,15 @@ pub(crate) fn normalize_relative_path(path: &Path) -> Result<PathBuf, String>;
 ## gh-stack Workflow
 
 ```bash
-git switch integrate/phase-s
-git pull --ff-only origin integrate/phase-s
+# The phase plan added this branch directly on top of S.6.
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base integrate/phase-s sprint/s-7-path-normalization-contract
 git add crates/sc-compose/src/path_utils.rs crates/sc-compose/src/reporting/publish_manifest/tests.rs crates/sc-compose/tests docs/plans/phase-S.md docs/phase-S/sprint-s-7-path-normalization-contract.md
 git commit -m "test(paths): freeze normalization contract"
 gh stack submit --auto
+gh pr ready <sprint-s-7-pr-number>
 gh stack view --json
-gh stack merge <sprint-s-7-pr-number> --yes --merge
+# Do not merge an individual sprint layer; phase close merges the full stack.
 ```
 
 ## Required Validation

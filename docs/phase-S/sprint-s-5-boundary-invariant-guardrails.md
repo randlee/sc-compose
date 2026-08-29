@@ -4,7 +4,7 @@ title: Boundary Invariant Guardrails
 status: planned
 branch: sprint/s-5-boundary-invariant-guardrails
 worktree: ../sc-compose-worktrees/sprint/s-5-boundary-invariant-guardrails
-target: integrate/phase-s
+target: sprint/s-4-json-capability-seams
 ---
 
 # Sprint S.5 — Boundary Invariant Guardrails
@@ -17,9 +17,8 @@ dependency assertion. This closes S-T7.
 
 ## Hard Dependencies
 
-- `integrate/phase-s` exists from `develop` before this sprint branch exists.
-- No hard code dependency on S.1–S.4; merge-forward the latest integration
-  branch before implementation and submission.
+- S.4 is this branch's required `gh stack` parent. There is no functional code
+  dependency on S.1–S.4; the parent keeps this PR incremental.
 
 ## Exact Targets
 
@@ -71,16 +70,15 @@ fn assert_manifest_boundary_rules(root: &Path, violations: &mut Vec<String>);
 ## gh-stack Workflow
 
 ```bash
-git switch integrate/phase-s
-git pull --ff-only origin integrate/phase-s
+# The phase plan added this branch directly on top of S.4.
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base integrate/phase-s sprint/s-5-boundary-invariant-guardrails
 git add crates/sc-compose/tests/repo_boundaries.rs crates/sc-compose/tests docs/plans/phase-S.md docs/phase-S/sprint-s-5-boundary-invariant-guardrails.md
 git commit -m "test(boundaries): isolate invariant guardrails"
 gh stack submit --auto
+gh pr ready <sprint-s-5-pr-number>
 gh stack view --json
-gh stack merge <sprint-s-5-pr-number> --yes --merge
+# Do not merge an individual sprint layer; phase close merges the full stack.
 ```
 
 ## Required Validation

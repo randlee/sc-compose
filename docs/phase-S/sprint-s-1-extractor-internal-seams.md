@@ -83,17 +83,16 @@ JSON/YAML/XML diagnostic identity at the caller boundary.
 # integrate/phase-s from develop per docs/git-workflows.md Phase Integration
 # Rule step 1. docs/plans/phase-S.md is the sole owner of global setup/close.
 
-# Sprint-local stack: root directly at the integration branch so its merge
-# cannot merge the phase branch into develop early.
-git switch integrate/phase-s
-gh stack init --base integrate/phase-s sprint/s-1-extractor-internal-seams
+# The phase plan initialized the one linear stack. This is its first sprint
+# layer, based on integrate/phase-s.
+git config rerere.enabled true
+git config remote.pushDefault origin
 git add crates/sc-composer/src/extract docs/plans/phase-S.md docs/phase-S/sprint-s-1-extractor-internal-seams.md
 git commit -m "refactor(extract): isolate private extractor seams"
 gh stack submit --auto
+gh pr ready <sprint-s-1-pr-number>
 gh stack view --json
-
-# Merge this sprint layer into integrate/phase-s after required review/CI.
-gh stack merge <sprint-s-1-pr-number> --yes --merge
+# Do not merge an individual sprint layer; phase close merges the full stack.
 ```
 
 ## Required Validation

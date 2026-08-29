@@ -941,8 +941,9 @@ Status:
 - planned: Phase S is the behavior-preserving hotspot remediation track based
   on issue #572 and repowise evidence; it partitions safe private refactors
   from intentionally vendored `sc-publish` release-package copies;
-- target: `integrate/phase-s`, with the phase integration PR as the only
-  Phase S PR targeting `develop`.
+- target: one linear `gh stack` rooted at `integrate/phase-s`; the draft
+  phase-integration PR is the only Phase S PR targeting `develop` and merges
+  atomically with the reviewed sprint layers at phase close.
 
 Sprint entries:
 
