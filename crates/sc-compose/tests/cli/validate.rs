@@ -89,6 +89,44 @@ fn validate_check_render_fails_closed_for_malformed_json() {
 }
 
 #[test]
+fn validate_check_render_reports_contract_invalid_for_conflicting_include_modes() {
+    let root = temp_root("validate-check-render-contract-invalid");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: auto\n---\n{\n  \"value\": {{ value }},\n@<fragment.json.j2>\n}\n",
+    );
+    write_file(
+        &root.join("fragment.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n\"fragment\": \"static\"\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.starts_with("state: contract_invalid\n"), "{stdout}");
+    assert!(
+        stdout.contains("ERR_JSON_MODE_INCLUDE_CONFLICT"),
+        "{stdout}"
+    );
+    assert!(!stdout.contains("hello"), "secret/context leaked: {stdout}");
+}
+
+#[test]
 fn validate_lint_reports_filter_chain_location_and_recommendation() {
     let root = temp_root("validate-lint");
     write_file(
