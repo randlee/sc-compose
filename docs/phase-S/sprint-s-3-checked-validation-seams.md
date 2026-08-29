@@ -1,7 +1,7 @@
 ---
 id: S.3
 title: Checked Validation Seams
-status: complete
+status: planned
 branch: sprint/s-3-checked-validation-seams
 worktree: ../sc-compose-worktrees/sprint/s-3-checked-validation-seams
 target: integrate/phase-s

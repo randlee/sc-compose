@@ -1,7 +1,7 @@
 ---
 id: S.4
 title: JSON Capability Seams
-status: complete
+status: planned
 branch: sprint/s-4-json-capability-seams
 worktree: ../sc-compose-worktrees/sprint/s-4-json-capability-seams
 target: integrate/phase-s

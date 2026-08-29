@@ -1,7 +1,7 @@
 ---
 id: S.8
 title: Beads Runner Reliability
-status: complete
+status: planned
 branch: sprint/s-8-beads-runner-reliability
 worktree: ../sc-compose-worktrees/sprint/s-8-beads-runner-reliability
 target: integrate/phase-s
@@ -19,6 +19,8 @@ contract and platform-specific containment strategy. This closes S-T8.
 
 - No code dependency on S.1–S.7; merge-forward the latest integration branch
   before implementation and submission.
+- **Merge-order dependency:** S.1 through S.7 must all be merged into
+  `integrate/phase-s` before the S.8 PR may merge there.
 - The existing `process-wrap` containment contract remains approved; a new
   process library or OS-containment policy requires ADR review.
 
@@ -99,11 +101,6 @@ git commit -m "refactor(beads): isolate bounded runner lifecycle"
 gh stack submit --auto
 gh stack view --json
 gh stack merge <sprint-s-8-pr-number> --yes --merge
-
-# At phase closeout, merge the integration layer to develop.
-git switch develop
-gh stack init --base develop integrate/phase-s
-gh stack merge <phase-s-integration-pr-number> --yes --merge
 ```
 
 ## Required Validation

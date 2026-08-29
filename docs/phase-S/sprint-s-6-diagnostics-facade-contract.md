@@ -1,7 +1,7 @@
 ---
 id: S.6
 title: Diagnostics Facade Contract
-status: complete
+status: planned
 branch: sprint/s-6-diagnostics-facade-contract
 worktree: ../sc-compose-worktrees/sprint/s-6-diagnostics-facade-contract
 target: integrate/phase-s
@@ -11,9 +11,10 @@ target: integrate/phase-s
 
 ## Goal
 
-Add regression coverage that freezes the existing diagnostics public facade,
-schema version, spelling, and envelope defaults without adding public API.
-This closes S-T9.
+This is a coverage-only sprint: it freezes the existing diagnostics public
+facade, schema version, spelling, and envelope defaults through regression
+tests and makes no production code change to its target files. It closes S-T9
+only in the sense that the existing contract is frozen, not refactored.
 
 ## Hard Dependencies
 
@@ -90,4 +91,5 @@ gh stack merge <sprint-s-6-pr-number> --yes --merge
 - `cargo clippy -p sc-composer --all-targets --all-features -- -D warnings`
 - `cargo test -p sc-composer`
 - `cargo test --workspace`
+- `just lint`
 - `git diff --check`

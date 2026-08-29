@@ -1,7 +1,7 @@
 ---
 id: S.7
 title: Path Normalization Contract
-status: complete
+status: planned
 branch: sprint/s-7-path-normalization-contract
 worktree: ../sc-compose-worktrees/sprint/s-7-path-normalization-contract
 target: integrate/phase-s
@@ -11,9 +11,11 @@ target: integrate/phase-s
 
 ## Goal
 
-Add focused regression coverage for the existing CLI-owned relative-path
-normalization and serialization-adjacent manifest path behavior. This closes
-S-T10.
+This is a coverage-only sprint: it freezes existing CLI-owned relative-path
+normalization and serialization-adjacent manifest path behavior through
+regression tests and makes no production code change to its target files. It
+closes S-T10 only in the sense that the existing contract is frozen, not
+refactored.
 
 ## Hard Dependencies
 

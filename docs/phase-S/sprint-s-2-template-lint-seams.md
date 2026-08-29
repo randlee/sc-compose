@@ -1,7 +1,7 @@
 ---
 id: S.2
 title: Template Lint Seams
-status: complete
+status: planned
 branch: sprint/s-2-template-lint-seams
 worktree: ../sc-compose-worktrees/sprint/s-2-template-lint-seams
 target: integrate/phase-s

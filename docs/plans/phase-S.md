@@ -1,8 +1,9 @@
 ---
 id: phase-S
 title: Hotspot Reliability and Maintainability
-status: complete
+status: planned
 phase: S
+branch: integrate/phase-s
 owner_team: sc-compose
 planning_branch: plan/phase-S-hotspot-remediation
 planning_worktree: ../sc-compose-worktrees/plan/phase-S-hotspot-remediation
@@ -14,8 +15,8 @@ related_issue: https://github.com/randlee/sc-compose/issues/572
 
 ## Plan status
 
-Planning is complete. Phase S is a bounded, behavior-preserving maintenance
-phase derived from issue #572 and the repowise dataset on
+Planning is complete; Phase S implementation is planned. It is a bounded,
+behavior-preserving maintenance phase derived from issue #572 and the repowise dataset on
 `origin/sc/repowise-update2`. It improves private seams, testability, and
 platform reliability without changing public rendering, CLI, Beads, Python, or
 release contracts.
@@ -36,6 +37,11 @@ portable. No Phase S sprint changes public types, stable diagnostic codes,
 serialized receipt shapes, CLI argument grammar, release manifests, or
 dependency direction.
 
+S-T6, S-T8, S-T9, and S-T10 are deliberately sourced from the broader
+repowise dataset rather than issue #572's named Top 10. Their source evidence
+and rejected alternatives are recorded separately below; they do not replace
+or reinterpret any Top-10 verdict.
+
 ## Critical review of issue #572 Top 10
 
 | # | Hotspot | Verdict | Code-grounded rationale |
@@ -51,7 +57,16 @@ dependency direction.
 | 9 | `plugins/sc-publish/.github/scripts/tests/test_release_artifacts.py` | Reject for Phase S | Same reasoning as #8: it is an intentional exact-copy test asset, not a separate behavior implementation. No local change is safe or useful. |
 | 10 | `crates/sc-composer/src/extract/json.rs` | Modify | Sound target, constrained to private parsing/limit/error seams: `extract_json` starts at [json.rs:60](../../crates/sc-composer/src/extract/json.rs#L60), limit checks at [json.rs:229](../../crates/sc-composer/src/extract/json.rs#L229), and raw-text mapping at [json.rs:351](../../crates/sc-composer/src/extract/json.rs#L351). It must remain JSON-specific at the public diagnostic boundary. |
 
-## Approved refactor targets
+## Broader repowise dataset targets
+
+| Target | Signal and code anchor | Bounded decision and rejected alternative |
+| --- | --- | --- |
+| S-T6 `crates/sc-compose/src/cli/capability.rs` | Score 5.25, high `complex_method`: `command_wants_json` has CCN 22 and begins at [capability.rs:3](../../crates/sc-compose/src/cli/capability.rs#L3). | Refactor only private dispatch helpers and add an exhaustive matrix. Reject a public trait or clap redesign: neither is needed to reduce the nested match. |
+| S-T8 `crates/sc-composer-beads/src/runner.rs` | Score 4.42, critical `prior_defect`: three bug fixes in roughly six months; the containment/capture lifecycle begins at [runner.rs:78](../../crates/sc-composer-beads/src/runner.rs#L78). | Partition existing private lifecycle handling and prove supported-platform containment. Reject a new process library or Beads source/database integration: both cross Rule 11 boundaries. |
+| S-T9 `crates/sc-composer/src/diagnostics.rs` | Score 4.5, critical `untested_hotspot`: 37 dependents; the schema constant and facade exports are at [diagnostics.rs:9](../../crates/sc-composer/src/diagnostics.rs#L9). | Freeze the existing facade with tests only. Reject a new diagnostic type, export, or schema revision: the target is contract confidence, not API redesign. |
+| S-T10 `crates/sc-compose/src/path_utils.rs` | Score 6.0, critical `untested_hotspot`: 22 dependents; normalization helpers start at [path_utils.rs:41](../../crates/sc-compose/src/path_utils.rs#L41) and [path_utils.rs:49](../../crates/sc-compose/src/path_utils.rs#L49). | Add focused regression coverage only. Reject moving path policy to `sc-composer` or changing serialized paths: CLI ownership and output remain fixed. |
+
+## Approved Phase S targets
 
 | ID | Target and signal | Proposed approach | Boundary-safety verdict | Sprint |
 | --- | --- | --- | --- | --- |
@@ -77,7 +92,7 @@ dependency direction.
 | [S.5](../phase-S/sprint-s-5-boundary-invariant-guardrails.md) | Split boundary discovery and invariant-family assertions. | None. | May implement independently; merge forward from the latest `integrate/phase-s`. |
 | [S.6](../phase-S/sprint-s-6-diagnostics-facade-contract.md) | Freeze the existing diagnostics facade and envelope defaults. | None. | May implement independently; merge forward from the latest `integrate/phase-s`. |
 | [S.7](../phase-S/sprint-s-7-path-normalization-contract.md) | Freeze CLI-owned path normalization and serialization-adjacent coverage. | None. | May implement independently; merge forward from the latest `integrate/phase-s`. |
-| [S.8](../phase-S/sprint-s-8-beads-runner-reliability.md) | Isolate the cross-platform output-capture lifecycle and prove containment. | None. | Last; high-risk runner work merges after the independent guardrail slices. |
+| [S.8](../phase-S/sprint-s-8-beads-runner-reliability.md) | Isolate the cross-platform output-capture lifecycle and prove containment. | S.1–S.7 have merged into `integrate/phase-s` before S.8 may merge. | Last; high-risk runner work merges after the independent guardrail slices. |
 
 `integrate/phase-s` is created from `develop`. Individual sprint PRs target
 that integration branch; only the phase-close PR targets `develop`, per
@@ -85,15 +100,34 @@ that integration branch; only the phase-close PR targets `develop`, per
 therefore satisfied by the integration stack's bottom layer, not by bypassing
 the required phase-integration rule.
 
-## Stack workflow
+## Phase integration setup and close
 
-All sprint docs include literal non-interactive `gh stack` commands. The phase
-close stack initializes `integrate/phase-s` from `develop`; every individual
-sprint has its own stack rooted at `integrate/phase-s`. This matters because
-`gh stack merge` merges all lower layers: putting a sprint above the phase PR
-would merge `integrate/phase-s` into `develop` too early. Each implementation
-must replace the placeholder PR number only after `gh stack view --json`
-identifies it.
+This phase plan is the sole owner of phase setup and phase close. Every sprint
+doc contains only the commands for its own sprint layer. This follows the
+[Phase Integration Rule](../git-workflows.md#phase-integration-rule): create
+the integration branch before S.1, merge every reviewed sprint into it, then
+run the phase-ending review before the only `develop`-targeted PR.
+
+```bash
+# One-time setup before any Phase S sprint starts.
+git switch develop
+git pull --ff-only origin develop
+git config rerere.enabled true
+git config remote.pushDefault origin
+gh stack init --base develop integrate/phase-s
+
+# Phase close: all S.1–S.8 PRs must already be merged into integrate/phase-s.
+# REQUIRED GATE: phase-ending review per docs/git-workflows.md Phase Integration
+# Rule step 5 must PASS before executing the develop merge below.
+git switch develop
+git pull --ff-only origin develop
+gh stack view --json
+gh stack merge <phase-s-integration-pr-number> --yes --merge
+```
+
+`gh stack merge` merges lower layers, so sprint branches remain rooted directly
+at `integrate/phase-s`; no sprint command may merge the integration branch to
+`develop`.
 
 ## Non-goals and ADR gate
 
@@ -106,7 +140,7 @@ approved phase.
 
 ## Phase acceptance criteria
 
-- [ ] Every S-T1 through S-T10 refactor preserves its existing public behavior
+- [ ] Every S-T1 through S-T10 target preserves its existing public behavior
   through focused regression tests and the full workspace suite.
 - [ ] Every extractor diagnostic code, recovery hint, byte span, and path
   remains stable on the committed JSON/YAML/XML corpus.
@@ -120,6 +154,8 @@ approved phase.
   moving CLI path policy or changing serialized path output.
 - [ ] Runner tests prove bounded output and containment behavior on supported
   Unix and Windows implementations without a shell.
+- [ ] The required phase-ending review passes after S.1–S.8 merge into
+  `integrate/phase-s` and before the phase-close PR merges it into `develop`.
 - [ ] No Phase S change violates any `CLAUDE.md` Boundary Rule; any exception
   is stopped for ADR review rather than implemented.
 

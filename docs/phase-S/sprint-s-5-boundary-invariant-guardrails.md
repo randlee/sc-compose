@@ -1,7 +1,7 @@
 ---
 id: S.5
 title: Boundary Invariant Guardrails
-status: complete
+status: planned
 branch: sprint/s-5-boundary-invariant-guardrails
 worktree: ../sc-compose-worktrees/sprint/s-5-boundary-invariant-guardrails
 target: integrate/phase-s

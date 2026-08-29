@@ -1,7 +1,7 @@
 ---
 id: S.1
 title: Extractor Internal Seams
-status: complete
+status: planned
 branch: sprint/s-1-extractor-internal-seams
 worktree: ../sc-compose-worktrees/sprint/s-1-extractor-internal-seams
 target: integrate/phase-s
@@ -79,12 +79,9 @@ JSON/YAML/XML diagnostic identity at the caller boundary.
 ## gh-stack Workflow
 
 ```bash
-# One-time phase-close stack, created only after all sprint PRs have merged.
-git switch develop
-git pull --ff-only origin develop
-git config rerere.enabled true
-git config remote.pushDefault origin
-gh stack init --base develop integrate/phase-s
+# Precondition: the phase plan's one-time setup already created
+# integrate/phase-s from develop per docs/git-workflows.md Phase Integration
+# Rule step 1. docs/plans/phase-S.md is the sole owner of global setup/close.
 
 # Sprint-local stack: root directly at the integration branch so its merge
 # cannot merge the phase branch into develop early.
@@ -105,4 +102,5 @@ gh stack merge <sprint-s-1-pr-number> --yes --merge
 - `cargo clippy -p sc-composer --all-targets --all-features -- -D warnings`
 - `cargo test -p sc-composer`
 - `cargo test --workspace`
+- `just lint`
 - `git diff --check`
