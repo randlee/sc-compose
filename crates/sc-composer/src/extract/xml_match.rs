@@ -7,7 +7,7 @@ use crate::error::RecoveryHintKind;
 use super::{
     Capture, DiagnosticCode, Evidence, ExtractError, ExtractionDiagnosticKind, MAX_XML_OCCURRENCES,
     XmlDocument, XmlElementId, XmlExtractionSource, XmlNode, XmlPathSegment, input_limit_error,
-    is_single_variable, map_raw_text_error, parse_value_segments, with_span,
+    is_single_variable, map_raw_text_error, parse_value_segments,
 };
 use super::{raw_text, xml_serialize};
 
@@ -263,7 +263,7 @@ fn match_full_content(
     evidence.structural_matches += 1;
     if let Some(ambiguity) = matched.ambiguity {
         return Err(ExtractError::ambiguous(
-            with_span(&ambiguity.message, ambiguity.span),
+            raw_text::format_diagnostic_message(&ambiguity.message, ambiguity.span),
             None,
         ));
     }
@@ -315,7 +315,7 @@ fn match_value(
     evidence.static_matches += matched.static_matches;
     if let Some(ambiguity) = matched.ambiguity {
         return Err(ExtractError::ambiguous(
-            with_span(&ambiguity.message, ambiguity.span),
+            raw_text::format_diagnostic_message(&ambiguity.message, ambiguity.span),
             None,
         ));
     }

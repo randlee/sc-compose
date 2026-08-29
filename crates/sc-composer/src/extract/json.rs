@@ -16,8 +16,11 @@ use super::{
     raw_text,
 };
 
-const MAX_JSON_INPUT_BYTES: usize = 1_048_576;
-const MAX_JSON_NESTING_DEPTH: usize = 64;
+#[path = "json_limits.rs"]
+mod limits;
+
+pub(super) const MAX_JSON_INPUT_BYTES: usize = 1_048_576;
+pub(super) const MAX_JSON_NESTING_DEPTH: usize = 64;
 const MAX_JSON_OCCURRENCES: usize = 10_000;
 
 /// JSON object-key or array-index path evidence.
@@ -60,23 +63,23 @@ struct Evidence {
 pub(crate) fn extract_json(
     request: &ExtractRequest<'_>,
 ) -> Result<JsonExtractionReport, ExtractError> {
-    validate_input_size(request.template, "template")?;
-    validate_input_size(request.rendered, "rendered JSON")?;
+    limits::validate_input_size(request.template, "template")?;
+    limits::validate_input_size(request.rendered, "rendered JSON")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         template_error(format!("JSON template frontmatter is invalid: {error}"))
     })?;
     let template_source = parsed_template.body();
-    validate_parse_depth(template_source)?;
+    limits::validate_parse_depth(template_source)?;
     if template_source.contains("{%") || template_source.contains("{#") {
         return Err(template_error(
             "JSON extraction does not support Jinja statements or comments",
         ));
     }
     let template = parse_document(template_source, true)?;
-    validate_parse_depth(request.rendered)?;
+    limits::validate_parse_depth(request.rendered)?;
     let rendered = parse_document(request.rendered, false)?;
-    validate_value_limits(&template, 0)?;
-    validate_value_limits(&rendered, 0)?;
+    limits::validate_value_limits(&template, 0)?;
+    limits::validate_value_limits(&rendered, 0)?;
     let mut captures = Vec::new();
     let mut evidence = Evidence::default();
     match_json(&template, &rendered, &[], &mut captures, &mut evidence)?;
@@ -185,7 +188,7 @@ fn match_json(
             .map_err(|error| map_raw_text_error(error, path))?;
             evidence.compared_values += 1;
             if let Some(ambiguity) = matched.ambiguity {
-                return Err(ambiguity_error(with_span(
+                return Err(ambiguity_error(raw_text::format_diagnostic_message(
                     &ambiguity.message,
                     ambiguity.span,
                 )));
@@ -222,73 +225,6 @@ fn match_json(
                 "JSON value does not match the known template",
             ));
         }
-    }
-    Ok(())
-}
-
-fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
-    if source.len() > MAX_JSON_INPUT_BYTES {
-        return Err(input_limit_error(format!(
-            "JSON {label} input is {} bytes; maximum is {MAX_JSON_INPUT_BYTES} bytes",
-            source.len()
-        )));
-    }
-    Ok(())
-}
-
-fn validate_parse_depth(source: &str) -> Result<(), ExtractError> {
-    let mut depth = 0;
-    let mut in_string = false;
-    let mut escaped = false;
-    for byte in source.bytes() {
-        if in_string {
-            if escaped {
-                escaped = false;
-            } else if byte == b'\\' {
-                escaped = true;
-            } else if byte == b'"' {
-                in_string = false;
-            }
-            continue;
-        }
-        match byte {
-            b'"' => in_string = true,
-            b'{' | b'[' => {
-                depth += 1;
-                if depth > MAX_JSON_NESTING_DEPTH {
-                    return Err(input_limit_error(format!(
-                        "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
-                    )));
-                }
-            }
-            b'}' | b']' => depth = depth.saturating_sub(1),
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
-fn validate_value_limits(value: &serde_json::Value, depth: usize) -> Result<(), ExtractError> {
-    if depth > MAX_JSON_NESTING_DEPTH {
-        return Err(input_limit_error(format!(
-            "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
-        )));
-    }
-    match value {
-        serde_json::Value::Object(values) => {
-            for value in values.values() {
-                validate_value_limits(value, depth + 1)?;
-            }
-        }
-        serde_json::Value::Array(values) => {
-            for value in values {
-                validate_value_limits(value, depth + 1)?;
-            }
-        }
-        serde_json::Value::Null
-        | serde_json::Value::Bool(_)
-        | serde_json::Value::Number(_)
-        | serde_json::Value::String(_) => {}
     }
     Ok(())
 }
@@ -352,33 +288,17 @@ fn map_raw_text_error(
     error: raw_text::RawTextMatchError,
     path: &[JsonPathSegment],
 ) -> ExtractError {
-    match error.scope() {
-        raw_text::RawTextErrorScope::Request => match error {
-            raw_text::RawTextMatchError::InvalidTemplate { span, message }
-            | raw_text::RawTextMatchError::StaticMismatch { span, message }
-            | raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
-                template_error(with_span(&message, span))
-            }
-        },
-        raw_text::RawTextErrorScope::Occurrence => match error {
-            raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
-                template_error(with_span(&message, span))
-            }
-            raw_text::RawTextMatchError::StaticMismatch { span, message } => {
-                shape_error(path, with_span(&message, span))
-            }
-            raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
-                ambiguity_error(with_span(&message, span))
-            }
-        },
+    match error {
+        raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
+            template_error(raw_text::format_diagnostic_message(&message, span))
+        }
+        raw_text::RawTextMatchError::StaticMismatch { span, message } => {
+            shape_error(path, raw_text::format_diagnostic_message(&message, span))
+        }
+        raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
+            ambiguity_error(raw_text::format_diagnostic_message(&message, span))
+        }
     }
-}
-
-fn with_span(message: &str, span: Option<std::ops::Range<usize>>) -> String {
-    span.map_or_else(
-        || message.to_owned(),
-        |span| format!("{message} (candidate bytes {}..{})", span.start, span.end),
-    )
 }
 
 fn template_error(message: impl Into<String>) -> ExtractError {
@@ -424,7 +344,7 @@ fn malformed_error_with_source(
     )
 }
 
-fn input_limit_error(message: impl Into<String>) -> ExtractError {
+pub(super) fn input_limit_error(message: impl Into<String>) -> ExtractError {
     ExtractError::format_error(
         DiagnosticCode::ErrExtractInputLimit,
         ExtractionDiagnosticKind::Malformed,

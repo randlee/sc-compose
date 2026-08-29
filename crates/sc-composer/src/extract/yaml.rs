@@ -2,7 +2,6 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
-use std::ops::Range;
 
 use serde::Deserialize;
 use serde::de::{self, DeserializeSeed, Deserializer, Error as _, MapAccess, SeqAccess, Visitor};
@@ -17,8 +16,11 @@ use super::{
     raw_text,
 };
 
-const MAX_YAML_INPUT_BYTES: usize = 1_048_576;
-const MAX_YAML_NESTING_DEPTH: usize = 64;
+#[path = "yaml_limits.rs"]
+mod limits;
+
+pub(super) const MAX_YAML_INPUT_BYTES: usize = 1_048_576;
+pub(super) const MAX_YAML_NESTING_DEPTH: usize = 64;
 const MAX_YAML_OCCURRENCES: usize = 10_000;
 
 /// YAML mapping-key or sequence-index path evidence.
@@ -47,7 +49,7 @@ pub enum YamlExtractionSource {
 pub type YamlExtractionReport = ExtractionReport<YamlPathSegment, YamlExtractionSource>;
 
 #[derive(Clone, Debug, PartialEq)]
-enum YamlNode {
+pub(super) enum YamlNode {
     Mapping(Vec<(String, YamlNode)>),
     Sequence(Vec<YamlNode>),
     String(String),
@@ -55,7 +57,7 @@ enum YamlNode {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum YamlScalar {
+pub(super) enum YamlScalar {
     Bool(bool),
     Number(String),
     Null,
@@ -250,13 +252,13 @@ struct Capture {
 pub(crate) fn extract_yaml(
     request: &ExtractRequest<'_>,
 ) -> Result<YamlExtractionReport, ExtractError> {
-    validate_input_size(request.template, "template")?;
-    validate_input_size(request.rendered, "rendered YAML")?;
+    limits::validate_input_size(request.template, "template")?;
+    limits::validate_input_size(request.rendered, "rendered YAML")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         template_error(format!("YAML template frontmatter is invalid: {error}"))
     })?;
     let template_source = parsed_template.body();
-    validate_parse_depth(template_source)?;
+    limits::validate_parse_depth(template_source)?;
     if template_source.contains("{%") || template_source.contains("{#") {
         return Err(template_error(
             "YAML extraction does not support Jinja statements or comments",
@@ -268,10 +270,10 @@ pub(crate) fn extract_yaml(
         ));
     }
     let template = parse_document(template_source, true)?;
-    validate_parse_depth(request.rendered)?;
+    limits::validate_parse_depth(request.rendered)?;
     let rendered = parse_document(request.rendered, false)?;
-    validate_value_limits(&template, 0)?;
-    validate_value_limits(&rendered, 0)?;
+    limits::validate_value_limits(&template, 0)?;
+    limits::validate_value_limits(&rendered, 0)?;
     let mut captures = Vec::new();
     match_yaml(&template, &rendered, &[], &mut captures)?;
 
@@ -376,7 +378,7 @@ fn match_yaml(
             })
             .map_err(|error| map_raw_text_error(error, path))?;
             if let Some(ambiguity) = matched.ambiguity {
-                return Err(ambiguity_error(with_span(
+                return Err(ambiguity_error(raw_text::format_diagnostic_message(
                     &ambiguity.message,
                     ambiguity.span,
                 )));
@@ -517,96 +519,7 @@ fn is_yaml_comment_boundary(bytes: &[u8], index: usize) -> bool {
     index == 0 || bytes[index - 1].is_ascii_whitespace()
 }
 
-fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
-    if source.len() > MAX_YAML_INPUT_BYTES {
-        return Err(input_limit_error(format!(
-            "YAML {label} input is {} bytes; maximum is {MAX_YAML_INPUT_BYTES} bytes",
-            source.len()
-        )));
-    }
-    Ok(())
-}
-
-fn validate_parse_depth(source: &str) -> Result<(), ExtractError> {
-    let mut block_indents = Vec::new();
-    let mut flow_depth = 0;
-    let mut quote = None;
-    let mut escaped = false;
-
-    for line in source.lines() {
-        let trimmed = line.trim_start();
-        if trimmed.is_empty() || trimmed.starts_with('#') {
-            continue;
-        }
-        let indent = line.len() - trimmed.len();
-        if block_indents.last().is_none_or(|last| indent > *last) {
-            block_indents.push(indent);
-        } else {
-            while block_indents.last().is_some_and(|last| indent < *last) {
-                block_indents.pop();
-            }
-            if block_indents.last().is_none_or(|last| indent > *last) {
-                block_indents.push(indent);
-            }
-        }
-        if block_indents.len().saturating_sub(1) > MAX_YAML_NESTING_DEPTH {
-            return Err(input_limit_error(format!(
-                "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
-            )));
-        }
-
-        for byte in trimmed.bytes() {
-            if let Some(active_quote) = quote {
-                if active_quote == b'"' && escaped {
-                    escaped = false;
-                } else if active_quote == b'"' && byte == b'\\' {
-                    escaped = true;
-                } else if byte == active_quote {
-                    quote = None;
-                }
-                continue;
-            }
-            match byte {
-                b'"' | b'\'' => quote = Some(byte),
-                b'[' | b'{' => {
-                    flow_depth += 1;
-                    if flow_depth > MAX_YAML_NESTING_DEPTH {
-                        return Err(input_limit_error(format!(
-                            "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
-                        )));
-                    }
-                }
-                b']' | b'}' => flow_depth = flow_depth.saturating_sub(1),
-                _ => {}
-            }
-        }
-    }
-    Ok(())
-}
-
-fn validate_value_limits(value: &YamlNode, depth: usize) -> Result<(), ExtractError> {
-    if depth > MAX_YAML_NESTING_DEPTH {
-        return Err(input_limit_error(format!(
-            "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
-        )));
-    }
-    match value {
-        YamlNode::Mapping(values) => {
-            for (_, value) in values {
-                validate_value_limits(value, depth + 1)?;
-            }
-        }
-        YamlNode::Sequence(values) => {
-            for value in values {
-                validate_value_limits(value, depth + 1)?;
-            }
-        }
-        YamlNode::String(_) | YamlNode::Other(_) => {}
-    }
-    Ok(())
-}
-
-fn input_limit_error(message: impl Into<String>) -> ExtractError {
+pub(super) fn input_limit_error(message: impl Into<String>) -> ExtractError {
     ExtractError::format_error(
         DiagnosticCode::ErrExtractInputLimit,
         ExtractionDiagnosticKind::Malformed,
@@ -635,33 +548,17 @@ fn map_raw_text_error(
     error: raw_text::RawTextMatchError,
     path: &[YamlPathSegment],
 ) -> ExtractError {
-    match error.scope() {
-        raw_text::RawTextErrorScope::Request => match error {
-            raw_text::RawTextMatchError::InvalidTemplate { span, message }
-            | raw_text::RawTextMatchError::StaticMismatch { span, message }
-            | raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
-                template_error(with_span(&message, span))
-            }
-        },
-        raw_text::RawTextErrorScope::Occurrence => match error {
-            raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
-                template_error(with_span(&message, span))
-            }
-            raw_text::RawTextMatchError::StaticMismatch { span, message } => {
-                shape_error(path, with_span(&message, span))
-            }
-            raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
-                ambiguity_error(with_span(&message, span))
-            }
-        },
+    match error {
+        raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
+            template_error(raw_text::format_diagnostic_message(&message, span))
+        }
+        raw_text::RawTextMatchError::StaticMismatch { span, message } => {
+            shape_error(path, raw_text::format_diagnostic_message(&message, span))
+        }
+        raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
+            ambiguity_error(raw_text::format_diagnostic_message(&message, span))
+        }
     }
-}
-
-fn with_span(message: &str, span: Option<Range<usize>>) -> String {
-    span.map_or_else(
-        || message.to_owned(),
-        |span| format!("{message} (candidate bytes {}..{})", span.start, span.end),
-    )
 }
 
 fn template_error(message: impl Into<String>) -> ExtractError {
@@ -820,6 +717,24 @@ mod tests {
         assert!(report.diagnostics.iter().any(|diagnostic| {
             diagnostic.code == crate::diagnostics::DiagnosticCode::WarnExtractLowConfidence
         }));
+    }
+
+    #[test]
+    fn rejects_adjacent_variable_expressions_as_ambiguous() {
+        let request = ExtractRequest::new(
+            "value: \"{{ first }}{{ second }}\"\n",
+            "value: AB\n",
+            ExtractFormat::Yaml,
+            &[],
+            &[],
+        );
+
+        let error = extract_yaml(&request).unwrap_err();
+
+        assert_eq!(
+            error.code(),
+            crate::diagnostics::DiagnosticCode::ErrExtractYamlAmbiguous
+        );
     }
 
     #[test]

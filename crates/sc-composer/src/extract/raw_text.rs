@@ -94,6 +94,14 @@ impl RawTextMatchError {
     }
 }
 
+/// Format a raw-text diagnostic with its candidate-relative byte span.
+pub(crate) fn format_diagnostic_message(message: &str, span: Option<Range<usize>>) -> String {
+    span.map_or_else(
+        || message.to_owned(),
+        |span| format!("{message} (candidate bytes {}..{})", span.start, span.end),
+    )
+}
+
 /// Parse the supported double-brace scalar expression subset.
 pub(crate) fn parse_raw_text_segments(
     value: &str,
