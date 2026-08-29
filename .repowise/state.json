@@ -1,5 +1,5 @@
 {
-  "last_sync_commit": "4af79d8fd2e83b4a14e90c8c746951b98eae2758",
+  "last_sync_commit": "135e5d7a7ec86aad7da69928562bd577d8e6343e",
   "docs_enabled": false,
   "run_mode": "standard",
   "git_tier": "full",
@@ -25,21 +25,22 @@
   },
   "knowledge_graph": {
     "version": "1.0.0",
-    "node_count": 895,
+    "node_count": 2804,
     "layer_count": 6,
     "tour_steps": 12,
     "has_summaries": true,
-    "fingerprint": "073be5e3b0269837"
+    "fingerprint": "2b1c9610b9550584"
   },
   "config_fingerprint": "64c31ef5e36169d07a55dfffd2d58a9afc7cee8fa1a0d573e4af24e186932c07",
   "store_format_version": 1,
-  "written_by_version": "0.37.0",
+  "written_by_version": "0.46.0",
   "total_pages": 70,
   "provider": "codex_cli",
   "model": "codex_cli/default",
   "total_tokens": 3011748,
   "docs_mode": "none",
-  "last_full_rescore_at": 1785382257.0,
-  "renderer_fingerprint": "8979c8cb0643c27fc7912d0da86b1f0be582abc8f2ac52da6941ab41cf3865c5",
-  "last_docs_commit": "252f283ab977febe473abafa2605abab5bcb6a23"
+  "last_full_rescore_at": 1787884180.0,
+  "renderer_fingerprint": "86dad22a253142b3657f0ba46bfbf33c73308ea93e8c60c0a57fdeeceb484028:453722034ea88df494b7d45eb59526c4a5a067e85219449dcde1e65c9b07f550",
+  "last_docs_commit": "252f283ab977febe473abafa2605abab5bcb6a23",
+  "health_analyzer_version": 6
 }
