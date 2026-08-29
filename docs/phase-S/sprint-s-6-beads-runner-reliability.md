@@ -1,13 +1,13 @@
 ---
-id: S.4
+id: S.6
 title: Beads Runner Reliability
 status: complete
-branch: sprint/s-4-beads-runner-reliability
-worktree: ../sc-compose-worktrees/sprint/s-4-beads-runner-reliability
+branch: sprint/s-6-beads-runner-reliability
+worktree: ../sc-compose-worktrees/sprint/s-6-beads-runner-reliability
 target: integrate/phase-s
 ---
 
-# Sprint S.4 — Beads Runner Reliability
+# Sprint S.6 — Beads Runner Reliability
 
 ## Goal
 
@@ -17,7 +17,7 @@ contract and platform-specific containment strategy. This closes S-T8.
 
 ## Hard Dependencies
 
-- S.3 has merged its boundary/guardrail conventions into `integrate/phase-s`.
+- S.5 has merged its boundary/guardrail conventions into `integrate/phase-s`.
 - The existing `process-wrap` containment contract remains approved; a new
   process library or OS-containment policy requires ADR review.
 
@@ -89,12 +89,12 @@ git switch integrate/phase-s
 git pull --ff-only origin integrate/phase-s
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base integrate/phase-s sprint/s-4-beads-runner-reliability
-git add crates/sc-composer-beads/src/runner.rs crates/sc-composer-beads/tests/runner.rs crates/sc-composer-beads/tests/bd_integration.rs .github/workflows/ci.yml docs/plans/phase-S.md docs/phase-S/sprint-s-4-beads-runner-reliability.md
+gh stack init --base integrate/phase-s sprint/s-6-beads-runner-reliability
+git add crates/sc-composer-beads/src/runner.rs crates/sc-composer-beads/tests/runner.rs crates/sc-composer-beads/tests/bd_integration.rs .github/workflows/ci.yml docs/plans/phase-S.md docs/phase-S/sprint-s-6-beads-runner-reliability.md
 git commit -m "refactor(beads): isolate bounded runner lifecycle"
 gh stack submit --auto
 gh stack view --json
-gh stack merge <sprint-s-4-pr-number> --yes --merge
+gh stack merge <sprint-s-6-pr-number> --yes --merge
 
 # At phase closeout, merge the integration layer to develop.
 git switch develop

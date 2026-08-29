@@ -1,27 +1,26 @@
 ---
-id: S.3
+id: S.5
 title: Boundary and Path Guardrails
 status: complete
-branch: sprint/s-3-boundary-and-path-guardrails
-worktree: ../sc-compose-worktrees/sprint/s-3-boundary-and-path-guardrails
+branch: sprint/s-5-boundary-and-path-guardrails
+worktree: ../sc-compose-worktrees/sprint/s-5-boundary-and-path-guardrails
 target: integrate/phase-s
 ---
 
-# Sprint S.3 — Boundary and Path Guardrails
+# Sprint S.5 — Boundary and Path Guardrails
 
 ## Goal
 
 Turn the concentrated repository-boundary test into independently named
-invariants and add focused diagnostics and path-helper coverage. This closes
-S-T7 and hardens high-dependent reliability seams without changing the rules
+invariants and add focused diagnostics-facade and path-helper coverage. This
+closes S-T7, S-T9, and S-T10 without changing the rules or public contracts
 those checks enforce.
 
 ## Hard Dependencies
 
 - `integrate/phase-s` exists.
-- S.1 and S.2 may run independently, but this sprint must merge-forward their
-  latest integration tip before merge so the full guardrail suite measures the
-  phase result.
+- S.1 through S.4 have merged into `integrate/phase-s`; this sprint
+  merge-forwards that tip so the full guardrail suite measures the phase result.
 
 ## Exact Targets
 
@@ -36,8 +35,9 @@ those checks enforce.
 
 - Named boundary-test helpers/tests for source scanning, manifest dependency
   checks, Python-adapter checks, and required dependency presence.
-- Regression coverage for diagnostic facade exports/schema constants and path
-  serialization/relative-normalization edge cases.
+- Regression coverage for the existing diagnostics facade (`DIAGNOSTIC_SCHEMA_VERSION
+  == "1"`; `DiagnosticEnvelope`, `Diagnostic`, `DiagnosticCode`, and
+  `DiagnosticSeverity`) and path serialization/relative-normalization edge cases.
 - Negative coverage proving existing prohibited ATM, reverse-dependency, and
   adapter-dependency patterns remain prohibited.
 
@@ -53,6 +53,17 @@ those checks enforce.
 ## Explicit Code Samples
 
 ```rust
+// Existing public diagnostics facade: freeze these exact exports and value.
+// Do not introduce a new public API merely for this test coverage.
+pub const DIAGNOSTIC_SCHEMA_VERSION: &str = "1";
+pub use envelope::DiagnosticEnvelope;
+pub use record::Diagnostic;
+pub use schema::{DiagnosticCode, DiagnosticSeverity};
+
+// Existing CLI-owned normalization contract under focused regression coverage.
+pub(crate) fn is_normalized_relative_path(path: &Path) -> bool;
+pub(crate) fn normalize_relative_path(path: &Path) -> Result<PathBuf, String>;
+
 // Test-only organization; each helper reports actionable failures.
 fn assert_source_boundary_rules(root: &Path, violations: &mut Vec<String>);
 fn assert_manifest_boundary_rules(root: &Path, violations: &mut Vec<String>);
@@ -61,7 +72,7 @@ fn assert_manifest_boundary_rules(root: &Path, violations: &mut Vec<String>);
 ## This Sprint Does Not Close
 
 - A new boundary policy or relaxation of existing policy.
-- Beads runner lifecycle changes (S.4).
+- Beads runner lifecycle changes (S.6).
 - Release-package deduplication; the source/plugin mirror remains out of scope.
 
 ## Acceptance Criteria
@@ -72,8 +83,9 @@ fn assert_manifest_boundary_rules(root: &Path, violations: &mut Vec<String>);
   exactly as before.
 - [ ] Diagnostics and path edge tests cover empty, absolute, parent, platform
   separator, and normalized relative paths as applicable.
-- [ ] Diagnostic facade/schema coverage freezes exported schema version,
-  spelling, and envelope defaults without adding public APIs.
+- [ ] Diagnostic facade/schema coverage freezes `DIAGNOSTIC_SCHEMA_VERSION == "1"`,
+  the four listed public re-exports, their spelling, and `DiagnosticEnvelope::new`
+  defaults without adding public APIs.
 - [ ] No production dependency, public API, or serialized-format changes.
 
 ## gh-stack Workflow
@@ -83,12 +95,12 @@ git switch integrate/phase-s
 git pull --ff-only origin integrate/phase-s
 git config rerere.enabled true
 git config remote.pushDefault origin
-gh stack init --base integrate/phase-s sprint/s-3-boundary-and-path-guardrails
-git add crates/sc-compose/tests/repo_boundaries.rs crates/sc-compose/src/path_utils.rs crates/sc-composer/src/diagnostics.rs crates/sc-composer/src/diagnostics docs/plans/phase-S.md docs/phase-S/sprint-s-3-boundary-and-path-guardrails.md
+gh stack init --base integrate/phase-s sprint/s-5-boundary-and-path-guardrails
+git add crates/sc-compose/tests/repo_boundaries.rs crates/sc-compose/src/path_utils.rs crates/sc-composer/src/diagnostics.rs crates/sc-composer/src/diagnostics docs/plans/phase-S.md docs/phase-S/sprint-s-5-boundary-and-path-guardrails.md
 git commit -m "test(boundaries): isolate invariant guardrails"
 gh stack submit --auto
 gh stack view --json
-gh stack merge <sprint-s-3-pr-number> --yes --merge
+gh stack merge <sprint-s-5-pr-number> --yes --merge
 
 # Phase close only, after every Phase S sprint is merged into integrate/phase-s.
 git switch develop

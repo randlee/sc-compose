@@ -948,9 +948,11 @@ Sprint entries:
 
 - [Phase S plan](plans/phase-S.md)
 - [Sprint S.1 — Extractor Internal Seams](phase-S/sprint-s-1-extractor-internal-seams.md)
-- [Sprint S.2 — CLI Contract Seams](phase-S/sprint-s-2-cli-contract-seams.md)
-- [Sprint S.3 — Boundary and Path Guardrails](phase-S/sprint-s-3-boundary-and-path-guardrails.md)
-- [Sprint S.4 — Beads Runner Reliability](phase-S/sprint-s-4-beads-runner-reliability.md)
+- [Sprint S.2 — Template Lint Seams](phase-S/sprint-s-2-template-lint-seams.md)
+- [Sprint S.3 — Checked Validation Seams](phase-S/sprint-s-3-checked-validation-seams.md)
+- [Sprint S.4 — JSON Capability Seams](phase-S/sprint-s-4-json-capability-seams.md)
+- [Sprint S.5 — Boundary and Path Guardrails](phase-S/sprint-s-5-boundary-and-path-guardrails.md)
+- [Sprint S.6 — Beads Runner Reliability](phase-S/sprint-s-6-beads-runner-reliability.md)
 
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
