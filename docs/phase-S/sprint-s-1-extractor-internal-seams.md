@@ -1,7 +1,7 @@
 ---
 id: S.1
 title: Extractor Internal Seams
-status: planned
+status: complete
 branch: sprint/s-1-extractor-internal-seams
 worktree: ../sc-compose-worktrees/sprint/s-1-extractor-internal-seams
 target: integrate/phase-s
@@ -23,8 +23,12 @@ dependency. This closes S-T1, S-T2, and S-T3.
 ## Exact Targets
 
 - `crates/sc-composer/src/extract/yaml.rs`
+- `crates/sc-composer/src/extract/yaml_limits.rs`
 - `crates/sc-composer/src/extract/json.rs`
+- `crates/sc-composer/src/extract/json_limits.rs`
 - `crates/sc-composer/src/extract/xml.rs`
+- `crates/sc-composer/src/extract/xml_match.rs`
+- `crates/sc-composer/src/extract/raw_text.rs`
 - existing extractor unit/integration fixture locations only
 - `docs/plans/phase-S.md`
 
@@ -69,12 +73,12 @@ JSON/YAML/XML diagnostic identity at the caller boundary.
 
 ## Acceptance Criteria
 
-- [ ] JSON/YAML/XML success and failure reports are behaviorally identical
+- [x] JSON/YAML/XML success and failure reports are behaviorally identical
   before and after the seam changes.
-- [ ] Existing diagnostic codes, recovery hints, paths, and UTF-8 byte offsets
+- [x] Existing diagnostic codes, recovery hints, paths, and UTF-8 byte offsets
   remain stable.
-- [ ] No dependency or public API changes occur in `Cargo.toml` or exports.
-- [ ] Focused complexity reduction is visible in the named private seams.
+- [x] No dependency or public API changes occur in `Cargo.toml` or exports.
+- [x] Focused complexity reduction is visible in the named private seams.
 
 ## gh-stack Workflow
 
