@@ -55,7 +55,7 @@ second parser or a new public lint-policy API.
 ## This Sprint Does Not Close
 
 - Checked-validation output/exit handling (S.3).
-- JSON-capability dispatch (S.4), boundary work (S.5), or runner work (S.6).
+- JSON-capability dispatch (S.4), guardrail work (S.5–S.7), or runner work (S.8).
 
 ## Acceptance Criteria
 

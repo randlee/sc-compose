@@ -60,7 +60,7 @@ JSON/YAML/XML diagnostic identity at the caller boundary.
 ## This Sprint Does Not Close
 
 - CLI lint/refactoring work (S.2).
-- Beads process-runner lifecycle changes (S.6).
+- Beads process-runner lifecycle changes (S.8).
 - A public extraction API redesign or format-unifying trait.
 
 ## Acceptance Criteria

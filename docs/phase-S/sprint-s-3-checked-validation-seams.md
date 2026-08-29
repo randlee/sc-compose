@@ -56,7 +56,7 @@ presentation and status behavior remain the contract under test.
 ## This Sprint Does Not Close
 
 - Template-lint refactoring (S.2).
-- JSON-capability dispatch (S.4), boundary work (S.5), or runner work (S.6).
+- JSON-capability dispatch (S.4), guardrail work (S.5–S.7), or runner work (S.8).
 
 ## Acceptance Criteria
 

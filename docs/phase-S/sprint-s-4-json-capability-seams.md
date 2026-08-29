@@ -52,7 +52,7 @@ clap-argument redesign is authorized merely to reduce CCN.
 ## This Sprint Does Not Close
 
 - Template-lint refactoring (S.2) or checked-validation work (S.3).
-- Boundary work (S.5) or runner work (S.6).
+- Guardrail work (S.5–S.7) or runner work (S.8).
 
 ## Acceptance Criteria
 
