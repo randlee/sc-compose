@@ -934,6 +934,29 @@ Sprint entries:
 - [Sprint R.3 — Beads Python bindings](phase-R/sprint-r-3-beads-python-bindings.md)
 - [FIX-BEADS-FUZZ-OUT-001 — Orphaned descendant output-cap containment](sprints/fix-beads-output-cap-orphan-descendant.md)
 
+### Phase S Sprint Plans
+
+Status:
+
+- planned: Phase S is the behavior-preserving hotspot remediation track based
+  on issue #572 and repowise evidence; it partitions safe private refactors
+  from intentionally vendored `sc-publish` release-package copies;
+- target: one linear `gh stack` rooted at `integrate/phase-s`; the draft
+  phase-integration PR is the only Phase S PR targeting `develop` and merges
+  atomically with the reviewed sprint layers at phase close.
+
+Sprint entries:
+
+- [Phase S plan](plans/phase-S.md)
+- [Sprint S.1 — Extractor Internal Seams](phase-S/sprint-s-1-extractor-internal-seams.md)
+- [Sprint S.2 — Template Lint Seams](phase-S/sprint-s-2-template-lint-seams.md)
+- [Sprint S.3 — Checked Validation Seams](phase-S/sprint-s-3-checked-validation-seams.md)
+- [Sprint S.4 — JSON Capability Seams](phase-S/sprint-s-4-json-capability-seams.md)
+- [Sprint S.5 — Boundary Invariant Guardrails](phase-S/sprint-s-5-boundary-invariant-guardrails.md)
+- [Sprint S.6 — Diagnostics Facade Contract](phase-S/sprint-s-6-diagnostics-facade-contract.md)
+- [Sprint S.7 — Path Normalization Contract](phase-S/sprint-s-7-path-normalization-contract.md)
+- [Sprint S.8 — Beads Runner Reliability](phase-S/sprint-s-8-beads-runner-reliability.md)
+
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
 - [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)

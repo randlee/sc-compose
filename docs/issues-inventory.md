@@ -2,8 +2,8 @@
 
 ## Status
 
-Active follow-on issue inventory for post-close cleanup and maintainability work
-after Phase B, including planned work targeting `develop`.
+Active follow-on issue inventory for post-close cleanup and maintainability
+work, including planned work targeting `develop`.
 
 This inventory records the accepted production-readiness findings that remain
 open after Phase B feature completion. It does not reopen Phase B feature
@@ -31,6 +31,12 @@ scope; it maps each accepted cleanup issue to the sprint that closes it.
 | ID | Finding | Status | Closing sprint | Notes |
 | --- | --- | --- | --- | --- |
 | PHK-CLEANUP-001 | Repowise issue #311 identifies ten candidates; Phase K selects eight behavior-preserving maintainability hotspots for structural decomposition. | Closed | `K.1`-`K.8` | Phase K completed the eight selected decompositions; `catalog.rs` and `resolver.rs` remain explicit follow-on candidates; see `docs/phase-K/phase-K-plan.md`, ADR-0015, and the Phase K boundary contract. |
+
+## Phase S Cleanup Findings
+
+| ID | Finding | Status | Closing sprint | Notes |
+| --- | --- | --- | --- | --- |
+| PHS-CLEANUP-001 | Repowise issue #572 identifies Top-10 maintainability candidates; Phase S selects bounded behavior-preserving targets and four separately documented broader-dataset candidates. | Planned | `S.1`-`S.8` | See `docs/plans/phase-S.md` for the target ledger, broader-dataset evidence, explicit rejected alternatives, and phase integration gate. No ADR is required because Phase S preserves existing boundaries and public contracts. |
 
 ## Inventory Rules
 
