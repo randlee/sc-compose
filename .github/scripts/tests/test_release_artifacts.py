@@ -1144,6 +1144,8 @@ def test_release_workflows_gate_cargo_and_python_legs_on_the_manifest() -> None:
     assert "needs.release-plan.outputs.has_python_wheels == 'true'" in release_text
     assert "needs.release-plan.outputs.has_python_sdists == 'true'" in release_text
     assert "Build wheels (maturin)" in release_text
+    assert "Build ARM64 Linux wheel (maturin + Zig)" in release_text
+    assert "install_maturin_zig: ${{ matrix.os == 'ubuntu-24.04-arm' }}" in release_text
     assert "Build wheels (setuptools)" in release_text
     assert "matrix.build_system == 'setuptools'" in release_text
     assert "python -m build --wheel" in release_text
@@ -1155,6 +1157,31 @@ def test_release_workflows_gate_cargo_and_python_legs_on_the_manifest() -> None:
     assert "steps.build_plan.outputs.workspace_toml" in preflight_text
     assert '--workspace-toml Cargo.toml' not in preflight_text
     assert 'if [[ "${HAS_CRATES}" == "true" ]]; then' in preflight_text
+
+    action_text = (
+        repo_root() / ".github" / "actions" / "setup-python-release-build" / "action.yml"
+    ).read_text(encoding="utf-8")
+    assert "install_maturin_zig:" in action_text
+    assert "inputs.install_maturin_zig == 'true'" in action_text
+    assert "maturin[zig]==1.9.4" in action_text
+
+
+def test_release_manifest_adds_only_sc_compose_arm64_linux_delivery() -> None:
+    manifest = release_manifest()
+
+    assert {
+        "target": "aarch64-unknown-linux-gnu",
+        "os": "ubuntu-24.04-arm",
+        "archive": "tar.gz",
+    } in manifest["release_targets"]
+
+    wheels_by_name = {
+        distribution["name"]: distribution["wheels"]
+        for distribution in manifest["python_distributions"]
+    }
+    assert "ubuntu-24.04-arm" in wheels_by_name["sc-compose"]
+    assert "ubuntu-24.04-arm" not in wheels_by_name["sc-sha"]
+    assert "ubuntu-24.04-arm" not in wheels_by_name["sc-composer-beads"]
 
 
 def test_homebrew_workflow_selects_manifest_formula_tracks(tmp_path: Path) -> None:

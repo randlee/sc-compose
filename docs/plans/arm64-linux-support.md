@@ -1,23 +1,30 @@
 ---
 id: ARM64.1
-title: ARM64 Linux CLI and Python Wheel Support Plan
+title: ARM64 Linux CLI and Python Wheel Support Plan (implemented by ARM64.2)
 status: complete
 branch: feature/arm64-linux-support
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feature/arm64-linux-support
 target: develop
+implementation_sprint: ARM64.2
+implementation_branch: feature/arm64-linux-support-impl
+implementation_pr: 593
+implementation_status: in_review
 ---
 
 # ARM64.1 — ARM64 Linux Support Plan
 
+> **Implementation status:** ARM64.2 implements this plan on
+> `feature/arm64-linux-support-impl` (PR #593). ARM64.1 remains the approved
+> planning record; ARM64.2 owns the implementation and release-gate evidence.
+
 ## Goal
 
 Add first-class `aarch64` Linux release coverage for the `sc-compose` CLI
-archive and the `bindings/python` PyPI wheel in a later implementation sprint.
-This document is planning-only. It records the repository state inspected at
-`f7747f7` and defines one implementation path; it makes no production, CI, or
-release change itself.
+archive and the `bindings/python` PyPI wheel. ARM64.2 implements this approved
+path. This document records ARM64.1's planning baseline at `f7747f7`; the
+planning sprint itself made no production, CI, or release change.
 
-## Current-State Evidence and Gap
+## ARM64.1 Planning Baseline and Gap
 
 The release manifest is the source of the two release matrices:
 
@@ -39,10 +46,10 @@ The release manifest is the source of the two release matrices:
   currently invokes `maturin build` with no target-specific arguments at
   `.github/workflows/release.yml:356-358`.
 
-Thus `aarch64-unknown-linux-gnu` CLI archives and
+At the ARM64.1 planning baseline, `aarch64-unknown-linux-gnu` CLI archives and
 `manylinux2014_aarch64`/`manylinux_2_17_aarch64` Python wheels are genuinely
-absent today. An ordinary host-built `linux_aarch64` wheel would not satisfy
-the PyPI portability goal.
+absent. ARM64.2 closes that gap. An ordinary host-built `linux_aarch64` wheel
+would not satisfy the PyPI portability goal.
 
 ## Recommended Implementation Path
 
@@ -56,8 +63,8 @@ cross C toolchain.
 For the Python wheel, retain that native runner but use maturin's Zig path to
 produce the explicit `manylinux2014` (glibc 2.17) compatible wheel. Maturin's
 own guidance requires a manylinux container or Zig for broadly portable Linux
-wheels; Zig avoids relying on Docker availability on the ARM runner. The
-future command is:
+wheels; Zig avoids relying on Docker availability on the ARM runner. ARM64.2
+uses this command:
 
 ```bash
 maturin build --release --manifest-path bindings/python/Cargo.toml \
@@ -74,7 +81,7 @@ an x86_64 manylinux cross container, or QEMU is not the chosen path: each adds
 a second architecture/toolchain boundary while providing no benefit for the
 CLI, and QEMU makes the tests slower and less representative.
 
-## Exact Future Changes
+## Exact ARM64.2 Implementation Changes
 
 ### Release artifact and Python distribution manifest
 
@@ -178,7 +185,7 @@ manifest support is not part of the first implementation sprint:
 
 ## Verification and Release Gate
 
-The implementation is complete only when all of the following are green:
+The ARM64.2 implementation is complete only when all of the following are green:
 
 1. Local/configuration checks: `python3 .github/scripts/release_artifacts.py
    validate-manifest --manifest release/publish-artifacts.toml --workspace-toml
@@ -200,7 +207,7 @@ The implementation is complete only when all of the following are green:
 
 ## Explicit Non-Goals
 
-- No implementation is made by this planning sprint.
+- ARM64.1 made no implementation change; ARM64.2 implements the approved path.
 - No `aarch64-unknown-linux-musl` CLI archive or `musllinux` wheel is added.
 - No ARM64 changes are made for `sc-sha`, `sc-composer-beads`, macOS, Windows,
   Winget, Scoop, or Homebrew.
