@@ -182,13 +182,23 @@ jobs:
         uses: ./.github/actions/setup-beads
 
       - name: Run workspace tests
-        # setup-sc-lint has no Linux ARM64 release. Keep the two tests that
-        # require that binary in the lint-bearing matrix while exercising all
-        # remaining workspace tests natively on ARM64.
+        # setup-sc-lint has no Linux ARM64 release. Keep the tests that require
+        # its installed backends or lint-profile toolchain in the lint-bearing
+        # matrix while exercising all remaining workspace tests natively on ARM64.
         run: >-
           cargo test --workspace --
           --skip sc_lint_version_is_pinned_to_the_bootstrap_contract
           --skip sc_lint_discovers_repository_and_fixture_roots_without_config_error
+          --skip identity_literals_pass_preserves_adapter_envelope_and_report
+          --skip identity_literals_findings_remain_non_pass_with_structured_evidence
+          --skip line_counts_pass_preserves_adapter_envelope_and_materializes_evidence
+          --skip line_counts_over_limit_remains_failed_with_structured_finding
+          --skip lint_ci_preserves_known_sc_lint_boundary_packaging_defect
+          --skip lint_ci_manifest_failure_remains_non_pass_with_structured_diagnostics
+          --skip portability_pass_preserves_envelope_and_materializes_evidence
+          --skip portability_path_violation_stays_non_pass_with_structured_finding
+          --skip runtime_pass_preserves_envelope_and_materializes_evidence
+          --skip runtime_unsafe_wait_stays_non_pass_with_structured_finding
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
