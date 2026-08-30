@@ -99,22 +99,19 @@ impl ProcessRunner for StdProcessRunner {
                 Err(mpsc::RecvTimeoutError::Timeout) => {}
                 Err(mpsc::RecvTimeoutError::Disconnected) => {
                     capture_disconnected = true;
-                    break;
                 }
             }
 
             terminate_capture_failure(
-                capture.requires_contained_termination(),
+                capture_disconnected || capture.requires_contained_termination(),
                 child.as_mut(),
                 &mut terminated_for_limit,
             )?;
-        }
 
-        terminate_capture_failure(
-            capture_disconnected,
-            child.as_mut(),
-            &mut terminated_for_limit,
-        )?;
+            if capture_disconnected {
+                break;
+            }
+        }
 
         join_capture_readers(stdout_reader, stderr_reader)?;
         if capture_disconnected {
