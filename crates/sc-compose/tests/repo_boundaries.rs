@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+#[cfg(feature = "external-lint-cli-tests")]
 use serde_json::Value;
 
 mod support;
@@ -19,6 +20,7 @@ fn repo_root() -> PathBuf {
     PathBuf::from(path.strip_prefix(r"\\?\").unwrap_or(path))
 }
 
+#[cfg(feature = "external-lint-cli-tests")]
 fn sc_lint_json(root: &Path, args: &[&str]) -> Value {
     let output = Command::new("sc-lint")
         .args(["--json", "--root"])
@@ -41,6 +43,7 @@ fn sc_lint_json(root: &Path, args: &[&str]) -> Value {
 }
 
 #[test]
+#[cfg(feature = "external-lint-cli-tests")]
 fn sc_lint_version_is_pinned_to_the_bootstrap_contract() {
     let output = Command::new("sc-lint")
         .args(["version", "--json"])
@@ -59,6 +62,7 @@ fn sc_lint_version_is_pinned_to_the_bootstrap_contract() {
 }
 
 #[test]
+#[cfg(feature = "external-lint-cli-tests")]
 fn sc_lint_discovers_repository_and_fixture_roots_without_config_error() {
     let checked_in_fixture = repo_root().join("tests/fixtures/sc-lint/bootstrap");
     let fixture = TempFixture::new("sc-lint-bootstrap");
