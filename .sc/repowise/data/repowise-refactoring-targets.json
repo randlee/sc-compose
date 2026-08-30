@@ -1,4 +1,4 @@
-repowise health — /Users/randlee/Documents/github/sc-compose-worktrees/sc/repowise-update2
+repowise health — /Users/randlee/Documents/github/sc-compose-worktrees/sc/repowise-update3
 {
   "targets": [
     {
@@ -28,19 +28,6 @@ repowise health — /Users/randlee/Documents/github/sc-compose-worktrees/sc/repo
       "plans": []
     },
     {
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "score": 6.5,
-      "nloc": 15,
-      "primary_biomarker": "co_change_scatter",
-      "primary_severity": "high",
-      "primary_reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
-      "total_impact": 3.5,
-      "effort_bucket": "S",
-      "impact_per_effort": 3.5,
-      "finding_count": 3,
-      "plans": []
-    },
-    {
       "file_path": "crates/sc-compose/src/cli/capability.rs",
       "score": 5.25,
       "nloc": 46,
@@ -51,6 +38,19 @@ repowise health — /Users/randlee/Documents/github/sc-compose-worktrees/sc/repo
       "effort_bucket": "M",
       "impact_per_effort": 2.377,
       "finding_count": 5,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-compose/tests/sc_lint_runner.rs",
+      "score": 5.49,
+      "nloc": 139,
+      "primary_biomarker": "co_change_scatter",
+      "primary_severity": "medium",
+      "primary_reason": "co-changes with 12 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
+      "total_impact": 4.505,
+      "effort_bucket": "M",
+      "impact_per_effort": 2.252,
+      "finding_count": 12,
       "plans": []
     },
     {
@@ -560,6 +560,19 @@ repowise health — /Users/randlee/Documents/github/sc-compose-worktrees/sc/repo
       "plans": []
     },
     {
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "score": 8.0,
+      "nloc": 15,
+      "primary_biomarker": "prior_defect",
+      "primary_severity": "critical",
+      "primary_reason": "27 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
+      "total_impact": 2.0,
+      "effort_bucket": "S",
+      "impact_per_effort": 2.0,
+      "finding_count": 1,
+      "plans": []
+    },
+    {
       "file_path": "crates/sc-composer-beads/src/runner.rs",
       "score": 4.42,
       "nloc": 254,
@@ -586,19 +599,6 @@ repowise health — /Users/randlee/Documents/github/sc-compose-worktrees/sc/repo
       "plans": []
     },
     {
-      "file_path": "crates/sc-compose/tests/sc_lint_runner.rs",
-      "score": 6.33,
-      "nloc": 139,
-      "primary_biomarker": "co_change_scatter",
-      "primary_severity": "medium",
-      "primary_reason": "co-changes with 12 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
-      "total_impact": 3.665,
-      "effort_bucket": "M",
-      "impact_per_effort": 1.833,
-      "finding_count": 11,
-      "plans": []
-    },
-    {
       "file_path": "crates/sc-compose/src/commands/mod.rs",
       "score": 6.35,
       "nloc": 86,
@@ -608,7 +608,7 @@ repowise health — /Users/randlee/Documents/github/sc-compose-worktrees/sc/repo
       "total_impact": 3.65,
       "effort_bucket": "M",
       "impact_per_effort": 1.825,
-      "finding_count": 5,
+      "finding_count": 4,
       "plans": [
         {
           "id": "",
