@@ -3,13 +3,13 @@
 use super::{ExtractError, MAX_JSON_INPUT_BYTES, MAX_JSON_NESTING_DEPTH, input_limit_error};
 
 pub(super) fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
-    if source.len() > MAX_JSON_INPUT_BYTES {
-        return Err(input_limit_error(format!(
-            "JSON {label} input is {} bytes; maximum is {MAX_JSON_INPUT_BYTES} bytes",
-            source.len()
-        )));
-    }
-    Ok(())
+    super::super::input_limits::validate_input_size(
+        source,
+        label,
+        "JSON",
+        MAX_JSON_INPUT_BYTES,
+        input_limit_error,
+    )
 }
 
 pub(super) fn validate_parse_depth(source: &str) -> Result<(), ExtractError> {

@@ -1,7 +1,7 @@
 ---
 id: S.11
 title: sc-compose Go Native Module Adoption
-status: planned
+status: complete
 owner_repo: randlee/sc-compose
 branch: sprint/s-11-sc-compose-go-native-module-adoption
 worktree: ../sc-compose-worktrees/sprint/s-11-sc-compose-go-native-module-adoption
@@ -25,6 +25,12 @@ related_issue: https://github.com/randlee/sc-compose/issues/583
 This sprint consumes the upstream package unchanged. All repository-specific
 facts belong in the installer JSON/configuration; do not patch copied helper
 logic or shared `sc-publish` scripts locally.
+
+## Completion evidence
+
+S.11 merged through [sc-compose PR #594](https://github.com/randlee/sc-compose/pull/594)
+at `44a91bfe3b25983eb62667e8ccce364460c43c8f`. It installs S.10 package
+version `0.1.0` from upstream merge `8d9d6790f2cad0a446758df5dcd4e2a5a9124ef9`.
 
 ## Hard Dependencies
 
@@ -172,14 +178,14 @@ python3 .github/scripts/go_native_module.py verify-version-lockstep \
 
 ## Acceptance Criteria
 
-- [ ] S.10 provenance, install input, and generated-file parity are recorded
+- [x] S.10 provenance, install input, and generated-file parity are recorded
   and reproducible from an immutable package source.
-- [ ] There is exactly one Go-native consumer config; the legacy ignored core
+- [x] There is exactly one Go-native consumer config; the legacy ignored core
   install-input object is gone.
-- [ ] The three current release gates and CI all run peer version lockstep.
-- [ ] The source-layout test calls the installed helper and has no dependency
+- [x] The three current release gates and CI all run peer version lockstep.
+- [x] The source-layout test calls the installed helper and has no dependency
   on removed core subcommands or `[go_native]`.
-- [ ] `sc-sha-go-plan` emits exactly Linux x86_64, macOS arm64, and Windows
+- [x] `sc-sha-go-plan` emits exactly Linux x86_64, macOS arm64, and Windows
   GNU x86_64, and all three downstream matrix jobs pass.
 
 ## Required Validation
@@ -203,11 +209,11 @@ python3 .github/scripts/go_native_module.py verify-version-lockstep \
 
 ## Closure Criteria
 
-- [ ] S.10 merge SHA/package version is recorded and the install is
+- [x] S.10 merge SHA/package version is recorded and the install is
   byte-identical to the upstream package output.
-- [ ] `sc-sha-go-plan` produces only the binding-declared native targets.
-- [ ] Each declared target passes all existing downstream Go module consumer
+- [x] `sc-sha-go-plan` produces only the binding-declared native targets.
+- [x] Each declared target passes all existing downstream Go module consumer
   and archive verification.
-- [ ] No core sc-publish asset or generic release behavior changed locally;
+- [x] No core sc-publish asset or generic release behavior changed locally;
   the only added release-gate behavior is invocation of the installed peer
   lockstep command.

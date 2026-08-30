@@ -126,7 +126,7 @@ impl ProcessRunner for StdProcessRunner {
             "a contained termination must have a capture failure result"
         );
         Ok(ProcessOutput {
-            exit_status: collect_child_status(child.as_mut())?,
+            exit_status: child.wait()?.code(),
             stdout: String::from_utf8_lossy(&stdout.bytes).into_owned(),
             stderr: String::from_utf8_lossy(&stderr.bytes).into_owned(),
             elapsed: started.elapsed(),
@@ -188,24 +188,16 @@ fn configure_command(command: &mut Command, spec: &CommandSpec) {
         .stderr(Stdio::piped());
 }
 
-fn terminate_contained_child(child: &mut dyn ManagedChild) -> io::Result<()> {
-    child.terminate().map(|_status| ())
-}
-
 fn terminate_capture_failure(
     requires_termination: bool,
     child: &mut dyn ManagedChild,
     terminated: &mut bool,
 ) -> io::Result<()> {
     if requires_termination && !*terminated {
-        terminate_contained_child(child)?;
+        child.terminate().map(|_status| ())?;
         *terminated = true;
     }
     Ok(())
-}
-
-fn collect_child_status(child: &mut dyn ManagedChild) -> io::Result<Option<i32>> {
-    child.wait().map(|status| status.code())
 }
 
 #[cfg(unix)]
@@ -463,6 +455,17 @@ mod tests {
         ));
         assert_eq!(reader_failure.state, CaptureState::ReaderFailed);
         assert!(reader_failure.requires_contained_termination());
+    }
+
+    #[test]
+    fn disconnected_capture_receiver_is_directly_observable() {
+        let (sender, receiver) = mpsc::channel::<CaptureEvent>();
+        drop(sender);
+
+        assert!(matches!(
+            receiver.try_recv(),
+            Err(mpsc::TryRecvError::Disconnected)
+        ));
     }
 
     #[test]

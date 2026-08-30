@@ -1,5 +1,14 @@
 # Go Native Module Remediation
 
+## Completion record
+
+The remediation is complete. S.10 delivered the versioned peer package through
+[sc-publish PR #80](https://github.com/randlee/sc-publish/pull/80), merged at
+`8d9d6790f2cad0a446758df5dcd4e2a5a9124ef9`; S.11 installed it unchanged through
+[sc-compose PR #594](https://github.com/randlee/sc-compose/pull/594), merged
+at `44a91bfe3b25983eb62667e8ccce364460c43c8f`. The remaining sections preserve
+the approved implementation contract and rationale.
+
 ## Decision
 
 Restore the `sc-sha-go` CI bundle verification through a new peer package,
@@ -174,7 +183,7 @@ for a binding-only version drift. S.11 invokes it after the core lockstep
 command in CI, release preflight, release, and release gate so the optional
 binding cannot silently leave publish-time validation.
 
-## Implementation Steps
+## Implemented design
 
 ### 1. Upstream: add the optional peer package to sc-publish
 
@@ -299,17 +308,17 @@ Actions:
 
 ## Follow-on Acceptance Criteria
 
-- [ ] No CI command calls a missing release-artifact subcommand.
-- [ ] The Go matrix is derived from the binding's native contract and shares
+- [x] No CI command calls a missing release-artifact subcommand.
+- [x] The Go matrix is derived from the binding's native contract and shares
   only runner/archival fields with the general release manifest.
-- [ ] The current three supported native module targets complete all bundle
+- [x] The current three supported native module targets complete all bundle
   verification steps in CI.
-- [ ] Python unit tests cover both success and fail-closed behavior without
+- [x] Python unit tests cover both success and fail-closed behavior without
   requiring Rust, Go, a network connection, or a CI runner.
-- [ ] sc-compose installs the approved helper, config, and hermetic tests from
+- [x] sc-compose installs the approved helper, config, and hermetic tests from
   `plugins/go-native-module` without local modifications.
-- [ ] The peer lockstep validation preserves `sc-sha-go` version coverage in
+- [x] The peer lockstep validation preserves `sc-sha-go` version coverage in
   CI, release preflight, release, and release gate after the optional config
   leaves the core manifest.
-- [ ] `release_artifacts.py` remains byte-identical to the vendored
+- [x] `release_artifacts.py` remains byte-identical to the vendored
   sc-publish copy after the implementation.

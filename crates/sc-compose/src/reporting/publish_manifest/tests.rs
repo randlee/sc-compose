@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::reporting::index::ReportIndexEntry;
@@ -8,6 +9,8 @@ use crate::reporting::output::ARCHIVE_ROOT_RELATIVE_PATH;
 use super::archive::latest_archive_root;
 use super::files::{artifact_publish_path, build_manifest_files};
 use super::model::{PublishManifest, PublishManifestFile, PublishManifestReport};
+
+static NEXT_TEMPORARY_DIRECTORY: AtomicU64 = AtomicU64::new(0);
 
 #[test]
 fn artifact_publish_path_rejects_parent_escaped_artifact() {
@@ -180,8 +183,11 @@ fn temp_root(label: &str) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .expect("time")
         .as_nanos();
-    let root =
-        std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
+    let sequence = NEXT_TEMPORARY_DIRECTORY.fetch_add(1, Ordering::Relaxed);
+    let root = std::env::temp_dir().join(format!(
+        "sc-compose-{label}-{}-{nanos}-{sequence}",
+        std::process::id()
+    ));
     fs::create_dir_all(&root).expect("create temp root");
     root
 }
