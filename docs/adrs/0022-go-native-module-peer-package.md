@@ -2,8 +2,7 @@
 
 ## Status
 
-Proposed. S.10 implementation may not begin until this ADR is Accepted by the
-owners of `sc-compose` and `sc-publish`.
+Accepted (2026-08-30).
 
 ## Context
 
