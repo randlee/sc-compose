@@ -76,3 +76,50 @@ pub(crate) fn normalize_relative_path(path: &Path) -> Result<PathBuf, String> {
 
     Ok(normalized)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::{Path, PathBuf};
+
+    use super::{is_normalized_relative_path, normalize_relative_path, serialize_path};
+
+    #[test]
+    fn normalized_relative_path_contract_covers_boundary_forms() {
+        let normalized = Path::new("reports/latest/smoke/index.html");
+        assert!(is_normalized_relative_path(normalized));
+        assert_eq!(normalize_relative_path(normalized), Ok(normalized.into()));
+
+        let absolute = std::env::current_dir().expect("current directory");
+        for (path, expected) in [
+            (PathBuf::new(), "path must not be empty"),
+            (absolute, "path must be relative"),
+            (
+                PathBuf::from("../escape.html"),
+                "path must not contain '..' segments",
+            ),
+            (
+                PathBuf::from("./index.html"),
+                "path must not contain '.' segments",
+            ),
+        ] {
+            assert!(!is_normalized_relative_path(&path));
+            assert_eq!(normalize_relative_path(&path), Err(expected.to_owned()));
+        }
+    }
+
+    #[test]
+    fn path_serialization_normalizes_platform_separators_to_forward_slashes() {
+        #[derive(serde::Serialize)]
+        struct PathPayload {
+            #[serde(serialize_with = "serialize_path")]
+            path: PathBuf,
+        }
+
+        let value = serde_json::to_value(PathPayload {
+            path: PathBuf::from(r"reports\latest\smoke\index.html"),
+        })
+        .expect("serialize path");
+
+        assert_eq!(value["path"], "reports/latest/smoke/index.html");
+    }
+}

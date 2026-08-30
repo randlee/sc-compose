@@ -7,6 +7,7 @@ use crate::reporting::output::ARCHIVE_ROOT_RELATIVE_PATH;
 
 use super::archive::latest_archive_root;
 use super::files::{artifact_publish_path, build_manifest_files};
+use super::model::{PublishManifest, PublishManifestFile, PublishManifestReport};
 
 #[test]
 fn artifact_publish_path_rejects_parent_escaped_artifact() {
@@ -64,6 +65,43 @@ fn build_manifest_files_preserves_roles_and_publish_paths() {
     assert_eq!(
         files[2].publish_to,
         PathBuf::from("reports/smoke/panels/chart.html")
+    );
+}
+
+#[test]
+fn manifest_serialization_preserves_forward_slash_paths() {
+    let manifest = PublishManifest {
+        generated_at: "2026-08-30T00:00:00Z".to_owned(),
+        reports: vec![PublishManifestReport {
+            report_id: "smoke".to_owned(),
+            kind: "smoke".to_owned(),
+            entrypoint: PathBuf::from(r"reports\latest\smoke\index.html"),
+            archive_root: Some(PathBuf::from(r"reports\archive\2026-08-30\smoke")),
+            files: vec![PublishManifestFile {
+                role: "entrypoint".to_owned(),
+                path: PathBuf::from(r"reports\latest\smoke\index.html"),
+                publish_to: PathBuf::from(r"reports\smoke\index.html"),
+            }],
+        }],
+    };
+
+    let value = serde_json::to_value(manifest).expect("serialize manifest");
+
+    assert_eq!(
+        value["reports"][0]["entrypoint"],
+        "reports/latest/smoke/index.html"
+    );
+    assert_eq!(
+        value["reports"][0]["archive_root"],
+        "reports/archive/2026-08-30/smoke"
+    );
+    assert_eq!(
+        value["reports"][0]["files"][0]["path"],
+        "reports/latest/smoke/index.html"
+    );
+    assert_eq!(
+        value["reports"][0]["files"][0]["publish_to"],
+        "reports/smoke/index.html"
     );
 }
 
