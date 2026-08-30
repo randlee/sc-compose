@@ -22,7 +22,7 @@ python-extension = ["pyo3/extension-module"]
 
 [dependencies]
 pyo3 = "0.29"
-sc-sha = { path = "../../crates/sc-sha", version = "1.6.0" }
+sc-sha = { path = "../../crates/sc-sha", version = "1.6.1" }
 
 [lints]
 workspace = true
