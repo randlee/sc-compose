@@ -1,7 +1,7 @@
 ---
 id: S.8
 title: Beads Runner Reliability
-status: planned
+status: complete
 branch: sprint/s-8-beads-runner-reliability
 worktree: ../sc-compose-worktrees/sprint/s-8-beads-runner-reliability
 target: sprint/s-7-path-normalization-contract
@@ -27,10 +27,9 @@ contract and platform-specific containment strategy. This closes S-T8.
 ## Exact Targets
 
 - `crates/sc-composer-beads/src/runner.rs`
-- `crates/sc-composer-beads/tests/runner.rs`
-- `crates/sc-composer-beads/tests/bd_integration.rs`
-- `.github/workflows/ci.yml`
-- `docs/plans/phase-S.md`
+- `crates/sc-composer-beads/tests/runner_process_tree.rs`
+- `docs/architecture.md`
+- `docs/phase-S/sprint-s-8-beads-runner-reliability.md`
 
 ## Deliverables
 
@@ -78,14 +77,14 @@ lifecycle boundaries independently.
 
 ## Acceptance Criteria
 
-- [ ] Normal exit status remains exactly the child's status.
-- [ ] Cap breach returns the existing typed output-limit marker only after
+- [x] Normal exit status remains exactly the child's status.
+- [x] Cap breach returns the existing typed output-limit marker only after
   contained-child termination and capture-reader cleanup.
-- [ ] A descendant retaining an output pipe cannot hang supported Unix or
+- [x] A descendant retaining an output pipe cannot hang supported Unix or
   Windows runner paths.
-- [ ] Runner unit and real pinned-`bd` integration tests pass on Linux, macOS,
+- [x] Runner unit and real pinned-`bd` integration tests pass on Linux, macOS,
   and Windows CI.
-- [ ] No shell, Beads source/database, CLI, adapter, or ATM dependency enters
+- [x] No shell, Beads source/database, CLI, adapter, or ATM dependency enters
   `sc-composer-beads`.
 
 ## gh-stack Workflow
@@ -94,7 +93,7 @@ lifecycle boundaries independently.
 # The phase plan added this branch directly on top of S.7.
 git config rerere.enabled true
 git config remote.pushDefault origin
-git add crates/sc-composer-beads/src/runner.rs crates/sc-composer-beads/tests/runner.rs crates/sc-composer-beads/tests/bd_integration.rs .github/workflows/ci.yml docs/plans/phase-S.md docs/phase-S/sprint-s-8-beads-runner-reliability.md
+git add crates/sc-composer-beads/src/runner.rs crates/sc-composer-beads/tests/runner_process_tree.rs docs/architecture.md docs/phase-S/sprint-s-8-beads-runner-reliability.md
 git commit -m "refactor(beads): isolate bounded runner lifecycle"
 gh stack submit --auto
 gh pr ready <sprint-s-8-pr-number>
