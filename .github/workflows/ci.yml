@@ -326,7 +326,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "target_matrix=$(python3 .github/scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+          echo "target_matrix=$(python3 .github/scripts/release_artifacts.py release-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
 
   sc-sha-go-generated:
     name: Generate shared sc-sha Go bindings
