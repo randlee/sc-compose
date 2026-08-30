@@ -2,12 +2,14 @@
 
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use sc_composer_beads::runner::PROCESS_OUTPUT_LIMIT_BYTES;
 use sc_composer_beads::{CommandSpec, ProcessRunner, StdProcessRunner};
 
 const FIXTURE: &str = env!("CARGO_BIN_EXE_sc-composer-beads-runner-fixture");
+static NEXT_TEMPORARY_DIRECTORY: AtomicU64 = AtomicU64::new(0);
 
 #[test]
 fn normal_nonzero_exit_status_is_preserved() {
@@ -71,9 +73,10 @@ fn temporary_directory() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .expect("clock")
         .as_nanos();
+    let sequence = NEXT_TEMPORARY_DIRECTORY.fetch_add(1, Ordering::Relaxed);
     let root = std::env::temp_dir().join(format!(
-        "sc-composer-beads-runner-process-tree-{}-{unique}",
-        std::process::id()
+        "sc-composer-beads-runner-process-tree-{}-{unique}-{sequence}",
+        std::process::id(),
     ));
     fs::create_dir_all(&root).expect("create fixture directory");
     root
