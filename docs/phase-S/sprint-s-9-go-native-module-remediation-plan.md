@@ -4,7 +4,7 @@ title: Go Native Module Remediation Plan
 status: complete
 branch: sprint/s-9-go-native-module-remediation-plan
 worktree: ../sc-compose-worktrees/sprint/s-9-go-native-module-remediation-plan
-target: sprint/s-8-beads-runner-reliability
+target: develop
 ---
 
 # Sprint S.9 — Go Native Module Remediation Plan
@@ -19,8 +19,7 @@ cutover in `71b9d7f`). This sprint is **planning-only**: no changes to
 
 ## Hard Dependencies
 
-- S.8 is this branch's required `gh stack` parent. There is no functional code
-  dependency on S.1–S.8.
+- There is no functional code dependency on S.1–S.8.
 
 ## Exact Targets
 
