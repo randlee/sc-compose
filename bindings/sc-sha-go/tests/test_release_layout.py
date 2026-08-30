@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -13,13 +14,37 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = REPOSITORY_ROOT / "release" / "publish-artifacts.toml"
-SCRIPT = REPOSITORY_ROOT / "scripts" / "release_artifacts.py"
+CONFIG = REPOSITORY_ROOT / "release" / "go-native-module.toml"
+SCRIPT = REPOSITORY_ROOT / ".github" / "scripts" / "go_native_module.py"
 BINDING_ROOT = REPOSITORY_ROOT / "bindings" / "sc-sha-go"
 
 
 def go_native_targets() -> list[dict[str, str]]:
-    data = tomllib.loads(MANIFEST.read_text(encoding="utf-8"))
-    return data["go_native"]["targets"]
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "target-matrix",
+            "--manifest",
+            str(MANIFEST),
+            "--config",
+            str(CONFIG),
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise RuntimeError(result.stderr)
+    return [
+        {
+            "rust_target": target["target"],
+            "goos": target["goos"],
+            "goarch": target["goarch"],
+            "library": target["library"],
+        }
+        for target in json.loads(result.stdout)["include"]
+    ]
 
 
 class ReleaseLayoutTests(unittest.TestCase):
@@ -30,9 +55,9 @@ class ReleaseLayoutTests(unittest.TestCase):
             [
                 sys.executable,
                 str(SCRIPT),
-                "stage-go-native-module",
-                "--manifest",
-                str(MANIFEST),
+                "stage",
+                "--config",
+                str(CONFIG),
                 "--target",
                 target["rust_target"],
                 "--native-library",

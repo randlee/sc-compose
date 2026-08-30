@@ -193,6 +193,34 @@ def write_repo_fixture(
         encoding="utf-8",
     )
 
+    go_native_source = tmp_path / "bindings" / "sc-sha-go"
+    (go_native_source / "go" / "sc_sha_go").mkdir(parents=True)
+    (go_native_source / "native").mkdir()
+    (go_native_source / "Cargo.toml").write_text(
+        '[package]\nname = "sc-sha-go"\nversion.workspace = true\n', encoding="utf-8"
+    )
+    (go_native_source / "go.mod").write_text(
+        "module github.com/example/sc-sha-go\n", encoding="utf-8"
+    )
+    (go_native_source / "native" / "targets.toml").write_text(
+        "schema_version = 1\n\n[contract]\n"
+        'generated_package = "go/sc_sha_go"\n'
+        'native_library = "libsc_sha_go.a"\n\n'
+        "[[targets]]\n"
+        'rust_target = "x86_64-unknown-linux-gnu"\n'
+        'goos = "linux"\n'
+        'goarch = "amd64"\n'
+        'library = "libsc_sha_go.a"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "release" / "go-native-module.toml").write_text(
+        "schema_version = 1\n"
+        'source = "bindings/sc-sha-go"\n'
+        'cargo_package = "sc-sha-go"\n'
+        'artifact_prefix = "sc-sha-go"\n',
+        encoding="utf-8",
+    )
+
     return workspace, manifest
 
 
@@ -439,6 +467,7 @@ def run_release_gate_readiness(
     scripts_dir = tmp_path / ".github" / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
     for script_name in (
+        "go_native_module.py",
         "release_artifacts.py",
         "release_manifest.py",
         "release_registry.py",
@@ -3108,6 +3137,24 @@ def run_verify_version_lockstep(workspace: Path, manifest: Path) -> subprocess.C
     )
 
 
+def run_verify_go_native_version_lockstep(workspace: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            "scripts/go_native_module.py",
+            "verify-version-lockstep",
+            "--config",
+            str(workspace.parent / "release" / "go-native-module.toml"),
+            "--workspace-toml",
+            str(workspace),
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def test_verify_readme_version_passes_when_readme_matches_workspace(tmp_path: Path) -> None:
     workspace, readme, manifest = write_readme_fixture(
         tmp_path, dependency_version="1.2.0", status_version="1.2.0", stability_minor="1.2"
@@ -3200,6 +3247,23 @@ def test_verify_version_lockstep_rejects_python_package_drift(tmp_path: Path) ->
     assert result.returncode != 0
     assert "bindings/python/pyproject.toml" in result.stderr
     assert "[project].version mismatch" in result.stderr
+
+
+def test_go_native_version_lockstep_accepts_workspace_inheritance_and_rejects_drift(
+    tmp_path: Path,
+) -> None:
+    workspace, _manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    accepted = run_verify_go_native_version_lockstep(workspace)
+    assert accepted.returncode == 0, accepted.stderr
+    assert accepted.stdout.strip() == "1.1.0"
+
+    binding = tmp_path / "bindings" / "sc-sha-go" / "Cargo.toml"
+    binding.write_text(
+        '[package]\nname = "sc-sha-go"\nversion = "9.9.9"\n', encoding="utf-8"
+    )
+    rejected = run_verify_go_native_version_lockstep(workspace)
+    assert rejected.returncode != 0
+    assert "inherit workspace" in rejected.stderr
 
 
 def test_build_plan_selects_the_manifest_declared_python_upload_tool(tmp_path: Path) -> None:

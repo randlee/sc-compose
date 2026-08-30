@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -131,9 +132,13 @@ class ReleaseScriptTests(unittest.TestCase):
             (repo / ".github" / "scripts" / "release_artifacts.py").write_text(
                 "raise SystemExit(0)\n", encoding="utf-8"
             )
+            (repo / ".github" / "scripts" / "go_native_module.py").write_text(
+                "raise SystemExit(0)\n", encoding="utf-8"
+            )
             (repo / "Cargo.toml").write_text("[workspace]\n", encoding="utf-8")
             (repo / "release").mkdir()
             (repo / "release" / "publish-artifacts.toml").write_text("", encoding="utf-8")
+            (repo / "release" / "go-native-module.toml").write_text("", encoding="utf-8")
             (repo / "README.md").write_text("base\n", encoding="utf-8")
             self._git(repo, "add", ".")
             self._git(repo, "commit", "-m", "base")
@@ -203,9 +208,13 @@ class ReleaseScriptTests(unittest.TestCase):
             (repo / ".github" / "scripts" / "release_artifacts.py").write_text(
                 "raise SystemExit(0)\n", encoding="utf-8"
             )
+            (repo / ".github" / "scripts" / "go_native_module.py").write_text(
+                "raise SystemExit(0)\n", encoding="utf-8"
+            )
             (repo / "Cargo.toml").write_text("[workspace]\n", encoding="utf-8")
             (repo / "release").mkdir()
             (repo / "release" / "publish-artifacts.toml").write_text("", encoding="utf-8")
+            (repo / "release" / "go-native-module.toml").write_text("", encoding="utf-8")
             (repo / "README.md").write_text("main\n", encoding="utf-8")
             self._git(repo, "add", ".")
             self._git(repo, "commit", "-m", "main")
@@ -263,6 +272,62 @@ class ReleaseScriptTests(unittest.TestCase):
         self.assertIn("public-registry-inquiry-plan", result.stdout)
         self.assertIn("preflight-secret-plan", result.stdout)
         self.assertIn("registry-status", result.stdout)
+
+    def test_go_native_peer_uses_exact_declared_target_matrix(self) -> None:
+        workflow = (PACKAGE_ROOT / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "go_native_module.py target-matrix --manifest release/publish-artifacts.toml "
+            "--config release/go-native-module.toml",
+            workflow,
+        )
+        self.assertIn("go_native_module.py stage", workflow)
+        self.assertNotIn("go-native-target-matrix", workflow)
+        self.assertNotIn("stage-go-native-module", workflow)
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPTS / "go_native_module.py"),
+                "target-matrix",
+                "--manifest",
+                "release/publish-artifacts.toml",
+                "--config",
+                "release/go-native-module.toml",
+            ],
+            cwd=PACKAGE_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        matrix = json.loads(result.stdout)["include"]
+        self.assertEqual(
+            [
+                (entry["target"], entry["goos"], entry["goarch"], entry["library"])
+                for entry in matrix
+            ],
+            [
+                ("x86_64-unknown-linux-gnu", "linux", "amd64", "libsc_sha_go.a"),
+                ("aarch64-apple-darwin", "darwin", "arm64", "libsc_sha_go.a"),
+                ("x86_64-pc-windows-gnu", "windows", "amd64", "libsc_sha_go.a"),
+            ],
+        )
+
+    def test_go_native_peer_lockstep_follows_core_lockstep_in_all_release_paths(self) -> None:
+        core = "python3 .github/scripts/release_artifacts.py verify-version-lockstep"
+        peer = "python3 .github/scripts/go_native_module.py verify-version-lockstep"
+        for relative in (
+            ".github/workflows/ci.yml",
+            ".github/workflows/release-preflight.yml",
+            ".github/workflows/release.yml",
+            ".github/scripts/release_gate.sh",
+        ):
+            with self.subTest(path=relative):
+                text = (PACKAGE_ROOT / relative).read_text(encoding="utf-8")
+                self.assertEqual(text.count(core), 1)
+                self.assertEqual(text.count(peer), 1)
+                self.assertLess(text.index(core), text.index(peer))
 
     def test_bootstrap_enforces_the_documented_renderer_version_floor(self) -> None:
         script = SCRIPTS / "bootstrap_sc_compose.py"
