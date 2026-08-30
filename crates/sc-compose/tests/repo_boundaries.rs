@@ -308,10 +308,7 @@ fn boundary_fixture(name: &str) -> TempFixture {
 }
 
 fn write_boundary_fixture(root: &Path, relative: &str, contents: &str) {
-    let path = root.join(relative);
-    fs::create_dir_all(path.parent().expect("fixture file has parent"))
-        .expect("create fixture parent");
-    fs::write(path, contents).expect("write boundary fixture");
+    support::write_file(&root.join(relative), contents);
 }
 
 #[test]
