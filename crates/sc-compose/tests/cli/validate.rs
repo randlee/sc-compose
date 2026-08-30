@@ -58,6 +58,34 @@ fn validate_check_render_reports_context_valid_without_emitting_body() {
 }
 
 #[test]
+fn validate_check_render_reports_context_required_for_missing_variable() {
+    let root = temp_root("validate-check-render-context-required");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.starts_with("state: context_required\n"), "{stdout}");
+    assert!(stdout.contains("ERR_VAL_MISSING_REQUIRED"), "{stdout}");
+}
+
+#[test]
 fn validate_check_render_fails_closed_for_malformed_json() {
     let root = temp_root("validate-check-render-invalid");
     write_file(
