@@ -1,11 +1,10 @@
 //! Helper binary for process-tree containment regression coverage.
 
 use std::fs;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::thread;
-use std::time::Duration;
+use std::sync::mpsc;
 
 fn main() -> io::Result<()> {
     let mut arguments = std::env::args().skip(1);
@@ -15,7 +14,7 @@ fn main() -> io::Result<()> {
         Some("exit") => exit_with(arguments),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "expected `root <overflow-bytes>`, `descendant`, or `exit <status>`",
+            "expected `root <overflow-bytes> <descendant-state>`, `descendant`, or `exit <status>`",
         )),
     }
 }
@@ -36,27 +35,25 @@ fn run_root(mut arguments: impl Iterator<Item = String>) -> io::Result<()> {
         .parse::<usize>()
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let state_file = next_path(&mut arguments, "missing descendant state path")?;
-    let ready_file = next_path(&mut arguments, "missing descendant ready path")?;
     let executable = std::env::current_exe()?;
 
-    Command::new(executable)
+    let mut descendant = Command::new(executable)
         .arg("descendant")
         .arg(state_file)
-        .arg(ready_file.clone())
         .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
+        .stderr(Stdio::piped())
         .spawn()?;
 
-    for _ in 0..200 {
-        if ready_file.exists() {
-            break;
-        }
-        thread::sleep(Duration::from_millis(10));
-    }
-    if !ready_file.exists() {
+    let mut ready = [0_u8; 1];
+    descendant
+        .stderr
+        .take()
+        .expect("descendant stderr is piped")
+        .read_exact(&mut ready)?;
+    if ready != [b'R'] {
         return Err(io::Error::new(
-            io::ErrorKind::TimedOut,
-            "descendant did not become ready",
+            io::ErrorKind::InvalidData,
+            "descendant emitted an invalid ready signal",
         ));
     }
 
@@ -67,15 +64,15 @@ fn run_root(mut arguments: impl Iterator<Item = String>) -> io::Result<()> {
 
 fn run_descendant(mut arguments: impl Iterator<Item = String>) -> io::Result<()> {
     let state_file = next_path(&mut arguments, "missing descendant state path")?;
-    let ready_file = next_path(&mut arguments, "missing descendant ready path")?;
-    fs::write(ready_file, "ready")?;
+    fs::write(state_file, "started")?;
+    io::stderr().write_all(b"R")?;
+    io::stderr().flush()?;
 
-    let mut generation = 0_u64;
-    loop {
-        fs::write(&state_file, generation.to_string())?;
-        generation += 1;
-        thread::sleep(Duration::from_millis(10));
-    }
+    // Retain the inherited stdout pipe until process-group/job containment.
+    let (_never_send, never_receive) = mpsc::channel::<()>();
+    never_receive
+        .recv()
+        .map_err(|_| io::Error::other("descendant lifetime channel disconnected"))
 }
 
 fn next_path(arguments: &mut impl Iterator<Item = String>, message: &str) -> io::Result<PathBuf> {
