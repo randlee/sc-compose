@@ -45,7 +45,10 @@ fn artifact_publish_path_rejects_empty_remainder_at_report_root() {
 
     let message = error.to_string();
     assert!(message.contains("invalid publish-manifest artifact path for smoke"));
-    assert!(message.contains("artifact must remain under reports/latest/smoke"));
+    assert!(message.contains(&format!(
+        "artifact must remain under {}",
+        latest_report_root.display()
+    )));
     assert!(message.contains("path must not be empty"));
 }
 
@@ -62,7 +65,10 @@ fn artifact_publish_path_rejects_absolute_artifact_at_manifest_surface() {
 
     let message = error.to_string();
     assert!(message.contains("invalid publish-manifest artifact path for smoke"));
-    assert!(message.contains("artifact must remain under reports/latest/smoke"));
+    assert!(message.contains(&format!(
+        "artifact must remain under {}",
+        latest_report_root.display()
+    )));
     assert!(message.contains("prefix not found"));
 }
 
