@@ -165,6 +165,58 @@ jobs:
           path: reports/latest/sc-lint/
           if-no-files-found: warn
 
+  linux-arm64-release-validation:
+    needs: [clippy, manifest-validation]
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+          targets: aarch64-unknown-linux-gnu
+
+      - id: beads
+        name: Install pinned Beads
+        uses: ./.github/actions/setup-beads
+
+      - name: Run workspace tests
+        run: cargo test --workspace
+        env:
+          BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
+
+      - name: Build and smoke-test native ARM64 CLI archive target
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --target aarch64-unknown-linux-gnu -p sc-compose
+          target/aarch64-unknown-linux-gnu/release/sc-compose --help
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ARM64 wheel build tooling
+        run: python -m pip install 'maturin[zig]==1.9.4' pytest
+
+      - name: Build, install, and verify ARM64 manylinux wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          maturin build --release --manifest-path bindings/python/Cargo.toml --out dist --compatibility manylinux2014 --zig
+          wheel="$(find dist -maxdepth 1 -type f -name '*.whl' -print -quit)"
+          case "${wheel}" in
+            *manylinux2014_aarch64*.whl) ;;
+            *)
+              echo "expected an aarch64 manylinux2014 wheel, found: ${wheel:-none}" >&2
+              exit 1
+              ;;
+          esac
+          python -m pip install --force-reinstall "${wheel}"
+          (cd bindings/python && python -m pytest tests/test_smoke.py)
+
   python-wheels:
     needs: [test]
     strategy:

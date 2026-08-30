@@ -1157,6 +1157,24 @@ def test_release_workflows_gate_cargo_and_python_legs_on_the_manifest() -> None:
     assert 'if [[ "${HAS_CRATES}" == "true" ]]; then' in preflight_text
 
 
+def test_release_manifest_adds_only_sc_compose_arm64_linux_delivery() -> None:
+    manifest = release_manifest()
+
+    assert {
+        "target": "aarch64-unknown-linux-gnu",
+        "os": "ubuntu-24.04-arm",
+        "archive": "tar.gz",
+    } in manifest["release_targets"]
+
+    wheels_by_name = {
+        distribution["name"]: distribution["wheels"]
+        for distribution in manifest["python_distributions"]
+    }
+    assert "ubuntu-24.04-arm" in wheels_by_name["sc-compose"]
+    assert "ubuntu-24.04-arm" not in wheels_by_name["sc-sha"]
+    assert "ubuntu-24.04-arm" not in wheels_by_name["sc-composer-beads"]
+
+
 def test_homebrew_workflow_selects_manifest_formula_tracks(tmp_path: Path) -> None:
     _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
     formulas = """

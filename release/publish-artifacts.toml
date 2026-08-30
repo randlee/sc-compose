@@ -14,6 +14,10 @@ target = "x86_64-unknown-linux-gnu"
 os = "ubuntu-latest"
 archive = "tar.gz"
 [[release_targets]]
+target = "aarch64-unknown-linux-gnu"
+os = "ubuntu-24.04-arm"
+archive = "tar.gz"
+[[release_targets]]
 target = "aarch64-apple-darwin"
 os = "macos-14"
 archive = "tar.gz"
@@ -95,7 +99,7 @@ source = "bindings/python"
 cargo_manifest = "bindings/python/Cargo.toml"
 module_path = "bindings/python/python/sc_compose"
 sdist = true
-wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
+wheels = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "windows-latest"]
 [[python_distributions]]
 name = "sc-composer-beads"
 source = "bindings/sc-composer-beads-python"
