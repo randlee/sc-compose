@@ -957,6 +957,10 @@ Sprint entries:
 - [Sprint S.7 — Path Normalization Contract](phase-S/sprint-s-7-path-normalization-contract.md)
 - [Sprint S.8 — Beads Runner Reliability](phase-S/sprint-s-8-beads-runner-reliability.md)
 
+### Follow-on Plan: ARM64 Linux CLI and Python Wheel Support
+
+- [ARM64.1 — ARM64 Linux CLI and Python Wheel Support Plan](plans/arm64-linux-support.md)
+
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
 - [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
