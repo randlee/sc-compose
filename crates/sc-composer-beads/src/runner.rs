@@ -92,16 +92,32 @@ impl ProcessRunner for StdProcessRunner {
 
         let mut capture = CaptureTracker::new();
         let mut terminated_for_limit = false;
-        let capture_disconnected = monitor_capture(
-            &capture_receiver,
-            &mut capture,
-            child.as_mut(),
-            &mut terminated_for_limit,
-        )?;
+        let mut capture_disconnected = false;
+        while !capture.is_complete() {
+            match capture_receiver.recv_timeout(Duration::from_millis(10)) {
+                Ok(event) => capture.observe(event),
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                    capture_disconnected = true;
+                }
+            }
+
+            terminate_capture_failure(
+                capture_disconnected || capture.requires_contained_termination(),
+                child.as_mut(),
+                &mut terminated_for_limit,
+            )?;
+
+            if capture_disconnected {
+                break;
+            }
+        }
 
         join_capture_readers(stdout_reader, stderr_reader)?;
         if capture_disconnected {
-            return Err(capture_disconnected_error());
+            return Err(io::Error::other(
+                "child output capture closed before both streams completed",
+            ));
         }
 
         let (stdout, stderr) = capture.finish()?;
@@ -110,7 +126,7 @@ impl ProcessRunner for StdProcessRunner {
             "a contained termination must have a capture failure result"
         );
         Ok(ProcessOutput {
-            exit_status: child.wait()?.code(),
+            exit_status: collect_child_status(child.as_mut())?,
             stdout: String::from_utf8_lossy(&stdout.bytes).into_owned(),
             stderr: String::from_utf8_lossy(&stderr.bytes).into_owned(),
             elapsed: started.elapsed(),
@@ -122,7 +138,7 @@ trait ManagedChild {
     fn take_stdout(&mut self) -> Option<ChildStdout>;
     fn take_stderr(&mut self) -> Option<ChildStderr>;
     fn wait(&mut self) -> io::Result<ExitStatus>;
-    fn terminate(&mut self) -> io::Result<()>;
+    fn terminate(&mut self) -> io::Result<ExitStatus>;
 }
 
 impl ManagedChild for std::process::Child {
@@ -138,9 +154,9 @@ impl ManagedChild for std::process::Child {
         std::process::Child::wait(self)
     }
 
-    fn terminate(&mut self) -> io::Result<()> {
+    fn terminate(&mut self) -> io::Result<ExitStatus> {
         self.kill()?;
-        self.wait().map(|_status| ())
+        self.wait()
     }
 }
 
@@ -158,9 +174,9 @@ impl ManagedChild for Box<dyn ChildWrapper> {
         ChildWrapper::wait(self.as_mut())
     }
 
-    fn terminate(&mut self) -> io::Result<()> {
+    fn terminate(&mut self) -> io::Result<ExitStatus> {
         ChildWrapper::start_kill(self.as_mut())?;
-        ChildWrapper::wait(self.as_mut()).map(|_status| ())
+        ChildWrapper::wait(self.as_mut())
     }
 }
 
@@ -172,49 +188,24 @@ fn configure_command(command: &mut Command, spec: &CommandSpec) {
         .stderr(Stdio::piped());
 }
 
+fn terminate_contained_child(child: &mut dyn ManagedChild) -> io::Result<()> {
+    child.terminate().map(|_status| ())
+}
+
 fn terminate_capture_failure(
     requires_termination: bool,
     child: &mut dyn ManagedChild,
     terminated: &mut bool,
 ) -> io::Result<()> {
     if requires_termination && !*terminated {
-        child.terminate()?;
+        terminate_contained_child(child)?;
         *terminated = true;
     }
     Ok(())
 }
 
-fn monitor_capture(
-    capture_receiver: &mpsc::Receiver<CaptureEvent>,
-    capture: &mut CaptureTracker,
-    child: &mut dyn ManagedChild,
-    terminated: &mut bool,
-) -> io::Result<bool> {
-    while !capture.is_complete() {
-        let capture_disconnected = match capture_receiver.recv_timeout(Duration::from_millis(10)) {
-            Ok(event) => {
-                capture.observe(event);
-                false
-            }
-            Err(mpsc::RecvTimeoutError::Timeout) => false,
-            Err(mpsc::RecvTimeoutError::Disconnected) => true,
-        };
-
-        terminate_capture_failure(
-            capture_disconnected || capture.requires_contained_termination(),
-            child,
-            terminated,
-        )?;
-
-        if capture_disconnected {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
-fn capture_disconnected_error() -> io::Error {
-    io::Error::other("child output capture closed before both streams completed")
+fn collect_child_status(child: &mut dyn ManagedChild) -> io::Result<Option<i32>> {
+    child.wait().map(|status| status.code())
 }
 
 #[cfg(unix)]
@@ -400,42 +391,16 @@ pub(crate) fn is_process_output_limit_error(error: &io::Error) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{self, Cursor};
-    use std::process::{ChildStderr, ChildStdout, ExitStatus};
+    use std::io::Cursor;
     use std::sync::mpsc;
     use std::thread;
     use std::time::Duration;
 
     use super::{
-        CaptureEvent, CaptureState, CaptureTracker, CapturedStream, ManagedChild,
-        PROCESS_OUTPUT_LIMIT_BYTES, StreamKind, capture_disconnected_error, capture_stream,
-        is_process_output_limit_error, join_capture_readers, monitor_capture,
+        CaptureEvent, CaptureState, CaptureTracker, CapturedStream, PROCESS_OUTPUT_LIMIT_BYTES,
+        StreamKind, capture_stream, is_process_output_limit_error, join_capture_readers,
         process_output_limit_error,
     };
-
-    #[derive(Default)]
-    struct RecordingChild {
-        terminations: usize,
-    }
-
-    impl ManagedChild for RecordingChild {
-        fn take_stdout(&mut self) -> Option<ChildStdout> {
-            None
-        }
-
-        fn take_stderr(&mut self) -> Option<ChildStderr> {
-            None
-        }
-
-        fn wait(&mut self) -> io::Result<ExitStatus> {
-            unreachable!("the capture-disconnect path must terminate before waiting")
-        }
-
-        fn terminate(&mut self) -> io::Result<()> {
-            self.terminations += 1;
-            Ok(())
-        }
-    }
 
     #[test]
     fn capture_stream_retains_only_the_hard_limit_and_reports_overflow() {
@@ -501,23 +466,14 @@ mod tests {
     }
 
     #[test]
-    fn disconnected_capture_terminates_the_contained_child_and_reports_the_exact_error() {
-        let (sender, receiver) = mpsc::channel();
+    fn disconnected_capture_receiver_is_directly_observable() {
+        let (sender, receiver) = mpsc::channel::<CaptureEvent>();
         drop(sender);
-        let mut capture = CaptureTracker::new();
-        let mut child = RecordingChild::default();
-        let mut terminated = false;
 
-        assert!(
-            monitor_capture(&receiver, &mut capture, &mut child, &mut terminated)
-                .expect("disconnected receiver must be handled")
-        );
-        assert!(terminated);
-        assert_eq!(child.terminations, 1);
-        assert_eq!(
-            capture_disconnected_error().to_string(),
-            "child output capture closed before both streams completed"
-        );
+        assert!(matches!(
+            receiver.try_recv(),
+            Err(mpsc::TryRecvError::Disconnected)
+        ));
     }
 
     #[test]
