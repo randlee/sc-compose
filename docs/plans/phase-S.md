@@ -100,6 +100,7 @@ develop
                         └── S.6 diagnostics (PR → S.5)
                             └── S.7 paths (PR → S.6)
                                 └── S.8 Beads runner (PR → S.7)
+                                    └── S.9 go-native plan (PR → S.8)
 ```
 
 | Sprint | Goal | Stack parent / PR base | Merge order |
@@ -111,7 +112,8 @@ develop
 | [S.5](../phase-S/sprint-s-5-boundary-invariant-guardrails.md) | Split boundary discovery and invariant-family assertions. | S.4; no functional dependency. | Fifth layer. |
 | [S.6](../phase-S/sprint-s-6-diagnostics-facade-contract.md) | Freeze the existing diagnostics facade and envelope defaults. | S.5; no functional dependency. | Sixth layer. |
 | [S.7](../phase-S/sprint-s-7-path-normalization-contract.md) | Freeze CLI-owned path normalization and serialization-adjacent coverage. | S.6; no functional dependency. | Seventh layer. |
-| [S.8](../phase-S/sprint-s-8-beads-runner-reliability.md) | Isolate the cross-platform output-capture lifecycle and prove containment. | S.7; no functional dependency. | Top and final sprint layer. |
+| [S.8](../phase-S/sprint-s-8-beads-runner-reliability.md) | Isolate the cross-platform output-capture lifecycle and prove containment. | S.7; no functional dependency. | Eighth layer. |
+| [S.9](../phase-S/sprint-s-9-go-native-module-remediation-plan.md) | Planning-only: draft a remediation plan for the `stage-go-native-module` gap (issue #583). No production/CI file changes. | S.8; no functional dependency. | Top and final sprint layer. |
 
 The stack parent is a delivery dependency, not permission to mix concerns:
 each sprint keeps its own exact targets and validation. A reviewer can review
@@ -139,7 +141,7 @@ gh stack init --base develop integrate/phase-s sprint/s-1-extractor-internal-sea
 # next incremental layer. Do not pre-create independent sprint roots.
 gh stack top
 gh stack add sprint/s-2-template-lint-seams
-# Repeat, in order, for S.3 through S.8 with the branch names in the table.
+# Repeat, in order, for S.3 through S.9 with the branch names in the table.
 
 # If develop advances during the phase, update all layers together:
 gh stack sync
@@ -148,12 +150,12 @@ gh stack sync
 # sprint PRs with their immediate-parent bases. Mark only reviewed sprint PRs
 # ready; leave the integration PR draft until phase close.
 
-# Phase close: all S.1–S.8 PRs must be open, reviewed, and CI-green.
+# Phase close: all S.1–S.9 PRs must be open, reviewed, and CI-green.
 # REQUIRED GATE: phase-ending review per docs/git-workflows.md Phase Integration
 # Rule step 5 must PASS before making the draft integration PR ready.
 gh stack view --json
 gh pr ready <phase-s-integration-pr-number>
-gh stack merge <sprint-s-8-pr-number> --yes --merge
+gh stack merge <sprint-s-9-pr-number> --yes --merge
 ```
 
 No sprint doc may run `gh stack init` or `gh stack merge`. The final command
@@ -185,7 +187,7 @@ approved phase.
   moving CLI path policy or changing serialized path output.
 - [ ] Runner tests prove bounded output and containment behavior on supported
   Unix and Windows implementations without a shell.
-- [ ] Every S.1–S.8 PR passes its own CI and review as a linear stack layer;
+- [ ] Every S.1–S.9 PR passes its own CI and review as a linear stack layer;
   the required phase-ending review passes before the draft integration PR and
   its descendants merge atomically into `develop`.
 - [ ] No Phase S change violates any `CLAUDE.md` Boundary Rule; any exception
