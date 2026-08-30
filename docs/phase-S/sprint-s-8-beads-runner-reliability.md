@@ -1,7 +1,7 @@
 ---
 id: S.8
 title: Beads Runner Reliability
-status: planned
+status: complete
 branch: sprint/s-8-beads-runner-reliability
 worktree: ../sc-compose-worktrees/sprint/s-8-beads-runner-reliability
 target: sprint/s-7-path-normalization-contract
@@ -78,14 +78,14 @@ lifecycle boundaries independently.
 
 ## Acceptance Criteria
 
-- [ ] Normal exit status remains exactly the child's status.
-- [ ] Cap breach returns the existing typed output-limit marker only after
+- [x] Normal exit status remains exactly the child's status.
+- [x] Cap breach returns the existing typed output-limit marker only after
   contained-child termination and capture-reader cleanup.
-- [ ] A descendant retaining an output pipe cannot hang supported Unix or
+- [x] A descendant retaining an output pipe cannot hang supported Unix or
   Windows runner paths.
-- [ ] Runner unit and real pinned-`bd` integration tests pass on Linux, macOS,
+- [x] Runner unit and real pinned-`bd` integration tests pass on Linux, macOS,
   and Windows CI.
-- [ ] No shell, Beads source/database, CLI, adapter, or ATM dependency enters
+- [x] No shell, Beads source/database, CLI, adapter, or ATM dependency enters
   `sc-composer-beads`.
 
 ## gh-stack Workflow

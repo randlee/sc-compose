@@ -28,8 +28,19 @@ fn normal_nonzero_exit_status_is_preserved() {
     fs::remove_dir_all(root).expect("cleanup fixture directory");
 }
 
+#[cfg(unix)]
 #[test]
-fn output_cap_terminates_a_pipe_holding_descendant() {
+fn unix_process_group_terminates_a_pipe_holding_descendant() {
+    assert_contained_descendant_is_terminated();
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_job_object_terminates_a_pipe_holding_descendant() {
+    assert_contained_descendant_is_terminated();
+}
+
+fn assert_contained_descendant_is_terminated() {
     let root = temporary_directory();
     let state_file = root.join("descendant-state");
     let ready_file = root.join("descendant-ready");
