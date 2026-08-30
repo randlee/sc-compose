@@ -182,7 +182,13 @@ jobs:
         uses: ./.github/actions/setup-beads
 
       - name: Run workspace tests
-        run: cargo test --workspace
+        # setup-sc-lint has no Linux ARM64 release. Keep the two tests that
+        # require that binary in the lint-bearing matrix while exercising all
+        # remaining workspace tests natively on ARM64.
+        run: >-
+          cargo test --workspace --
+          --skip sc_lint_version_is_pinned_to_the_bootstrap_contract
+          --skip sc_lint_discovers_repository_and_fixture_roots_without_config_error
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 

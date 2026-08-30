@@ -351,6 +351,7 @@ jobs:
           release_version: ${{ needs.gate-and-tag.outputs.release_version }}
           pyproject: ${{ matrix.pyproject }}
           build_system: ${{ matrix.build_system }}
+          install_maturin_zig: ${{ matrix.os == 'ubuntu-24.04-arm' }}
           rust_toolchain: ${{ needs.release-plan.outputs.rust_toolchain }}
           workspace_toml: ${{ needs.release-plan.outputs.workspace_toml }}
       - name: Build wheels (maturin)
