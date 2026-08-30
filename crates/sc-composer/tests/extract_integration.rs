@@ -1009,6 +1009,30 @@ fn raw_text_mismatch_diagnostics_include_nested_paths_for_all_formats() {
 }
 
 #[test]
+fn raw_text_mismatch_diagnostics_preserve_utf8_candidate_byte_spans() {
+    let json = extract(&json_request(
+        r#"{"profile":{"name":"prefix-{{ id }}-suffix"}}"#,
+        r#"{"profile":{"name":"prefix-☃"}}"#,
+    ))
+    .unwrap_err();
+    assert!(json.to_string().contains("candidate bytes 7..10"));
+
+    let yaml = extract(&yaml_request(
+        "profile:\n  name: \"prefix-{{ id }}-suffix\"\n",
+        "profile:\n  name: \"prefix-☃\"\n",
+    ))
+    .unwrap_err();
+    assert!(yaml.to_string().contains("candidate bytes 7..10"));
+
+    let xml = extract(&request(
+        "<root><profile><name>prefix-{{ id }}-suffix</name></profile></root>",
+        "<root><profile><name>prefix-☃</name></profile></root>",
+    ))
+    .unwrap_err();
+    assert!(xml.to_string().contains("candidate bytes 7..10"));
+}
+
+#[test]
 fn toml_fixture_extracts_tables_and_array_of_table_paths() {
     let rendered = fixture_with_team_lead_sender(include_str!(
         "fixtures/reverse-extract/toml-cargo-config.toml"
