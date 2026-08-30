@@ -24,7 +24,7 @@ The release manifest is the source of the two release matrices:
 - `release/publish-artifacts.toml:12-31` declares exactly five CLI targets:
   `x86_64-unknown-linux-gnu`, both macOS architectures, and two Windows x86_64
   targets. There is no `aarch64-unknown-linux-gnu` or musl ARM64 target.
-- `release/publish-artifacts.toml:85-107` gives each of the three Python
+- `release/publish-artifacts.toml:85-105` gives each of the three Python
   distributions only `ubuntu-latest`, `macos-latest`, and `windows-latest`
   wheel runners. `bindings/python` therefore has no ARM64 Linux wheel leg.
 - `.github/scripts/release_artifacts.py:436-446` expands each literal `wheels`
@@ -95,7 +95,7 @@ In `release/publish-artifacts.toml`:
 
 2. Append `"ubuntu-24.04-arm"` only to the `wheels` array for the
    `[[python_distributions]]` entry named `sc-compose` at current lines
-   `91-98`. Do not add it to `sc-sha` or `sc-composer-beads` in this sprint;
+   `92-98`. Do not add it to `sc-sha` or `sc-composer-beads` in this sprint;
    this feature promises the `bindings/python` wheel only.
 
 No change is needed in `.github/scripts/release_artifacts.py` or
