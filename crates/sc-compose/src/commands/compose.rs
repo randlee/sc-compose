@@ -197,15 +197,18 @@ fn run_checked_validate(
                         annotated
                     });
             match checked {
-                Ok(_) => sc_composer::RenderCheckReport::RenderChecked {
+                Ok(_) => build_render_check_report(
                     meta,
-                    checked_context: context_summary(&result.variable_sources),
-                    diagnostics: diagnostics.clone(),
-                },
-                Err(_) => sc_composer::RenderCheckReport::RenderInvalid {
+                    RenderCheckState::RenderChecked {
+                        checked_context: context_summary(&result.variable_sources),
+                    },
+                    diagnostics.clone(),
+                ),
+                Err(_) => build_render_check_report(
                     meta,
-                    diagnostics: diagnostics.clone(),
-                },
+                    RenderCheckState::RenderInvalid,
+                    diagnostics.clone(),
+                ),
             }
         }
         Err(error) => {
@@ -222,35 +225,97 @@ fn run_checked_validate(
                 )
             });
             if context_required {
-                sc_composer::RenderCheckReport::ContextRequired {
+                build_render_check_report(
                     meta,
-                    diagnostics: diagnostics.clone(),
-                }
+                    RenderCheckState::ContextRequired,
+                    diagnostics.clone(),
+                )
             } else {
-                sc_composer::RenderCheckReport::ContractInvalid {
+                build_render_check_report(
                     meta,
-                    diagnostics: diagnostics.clone(),
-                }
+                    RenderCheckState::ContractInvalid,
+                    diagnostics.clone(),
+                )
             }
         }
     };
-    let success = report.permits_emission();
-    if args.json {
-        let mut payload =
-            serde_json::to_value(&report).map_err(|error| CommandError::usage(anyhow!(error)))?;
-        payload["valid"] = serde_json::Value::Bool(success);
-        print_json(payload, diagnostics).map_err(CommandError::usage)?;
-    } else {
-        println!("state: {}", report_state(&report));
-        for diagnostic in report.diagnostics() {
-            println!("{}", format_diagnostic(diagnostic));
+    present_checked_validation_report(&report, diagnostics, args.json)?;
+    Ok(checked_validation_exit_code(&report))
+}
+
+#[derive(Debug)]
+enum RenderCheckState {
+    ContractInvalid,
+    ContextRequired,
+    RenderInvalid,
+    RenderChecked { checked_context: String },
+}
+
+/// Build the stable checked-validation report without deciding how to present it.
+fn build_render_check_report(
+    meta: sc_composer::RenderCheckMeta,
+    state: RenderCheckState,
+    diagnostics: Vec<sc_composer::Diagnostic>,
+) -> sc_composer::RenderCheckReport {
+    match state {
+        RenderCheckState::ContractInvalid => {
+            sc_composer::RenderCheckReport::ContractInvalid { meta, diagnostics }
+        }
+        RenderCheckState::ContextRequired => {
+            sc_composer::RenderCheckReport::ContextRequired { meta, diagnostics }
+        }
+        RenderCheckState::RenderInvalid => {
+            sc_composer::RenderCheckReport::RenderInvalid { meta, diagnostics }
+        }
+        RenderCheckState::RenderChecked { checked_context } => {
+            sc_composer::RenderCheckReport::RenderChecked {
+                meta,
+                checked_context,
+                diagnostics,
+            }
         }
     }
-    Ok(if success {
+}
+
+/// Present an already-built checked-validation report in the selected CLI format.
+fn present_checked_validation_report(
+    report: &sc_composer::RenderCheckReport,
+    diagnostics: Vec<sc_composer::Diagnostic>,
+    json: bool,
+) -> Result<(), CommandError> {
+    if json {
+        let payload = checked_validation_json_payload(report)?;
+        print_json(payload, diagnostics).map_err(CommandError::usage)?;
+    } else {
+        print!("{}", checked_validation_text_output(report));
+    }
+    Ok(())
+}
+
+fn checked_validation_json_payload(
+    report: &sc_composer::RenderCheckReport,
+) -> Result<serde_json::Value, CommandError> {
+    let mut payload =
+        serde_json::to_value(report).map_err(|error| CommandError::usage(anyhow!(error)))?;
+    payload["valid"] = serde_json::Value::Bool(report.permits_emission());
+    Ok(payload)
+}
+
+fn checked_validation_text_output(report: &sc_composer::RenderCheckReport) -> String {
+    let mut output = format!("state: {}\n", report_state(report));
+    for diagnostic in report.diagnostics() {
+        output.push_str(&format_diagnostic(diagnostic));
+        output.push('\n');
+    }
+    output
+}
+
+const fn checked_validation_exit_code(report: &sc_composer::RenderCheckReport) -> i32 {
+    if report.permits_emission() {
         crate::exit_codes::SUCCESS
     } else {
         crate::exit_codes::VALIDATION_OR_RENDER_FAIL
-    })
+    }
 }
 
 pub(crate) fn render_check_meta(
@@ -326,5 +391,65 @@ fn report_state(report: &sc_composer::RenderCheckReport) -> &'static str {
         sc_composer::RenderCheckReport::ContextRequired { .. } => "context_required",
         sc_composer::RenderCheckReport::RenderInvalid { .. } => "render_invalid",
         sc_composer::RenderCheckReport::RenderChecked { .. } => "render_checked",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        RenderCheckState, build_render_check_report, checked_validation_exit_code,
+        checked_validation_json_payload, checked_validation_text_output, report_state,
+    };
+    use serde_json::json;
+
+    #[test]
+    fn checked_validation_report_states_preserve_presentation_and_exit_contracts() {
+        let cases = [
+            (RenderCheckState::ContractInvalid, "contract_invalid", false),
+            (RenderCheckState::ContextRequired, "context_required", false),
+            (RenderCheckState::RenderInvalid, "render_invalid", false),
+            (
+                RenderCheckState::RenderChecked {
+                    checked_context: "1 explicit caller values (value)".to_owned(),
+                },
+                "render_checked",
+                true,
+            ),
+        ];
+
+        for (state, expected_state, expected_valid) in cases {
+            let report = build_render_check_report(
+                sc_composer::RenderCheckMeta::for_template("payload.json.j2"),
+                state,
+                Vec::new(),
+            );
+
+            assert_eq!(report_state(&report), expected_state);
+            assert_eq!(
+                checked_validation_text_output(&report),
+                format!("state: {expected_state}\n")
+            );
+            let payload = checked_validation_json_payload(&report).unwrap();
+            let mut expected_payload = json!({
+                "state": expected_state,
+                "template": "payload.json.j2",
+                "output_format": "json",
+                "json_escape_mode": null,
+                "diagnostics": [],
+                "valid": expected_valid,
+            });
+            if expected_state == "render_checked" {
+                expected_payload["checked_context"] = json!("1 explicit caller values (value)");
+            }
+            assert_eq!(payload, expected_payload);
+            assert_eq!(
+                checked_validation_exit_code(&report),
+                if expected_valid {
+                    crate::exit_codes::SUCCESS
+                } else {
+                    crate::exit_codes::VALIDATION_OR_RENDER_FAIL
+                }
+            );
+        }
     }
 }

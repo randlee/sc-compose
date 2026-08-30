@@ -1,7 +1,7 @@
 ---
 id: S.3
 title: Checked Validation Seams
-status: planned
+status: complete
 branch: sprint/s-3-checked-validation-seams
 worktree: ../sc-compose-worktrees/sprint/s-3-checked-validation-seams
 target: sprint/s-2-template-lint-seams
@@ -62,11 +62,11 @@ presentation and status behavior remain the contract under test.
 
 ## Acceptance Criteria
 
-- [ ] Existing CLI integration tests show unchanged text/JSON output and exit
+- [x] Existing CLI integration tests show unchanged text/JSON output and exit
   codes for `validate --check-render` paths.
-- [ ] Report construction, presentation, and exit choice have independently
+- [x] Report construction, presentation, and exit choice have independently
   exercisable tests for every existing report state.
-- [ ] No `sc-composer` public API or dependency direction changes.
+- [x] No `sc-composer` public API or dependency direction changes.
 
 ## gh-stack Workflow
 
