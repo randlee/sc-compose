@@ -957,6 +957,8 @@ Sprint entries:
 - [Sprint S.7 — Path Normalization Contract](phase-S/sprint-s-7-path-normalization-contract.md)
 - [Sprint S.8 — Beads Runner Reliability](phase-S/sprint-s-8-beads-runner-reliability.md)
 - [Sprint S.9 — Go Native Module Remediation Plan](phase-S/sprint-s-9-go-native-module-remediation-plan.md)
+- [Sprint S.10 — sc-publish Go Native Module Package](phase-S/sprint-s-10-sc-publish-go-native-module-package.md)
+- [Sprint S.11 — sc-compose Go Native Module Adoption](phase-S/sprint-s-11-sc-compose-go-native-module-adoption.md)
 
 ### Follow-on: ARM64 Linux CLI and Python Wheel Support
 
