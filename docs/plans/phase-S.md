@@ -1,7 +1,7 @@
 ---
 id: phase-S
 title: Hotspot Reliability and Maintainability
-status: planned
+status: complete
 phase: S
 branch: integrate/phase-s
 owner_team: sc-compose
@@ -15,11 +15,18 @@ related_issue: https://github.com/randlee/sc-compose/issues/572
 
 ## Plan status
 
-Planning is complete; Phase S implementation is planned. It is a bounded,
-behavior-preserving maintenance phase derived from issue #572 and the repowise dataset on
-`origin/sc/repowise-update2`. It improves private seams, testability, and
-platform reliability without changing public rendering, CLI, Beads, Python, or
-release contracts.
+Phase S is complete at `integrate/phase-s` commit
+[`44a91bf`](https://github.com/randlee/sc-compose/pull/594/commits/44a91bfe3b25983eb62667e8ccce364460c43c8f).
+It was a bounded, behavior-preserving maintenance phase derived from issue
+#572 and the repowise dataset on `origin/sc/repowise-update2`. It improved
+private seams, testability, and platform reliability without changing public
+rendering, CLI, Beads, Python, or release contracts.
+
+S.10 completed upstream in
+[sc-publish PR #80](https://github.com/randlee/sc-publish/pull/80), merged at
+`8d9d6790f2cad0a446758df5dcd4e2a5a9124ef9`; S.11 completed in
+[sc-compose PR #594](https://github.com/randlee/sc-compose/pull/594), merged
+at `44a91bfe3b25983eb62667e8ccce364460c43c8f`.
 
 Issue #572 refers to `sprint-plan-guidelines.md`; no such file exists here.
 This plan deliberately uses the canonical
@@ -81,15 +88,12 @@ or reinterpret any Top-10 verdict.
 | S-T9 | `crates/sc-composer/src/diagnostics.rs`; high-dependent public diagnostic facade | Add contract tests that freeze the current facade's schema-version value and public re-exports: `DiagnosticEnvelope`, `Diagnostic`, `DiagnosticCode`, and `DiagnosticSeverity`. | Rule 1: test the existing public contract only; no new types, exports, or serialized schema. | S.6 |
 | S-T10 | `crates/sc-compose/src/path_utils.rs` and `crates/sc-compose/src/reporting/publish_manifest/tests.rs`; high-dependent normalization and manifest-path coverage | Add focused regression coverage for `is_normalized_relative_path` and `normalize_relative_path`, including serialization-adjacent path cases. | Rule 2: preserve CLI-owned path policy; no policy relocation or format change. | S.7 |
 
-## Sprint stack and dependencies
+## Historical sprint stack and dependencies
 
-The `sc-compose` work in Phase S is one strictly linear `gh stack`, ordered
-bottom to top. This is deliberate: each PR contains only its sprint's
-incremental diff and runs CI once for that increment, instead of repeatedly
-merging every independently rooted sprint into the integration branch and
-re-running CI on every growing combination. S.10 is an explicit upstream
-`sc-publish` gate outside that stack; S.11 may be created as the next
-`sc-compose` layer only after S.10 merges.
+The completed Phase S work used a strictly linear `gh stack`, ordered bottom
+to top. S.10 was an explicit upstream `sc-publish` gate outside that stack;
+S.11 began only after S.10 merged. The diagram and table below preserve the
+executed dependency record; they are not setup instructions for new work.
 
 ```text
 develop
@@ -127,52 +131,13 @@ can review each local layer independently because its PR base is its immediate
 predecessor. S.10 is a cross-repository functional gate, not a local stack
 parent: its approval and merge SHA are inputs to S.11.
 
-## Phase integration setup and close
+## Completion record
 
-This phase plan is the sole owner of stack setup and phase close. Sprint docs
-contain only their own layer's commit/submit commands. This follows the
-[Phase Integration Rule](../git-workflows.md#phase-integration-rule)'s explicit
-linear-stack mode: create one integration root, add each child at the top of
-the same stack, and merge the reviewed stack once after the phase-ending
-review.
-
-```bash
-# One-time setup before S.1. This is the only `gh stack init` in Phase S.
-git switch develop
-git pull --ff-only origin develop
-git config rerere.enabled true
-git config remote.pushDefault origin
-gh stack init --base develop integrate/phase-s sprint/s-1-extractor-internal-seams
-
-# After committing the current top sprint and before beginning the next sprint,
-# add exactly one child from that top branch, then work and submit it as the
-# next incremental layer. Do not pre-create independent sprint roots.
-gh stack top
-gh stack add sprint/s-2-template-lint-seams
-# Repeat, in order, for S.3 through S.9 with the branch names in the table.
-# S.10 is an upstream sc-publish PR, so it is reviewed and merged in that
-# repository rather than being added to this repository's gh-stack. Do not
-# start S.11 implementation until S.10 is merged on sc-publish/develop.
-
-# If develop advances during the phase, update all layers together:
-gh stack sync
-
-# `gh stack submit --auto` creates the integration PR as a draft plus the
-# sprint PRs with their immediate-parent bases. Mark only reviewed sprint PRs
-# ready; leave the integration PR draft until phase close.
-
-# Phase close: all sc-compose S.1–S.9 and S.11 PRs must be open, reviewed,
-# and CI-green; S.10 must already be merged on sc-publish/develop.
-# REQUIRED GATE: phase-ending review per docs/git-workflows.md Phase Integration
-# Rule step 5 must PASS before making the draft integration PR ready.
-gh stack view --json
-gh pr ready <phase-s-integration-pr-number>
-gh stack merge <sprint-s-11-pr-number> --yes --merge
-```
-
-No sprint doc may run `gh stack init` or `gh stack merge`. The final command
-merges the integration PR and every reviewed sprint layer bottom-to-top as one
-atomic stack operation; it is the only Phase S path to `develop`.
+All S.1–S.9 and S.11 changes are merged into `integrate/phase-s` at `44a91bf`.
+S.10 is merged upstream at `8d9d6790f2cad0a446758df5dcd4e2a5a9124ef9`.
+The phase-ending review confirmed the merged code, contracts, and CI evidence.
+Any future phase must create its own integration and stack commands under the
+[Phase Integration Rule](../git-workflows.md#phase-integration-rule).
 
 ## Non-goals and ADR gate
 
@@ -185,25 +150,25 @@ approved phase.
 
 ## Phase acceptance criteria
 
-- [ ] Every S-T1 through S-T10 target preserves its existing public behavior
+- [x] Every S-T1 through S-T10 target preserves its existing public behavior
   through focused regression tests and the full workspace suite.
-- [ ] Every extractor diagnostic code, recovery hint, byte span, and path
+- [x] Every extractor diagnostic code, recovery hint, byte span, and path
   remains stable on the committed JSON/YAML/XML corpus.
-- [ ] CLI text/JSON result shapes and exit statuses remain stable for lint and
+- [x] CLI text/JSON result shapes and exit statuses remain stable for lint and
   checked validation.
-- [ ] Boundary checks are at least as strict as the pre-phase baseline.
-- [ ] S-T9 freezes the existing diagnostics facade: schema version `"1"` and
+- [x] Boundary checks are at least as strict as the pre-phase baseline.
+- [x] S-T9 freezes the existing diagnostics facade: schema version `"1"` and
   the existing `DiagnosticEnvelope`, `Diagnostic`, `DiagnosticCode`, and
   `DiagnosticSeverity` public exports.
-- [ ] S-T10 covers the existing normalized-relative-path contract without
+- [x] S-T10 covers the existing normalized-relative-path contract without
   moving CLI path policy or changing serialized path output.
-- [ ] Runner tests prove bounded output and containment behavior on supported
+- [x] Runner tests prove bounded output and containment behavior on supported
   Unix and Windows implementations without a shell.
-- [ ] Every sc-compose S.1–S.9 and S.11 PR passes its own CI and review as a
+- [x] Every sc-compose S.1–S.9 and S.11 PR passes its own CI and review as a
   linear stack layer; S.10 is merged and recorded from `sc-publish/develop`;
   the required phase-ending review passes before the draft integration PR and
   its descendants merge atomically into `develop`.
-- [ ] No Phase S change violates any `CLAUDE.md` Boundary Rule; any exception
+- [x] No Phase S change violates any `CLAUDE.md` Boundary Rule; any exception
   is stopped for ADR review rather than implemented.
 
 ## Phase-close validation

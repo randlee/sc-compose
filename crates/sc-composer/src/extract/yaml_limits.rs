@@ -5,13 +5,13 @@ use super::{
 };
 
 pub(super) fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
-    if source.len() > MAX_YAML_INPUT_BYTES {
-        return Err(input_limit_error(format!(
-            "YAML {label} input is {} bytes; maximum is {MAX_YAML_INPUT_BYTES} bytes",
-            source.len()
-        )));
-    }
-    Ok(())
+    super::super::input_limits::validate_input_size(
+        source,
+        label,
+        "YAML",
+        MAX_YAML_INPUT_BYTES,
+        input_limit_error,
+    )
 }
 
 pub(super) fn validate_parse_depth(source: &str) -> Result<(), ExtractError> {

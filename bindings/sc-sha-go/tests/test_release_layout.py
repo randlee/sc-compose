@@ -65,6 +65,8 @@ class ReleaseLayoutTests(unittest.TestCase):
                 "--output",
                 str(output),
                 "--version",
+                # Staging validates a non-empty SemVer and writes it to VERSION;
+                # workspace/binding version lockstep is covered independently.
                 "1.5.0",
             ],
             text=True,
