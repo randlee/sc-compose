@@ -182,13 +182,25 @@ jobs:
         uses: ./.github/actions/setup-beads
 
       - name: Run workspace tests
-        # setup-sc-lint has no Linux ARM64 release. Keep the tests that require
-        # its installed backends or lint-profile toolchain in the lint-bearing
-        # matrix while exercising all remaining workspace tests natively on ARM64.
+        # setup-sc-lint has no Linux ARM64 release. Keep every integration test
+        # that invokes its CLI, installed backends, or lint-profile toolchain in
+        # the lint-bearing matrix while exercising the remaining workspace tests
+        # natively on ARM64.
         run: >-
           cargo test --workspace --
           --skip sc_lint_version_is_pinned_to_the_bootstrap_contract
           --skip sc_lint_discovers_repository_and_fixture_roots_without_config_error
+          --skip check_native_pass_preserves_workflow_envelope_and_materializes_evidence
+          --skip check_native_compile_failure_remains_non_pass_with_structured_diagnostics
+          --skip check_xwin_pass_preserves_workflow_envelope_and_report
+          --skip check_xwin_unavailable_remains_explicit_capability_failure
+          --skip ci_pass_preserves_composite_envelope_and_excludes_xwin
+          --skip ci_test_failure_stays_non_pass_with_structured_diagnostics
+          --skip ci_without_materialized_utilities_is_explicit_config_error
+          --skip clippy_native_pass_preserves_workflow_envelope_and_materializes_evidence
+          --skip clippy_native_warning_remains_non_pass_with_structured_diagnostics
+          --skip clippy_xwin_pass_preserves_identity_and_materializes_report
+          --skip clippy_xwin_failure_stays_non_pass_with_structured_diagnostics
           --skip identity_literals_pass_preserves_adapter_envelope_and_report
           --skip identity_literals_findings_remain_non_pass_with_structured_evidence
           --skip line_counts_pass_preserves_adapter_envelope_and_materializes_evidence
@@ -199,6 +211,20 @@ jobs:
           --skip portability_path_violation_stays_non_pass_with_structured_finding
           --skip runtime_pass_preserves_envelope_and_materializes_evidence
           --skip runtime_unsafe_wait_stays_non_pass_with_structured_finding
+          --skip lint_fast_pass_preserves_composite_profile_and_materializes_evidence
+          --skip lint_fast_manifest_failure_remains_non_pass_with_structured_diagnostics
+          --skip lint_full_pass_preserves_profile_envelope_and_report
+          --skip lint_full_finding_stays_non_pass_with_structured_backend_payload
+          --skip lint_full_without_materialized_utilities_is_explicit_config_error
+          --skip boundary_pass_uses_shared_runner_and_materializes_evidence
+          --skip boundary_dependency_violation_stays_non_pass_with_structured_finding
+          --skip sc_sha_python_boundary_rejects_all_forbidden_dependency_classes
+          --skip sc_sha_boundary_rejects_renderer_dependency
+          --skip sc_sha_go_boundary_rejects_non_adapter_dependencies
+          --skip sc_composer_beads_boundary_rejects_host_coupling_and_non_contract_dependencies
+          --skip template_contracts_uses_shared_scanner_and_materializes_report
+          --skip view_findings_pass_preserves_identity_and_materializes_report
+          --skip view_findings_malformed_payload_stays_non_pass_with_diagnostics
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
