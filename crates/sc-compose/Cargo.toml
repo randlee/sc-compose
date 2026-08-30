@@ -12,6 +12,10 @@ readme = "../../README.md"
 keywords = ["prompt", "template", "compose", "cli"]
 categories = ["command-line-utilities", "development-tools"]
 
+[features]
+# Enables integration tests that execute the externally installed lint CLI.
+external-lint-cli-tests = []
+
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
@@ -30,3 +34,78 @@ ulid.workspace = true
 
 [lints]
 workspace = true
+
+[[test]]
+name = "sc_lint_check_native"
+path = "tests/sc_lint_check_native.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_check_xwin"
+path = "tests/sc_lint_check_xwin.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_ci"
+path = "tests/sc_lint_ci.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_clippy_native"
+path = "tests/sc_lint_clippy_native.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_clippy_xwin"
+path = "tests/sc_lint_clippy_xwin.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_identity_literals"
+path = "tests/sc_lint_identity_literals.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_line_counts"
+path = "tests/sc_lint_line_counts.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_lint_ci"
+path = "tests/sc_lint_lint_ci.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_lint_fast"
+path = "tests/sc_lint_lint_fast.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_lint_full"
+path = "tests/sc_lint_lint_full.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_sc_boundary"
+path = "tests/sc_lint_sc_boundary.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_sc_portability"
+path = "tests/sc_lint_sc_portability.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_sc_runtime"
+path = "tests/sc_lint_sc_runtime.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_template_contracts"
+path = "tests/sc_lint_template_contracts.rs"
+required-features = ["external-lint-cli-tests"]
+
+[[test]]
+name = "sc_lint_view_findings"
+path = "tests/sc_lint_view_findings.rs"
+required-features = ["external-lint-cli-tests"]

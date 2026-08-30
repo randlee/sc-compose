@@ -83,11 +83,13 @@ or reinterpret any Top-10 verdict.
 
 ## Sprint stack and dependencies
 
-Phase S is one strictly linear `gh stack`, ordered bottom to top. This is
-deliberate: each PR contains only its sprint's incremental diff and runs CI
-once for that increment, instead of repeatedly merging every independently
-rooted sprint into the integration branch and re-running CI on every growing
-combination.
+The `sc-compose` work in Phase S is one strictly linear `gh stack`, ordered
+bottom to top. This is deliberate: each PR contains only its sprint's
+incremental diff and runs CI once for that increment, instead of repeatedly
+merging every independently rooted sprint into the integration branch and
+re-running CI on every growing combination. S.10 is an explicit upstream
+`sc-publish` gate outside that stack; S.11 may be created as the next
+`sc-compose` layer only after S.10 merges.
 
 ```text
 develop
@@ -100,6 +102,9 @@ develop
                         └── S.6 diagnostics (PR → S.5)
                             └── S.7 paths (PR → S.6)
                                 └── S.8 Beads runner (PR → S.7)
+                                    └── S.9 go-native remediation plan (PR → S.8)
+                                        ├── S.10 sc-publish peer package (external PR → sc-publish/develop)
+                                        └── S.11 sc-compose adoption (PR → S.9; waits for S.10 merge)
 ```
 
 | Sprint | Goal | Stack parent / PR base | Merge order |
@@ -111,11 +116,16 @@ develop
 | [S.5](../phase-S/sprint-s-5-boundary-invariant-guardrails.md) | Split boundary discovery and invariant-family assertions. | S.4; no functional dependency. | Fifth layer. |
 | [S.6](../phase-S/sprint-s-6-diagnostics-facade-contract.md) | Freeze the existing diagnostics facade and envelope defaults. | S.5; no functional dependency. | Sixth layer. |
 | [S.7](../phase-S/sprint-s-7-path-normalization-contract.md) | Freeze CLI-owned path normalization and serialization-adjacent coverage. | S.6; no functional dependency. | Seventh layer. |
-| [S.8](../phase-S/sprint-s-8-beads-runner-reliability.md) | Isolate the cross-platform output-capture lifecycle and prove containment. | S.7; no functional dependency. | Top and final sprint layer. |
+| [S.8](../phase-S/sprint-s-8-beads-runner-reliability.md) | Isolate the cross-platform output-capture lifecycle and prove containment. | S.7; no functional dependency. | Eighth layer. |
+| [S.9](../phase-S/sprint-s-9-go-native-module-remediation-plan.md) | Planning-only: draft a remediation plan for the `stage-go-native-module` gap (issue #583). No production/CI file changes. | S.8; no functional dependency. | Ninth layer. |
+| [S.10](../phase-S/sprint-s-10-sc-publish-go-native-module-package.md) | Create and validate the reusable `go-native-module` peer package in `sc-publish`. | S.9 plan approval and Accepted ADR-0022; implemented and reviewed in `sc-publish`, targeting `sc-publish/develop`. | External upstream gate; not a branch in this repository's `gh stack`. |
+| [S.11](../phase-S/sprint-s-11-sc-compose-go-native-module-adoption.md) | Install the approved S.10 package and restore `sc-sha-go` bundle verification in this repository. | S.9 as its documentation parent and merged S.10 package as its functional dependency. | Final `sc-compose` layer after S.10. |
 
-The stack parent is a delivery dependency, not permission to mix concerns:
-each sprint keeps its own exact targets and validation. A reviewer can review
-each layer independently because its PR base is its immediate predecessor.
+The `sc-compose` stack parent is a delivery dependency, not permission to mix
+concerns: each sprint keeps its own exact targets and validation. A reviewer
+can review each local layer independently because its PR base is its immediate
+predecessor. S.10 is a cross-repository functional gate, not a local stack
+parent: its approval and merge SHA are inputs to S.11.
 
 ## Phase integration setup and close
 
@@ -139,7 +149,10 @@ gh stack init --base develop integrate/phase-s sprint/s-1-extractor-internal-sea
 # next incremental layer. Do not pre-create independent sprint roots.
 gh stack top
 gh stack add sprint/s-2-template-lint-seams
-# Repeat, in order, for S.3 through S.8 with the branch names in the table.
+# Repeat, in order, for S.3 through S.9 with the branch names in the table.
+# S.10 is an upstream sc-publish PR, so it is reviewed and merged in that
+# repository rather than being added to this repository's gh-stack. Do not
+# start S.11 implementation until S.10 is merged on sc-publish/develop.
 
 # If develop advances during the phase, update all layers together:
 gh stack sync
@@ -148,12 +161,13 @@ gh stack sync
 # sprint PRs with their immediate-parent bases. Mark only reviewed sprint PRs
 # ready; leave the integration PR draft until phase close.
 
-# Phase close: all S.1–S.8 PRs must be open, reviewed, and CI-green.
+# Phase close: all sc-compose S.1–S.9 and S.11 PRs must be open, reviewed,
+# and CI-green; S.10 must already be merged on sc-publish/develop.
 # REQUIRED GATE: phase-ending review per docs/git-workflows.md Phase Integration
 # Rule step 5 must PASS before making the draft integration PR ready.
 gh stack view --json
 gh pr ready <phase-s-integration-pr-number>
-gh stack merge <sprint-s-8-pr-number> --yes --merge
+gh stack merge <sprint-s-11-pr-number> --yes --merge
 ```
 
 No sprint doc may run `gh stack init` or `gh stack merge`. The final command
@@ -185,7 +199,8 @@ approved phase.
   moving CLI path policy or changing serialized path output.
 - [ ] Runner tests prove bounded output and containment behavior on supported
   Unix and Windows implementations without a shell.
-- [ ] Every S.1–S.8 PR passes its own CI and review as a linear stack layer;
+- [ ] Every sc-compose S.1–S.9 and S.11 PR passes its own CI and review as a
+  linear stack layer; S.10 is merged and recorded from `sc-publish/develop`;
   the required phase-ending review passes before the draft integration PR and
   its descendants merge atomically into `develop`.
 - [ ] No Phase S change violates any `CLAUDE.md` Boundary Rule; any exception
