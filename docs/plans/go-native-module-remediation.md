@@ -78,6 +78,7 @@ core release-artifact manifest:
 ```json
 {
   "schema_version": 1,
+  "package_version": "0.1.0",
   "source": "bindings/sc-sha-go",
   "cargo_package": "sc-sha-go",
   "artifact_prefix": "sc-sha-go"
@@ -87,8 +88,8 @@ core release-artifact manifest:
 The helper uses only Python standard-library modules (`argparse`, `json`,
 `pathlib`, `shutil`, and `tomllib`). It reads the installed config, the
 binding-owned target contract at `<source>/native/targets.toml`, and the shared
-release-target inventory from `release/publish-artifacts.toml`. It has two
-subcommands.
+release-target inventory from `release/publish-artifacts.toml`. It has three
+commands.
 
 ### `target-matrix`
 
@@ -159,6 +160,20 @@ It must reject missing source files, missing or wrong-name static archives,
 unknown targets, malformed native contracts, and pre-existing output paths.
 The source tree is never modified.
 
+### `verify-version-lockstep`
+
+```text
+python3 .github/scripts/go_native_module.py verify-version-lockstep \
+  --config release/go-native-module.toml \
+  --workspace-toml Cargo.toml
+```
+
+The command validates the installed config/source relationship and proves that
+the binding's Cargo manifest inherits the same workspace version. It must fail
+for a binding-only version drift. S.11 invokes it after the core lockstep
+command in CI, release preflight, release, and release gate so the optional
+binding cannot silently leave publish-time validation.
+
 ## Implementation Steps
 
 ### 1. Upstream: add the optional peer package to sc-publish
@@ -167,9 +182,10 @@ Add the following package-owned files:
 
 | File | Change |
 | --- | --- |
-| `plugins/go-native-module/README.md` | Consumer contract, JSON input schema, install command, and CI invocation examples. |
-| `plugins/go-native-module/install.py` | Validate JSON input, render `release/go-native-module.toml`, copy the helper and its test module, and support `--dry-run`. |
-| `plugins/go-native-module/go_native_module.py` | Parsed target/config model plus the `target-matrix` and `stage` subcommands. |
+| `plugins/go-native-module/README.md` | Consumer contract, JSON input schema, immutable install provenance, and CI invocation examples. |
+| `plugins/go-native-module/install.py` | Validate JSON input, render `release/go-native-module.toml` from the package template, copy the helper and its test module, and support `--dry-run`. |
+| `plugins/go-native-module/release/go-native-module.toml.j2` | The single rendered consumer config schema; target and module facts are derived and validated from the binding source rather than duplicated. |
+| `plugins/go-native-module/go_native_module.py` | Parsed target/config model plus the `target-matrix`, `stage`, and `verify-version-lockstep` subcommands. |
 | `plugins/go-native-module/tests/test_install.py` | Installer validation, dry-run, output layout, and overwrite protection tests. |
 | `plugins/go-native-module/tests/test_go_native_module.py` | Hermetic helper success and failure-mode tests. |
 
@@ -182,9 +198,12 @@ before the downstream integration begins.
 
 ### 2. Downstream: install and use the approved package in sc-compose
 
-Install the package with the `sc-sha-go` JSON above. Its generated artifacts
-are `.github/scripts/go_native_module.py` and `release/go-native-module.toml`.
-Then update `sc-compose` as follows:
+Install the package with an immutable S.10 package version and merge SHA using
+`release/go-native-module-install.json`. Its generated artifacts are
+`.github/scripts/go_native_module.py`, its copied test module, and
+`release/go-native-module.toml`. Remove the ignored legacy `go_native` object
+from `release/sc-publish-install.json`; it cannot remain a second config
+source. Then update `sc-compose` as follows:
 
 1. Accept the package-installed
    `.github/scripts/tests/test_go_native_module.py`; it is the same hermetic
@@ -204,8 +223,8 @@ Then update `sc-compose` as follows:
    `sc-sha-go-plan` calls `go_native_module.py target-matrix`, passing
    `release/publish-artifacts.toml` and `release/go-native-module.toml`.
 3. Keep the job label at current line 363 as
-   `${{ matrix.goos }}/${{ matrix.goarch }}`. It becomes correct again because
-   the replacement matrix deliberately emits those fields. Do not replace it
+   `${{ matrix.goos }}/${{ matrix.goarch }}`. It is already correct; record
+   this as a verified no-op rather than scheduling a change. Do not replace it
    with the generic matrix's `os/archive` fields.
 4. Update current line 390 to build `-p ${{ matrix.cargo_package }}`, line 398
    to use `matrix.library`, lines 399 and 432 to use
@@ -215,8 +234,15 @@ Then update `sc-compose` as follows:
 5. Update current lines 392-405 so the staging step calls
    `go_native_module.py stage` with the installed config and built archive.
    The downstream bundled-test, independent-consumer, archive round-trip, and
-   release-layout steps stay unchanged.
-6. Rebase or replace PR #582 with this implementation. Do not merge its
+   updated release-layout steps remain.
+6. Invoke `go_native_module.py verify-version-lockstep` after the core
+   lockstep command in CI, `release-preflight.yml`, `release.yml`, and
+   `release_gate.sh`. Without these four calls the optional Go binding is no
+   longer covered by publish-time version validation.
+7. Update `bindings/sc-sha-go/tests/test_release_layout.py` to consume the
+   installed helper/config instead of removed core-script commands and the
+   deleted `[go_native]` manifest table.
+8. Rebase or replace PR #582 with this implementation. Do not merge its
    generic-matrix-only change; it would hide the target contract and schedule
    unsupported jobs.
 
@@ -228,14 +254,19 @@ Then update `sc-compose` as follows:
 | `.github/scripts/go_native_module.py` | Installed copy of the approved peer-package helper. |
 | `.github/scripts/tests/test_go_native_module.py` | Installed hermetic helper behavior tests. |
 | `release/go-native-module.toml` | Installed, repository-specific Go-native config. |
-| `.github/workflows/ci.yml` | Lines 315-329 and 389-452 call the helper and consume matrix metadata; line 363 retains the Go OS/arch label. |
+| `release/go-native-module-install.json` | The only persisted peer-package input used for deterministic re-installation. |
+| `release/sc-publish-install.json` | Remove the stale ignored `go_native` object. |
+| `.github/workflows/ci.yml` | Plan/bundle calls plus the peer lockstep call after core lockstep; line 363 remains a verified no-op. |
+| `.github/workflows/release-preflight.yml`, `.github/workflows/release.yml`, `.github/scripts/release_gate.sh` | Invoke the peer lockstep command after the core lockstep command. |
+| `bindings/sc-sha-go/tests/test_release_layout.py` | Move its target/config/staging assertions to the installed helper. |
+| `.github/scripts/tests/test_release_artifacts.py`, `.github/scripts/tests/test_publish_kit_scripts.py` | Update fixtures and assert every release path invokes peer lockstep after core lockstep. |
 
 These files must **not** change in the follow-on implementation:
 
 - `.github/scripts/release_artifacts.py`
 - `.github/scripts/release_manifest.py`
 - `release/publish-artifacts.toml`
-- `.github/workflows/release.yml`
+- core `release_artifacts.py` or other vendored sc-publish source
 
 ## Verification Plan
 
@@ -263,6 +294,8 @@ Actions:
    passes `bindings/sc-sha-go/tests/test_release_layout.py`.
 4. No matrix job is scheduled for macOS Intel or Windows MSVC until those are
    explicitly added to `native/targets.toml` with a compatible library.
+5. A binding-only `Cargo.toml` version mismatch fails the installed peer
+   lockstep command through CI, preflight, release, and release-gate paths.
 
 ## Follow-on Acceptance Criteria
 
@@ -275,5 +308,8 @@ Actions:
   requiring Rust, Go, a network connection, or a CI runner.
 - [ ] sc-compose installs the approved helper, config, and hermetic tests from
   `plugins/go-native-module` without local modifications.
+- [ ] The peer lockstep validation preserves `sc-sha-go` version coverage in
+  CI, release preflight, release, and release gate after the optional config
+  leaves the core manifest.
 - [ ] `release_artifacts.py` remains byte-identical to the vendored
   sc-publish copy after the implementation.

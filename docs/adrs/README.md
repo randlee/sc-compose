@@ -21,3 +21,4 @@
 - [ADR-0019: JSON Render Contract and Fail-Closed Output Validation](0019-json-render-contract-and-fail-closed-output-validation.md)
 - [ADR-0020: Generated Go Binding Strategy](0020-generated-go-binding-strategy.md)
 - [ADR-0021: Beads Formula Composition Host-Neutral Integration](0021-beads-formula-composition-integration.md)
+- [ADR-0022: Go Native Module Peer Package Ownership and Release Validation](0022-go-native-module-peer-package.md)

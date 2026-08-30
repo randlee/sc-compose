@@ -25,6 +25,10 @@ cutover in `71b9d7f`). This sprint is **planning-only**: no changes to
 ## Exact Targets
 
 - New document: `docs/plans/go-native-module-remediation.md`
+- New proposed governance record:
+  `docs/adrs/0022-go-native-module-peer-package.md`
+- ADR index update: `docs/adrs/README.md`
+- Phase dependency update: `docs/plans/phase-S.md`
 - Read-only investigation of:
   - `.github/workflows/ci.yml` (`sc-sha-go-plan`, `sc-sha-go` jobs)
   - `.github/scripts/release_artifacts.py`
@@ -45,12 +49,15 @@ cutover in `71b9d7f`). This sprint is **planning-only**: no changes to
   - A concrete, reviewable remediation plan: proposed subcommand contract
     (inputs/outputs), file(s) to change, and an explicit list of the exact
     `ci.yml` lines that need to change (including the unrelated
-    `matrix.goos`/`matrix.goarch` naming bug in the `sc-sha-go` job's `name:`
-    field, noted in issue #583).
+    `matrix.goos`/`matrix.goarch` naming claim in issue #583; record it as a
+    verified no-op if the current job name is already correct).
   - A verification plan: how the fix will be proven correct (which CI jobs
     must go green, on which matrix targets).
   - Explicit non-goals: this sprint does not implement any of the proposed
     changes.
+- Proposed ADR-0022 recording the peer-package ownership, immutable install
+  provenance, and release-version-lockstep decision; S.10 may begin only after
+  that ADR is accepted.
 - No modification to `release_artifacts.py`, `ci.yml`, `release.yml`, or any
   other production/CI source file.
 
@@ -80,6 +87,7 @@ cutover in `71b9d7f`). This sprint is **planning-only**: no changes to
 - [x] The plan states a clear, single recommended remediation path (not just a
   list of options) with rationale.
 - [x] The plan lists exact file paths and line ranges expected to change.
+- [x] ADR-0022 exists as Proposed and makes acceptance a pre-source S.10 gate.
 - [x] No production or CI source file is modified in this sprint.
 
 ## gh-stack Workflow

@@ -118,7 +118,7 @@ develop
 | [S.7](../phase-S/sprint-s-7-path-normalization-contract.md) | Freeze CLI-owned path normalization and serialization-adjacent coverage. | S.6; no functional dependency. | Seventh layer. |
 | [S.8](../phase-S/sprint-s-8-beads-runner-reliability.md) | Isolate the cross-platform output-capture lifecycle and prove containment. | S.7; no functional dependency. | Eighth layer. |
 | [S.9](../phase-S/sprint-s-9-go-native-module-remediation-plan.md) | Planning-only: draft a remediation plan for the `stage-go-native-module` gap (issue #583). No production/CI file changes. | S.8; no functional dependency. | Ninth layer. |
-| [S.10](../phase-S/sprint-s-10-sc-publish-go-native-module-package.md) | Create and validate the reusable `go-native-module` peer package in `sc-publish`. | S.9 plan approval; implemented and reviewed in `sc-publish`, targeting `sc-publish/develop`. | External upstream gate; not a branch in this repository's `gh stack`. |
+| [S.10](../phase-S/sprint-s-10-sc-publish-go-native-module-package.md) | Create and validate the reusable `go-native-module` peer package in `sc-publish`. | S.9 plan approval and Accepted ADR-0022; implemented and reviewed in `sc-publish`, targeting `sc-publish/develop`. | External upstream gate; not a branch in this repository's `gh stack`. |
 | [S.11](../phase-S/sprint-s-11-sc-compose-go-native-module-adoption.md) | Install the approved S.10 package and restore `sc-sha-go` bundle verification in this repository. | S.9 as its documentation parent and merged S.10 package as its functional dependency. | Final `sc-compose` layer after S.10. |
 
 The `sc-compose` stack parent is a delivery dependency, not permission to mix
