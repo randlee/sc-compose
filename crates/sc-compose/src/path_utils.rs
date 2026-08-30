@@ -108,6 +108,19 @@ mod tests {
     }
 
     #[test]
+    fn native_embedded_separators_are_normalized_relative_paths() {
+        let path = PathBuf::from(format!(
+            "reports{}latest{}smoke{}index.html",
+            std::path::MAIN_SEPARATOR,
+            std::path::MAIN_SEPARATOR,
+            std::path::MAIN_SEPARATOR,
+        ));
+
+        assert!(is_normalized_relative_path(&path));
+        assert_eq!(normalize_relative_path(&path), Ok(path));
+    }
+
+    #[test]
     fn path_serialization_normalizes_platform_separators_to_forward_slashes() {
         #[derive(serde::Serialize)]
         struct PathPayload {

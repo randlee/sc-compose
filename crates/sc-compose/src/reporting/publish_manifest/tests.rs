@@ -31,6 +31,42 @@ fn artifact_publish_path_rejects_parent_escaped_artifact() {
 }
 
 #[test]
+fn artifact_publish_path_rejects_empty_remainder_at_report_root() {
+    let latest_report_root = Path::new("reports/latest").join("smoke");
+    let publish_root = Path::new("reports").join("smoke");
+
+    let error = artifact_publish_path(
+        "smoke",
+        &latest_report_root,
+        &latest_report_root,
+        &publish_root,
+    )
+    .unwrap_err();
+
+    let message = error.to_string();
+    assert!(message.contains("invalid publish-manifest artifact path for smoke"));
+    assert!(message.contains("artifact must remain under reports/latest/smoke"));
+    assert!(message.contains("path must not be empty"));
+}
+
+#[test]
+fn artifact_publish_path_rejects_absolute_artifact_at_manifest_surface() {
+    let latest_report_root = Path::new("reports/latest").join("smoke");
+    let publish_root = Path::new("reports").join("smoke");
+    let artifact = std::env::current_dir()
+        .expect("current directory")
+        .join("reports/latest/smoke/index.html");
+
+    let error =
+        artifact_publish_path("smoke", &artifact, &latest_report_root, &publish_root).unwrap_err();
+
+    let message = error.to_string();
+    assert!(message.contains("invalid publish-manifest artifact path for smoke"));
+    assert!(message.contains("artifact must remain under reports/latest/smoke"));
+    assert!(message.contains("prefix not found"));
+}
+
+#[test]
 fn build_manifest_files_preserves_roles_and_publish_paths() {
     let entry = ReportIndexEntry {
         report_id: "smoke".to_owned(),
