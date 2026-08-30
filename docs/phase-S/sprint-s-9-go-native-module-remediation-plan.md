@@ -1,7 +1,7 @@
 ---
 id: S.9
 title: Go Native Module Remediation Plan
-status: planned
+status: complete
 branch: sprint/s-9-go-native-module-remediation-plan
 worktree: ../sc-compose-worktrees/sprint/s-9-go-native-module-remediation-plan
 target: sprint/s-8-beads-runner-reliability
@@ -74,13 +74,13 @@ cutover in `71b9d7f`). This sprint is **planning-only**: no changes to
 
 ## Acceptance Criteria
 
-- [ ] `docs/plans/go-native-module-remediation.md` exists and is internally
+- [x] `docs/plans/go-native-module-remediation.md` exists and is internally
   consistent with the current repository state (not just a restatement of
   issue #583).
-- [ ] The plan states a clear, single recommended remediation path (not just a
+- [x] The plan states a clear, single recommended remediation path (not just a
   list of options) with rationale.
-- [ ] The plan lists exact file paths and line ranges expected to change.
-- [ ] No production or CI source file is modified in this sprint.
+- [x] The plan lists exact file paths and line ranges expected to change.
+- [x] No production or CI source file is modified in this sprint.
 
 ## gh-stack Workflow
 

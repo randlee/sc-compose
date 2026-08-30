@@ -956,6 +956,7 @@ Sprint entries:
 - [Sprint S.6 — Diagnostics Facade Contract](phase-S/sprint-s-6-diagnostics-facade-contract.md)
 - [Sprint S.7 — Path Normalization Contract](phase-S/sprint-s-7-path-normalization-contract.md)
 - [Sprint S.8 — Beads Runner Reliability](phase-S/sprint-s-8-beads-runner-reliability.md)
+- [Sprint S.9 — Go Native Module Remediation Plan](phase-S/sprint-s-9-go-native-module-remediation-plan.md)
 
 ### Follow-on: ARM64 Linux CLI and Python Wheel Support
 
