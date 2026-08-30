@@ -134,6 +134,92 @@ fn validate_json_check_render_rejects_conflicting_included_mode_without_body() {
 }
 
 #[test]
+fn validate_json_check_render_reports_context_required_for_missing_variable() {
+    let root = temp_root("validate-json-check-render-context-required");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["state"], "context_required");
+    assert_eq!(value["payload"]["valid"], false);
+    assert!(
+        value["payload"]["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "ERR_VAL_MISSING_REQUIRED")
+    );
+    assert!(
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "ERR_VAL_MISSING_REQUIRED")
+    );
+}
+
+#[test]
+fn validate_json_check_render_fails_closed_for_malformed_json() {
+    let root = temp_root("validate-json-check-render-invalid");
+    write_file(
+        &root.join("payload.json.j2"),
+        "{\"value\": \"{{ value }}\"}",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["state"], "render_invalid");
+    assert_eq!(value["payload"]["valid"], false);
+    assert!(
+        value["payload"]["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "ERR_RENDER_JSON_MALFORMED")
+    );
+    assert!(!value.to_string().contains("hello"));
+}
+
+#[test]
 fn validate_lint_json_allows_matching_or_undeclared_include_mode() {
     let root = temp_root("validate-json-include-mode-compatible");
     write_file(
