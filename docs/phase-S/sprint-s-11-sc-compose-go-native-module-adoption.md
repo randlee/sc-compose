@@ -5,7 +5,7 @@ status: planned
 owner_repo: randlee/sc-compose
 branch: sprint/s-11-sc-compose-go-native-module-adoption
 worktree: ../sc-compose-worktrees/sprint/s-11-sc-compose-go-native-module-adoption
-target: sprint/s-9-go-native-module-remediation-plan
+target: integrate/phase-s
 depends_on:
   - S.9 remediation plan approval
   - S.10 merged to randlee/sc-publish develop
@@ -32,8 +32,8 @@ logic or shared `sc-publish` scripts locally.
   are accepted.
 - S.10 is merged to `sc-publish/develop`, with its `manifest.toml` package
   version and immutable merge SHA available to the installer.
-- The branch is added as the next local child above S.9 only after the S.10
-  external gate is satisfied.
+- The branch is based on `integrate/phase-s` only after the S.10 external
+  gate is satisfied.
 
 ## Entry Gate
 
