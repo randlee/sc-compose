@@ -70,9 +70,9 @@ fn run_descendant(mut arguments: impl Iterator<Item = String>) -> io::Result<()>
 
     // Retain the inherited stdout pipe until process-group/job containment.
     let (_never_send, never_receive) = mpsc::channel::<()>();
-    never_receive
-        .recv()
-        .map_err(|_| io::Error::other("descendant lifetime channel disconnected"))
+    never_receive.recv().map_err(|error| {
+        io::Error::other(format!("descendant lifetime channel disconnected: {error}"))
+    })
 }
 
 fn next_path(arguments: &mut impl Iterator<Item = String>, message: &str) -> io::Result<PathBuf> {
