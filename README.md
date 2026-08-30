@@ -174,7 +174,7 @@ handoff requirements.
 | Any (Rust) | crates.io | `cargo install sc-compose` |
 | Any (Python) | PyPI | `pip install sc-compose` |
 | Any (source) | cargo | `cargo build --release -p sc-compose` |
-| Rust lib | Cargo.toml | `sc-composer = "1.6.0"` |
+| Rust lib | Cargo.toml | `sc-composer = "1.6.1"` |
 
 Bundled examples are guaranteed in Homebrew, Scoop, Winget, and GitHub Release
 installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
@@ -186,7 +186,7 @@ examples.
 
 | | |
 |---|---|
-| Version | 1.6.0 |
+| Version | 1.6.1 |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
