@@ -94,6 +94,9 @@ jobs:
           python3 .github/scripts/release_artifacts.py verify-version-lockstep \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
+          python3 .github/scripts/go_native_module.py verify-version-lockstep \
+            --config release/go-native-module.toml \
+            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - name: Run release gate
         id: release_gate

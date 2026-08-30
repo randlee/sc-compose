@@ -35,14 +35,6 @@
     {"name": "sc-compose", "source": "bindings/python", "cargo_manifest": "bindings/python/Cargo.toml", "module_path": "bindings/python/python/sc_compose", "sdist": true, "wheels": ["ubuntu-latest", "macos-latest", "windows-latest"]},
     {"name": "sc-composer-beads", "source": "bindings/sc-composer-beads-python", "cargo_manifest": "bindings/sc-composer-beads-python/Cargo.toml", "module_path": "bindings/sc-composer-beads-python/python/sc_composer_beads", "sdist": true, "wheels": ["ubuntu-latest", "macos-latest", "windows-latest"]}
   ],
-  "go_native": {
-    "module": "github.com/randlee/sc-compose/bindings/sc-sha-go",
-    "source": "bindings/sc-sha-go",
-    "package": "go/sc_sha_go",
-    "cargo_package": "sc-sha-go",
-    "artifact_prefix": "sc-sha-go",
-    "tag_prefix": "bindings/sc-sha-go/v"
-  },
   "channels": {
     "pypi": {"workflow": "pypi-publish.yml", "dispatch_inputs": {"target": "production"}, "credential_rehearsal_inputs": {"target": "testpypi"}, "test_repository": "testpypi", "production_repository": "pypi"},
     "homebrew": {
