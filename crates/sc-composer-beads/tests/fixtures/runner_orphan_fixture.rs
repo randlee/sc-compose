@@ -6,6 +6,9 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
 
+const READY_MARKER: &[u8] = b"\x1esc-compose-descendant-ready\x1f";
+const MAX_READINESS_DIAGNOSTICS: usize = 1024;
+
 fn main() -> io::Result<()> {
     let mut arguments = std::env::args().skip(1);
     match arguments.next().as_deref() {
@@ -44,18 +47,12 @@ fn run_root(mut arguments: impl Iterator<Item = String>) -> io::Result<()> {
         .stderr(Stdio::piped())
         .spawn()?;
 
-    let mut ready = [0_u8; 1];
-    descendant
-        .stderr
-        .take()
-        .expect("descendant stderr is piped")
-        .read_exact(&mut ready)?;
-    if ready != [b'R'] {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "descendant emitted an invalid ready signal",
-        ));
-    }
+    wait_for_ready_marker(
+        descendant
+            .stderr
+            .take()
+            .expect("descendant stderr is piped"),
+    )?;
 
     let mut stdout = io::stdout().lock();
     stdout.write_all(&vec![b'x'; overflow_bytes])?;
@@ -65,7 +62,7 @@ fn run_root(mut arguments: impl Iterator<Item = String>) -> io::Result<()> {
 fn run_descendant(mut arguments: impl Iterator<Item = String>) -> io::Result<()> {
     let state_file = next_path(&mut arguments, "missing descendant state path")?;
     fs::write(state_file, "started")?;
-    io::stderr().write_all(b"R")?;
+    io::stderr().write_all(READY_MARKER)?;
     io::stderr().flush()?;
 
     // Retain the inherited stdout pipe until process-group/job containment.
@@ -75,9 +72,66 @@ fn run_descendant(mut arguments: impl Iterator<Item = String>) -> io::Result<()>
     })
 }
 
+fn wait_for_ready_marker(mut reader: impl Read) -> io::Result<()> {
+    let mut matched = 0;
+    let mut diagnostics = Vec::with_capacity(MAX_READINESS_DIAGNOSTICS);
+    let mut buffer = [0_u8; 256];
+
+    loop {
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "descendant closed readiness stream before marker; bytes observed: {:?}",
+                    String::from_utf8_lossy(&diagnostics),
+                ),
+            ));
+        }
+
+        for &byte in &buffer[..count] {
+            if diagnostics.len() < MAX_READINESS_DIAGNOSTICS {
+                diagnostics.push(byte);
+            }
+
+            if byte == READY_MARKER[matched] {
+                matched += 1;
+                if matched == READY_MARKER.len() {
+                    return Ok(());
+                }
+            } else {
+                matched = usize::from(byte == READY_MARKER[0]);
+            }
+        }
+    }
+}
+
 fn next_path(arguments: &mut impl Iterator<Item = String>, message: &str) -> io::Result<PathBuf> {
     arguments
         .next()
         .map(PathBuf::from)
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, message))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::{self, Cursor};
+
+    use super::{READY_MARKER, wait_for_ready_marker};
+
+    #[test]
+    fn readiness_marker_ignores_diagnostic_prefix() {
+        let mut stream = b"macOS runtime diagnostic\n".to_vec();
+        stream.extend_from_slice(READY_MARKER);
+
+        wait_for_ready_marker(Cursor::new(stream)).expect("ready marker should be found");
+    }
+
+    #[test]
+    fn readiness_marker_requires_complete_frame() {
+        let error = wait_for_ready_marker(Cursor::new(&READY_MARKER[..READY_MARKER.len() - 1]))
+            .expect_err("incomplete marker must not signal readiness");
+
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    }
 }
