@@ -103,16 +103,18 @@ impl ProcessRunner for StdProcessRunner {
                 }
             }
 
-            if capture.requires_contained_termination() && !terminated_for_limit {
-                terminate_contained_child(child.as_mut())?;
-                terminated_for_limit = true;
-            }
+            terminate_capture_failure(
+                capture.requires_contained_termination(),
+                child.as_mut(),
+                &mut terminated_for_limit,
+            )?;
         }
 
-        if capture_disconnected && !terminated_for_limit {
-            terminate_contained_child(child.as_mut())?;
-            terminated_for_limit = true;
-        }
+        terminate_capture_failure(
+            capture_disconnected,
+            child.as_mut(),
+            &mut terminated_for_limit,
+        )?;
 
         join_capture_readers(stdout_reader, stderr_reader)?;
         if capture_disconnected {
@@ -191,6 +193,18 @@ fn configure_command(command: &mut Command, spec: &CommandSpec) {
 
 fn terminate_contained_child(child: &mut dyn ManagedChild) -> io::Result<()> {
     child.terminate().map(|_status| ())
+}
+
+fn terminate_capture_failure(
+    requires_termination: bool,
+    child: &mut dyn ManagedChild,
+    terminated: &mut bool,
+) -> io::Result<()> {
+    if requires_termination && !*terminated {
+        terminate_contained_child(child)?;
+        *terminated = true;
+    }
+    Ok(())
 }
 
 fn collect_child_status(child: &mut dyn ManagedChild) -> io::Result<Option<i32>> {
@@ -383,6 +397,7 @@ mod tests {
     use std::io::Cursor;
     use std::sync::mpsc;
     use std::thread;
+    use std::time::Duration;
 
     use super::{
         CaptureEvent, CaptureState, CaptureTracker, CapturedStream, PROCESS_OUTPUT_LIMIT_BYTES,
@@ -455,16 +470,31 @@ mod tests {
 
     #[test]
     fn reader_join_waits_for_the_second_reader_after_a_first_reader_panic() {
-        let (sender, receiver) = mpsc::channel();
+        let (release_sender, release_receiver) = mpsc::channel();
+        let (join_result_sender, join_result_receiver) = mpsc::channel();
         let stdout_reader = thread::spawn(|| panic!("synthetic reader panic"));
-        let stderr_reader = thread::spawn(move || sender.send(()).expect("send completion"));
+        let stderr_reader = thread::spawn(move || {
+            let _ = release_receiver.recv();
+        });
+        let joiner = thread::spawn(move || {
+            let _ = join_result_sender.send(join_capture_readers(stdout_reader, stderr_reader));
+        });
 
-        let error = join_capture_readers(stdout_reader, stderr_reader)
+        let early_result = join_result_receiver
+            .recv_timeout(Duration::from_millis(50))
+            .ok();
+        assert!(
+            early_result.is_none(),
+            "joining must not return while the second reader is blocked"
+        );
+
+        release_sender.send(()).expect("release second reader");
+        let error = join_result_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("join must complete after the second reader exits")
             .expect_err("reader panic must remain a capture error");
+        joiner.join().expect("joiner thread");
 
         assert_eq!(error.to_string(), "child output reader panicked");
-        receiver
-            .recv()
-            .expect("second reader was joined before return");
     }
 }

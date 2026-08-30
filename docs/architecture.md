@@ -150,6 +150,11 @@ It must not depend on `sc-compose`, a Python or Go adapter, Beads source or a
 Beads database library, ATM/runtime code, or any CLI argument type. The CLI
 and foreign-language bindings are callers of this library, never dependencies.
 
+For bounded subprocess output, the library contains the child process tree on
+supported platforms: Unix uses a dedicated process group and Windows uses a
+Job Object. Other platforms use direct-child termination only, so they make no
+descendant-tree cleanup guarantee.
+
 ### 3.7 `bindings/sc-composer-beads-python`
 
 `bindings/sc-composer-beads-python` is a thin Maturin/PyO3 adapter over
