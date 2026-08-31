@@ -187,8 +187,9 @@ def cargo_package_check_plan(workspace_toml: Path, manifest: dict) -> list[dict[
     new multi-crate release, a dependent crate can legitimately require an
     earlier manifest crate at the target version before that earlier crate has
     been published. Package the dependent crate without Cargo's registry
-    verification in that one case; the ordered crates.io workflow will publish
-    the dependency first and performs the final registry-backed verification.
+    verification cannot be performed during preflight in that one case. The
+    ordered crates.io workflow publishes the dependency first and performs the
+    final registry-backed package verification.
     """
     publishable = {
         crate["package"]: crate
@@ -208,7 +209,7 @@ def cargo_package_check_plan(workspace_toml: Path, manifest: dict) -> list[dict[
         plan.append(
             {
                 "package": package,
-                "mode": "no_verify" if earlier_release_dependencies else "verify",
+                "mode": "deferred_same_release" if earlier_release_dependencies else "verify",
                 "earlier_release_dependencies": earlier_release_dependencies,
             }
         )
