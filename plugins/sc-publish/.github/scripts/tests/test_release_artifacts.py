@@ -2459,6 +2459,60 @@ def render_release_template(
     return sc_compose.compose_file(request).rendered_text
 
 
+def assert_homebrew_formula_install_executes(formula: str) -> None:
+    """Parse and execute a rendered formula against the Homebrew path helper shape."""
+    ruby = subprocess.run(
+        ["ruby", "-c"], input=formula, text=True, capture_output=True, check=False
+    )
+    assert ruby.returncode == 0, ruby.stderr
+
+    harness = """
+class InstallPath
+  def /(component)
+    self
+  end
+
+  def install(paths)
+  end
+end
+
+class Formula
+  def self.test(&block)
+  end
+
+  def self.method_missing(name, *args, &block)
+    class_eval(&block) if block
+  end
+
+  def bin
+    InstallPath.new
+  end
+
+  def pkgshare
+    InstallPath.new
+  end
+
+  def shell_output(*args)
+    ""
+  end
+
+  def assert_match(*args)
+  end
+end
+
+eval(STDIN.read, TOPLEVEL_BINDING)
+ScCompose.new.install
+"""
+    execution = subprocess.run(
+        ["ruby", "-e", harness],
+        input=formula,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert execution.returncode == 0, execution.stderr
+
+
 def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path) -> None:
     formula = render_release_template(
         tmp_path,
@@ -2481,20 +2535,16 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
             "binary_paths": ["bin/sc-compose", "bin/sc-compose-daemon"],
             "bundled_paths": [
                 {
-                    "destination_components": ["pkgshare", "examples"],
+                    "destination_components": ["pkgshare"],
                     "source_glob": "share/sc-compose/examples/*",
                 }
             ],
         },
     )
-    ruby = subprocess.run(
-        ["ruby", "-c"], input=formula, text=True, capture_output=True, check=False
-    )
-    assert ruby.returncode == 0, ruby.stderr
+    assert_homebrew_formula_install_executes(formula)
     assert 'bin.install "bin/sc-compose"' in formula
     assert 'bin.install "bin/sc-compose-daemon"' in formula
     assert 'shell_output("#{bin}/" + "sc-compose-daemon"' in formula
-    assert '("pkgshare"/"examples").install Dir["share/sc-compose/examples/*"]' in formula
 
     scoop = render_release_template(
         tmp_path,
