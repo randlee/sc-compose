@@ -42,6 +42,11 @@ def write_repo_fixture(
     for crate_name in ("sc-composer", "sc-compose"):
         crate_dir = tmp_path / "crates" / crate_name
         crate_dir.mkdir(parents=True)
+        dependencies = (
+            ['[dependencies]', 'sc-composer = { path = "../sc-composer", version = "1.1.0" }', ""]
+            if crate_name == "sc-compose"
+            else []
+        )
         (crate_dir / "Cargo.toml").write_text(
             "\n".join(
                 [
@@ -49,6 +54,7 @@ def write_repo_fixture(
                     f'name = "{crate_name}"',
                     'version = "1.1.0"',
                     "",
+                    *dependencies,
                 ]
             ),
             encoding="utf-8",
@@ -87,6 +93,7 @@ def write_repo_fixture(
         'artifact = "sc-composer"',
         'package = "sc-composer"',
         'cargo_toml = "crates/sc-composer/Cargo.toml"',
+        "publish = true",
         "publish_order = 1",
         "wait_after_publish_seconds = 0",
         "",
@@ -94,6 +101,7 @@ def write_repo_fixture(
         'artifact = "sc-compose"',
         'package = "sc-compose"',
         'cargo_toml = "crates/sc-compose/Cargo.toml"',
+        "publish = true",
         "publish_order = 2",
         "wait_after_publish_seconds = 0",
         "",
@@ -190,6 +198,34 @@ def write_repo_fixture(
                 "",
             ]
         ),
+        encoding="utf-8",
+    )
+
+    go_native_source = tmp_path / "bindings" / "sc-sha-go"
+    (go_native_source / "go" / "sc_sha_go").mkdir(parents=True)
+    (go_native_source / "native").mkdir()
+    (go_native_source / "Cargo.toml").write_text(
+        '[package]\nname = "sc-sha-go"\nversion.workspace = true\n', encoding="utf-8"
+    )
+    (go_native_source / "go.mod").write_text(
+        "module github.com/example/sc-sha-go\n", encoding="utf-8"
+    )
+    (go_native_source / "native" / "targets.toml").write_text(
+        "schema_version = 1\n\n[contract]\n"
+        'generated_package = "go/sc_sha_go"\n'
+        'native_library = "libsc_sha_go.a"\n\n'
+        "[[targets]]\n"
+        'rust_target = "x86_64-unknown-linux-gnu"\n'
+        'goos = "linux"\n'
+        'goarch = "amd64"\n'
+        'library = "libsc_sha_go.a"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "release" / "go-native-module.toml").write_text(
+        "schema_version = 1\n"
+        'source = "bindings/sc-sha-go"\n'
+        'cargo_package = "sc-sha-go"\n'
+        'artifact_prefix = "sc-sha-go"\n',
         encoding="utf-8",
     )
 
@@ -439,6 +475,7 @@ def run_release_gate_readiness(
     scripts_dir = tmp_path / ".github" / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
     for script_name in (
+        "go_native_module.py",
         "release_artifacts.py",
         "release_manifest.py",
         "release_registry.py",
@@ -777,6 +814,53 @@ def test_pure_python_manifest_without_crates_loads_and_gates_cargo_legs(tmp_path
     assert publish_plan.stdout.strip() == ""
 
 
+def test_package_check_plan_skips_registry_verification_only_for_earlier_release_dependencies(
+    tmp_path: Path,
+) -> None:
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+
+    result = run_fixture_command(
+        tmp_path,
+        "package-check-plan",
+        "--workspace-toml",
+        str(workspace),
+        manifest=manifest,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "sc-composer|verify|",
+        "sc-compose|deferred_same_release|sc-composer",
+    ]
+
+
+def test_package_check_plan_keeps_full_verification_for_nonrelease_dependencies(
+    tmp_path: Path,
+) -> None:
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'package = "sc-composer"\ncargo_toml = "crates/sc-composer/Cargo.toml"\npublish = true',
+            'package = "sc-composer"\ncargo_toml = "crates/sc-composer/Cargo.toml"\npublish = false',
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_fixture_command(
+        tmp_path,
+        "package-check-plan",
+        "--workspace-toml",
+        str(workspace),
+        manifest=manifest,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "sc-composer|verify|",
+        "sc-compose|verify|",
+    ]
+
+
 def test_rust_only_manifest_emits_empty_python_matrices(tmp_path: Path) -> None:
     result = run_validate_manifest(
         tmp_path, manifest_wheels=["ubuntu-latest"], include_python=False
@@ -868,6 +952,16 @@ def test_crates_leg_is_separate_and_independently_retryable() -> None:
     assert "list-publish-plan" in crates_text
     assert "gate-and-tag" not in crates_text
     assert "CARGO_REGISTRY_TOKEN" in crates_text
+
+
+def test_preflight_uses_manifest_aware_package_check_plan() -> None:
+    preflight_text = release_preflight_workflow_text()
+    deferred_branch = preflight_text.split("deferred_same_release)", 1)[1].split("*)", 1)[0]
+
+    assert "package-check-plan" in preflight_text
+    assert "deferred_same_release" in preflight_text
+    assert "Deferring %s package check" in preflight_text
+    assert "cargo package" not in deferred_branch
 
 
 @pytest.mark.parametrize(
@@ -1144,6 +1238,8 @@ def test_release_workflows_gate_cargo_and_python_legs_on_the_manifest() -> None:
     assert "needs.release-plan.outputs.has_python_wheels == 'true'" in release_text
     assert "needs.release-plan.outputs.has_python_sdists == 'true'" in release_text
     assert "Build wheels (maturin)" in release_text
+    assert "Build ARM64 Linux wheel (maturin + Zig)" in release_text
+    assert "install_maturin_zig: ${{ matrix.os == 'ubuntu-24.04-arm' }}" in release_text
     assert "Build wheels (setuptools)" in release_text
     assert "matrix.build_system == 'setuptools'" in release_text
     assert "python -m build --wheel" in release_text
@@ -1155,6 +1251,31 @@ def test_release_workflows_gate_cargo_and_python_legs_on_the_manifest() -> None:
     assert "steps.build_plan.outputs.workspace_toml" in preflight_text
     assert '--workspace-toml Cargo.toml' not in preflight_text
     assert 'if [[ "${HAS_CRATES}" == "true" ]]; then' in preflight_text
+
+    action_text = (
+        repo_root() / ".github" / "actions" / "setup-python-release-build" / "action.yml"
+    ).read_text(encoding="utf-8")
+    assert "install_maturin_zig:" in action_text
+    assert "inputs.install_maturin_zig == 'true'" in action_text
+    assert "maturin[zig]==1.9.4" in action_text
+
+
+def test_release_manifest_adds_only_sc_compose_arm64_linux_delivery() -> None:
+    manifest = release_manifest()
+
+    assert {
+        "target": "aarch64-unknown-linux-gnu",
+        "os": "ubuntu-24.04-arm",
+        "archive": "tar.gz",
+    } in manifest["release_targets"]
+
+    wheels_by_name = {
+        distribution["name"]: distribution["wheels"]
+        for distribution in manifest["python_distributions"]
+    }
+    assert "ubuntu-24.04-arm" in wheels_by_name["sc-compose"]
+    assert "ubuntu-24.04-arm" not in wheels_by_name["sc-sha"]
+    assert "ubuntu-24.04-arm" not in wheels_by_name["sc-composer-beads"]
 
 
 def test_homebrew_workflow_selects_manifest_formula_tracks(tmp_path: Path) -> None:
@@ -3081,6 +3202,24 @@ def run_verify_version_lockstep(workspace: Path, manifest: Path) -> subprocess.C
     )
 
 
+def run_verify_go_native_version_lockstep(workspace: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            "scripts/go_native_module.py",
+            "verify-version-lockstep",
+            "--config",
+            str(workspace.parent / "release" / "go-native-module.toml"),
+            "--workspace-toml",
+            str(workspace),
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def test_verify_readme_version_passes_when_readme_matches_workspace(tmp_path: Path) -> None:
     workspace, readme, manifest = write_readme_fixture(
         tmp_path, dependency_version="1.2.0", status_version="1.2.0", stability_minor="1.2"
@@ -3173,6 +3312,23 @@ def test_verify_version_lockstep_rejects_python_package_drift(tmp_path: Path) ->
     assert result.returncode != 0
     assert "bindings/python/pyproject.toml" in result.stderr
     assert "[project].version mismatch" in result.stderr
+
+
+def test_go_native_version_lockstep_accepts_workspace_inheritance_and_rejects_drift(
+    tmp_path: Path,
+) -> None:
+    workspace, _manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    accepted = run_verify_go_native_version_lockstep(workspace)
+    assert accepted.returncode == 0, accepted.stderr
+    assert accepted.stdout.strip() == "1.1.0"
+
+    binding = tmp_path / "bindings" / "sc-sha-go" / "Cargo.toml"
+    binding.write_text(
+        '[package]\nname = "sc-sha-go"\nversion = "9.9.9"\n', encoding="utf-8"
+    )
+    rejected = run_verify_go_native_version_lockstep(workspace)
+    assert rejected.returncode != 0
+    assert "inherit workspace" in rejected.stderr
 
 
 def test_build_plan_selects_the_manifest_declared_python_upload_tool(tmp_path: Path) -> None:

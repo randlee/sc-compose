@@ -58,6 +58,10 @@ python3 .github/scripts/release_artifacts.py verify-version-lockstep \
   --manifest "$MANIFEST" \
   --workspace-toml "$WORKSPACE_TOML" >/dev/null
 
+python3 .github/scripts/go_native_module.py verify-version-lockstep \
+  --config release/go-native-module.toml \
+  --workspace-toml "$WORKSPACE_TOML" >/dev/null
+
 if [[ "$MODE" == "final" && -n "${GITHUB_OUTPUT:-}" ]]; then
   printf 'release_sha=%s\n' "$release_sha" >> "$GITHUB_OUTPUT"
 fi

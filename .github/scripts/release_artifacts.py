@@ -35,6 +35,7 @@ from release_manifest import (
     manifest_rust_toolchain,
     manifest_workspace_toml,
     package_name,
+    cmd_package_check_plan,
     workspace_members,
     workspace_version,
     validate_publish_order,
@@ -867,6 +868,11 @@ def main() -> int:
     p = sub.add_parser("list-publish-plan")
     p.add_argument("--manifest", required=True)
     p.set_defaults(func=cmd_list_publish_plan)
+
+    p = sub.add_parser("package-check-plan")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--workspace-toml", required=True)
+    p.set_defaults(func=cmd_package_check_plan)
 
     p = sub.add_parser("python-wheel-matrix")
     p.add_argument("--manifest", required=True)

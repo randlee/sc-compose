@@ -934,6 +934,39 @@ Sprint entries:
 - [Sprint R.3 — Beads Python bindings](phase-R/sprint-r-3-beads-python-bindings.md)
 - [FIX-BEADS-FUZZ-OUT-001 — Orphaned descendant output-cap containment](sprints/fix-beads-output-cap-orphan-descendant.md)
 
+### Phase S Sprint Plans
+
+Status:
+
+- complete: Phase S delivered behavior-preserving hotspot remediation at
+  `integrate/phase-s` commit `44a91bf`, including the upstream
+  `go-native-module` peer package from sc-publish PR #80;
+- evidence: S.11 merged through sc-compose PR #594 after S.10 merged upstream
+  at `8d9d6790f2cad0a446758df5dcd4e2a5a9124ef9`.
+
+Sprint entries:
+
+- [Phase S plan](plans/phase-S.md)
+- [Sprint S.1 — Extractor Internal Seams](phase-S/sprint-s-1-extractor-internal-seams.md)
+- [Sprint S.2 — Template Lint Seams](phase-S/sprint-s-2-template-lint-seams.md)
+- [Sprint S.3 — Checked Validation Seams](phase-S/sprint-s-3-checked-validation-seams.md)
+- [Sprint S.4 — JSON Capability Seams](phase-S/sprint-s-4-json-capability-seams.md)
+- [Sprint S.5 — Boundary Invariant Guardrails](phase-S/sprint-s-5-boundary-invariant-guardrails.md)
+- [Sprint S.6 — Diagnostics Facade Contract](phase-S/sprint-s-6-diagnostics-facade-contract.md)
+- [Sprint S.7 — Path Normalization Contract](phase-S/sprint-s-7-path-normalization-contract.md)
+- [Sprint S.8 — Beads Runner Reliability](phase-S/sprint-s-8-beads-runner-reliability.md)
+- [Sprint S.9 — Go Native Module Remediation Plan](phase-S/sprint-s-9-go-native-module-remediation-plan.md)
+- [Sprint S.10 — sc-publish Go Native Module Package](phase-S/sprint-s-10-sc-publish-go-native-module-package.md)
+- [Sprint S.11 — sc-compose Go Native Module Adoption](phase-S/sprint-s-11-sc-compose-go-native-module-adoption.md)
+
+### Follow-on: ARM64 Linux CLI and Python Wheel Support
+
+- [ARM64.1 — ARM64 Linux CLI and Python Wheel Support Plan](plans/arm64-linux-support.md)
+- ARM64.2 — ARM64 Linux implementation (in review, PR #593): native
+  `ubuntu-24.04-arm` CLI and `sc-compose` wheel delivery, with Zig-based
+  `manylinux2014_aarch64` wheel packaging and a separate non-sc-lint ARM64
+  validation job. Branch: `feature/arm64-linux-support-impl`.
+
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
 - [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)

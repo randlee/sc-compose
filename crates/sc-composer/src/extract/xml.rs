@@ -249,72 +249,45 @@ fn parse_value_segments<'a>(
 }
 
 fn map_raw_text_error(error: raw_text::RawTextMatchError, path: &[XmlPathSegment]) -> ExtractError {
-    match error.scope() {
-        raw_text::RawTextErrorScope::Request => match error {
-            raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
-                ExtractError::format_error(
-                    DiagnosticCode::ErrExtractTemplateUnsupported,
-                    ExtractionDiagnosticKind::Unsupported,
-                    with_span(&message, span),
-                    RecoveryHintKind::UnsupportedConstruct {
-                        description: "use supported scalar XML placeholders".to_owned(),
-                    },
+    match error {
+        raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
+            raw_text_template_error(raw_text::format_diagnostic_message(&message, span))
+        }
+        raw_text::RawTextMatchError::StaticMismatch { span, message } => {
+            let message = raw_text::format_diagnostic_message(&message, span);
+            raw_text_static_mismatch(&message, path)
+        }
+        raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
+            if message.contains("adjacent variable") {
+                ExtractError::ambiguous_delimiter(
+                    "adjacent XML variable expressions have no structural delimiter",
                 )
+            } else {
+                ExtractError::ambiguous(raw_text::format_diagnostic_message(&message, span), None)
             }
-            raw_text::RawTextMatchError::StaticMismatch { span, message } => {
-                ExtractError::format_error(
-                    DiagnosticCode::ErrExtractXmlStaticMismatch,
-                    ExtractionDiagnosticKind::Unsupported,
-                    with_span(&message, span),
-                    RecoveryHintKind::InspectInput {
-                        description: "align rendered XML static content with the known template"
-                            .to_owned(),
-                    },
-                )
-            }
-            raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
-                ExtractError::ambiguous(with_span(&message, span), None)
-            }
-        },
-        raw_text::RawTextErrorScope::Occurrence => match error {
-            raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
-                ExtractError::format_error(
-                    DiagnosticCode::ErrExtractTemplateUnsupported,
-                    ExtractionDiagnosticKind::Unsupported,
-                    with_span(&message, span),
-                    RecoveryHintKind::UnsupportedConstruct {
-                        description: "use supported scalar XML placeholders".to_owned(),
-                    },
-                )
-            }
-            raw_text::RawTextMatchError::StaticMismatch { span, message } => {
-                ExtractError::format_error(
-                    DiagnosticCode::ErrExtractXmlStaticMismatch,
-                    ExtractionDiagnosticKind::Unsupported,
-                    format!("{} at {}", with_span(&message, span), format_path(path)),
-                    RecoveryHintKind::InspectInput {
-                        description: "align rendered XML static content with the known template"
-                            .to_owned(),
-                    },
-                )
-            }
-            raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
-                if message.contains("adjacent variable") {
-                    ExtractError::ambiguous_delimiter(
-                        "adjacent XML variable expressions have no structural delimiter",
-                    )
-                } else {
-                    ExtractError::ambiguous(with_span(&message, span), None)
-                }
-            }
-        },
+        }
     }
 }
 
-fn with_span(message: &str, span: Option<std::ops::Range<usize>>) -> String {
-    span.map_or_else(
-        || message.to_owned(),
-        |span| format!("{message} (candidate bytes {}..{})", span.start, span.end),
+fn raw_text_template_error(message: String) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractTemplateUnsupported,
+        ExtractionDiagnosticKind::Unsupported,
+        message,
+        RecoveryHintKind::UnsupportedConstruct {
+            description: "use supported scalar XML placeholders".to_owned(),
+        },
+    )
+}
+
+fn raw_text_static_mismatch(message: &str, path: &[XmlPathSegment]) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractXmlStaticMismatch,
+        ExtractionDiagnosticKind::Unsupported,
+        format!("{message} at {}", format_path(path)),
+        RecoveryHintKind::InspectInput {
+            description: "align rendered XML static content with the known template".to_owned(),
+        },
     )
 }
 

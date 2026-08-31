@@ -94,6 +94,9 @@ jobs:
           python3 .github/scripts/release_artifacts.py verify-version-lockstep \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
+          python3 .github/scripts/go_native_module.py verify-version-lockstep \
+            --config release/go-native-module.toml \
+            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - name: Run release gate
         id: release_gate
@@ -351,11 +354,17 @@ jobs:
           release_version: ${{ needs.gate-and-tag.outputs.release_version }}
           pyproject: ${{ matrix.pyproject }}
           build_system: ${{ matrix.build_system }}
+          install_maturin_zig: ${{ matrix.os == 'ubuntu-24.04-arm' }}
           rust_toolchain: ${{ needs.release-plan.outputs.rust_toolchain }}
           workspace_toml: ${{ needs.release-plan.outputs.workspace_toml }}
       - name: Build wheels (maturin)
-        if: ${{ matrix.build_system == 'maturin' }}
+        if: ${{ matrix.build_system == 'maturin' && matrix.os != 'ubuntu-24.04-arm' }}
         run: maturin build --release --manifest-path ${{ matrix.cargo_manifest }} --out dist
+      - name: Build ARM64 Linux wheel (maturin + Zig)
+        if: ${{ matrix.build_system == 'maturin' && matrix.os == 'ubuntu-24.04-arm' }}
+        run: >-
+          maturin build --release --manifest-path ${{ matrix.cargo_manifest }} --out dist
+          --compatibility manylinux2014 --zig
       - name: Build wheels (setuptools)
         if: ${{ matrix.build_system == 'setuptools' }}
         run: |

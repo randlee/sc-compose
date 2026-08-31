@@ -8,6 +8,7 @@ use crate::diagnostics::DiagnosticCode;
 use crate::types::VariableName;
 
 mod error;
+mod input_limits;
 mod json;
 mod raw;
 pub(crate) mod raw_text;
