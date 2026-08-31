@@ -100,6 +100,17 @@ jobs:
           python3 -m pytest .github/scripts/tests
           python3 -m pytest plugins/sc-publish/.github/scripts/tests
 
+      - name: Verify vendored Homebrew template tracks sc-publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This intentionally compares only the template whose upstream fix is
+          # pending. Once sc-publish merges it, this consumer must re-vendor it.
+          git fetch --depth=1 https://github.com/randlee/sc-publish.git \
+            refs/heads/develop:refs/remotes/sc-publish-upstream/develop
+          git diff --exit-code sc-publish-upstream/develop -- \
+            plugins/sc-publish/release/homebrew/formula.rb.j2
+
       - name: Validate publish-order dependency graph
         run: |
           python3 .github/scripts/release_artifacts.py validate-publish-order \

@@ -163,6 +163,9 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
     assert!(formula.contains("desc \"A \\\"quoted\\\" description\""));
     assert!(formula.contains("assert_match \"A \\\"quoted\\\" result\""));
     assert!(formula.contains("bin.install \"bin/sc-compose\""));
+    // Ruby execution belongs to the top-level Python regression because this
+    // cross-platform Rust CLI suite also runs on Windows, where Ruby is absent.
+    // That regression executes the same multi-component expression in CI.
     assert!(formula.contains("(pkgshare/\"quoted\\\"component\"/\"examples\").install Dir[\"share/quoted\\\"component/examples/*\"]"));
     assert!(!formula.contains("{{"));
 }

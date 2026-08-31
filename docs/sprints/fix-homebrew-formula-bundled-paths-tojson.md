@@ -20,21 +20,24 @@ path helper and quote only later path segments. This produces, for example,
   `.github/workflows/homebrew-publish.yml` reads the manifest and passes the
   selected template to the published renderer.
 - **Vendored copy:** `plugins/sc-publish/release/homebrew/formula.rb.j2` is a
-  consumer-local mirror. It received the same stopgap correction in this PR.
-  The canonical package correction is in flight on
-  `randlee/sc-publish:fix/homebrew-formula-bundled-paths-tojson`; a subsequent
-  package sync should take that canonical copy rather than independently
-  re-deciding this behavior.
+  consumer-local mirror and must not be hand-edited. It is restored byte-for-byte
+  to its pre-`85f7dd7` upstream state. The canonical package correction is
+  `randlee/sc-publish:fix/homebrew-formula-bundled-paths-tojson` at `8f858ed`.
+  CI compares this specific vendored template with upstream `develop`: it passes
+  while that upstream change is pending and fails as soon as it merges until this
+  consumer synchronizes the kit.
 - **Prior test gap:** the earlier regression only asserted that the rendered
   text contained `("pkgshare"/"examples").install ...` and ran `ruby -c`.
   Quoted and bare helper forms are both valid Ruby syntax, so neither check
   exercised Homebrew's runtime path-helper API. The regression now executes
-  the rendered `install` block against a minimal Homebrew-compatible helper
-  harness; the old quoted receiver fails because a Ruby `String` has no
-  `install` method.
+  a multi-component rendered `install` block against a minimal
+  Homebrew-compatible helper harness; the old quoted receiver fails because a
+  Ruby `String` has no `install` method. The Rust CLI test keeps its
+  cross-platform rendering assertion only: Ruby execution is intentionally
+  covered by this Ubuntu Python regression because the Rust suite also runs on
+  Windows, where Ruby is not available.
 - **Validation evidence for `d4ada7a`:**
   [`PR #603 checks`](https://github.com/randlee/sc-compose/pull/603/checks)
   include the CI record for the code commit. The required commands also passed
   locally at that commit: `cargo test --workspace` and
   `python3 -m pytest -q .github/scripts/tests/test_release_artifacts.py`.
-
