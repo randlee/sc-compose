@@ -163,10 +163,11 @@ and inputs for every independent post-release channel. Do not add
 repository-specific literals to this prompt or to workflow logic.
 
 For Cargo package preflight, `package-check-plan` is authoritative. An entry
-with `mode=no_verify` names one or more manifest crates scheduled earlier by
-`publish_order`; it is a valid same-release dependency, not evidence that the
-earlier crate is missing from crates.io. Report any actual preflight outcome,
-but do not turn that declared condition into a separate blocking finding.
+with `mode=deferred_same_release` names one or more manifest crates scheduled
+earlier by `publish_order`; it is an expected non-blocking preflight deferral,
+not evidence that the earlier crate is missing from crates.io. The ordered
+crates.io workflow performs the final package validation after those crates
+publish. Do not turn this declared condition into a blocking finding.
 
 Read `release/publish-channel-contracts.toml` and
 `.claude/skills/publishing/ref/channel-contracts.md` before dispatching or
