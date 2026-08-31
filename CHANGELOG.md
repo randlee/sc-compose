@@ -4,6 +4,53 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-08-30
+
+### Added
+
+- Added arm64 Linux support to the release target matrix and native module
+  builds (#591, #593).
+- Adopted the generated `sc-sha-go` native module packaging for
+  `sc-compose`'s own build/release pipeline (Sprint S.11, #594).
+
+### Changed
+
+- Phase S hotspot remediation: reduced complexity and hardened boundary
+  invariants across the extractor and template-lint seams (Sprints S.1-S.5,
+  #576, #577, #579, #585).
+- Hardened Beads formula-runner reliability (Sprint S.8, #588).
+- Fixed CI `sprint/*` branch trigger cascade (#589).
+- Bumped the Rust workspace and Python distributions to `1.6.1`.
+
+### Fixed
+
+- Resolved Phase S phase-ending review findings (#595).
+
+## [1.6.0] - 2026-08-28
+
+### Added
+
+- Added Beads (`bd`) formula composition and execution as a host-neutral
+  library (`sc-composer-beads`), its CLI adapter, and typed Python bindings,
+  per ADR-0021 (Sprints R.1-R.3, #555, #556, #558, #559, #560).
+- Added an adversarial fuzz campaign against the Beads integration surface
+  and promoted its confirmed-bug regression coverage (#564).
+
+### Fixed
+
+- Fixed Beads TOML formula string escaping (#566).
+- Fixed a NUL-byte argv misattribution in Beads process invocation (#569).
+- Fixed orphaned descendant output-cap handling in Beads runs (#567).
+- Fixed a Beads render error message regression (#568).
+- Fixed legacy JSON null-depth handling in Beads formula composition (#565).
+- Fixed `sc-lint` bootstrap fixture version drift (#554).
+- Hardened Beads output safety (#563).
+
+### Changed
+
+- Bumped the Rust workspace and Python distributions to `1.6.0` for the
+  Beads-support release.
+
 ## [1.5.0] - 2026-08-18
 
 ### Added

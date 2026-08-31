@@ -8,8 +8,8 @@ version = "0.1.0"
 
 [[patch.unused]]
 name = "sc-composer"
-version = "1.6.0"
+version = "1.6.1"
 
 [[patch.unused]]
 name = "sc-sha"
-version = "1.6.0"
+version = "1.6.1"
