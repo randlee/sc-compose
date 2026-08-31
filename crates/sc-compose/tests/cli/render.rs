@@ -130,7 +130,7 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
   "linux_sha256": "linux-hash",
   "binary_paths": ["bin/sc-compose"],
   "bundled_paths": [{
-    "destination_components": ["share", "quoted\"component", "examples"],
+    "destination_components": ["pkgshare", "quoted\"component", "examples"],
     "source_glob": "share/quoted\"component/examples/*"
   }],
   "binary": "sc-compose",
@@ -163,7 +163,7 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
     assert!(formula.contains("desc \"A \\\"quoted\\\" description\""));
     assert!(formula.contains("assert_match \"A \\\"quoted\\\" result\""));
     assert!(formula.contains("bin.install \"bin/sc-compose\""));
-    assert!(formula.contains("(\"share\"/\"quoted\\\"component\"/\"examples\").install Dir[\"share/quoted\\\"component/examples/*\"]"));
+    assert!(formula.contains("(pkgshare/\"quoted\\\"component\"/\"examples\").install Dir[\"share/quoted\\\"component/examples/*\"]"));
     assert!(!formula.contains("{{"));
 }
 
