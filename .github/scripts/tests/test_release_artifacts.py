@@ -42,6 +42,11 @@ def write_repo_fixture(
     for crate_name in ("sc-composer", "sc-compose"):
         crate_dir = tmp_path / "crates" / crate_name
         crate_dir.mkdir(parents=True)
+        dependencies = (
+            ['[dependencies]', 'sc-composer = { path = "../sc-composer", version = "1.1.0" }', ""]
+            if crate_name == "sc-compose"
+            else []
+        )
         (crate_dir / "Cargo.toml").write_text(
             "\n".join(
                 [
@@ -49,6 +54,7 @@ def write_repo_fixture(
                     f'name = "{crate_name}"',
                     'version = "1.1.0"',
                     "",
+                    *dependencies,
                 ]
             ),
             encoding="utf-8",
@@ -87,6 +93,7 @@ def write_repo_fixture(
         'artifact = "sc-composer"',
         'package = "sc-composer"',
         'cargo_toml = "crates/sc-composer/Cargo.toml"',
+        "publish = true",
         "publish_order = 1",
         "wait_after_publish_seconds = 0",
         "",
@@ -94,6 +101,7 @@ def write_repo_fixture(
         'artifact = "sc-compose"',
         'package = "sc-compose"',
         'cargo_toml = "crates/sc-compose/Cargo.toml"',
+        "publish = true",
         "publish_order = 2",
         "wait_after_publish_seconds = 0",
         "",
@@ -777,6 +785,53 @@ def test_pure_python_manifest_without_crates_loads_and_gates_cargo_legs(tmp_path
     assert publish_plan.stdout.strip() == ""
 
 
+def test_package_check_plan_skips_registry_verification_only_for_earlier_release_dependencies(
+    tmp_path: Path,
+) -> None:
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+
+    result = run_fixture_command(
+        tmp_path,
+        "package-check-plan",
+        "--workspace-toml",
+        str(workspace),
+        manifest=manifest,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "sc-composer|verify|",
+        "sc-compose|no_verify|sc-composer",
+    ]
+
+
+def test_package_check_plan_keeps_full_verification_for_nonrelease_dependencies(
+    tmp_path: Path,
+) -> None:
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'package = "sc-composer"\ncargo_toml = "crates/sc-composer/Cargo.toml"\npublish = true',
+            'package = "sc-composer"\ncargo_toml = "crates/sc-composer/Cargo.toml"\npublish = false',
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_fixture_command(
+        tmp_path,
+        "package-check-plan",
+        "--workspace-toml",
+        str(workspace),
+        manifest=manifest,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "sc-composer|verify|",
+        "sc-compose|verify|",
+    ]
+
+
 def test_rust_only_manifest_emits_empty_python_matrices(tmp_path: Path) -> None:
     result = run_validate_manifest(
         tmp_path, manifest_wheels=["ubuntu-latest"], include_python=False
@@ -868,6 +923,14 @@ def test_crates_leg_is_separate_and_independently_retryable() -> None:
     assert "list-publish-plan" in crates_text
     assert "gate-and-tag" not in crates_text
     assert "CARGO_REGISTRY_TOKEN" in crates_text
+
+
+def test_preflight_uses_manifest_aware_package_check_plan() -> None:
+    preflight_text = release_preflight_workflow_text()
+
+    assert "package-check-plan" in preflight_text
+    assert "--no-verify" in preflight_text
+    assert "earlier release crate(s)" in preflight_text
 
 
 @pytest.mark.parametrize(
