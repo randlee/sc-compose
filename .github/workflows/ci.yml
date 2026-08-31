@@ -104,12 +104,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Scope this check to the pending upstream template correction. Once
-          # it merges, the consumer must synchronize its vendored copy.
+          # PR #85 contains this already-validated template fix. Until it
+          # merges, accept only its exact template as the authorized ahead-of-
+          # upstream state; after merge, the develop comparison wins again.
           git fetch --depth=1 https://github.com/randlee/sc-publish.git \
             refs/heads/develop:refs/remotes/sc-publish-upstream/develop
-          git diff --exit-code sc-publish-upstream/develop -- \
-            plugins/sc-publish/release/homebrew/formula.rb.j2
+          git fetch --depth=1 https://github.com/randlee/sc-publish.git \
+            refs/pull/85/head:refs/remotes/sc-publish-upstream/pr-85
+          template=plugins/sc-publish/release/homebrew/formula.rb.j2
+          if git diff --quiet sc-publish-upstream/develop -- "${template}"; then
+            exit 0
+          fi
+          if git diff --quiet sc-publish-upstream/pr-85 -- "${template}"; then
+            echo "vendored Homebrew template matches the authorized sc-publish PR #85 fix"
+            exit 0
+          fi
+          echo "vendored Homebrew template diverges from both sc-publish develop and PR #85" >&2
+          git diff sc-publish-upstream/develop -- "${template}" >&2
+          exit 1
 
       - name: Validate publish-order dependency graph
         run: |

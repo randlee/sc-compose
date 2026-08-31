@@ -1,7 +1,8 @@
 ---
-status: complete
+status: pending-upstream
 branch: fix/homebrew-formula-bundled-paths-tojson
 pr: 603
+upstream_pr: https://github.com/randlee/sc-publish/pull/85
 ---
 
 # Fix: render Homebrew bundled-path helpers as Ruby methods
@@ -20,13 +21,12 @@ path helper and quote only later path segments. This produces, for example,
   `.github/workflows/homebrew-publish.yml` reads the manifest and passes the
   selected template to the published renderer.
 - **Vendored copy:** `plugins/sc-publish/release/homebrew/formula.rb.j2` is a
-  consumer-local mirror and must not be hand-edited. It is restored byte-for-byte
-  to its pre-`85f7dd7` upstream state. The canonical package correction is
-  `randlee/sc-publish` PR #85 at `8f858ed`; that PR remains open and upstream
-  `develop` still has the pre-fix template. CI fetches that actual upstream
-  `develop` branch and diffs this specific vendored template against it. The
-  guard therefore passes while PR #85 remains unmerged and fails after it
-  merges until this consumer synchronizes the kit.
+  consumer-local mirror and must not be hand-edited. It temporarily matches the
+  validated fix in [sc-publish PR #85](https://github.com/randlee/sc-publish/pull/85)
+  at `8f858ed`, while upstream `develop` remains unfixed. CI fetches both
+  upstream `develop` and PR #85: it accepts byte parity with either source and
+  rejects every other divergence. Once PR #85 merges, `develop` becomes the
+  required byte-parity source automatically.
 - **Prior test gap:** the earlier regression only asserted that the rendered
   text contained `("pkgshare"/"examples").install ...` and ran `ruby -c`.
   Quoted and bare helper forms are both valid Ruby syntax, so neither check
@@ -38,8 +38,9 @@ path helper and quote only later path segments. This produces, for example,
   currently includes Ruby, but the Rust test does not declare Ruby as a
   toolchain dependency. Ruby execution is therefore intentionally owned by
   this Ubuntu Python regression rather than a runner-provided executable.
-- **Validation evidence for `d4ada7a`:**
-  [`PR #603 checks`](https://github.com/randlee/sc-compose/pull/603/checks)
-  include the CI record for the code commit. The required commands also passed
-  locally at that commit: `cargo test --workspace` and
-  `python3 -m pytest -q .github/scripts/tests/test_release_artifacts.py`.
+- **Validation evidence (QA6 correction after `ed6471c`):** both the
+  load-bearing top-level `.github/scripts/tests` suite and the vendored
+  `plugins/sc-publish/.github/scripts/tests` suite pass genuinely with the
+  fixed template; no xfail or skip is used. The CI guard permits this single,
+  tracked, exact PR #85 divergence while that PR is open, while still failing
+  any divergence from both upstream sources.
