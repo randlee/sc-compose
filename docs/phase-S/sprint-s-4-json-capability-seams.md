@@ -1,7 +1,7 @@
 ---
 id: S.4
 title: JSON Capability Seams
-status: planned
+status: complete
 branch: sprint/s-4-json-capability-seams
 worktree: ../sc-compose-worktrees/sprint/s-4-json-capability-seams
 target: sprint/s-3-checked-validation-seams
@@ -58,9 +58,9 @@ clap-argument redesign is authorized merely to reduce CCN.
 
 ## Acceptance Criteria
 
-- [ ] Every existing command variant has a JSON-capability regression case.
-- [ ] The full existing command matrix returns the same JSON-capability result.
-- [ ] No public CLI grammar, `Command` variant, or dependency changes occur.
+- [x] Every existing command variant has a JSON-capability regression case.
+- [x] The full existing command matrix returns the same JSON-capability result.
+- [x] No public CLI grammar, `Command` variant, or dependency changes occur.
 
 ## gh-stack Workflow
 

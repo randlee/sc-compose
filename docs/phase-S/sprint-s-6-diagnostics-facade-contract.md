@@ -1,7 +1,7 @@
 ---
 id: S.6
 title: Diagnostics Facade Contract
-status: planned
+status: complete
 branch: sprint/s-6-diagnostics-facade-contract
 worktree: ../sc-compose-worktrees/sprint/s-6-diagnostics-facade-contract
 target: sprint/s-5-boundary-invariant-guardrails
@@ -62,11 +62,11 @@ pub use schema::{DiagnosticCode, DiagnosticSeverity};
 
 ## Acceptance Criteria
 
-- [ ] Tests freeze `DIAGNOSTIC_SCHEMA_VERSION == "1"` and all four listed
+- [x] Tests freeze `DIAGNOSTIC_SCHEMA_VERSION == "1"` and all four listed
   public re-exports with their current spelling.
-- [ ] Tests freeze `DiagnosticEnvelope::new` defaults without changing the
+- [x] Tests freeze `DiagnosticEnvelope::new` defaults without changing the
   serialized diagnostic schema.
-- [ ] No new public API, dependency, CLI, adapter, or filesystem-policy change
+- [x] No new public API, dependency, CLI, adapter, or filesystem-policy change
   occurs.
 
 ## gh-stack Workflow

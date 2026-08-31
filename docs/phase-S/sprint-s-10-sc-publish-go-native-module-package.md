@@ -1,7 +1,7 @@
 ---
 id: S.10
 title: sc-publish Go Native Module Package
-status: planned
+status: complete
 branch: sprint/s-10-go-native-module-package
 worktree: ../sc-publish-worktrees/sprint/s-10-go-native-module-package
 target: randlee/sc-publish:develop
@@ -28,6 +28,12 @@ related_issue: https://github.com/randlee/sc-compose/issues/583
 This is an **upstream `sc-publish` sprint**. Its code and tests live in
 `randlee/sc-publish`; this document records the required contract and gate for
 the Phase S stack. S.10 is not a `gh stack` branch in `sc-compose`.
+
+## Completion evidence
+
+S.10 merged through [sc-publish PR #80](https://github.com/randlee/sc-publish/pull/80)
+at `8d9d6790f2cad0a446758df5dcd4e2a5a9124ef9`. The delivered peer package is
+version `0.1.0`; S.11 consumed that exact package without local helper edits.
 
 ## Hard Dependencies
 
@@ -213,12 +219,12 @@ unknown target, unsafe output, and an empty or malformed release version.
 
 ## Acceptance Criteria
 
-- [ ] ADR-0022 is Accepted before package implementation begins.
-- [ ] The v1 installer schema, rendered TOML schema, CLI output schema, and
+- [x] ADR-0022 is Accepted before package implementation begins.
+- [x] The v1 installer schema, rendered TOML schema, CLI output schema, and
   immutable install provenance are documented and enforced.
-- [ ] The package emits an exact `include` matrix and fails closed without
+- [x] The package emits an exact `include` matrix and fails closed without
   partial stdout/output on malformed input.
-- [ ] The package is versioned, tested by sc-publish CI, and merged to
+- [x] The package is versioned, tested by sc-publish CI, and merged to
   `sc-publish/develop`.
 
 ## Required Validation
@@ -240,11 +246,11 @@ unknown target, unsafe output, and an empty or malformed release version.
 
 ## Closure Criteria
 
-- [ ] `plugins/go-native-module` is a peer package, not nested in
+- [x] `plugins/go-native-module` is a peer package, not nested in
   `plugins/sc-publish` and not coupled to `uniffi-bindgen-go`.
-- [ ] The installer and helper contracts above are implemented and fully
+- [x] The installer and helper contracts above are implemented and fully
   covered by hermetic tests.
-- [ ] S.10 is merged to `sc-publish/develop` with its final package version
+- [x] S.10 is merged to `sc-publish/develop` with its final package version
   and merge SHA recorded for S.11.
-- [ ] The package can be installed in a clean sc-compose fixture without
+- [x] The package can be installed in a clean sc-compose fixture without
   modifying core publish-kit files.

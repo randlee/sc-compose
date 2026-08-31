@@ -1,7 +1,7 @@
 ---
 id: S.7
 title: Path Normalization Contract
-status: planned
+status: complete
 branch: sprint/s-7-path-normalization-contract
 worktree: ../sc-compose-worktrees/sprint/s-7-path-normalization-contract
 target: sprint/s-6-diagnostics-facade-contract
@@ -58,10 +58,10 @@ pub(crate) fn normalize_relative_path(path: &Path) -> Result<PathBuf, String>;
 
 ## Acceptance Criteria
 
-- [ ] Tests cover empty, absolute, parent, platform-separator, and normalized
+- [x] Tests cover empty, absolute, parent, platform-separator, and normalized
   relative paths as applicable to the existing helper contract.
-- [ ] Manifest-path coverage preserves existing serialized forward-slash output.
-- [ ] No path policy, error string, public schema, or dependency changes occur.
+- [x] Manifest-path coverage preserves existing serialized forward-slash output.
+- [x] No path policy, error string, public schema, or dependency changes occur.
 
 ## gh-stack Workflow
 

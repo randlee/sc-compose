@@ -938,12 +938,11 @@ Sprint entries:
 
 Status:
 
-- planned: Phase S is the behavior-preserving hotspot remediation track based
-  on issue #572 and repowise evidence; it partitions safe private refactors
-  from intentionally vendored `sc-publish` release-package copies;
-- target: one linear `gh stack` rooted at `integrate/phase-s`; the draft
-  phase-integration PR is the only Phase S PR targeting `develop` and merges
-  atomically with the reviewed sprint layers at phase close.
+- complete: Phase S delivered behavior-preserving hotspot remediation at
+  `integrate/phase-s` commit `44a91bf`, including the upstream
+  `go-native-module` peer package from sc-publish PR #80;
+- evidence: S.11 merged through sc-compose PR #594 after S.10 merged upstream
+  at `8d9d6790f2cad0a446758df5dcd4e2a5a9124ef9`.
 
 Sprint entries:
 

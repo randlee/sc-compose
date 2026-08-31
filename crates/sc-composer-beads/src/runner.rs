@@ -62,7 +62,8 @@ pub trait ProcessRunner {
     /// contained process tree before returning an error. Unix uses a dedicated
     /// process group and Windows uses a Job Object. Other platforms retain the
     /// direct-child behavior because they have no equivalent containment
-    /// primitive in this implementation.
+    /// primitive in this implementation; they make no descendant-tree cleanup
+    /// guarantee.
     ///
     /// # Errors
     ///
@@ -89,45 +90,41 @@ impl ProcessRunner for StdProcessRunner {
         let stdout_reader = spawn_capture(stdout, StreamKind::Stdout, capture_sender.clone());
         let stderr_reader = spawn_capture(stderr, StreamKind::Stderr, capture_sender);
 
-        let mut exceeded_limit = false;
+        let mut capture = CaptureTracker::new();
         let mut terminated_for_limit = false;
-        let mut stdout = None;
-        let mut stderr = None;
-        loop {
+        let mut capture_disconnected = false;
+        while !capture.is_complete() {
             match capture_receiver.recv_timeout(Duration::from_millis(10)) {
-                Ok(CaptureEvent::ExceededLimit) => {
-                    exceeded_limit = true;
-                    if !terminated_for_limit {
-                        child.terminate()?;
-                        terminated_for_limit = true;
-                    }
-                }
+                Ok(event) => capture.observe(event),
                 Err(mpsc::RecvTimeoutError::Timeout) => {}
                 Err(mpsc::RecvTimeoutError::Disconnected) => {
-                    return Err(io::Error::other(
-                        "child output capture closed before both streams completed",
-                    ));
-                }
-                Ok(CaptureEvent::Completed(StreamKind::Stdout, captured)) => {
-                    stdout = Some(captured?);
-                }
-                Ok(CaptureEvent::Completed(StreamKind::Stderr, captured)) => {
-                    stderr = Some(captured?);
+                    capture_disconnected = true;
                 }
             }
 
-            if stdout.is_some() && stderr.is_some() {
+            terminate_capture_failure(
+                capture_disconnected || capture.requires_contained_termination(),
+                child.as_mut(),
+                &mut terminated_for_limit,
+            )?;
+
+            if capture_disconnected {
                 break;
             }
         }
-        join_capture(stdout_reader)?;
-        join_capture(stderr_reader)?;
-        let stdout = stdout.expect("stdout completion checked before loop exit");
-        let stderr = stderr.expect("stderr completion checked before loop exit");
-        exceeded_limit |= stdout.exceeded || stderr.exceeded;
-        if exceeded_limit {
-            return Err(process_output_limit_error());
+
+        join_capture_readers(stdout_reader, stderr_reader)?;
+        if capture_disconnected {
+            return Err(io::Error::other(
+                "child output capture closed before both streams completed",
+            ));
         }
+
+        let (stdout, stderr) = capture.finish()?;
+        debug_assert!(
+            !terminated_for_limit,
+            "a contained termination must have a capture failure result"
+        );
         Ok(ProcessOutput {
             exit_status: child.wait()?.code(),
             stdout: String::from_utf8_lossy(&stdout.bytes).into_owned(),
@@ -191,6 +188,18 @@ fn configure_command(command: &mut Command, spec: &CommandSpec) {
         .stderr(Stdio::piped());
 }
 
+fn terminate_capture_failure(
+    requires_termination: bool,
+    child: &mut dyn ManagedChild,
+    terminated: &mut bool,
+) -> io::Result<()> {
+    if requires_termination && !*terminated {
+        child.terminate().map(|_status| ())?;
+        *terminated = true;
+    }
+    Ok(())
+}
+
 #[cfg(unix)]
 fn spawn_contained(spec: &CommandSpec) -> io::Result<Box<dyn ManagedChild>> {
     let mut command =
@@ -235,6 +244,79 @@ enum StreamKind {
 enum CaptureEvent {
     ExceededLimit,
     Completed(StreamKind, io::Result<CapturedStream>),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CaptureState {
+    Waiting,
+    OutputLimitExceeded,
+    ReaderFailed,
+    Completed,
+}
+
+struct CaptureTracker {
+    state: CaptureState,
+    stdout: Option<io::Result<CapturedStream>>,
+    stderr: Option<io::Result<CapturedStream>>,
+}
+
+impl CaptureTracker {
+    fn new() -> Self {
+        Self {
+            state: CaptureState::Waiting,
+            stdout: None,
+            stderr: None,
+        }
+    }
+
+    fn observe(&mut self, event: CaptureEvent) {
+        match event {
+            CaptureEvent::ExceededLimit => self.state = CaptureState::OutputLimitExceeded,
+            CaptureEvent::Completed(stream_kind, captured) => {
+                let is_reader_failure = captured.is_err();
+                let exceeded_limit = captured.as_ref().is_ok_and(|captured| captured.exceeded);
+                match stream_kind {
+                    StreamKind::Stdout => self.stdout = Some(captured),
+                    StreamKind::Stderr => self.stderr = Some(captured),
+                }
+                if exceeded_limit {
+                    self.state = CaptureState::OutputLimitExceeded;
+                } else if is_reader_failure && self.state != CaptureState::OutputLimitExceeded {
+                    self.state = CaptureState::ReaderFailed;
+                } else if self.is_complete() && self.state == CaptureState::Waiting {
+                    self.state = CaptureState::Completed;
+                }
+            }
+        }
+    }
+
+    fn is_complete(&self) -> bool {
+        self.stdout.is_some() && self.stderr.is_some()
+    }
+
+    fn requires_contained_termination(&self) -> bool {
+        matches!(
+            self.state,
+            CaptureState::OutputLimitExceeded | CaptureState::ReaderFailed
+        )
+    }
+
+    fn finish(self) -> io::Result<(CapturedStream, CapturedStream)> {
+        if self.state == CaptureState::OutputLimitExceeded {
+            return Err(process_output_limit_error());
+        }
+
+        let stdout = self
+            .stdout
+            .expect("stdout completion checked before capture finalization")?;
+        let stderr = self
+            .stderr
+            .expect("stderr completion checked before capture finalization")?;
+        if stdout.exceeded || stderr.exceeded {
+            return Err(process_output_limit_error());
+        }
+        Ok((stdout, stderr))
+    }
 }
 
 fn spawn_capture<R>(
@@ -282,6 +364,15 @@ fn join_capture(reader: thread::JoinHandle<()>) -> io::Result<()> {
         .map_err(|_panic_payload| io::Error::other("child output reader panicked"))
 }
 
+fn join_capture_readers(
+    stdout_reader: thread::JoinHandle<()>,
+    stderr_reader: thread::JoinHandle<()>,
+) -> io::Result<()> {
+    let stdout_result = join_capture(stdout_reader);
+    let stderr_result = join_capture(stderr_reader);
+    stdout_result.and(stderr_result)
+}
+
 pub(crate) fn process_output_limit_error() -> io::Error {
     io::Error::other(OUTPUT_LIMIT_ERROR_MARKER)
 }
@@ -294,9 +385,12 @@ pub(crate) fn is_process_output_limit_error(error: &io::Error) -> bool {
 mod tests {
     use std::io::Cursor;
     use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
 
     use super::{
-        CaptureEvent, PROCESS_OUTPUT_LIMIT_BYTES, capture_stream, is_process_output_limit_error,
+        CaptureEvent, CaptureState, CaptureTracker, CapturedStream, PROCESS_OUTPUT_LIMIT_BYTES,
+        StreamKind, capture_stream, is_process_output_limit_error, join_capture_readers,
         process_output_limit_error,
     };
 
@@ -318,5 +412,89 @@ mod tests {
     #[test]
     fn process_output_limit_error_has_a_distinct_internal_marker() {
         assert!(is_process_output_limit_error(&process_output_limit_error()));
+    }
+
+    #[test]
+    fn output_completion_waits_for_both_streams() {
+        let mut capture = CaptureTracker::new();
+        capture.observe(CaptureEvent::Completed(
+            StreamKind::Stdout,
+            Ok(CapturedStream {
+                bytes: b"stdout".to_vec(),
+                exceeded: false,
+            }),
+        ));
+
+        assert_eq!(capture.state, CaptureState::Waiting);
+        assert!(!capture.is_complete());
+
+        capture.observe(CaptureEvent::Completed(
+            StreamKind::Stderr,
+            Ok(CapturedStream {
+                bytes: b"stderr".to_vec(),
+                exceeded: false,
+            }),
+        ));
+
+        assert_eq!(capture.state, CaptureState::Completed);
+        assert!(capture.is_complete());
+        assert!(!capture.requires_contained_termination());
+    }
+
+    #[test]
+    fn cap_breach_and_reader_failure_require_contained_termination() {
+        let mut cap_breach = CaptureTracker::new();
+        cap_breach.observe(CaptureEvent::ExceededLimit);
+        assert_eq!(cap_breach.state, CaptureState::OutputLimitExceeded);
+        assert!(cap_breach.requires_contained_termination());
+
+        let mut reader_failure = CaptureTracker::new();
+        reader_failure.observe(CaptureEvent::Completed(
+            StreamKind::Stdout,
+            Err(std::io::Error::other("synthetic read failure")),
+        ));
+        assert_eq!(reader_failure.state, CaptureState::ReaderFailed);
+        assert!(reader_failure.requires_contained_termination());
+    }
+
+    #[test]
+    fn disconnected_capture_receiver_is_directly_observable() {
+        let (sender, receiver) = mpsc::channel::<CaptureEvent>();
+        drop(sender);
+
+        assert!(matches!(
+            receiver.try_recv(),
+            Err(mpsc::TryRecvError::Disconnected)
+        ));
+    }
+
+    #[test]
+    fn reader_join_waits_for_the_second_reader_after_a_first_reader_panic() {
+        let (release_sender, release_receiver) = mpsc::channel();
+        let (join_result_sender, join_result_receiver) = mpsc::channel();
+        let stdout_reader = thread::spawn(|| panic!("synthetic reader panic"));
+        let stderr_reader = thread::spawn(move || {
+            let _ = release_receiver.recv();
+        });
+        let joiner = thread::spawn(move || {
+            let _ = join_result_sender.send(join_capture_readers(stdout_reader, stderr_reader));
+        });
+
+        let early_result = join_result_receiver
+            .recv_timeout(Duration::from_millis(50))
+            .ok();
+        assert!(
+            early_result.is_none(),
+            "joining must not return while the second reader is blocked"
+        );
+
+        release_sender.send(()).expect("release second reader");
+        let error = join_result_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("join must complete after the second reader exits")
+            .expect_err("reader panic must remain a capture error");
+        joiner.join().expect("joiner thread");
+
+        assert_eq!(error.to_string(), "child output reader panicked");
     }
 }

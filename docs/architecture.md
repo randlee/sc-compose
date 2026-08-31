@@ -136,6 +136,18 @@ which is **Accepted**. Consumers download and extract the target-specific
 release bundle before building; `go get` alone does not provide the native
 library.
 
+#### Go-native release ownership
+
+[ADR-0022](adrs/0022-go-native-module-peer-package.md) assigns release
+orchestration to the versioned `sc-publish` `go-native-module` peer package.
+`sc-compose` installs its helper and test asset unchanged, and owns only the
+consumer facts in [`release/go-native-module.toml`](../release/go-native-module.toml).
+The helper derives the supported release matrix from the binding contract and
+stages exactly Linux amd64, macOS arm64, and Windows GNU amd64 bundles. This
+keeps generated binding code separate from release orchestration: the binding
+owns its module and native-target contract, while the peer package owns matrix
+selection, staging, and version-lockstep validation.
+
 ### 3.6 `sc-composer-beads`
 
 `sc-composer-beads` is the host-neutral Beads formula-composition library. It
@@ -149,6 +161,11 @@ the `bd` executable.
 It must not depend on `sc-compose`, a Python or Go adapter, Beads source or a
 Beads database library, ATM/runtime code, or any CLI argument type. The CLI
 and foreign-language bindings are callers of this library, never dependencies.
+
+For bounded subprocess output, the library contains the child process tree on
+supported platforms: Unix uses a dedicated process group and Windows uses a
+Job Object. Other platforms use direct-child termination only, so they make no
+descendant-tree cleanup guarantee.
 
 ### 3.7 `bindings/sc-composer-beads-python`
 

@@ -1,7 +1,7 @@
 ---
 id: S.5
 title: Boundary Invariant Guardrails
-status: planned
+status: complete
 branch: sprint/s-5-boundary-invariant-guardrails
 worktree: ../sc-compose-worktrees/sprint/s-5-boundary-invariant-guardrails
 target: sprint/s-4-json-capability-seams
@@ -59,13 +59,13 @@ fn assert_manifest_boundary_rules(root: &Path, violations: &mut Vec<String>);
 
 ## Acceptance Criteria
 
-- [ ] Boundary failures identify the violated invariant without losing the
+- [x] Boundary failures identify the violated invariant without losing the
   aggregate failure report.
-- [ ] Existing standalone, adapter, and forbidden-dependency cases still fail
+- [x] Existing standalone, adapter, and forbidden-dependency cases still fail
   exactly as before.
-- [ ] Every pre-existing prohibited pattern and required dependency check
+- [x] Every pre-existing prohibited pattern and required dependency check
   remains covered by a named invariant-family assertion.
-- [ ] No production dependency or public API changes occur.
+- [x] No production dependency or public API changes occur.
 
 ## gh-stack Workflow
 

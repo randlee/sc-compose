@@ -42,17 +42,18 @@ pub(crate) fn lint_request(request: &ComposeRequest) -> Result<Vec<Diagnostic>, 
                 .get(path)
                 .cloned()
                 .unwrap_or_default();
-            lint_source_with_mode(path, source, mode, json_context, &chain)
+            analyze_template_source(path, source, mode, json_context, &chain)
         })
         .collect())
 }
 
 #[cfg(test)]
 fn lint_source(path: &Path, source: &str) -> Vec<Diagnostic> {
-    lint_source_with_mode(path, source, JsonEscapeMode::Auto, false, &[])
+    analyze_template_source(path, source, JsonEscapeMode::Auto, false, &[])
 }
 
-fn lint_source_with_mode(
+/// Analyze one expanded template source with the shared composer scanner.
+fn analyze_template_source(
     path: &Path,
     source: &str,
     mode: JsonEscapeMode,
@@ -172,56 +173,78 @@ pub(crate) struct TemplateContractsReport {
     pub(crate) exit_status: i32,
 }
 
+/// Per-template analysis collected before repository report assembly.
+struct RepositoryTemplateLint {
+    findings: Vec<Value>,
+    diagnostics: Vec<Value>,
+    error_count: usize,
+}
+
+/// Private report accumulator that preserves the template-contracts envelope.
+#[derive(Default)]
+struct TemplateContractsAccumulator {
+    findings: Vec<Value>,
+    diagnostics: Vec<Value>,
+    template_count: usize,
+    error_count: usize,
+}
+
+impl TemplateContractsAccumulator {
+    fn record(&mut self, template: RepositoryTemplateLint) {
+        self.template_count += 1;
+        self.findings.extend(template.findings);
+        self.diagnostics.extend(template.diagnostics);
+        self.error_count += template.error_count;
+    }
+
+    fn assemble(self) -> TemplateContractsReport {
+        let payload = json!({
+            "ok": self.error_count == 0,
+            "command": "template-contracts",
+            "data": {
+                "status": if self.error_count == 0 { "pass" } else { "fail" },
+                "scope": template_contracts_scope(),
+                "templates_scanned": self.template_count,
+                "context_backed_render": false,
+                "findings": self.findings,
+                "diagnostics": self.diagnostics,
+            },
+            "diagnostics": self.diagnostics,
+        });
+        let raw_json =
+            serde_json::to_string_pretty(&payload).unwrap_or_else(|_| String::from("{}"));
+        TemplateContractsReport {
+            payload,
+            raw_json,
+            exit_status: if self.error_count == 0 { 0 } else { 2 },
+        }
+    }
+}
+
 /// Scan every repository JSON template with the same source scanner used by
 /// `validate --lint`. No external tools or duplicate parser are involved.
 pub(crate) fn lint_repository_templates(
     root: &Path,
 ) -> Result<TemplateContractsReport, CommandError> {
-    let templates = discover_json_templates(root).map_err(|error| {
+    let templates = discover_repository_json_templates(root).map_err(|error| {
         CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigRead)
     })?;
     let confining_root = ConfiningRoot::new(root).map_err(|error| {
         CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigMode)
     })?;
-    let mut findings = Vec::new();
-    let mut diagnostics = Vec::new();
-    let mut template_count = 0usize;
-    let mut error_count = 0usize;
+    let mut report = TemplateContractsAccumulator::default();
 
     for template in templates {
-        template_count += 1;
-        let (template_findings, template_diagnostics, template_errors) =
-            lint_repository_template(&template, &confining_root)?;
-        findings.extend(template_findings);
-        diagnostics.extend(template_diagnostics);
-        error_count += template_errors;
+        report.record(lint_repository_template(&template, &confining_root)?);
     }
 
-    let payload = json!({
-        "ok": error_count == 0,
-        "command": "template-contracts",
-        "data": {
-            "status": if error_count == 0 { "pass" } else { "fail" },
-            "scope": template_contracts_scope(),
-            "templates_scanned": template_count,
-            "context_backed_render": false,
-            "findings": findings,
-            "diagnostics": diagnostics,
-        },
-        "diagnostics": diagnostics,
-    });
-    let raw_json = serde_json::to_string_pretty(&payload).unwrap_or_else(|_| String::from("{}"));
-    Ok(TemplateContractsReport {
-        payload,
-        raw_json,
-        exit_status: if error_count == 0 { 0 } else { 2 },
-    })
+    Ok(report.assemble())
 }
 
 fn lint_repository_template(
     template: &Path,
     confining_root: &ConfiningRoot,
-) -> Result<(Vec<Value>, Vec<Value>, usize), CommandError> {
+) -> Result<RepositoryTemplateLint, CommandError> {
     let expanded = expand_includes(template, confining_root, &ComposePolicy::default())
         .map_err(CommandError::compose)?;
     let canonical_template = template
@@ -256,7 +279,7 @@ fn lint_repository_template(
             .get(path)
             .cloned()
             .unwrap_or_default();
-        for diagnostic in lint_source_with_mode(path, source, mode, true, &chain) {
+        for diagnostic in analyze_template_source(path, source, mode, true, &chain) {
             if diagnostic.severity == DiagnosticSeverity::Error {
                 error_count += 1;
             }
@@ -299,10 +322,15 @@ fn lint_repository_template(
         }));
     }
 
-    Ok((findings, diagnostics, error_count))
+    Ok(RepositoryTemplateLint {
+        findings,
+        diagnostics,
+        error_count,
+    })
 }
 
-fn discover_json_templates(root: &Path) -> std::io::Result<Vec<PathBuf>> {
+/// Traverse the repository for JSON templates in the configured lint scope.
+fn discover_repository_json_templates(root: &Path) -> std::io::Result<Vec<PathBuf>> {
     let mut templates = Vec::new();
     visit_template_dir(
         root,
@@ -421,8 +449,12 @@ fn line_and_column(source: &str, offset: usize) -> (usize, usize) {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_non_production_fixture_directory, lint_source, visit_template_dir};
+    use super::{
+        RepositoryTemplateLint, TemplateContractsAccumulator, is_non_production_fixture_directory,
+        lint_source, visit_template_dir,
+    };
     use sc_composer::DiagnosticCode;
+    use serde_json::json;
     use std::path::Path;
 
     #[test]
@@ -452,7 +484,7 @@ mod tests {
     }
 
     #[test]
-    fn production_scan_excludes_intentional_negative_fixture_tree() {
+    fn repository_traversal_excludes_intentional_negative_fixture_tree() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .and_then(Path::parent)
@@ -476,8 +508,33 @@ mod tests {
     }
 
     #[test]
+    fn report_assembly_preserves_template_contracts_envelope() {
+        let mut report = TemplateContractsAccumulator::default();
+        report.record(RepositoryTemplateLint {
+            findings: vec![json!({"diagnostic_code": "ERR_JSON_MODE_CONTRACT"})],
+            diagnostics: vec![json!({"code": "ERR_JSON_MODE_CONTRACT"})],
+            error_count: 1,
+        });
+
+        let report = report.assemble();
+        assert_eq!(report.exit_status, 2);
+        assert_eq!(report.payload["ok"], false);
+        assert_eq!(report.payload["command"], "template-contracts");
+        assert_eq!(report.payload["data"]["status"], "fail");
+        assert_eq!(report.payload["data"]["templates_scanned"], 1);
+        assert_eq!(
+            report.payload["diagnostics"],
+            report.payload["data"]["diagnostics"]
+        );
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&report.raw_json).expect("serialized report"),
+            report.payload
+        );
+    }
+
+    #[test]
     fn finds_auto_mode_quoted_json_scalar_with_location() {
-        let diagnostics = super::lint_source_with_mode(
+        let diagnostics = super::analyze_template_source(
             std::path::Path::new("payload.json.j2"),
             "{\"value\": \"{{ value }}\"}\n",
             sc_composer::JsonEscapeMode::Auto,
@@ -496,9 +553,9 @@ mod tests {
     }
 
     #[test]
-    fn fuzz_001_template_lint_uses_shared_json_path_detector() {
+    fn source_analysis_uses_shared_json_path_detector() {
         for path in ["payload.JSON.j2", "payload.json.J2", "payload.json.j2.j2"] {
-            let diagnostics = super::lint_source_with_mode(
+            let diagnostics = super::analyze_template_source(
                 Path::new(path),
                 "{\"value\": \"{{ value }}\"}\n",
                 sc_composer::JsonEscapeMode::Auto,
@@ -516,8 +573,8 @@ mod tests {
     }
 
     #[test]
-    fn legacy_mode_warns_but_comments_and_jinja_literals_are_ignored() {
-        let diagnostics = super::lint_source_with_mode(
+    fn source_analysis_uses_shared_scanner_for_comments_and_jinja_literals() {
+        let diagnostics = super::analyze_template_source(
             std::path::Path::new("payload.json.j2"),
             include_str!("../../../../tests/fixtures/json-scanner-parity.j2"),
             sc_composer::JsonEscapeMode::Legacy,
@@ -535,7 +592,7 @@ mod tests {
 
     #[test]
     fn bare_json_placeholder_is_clean() {
-        let diagnostics = super::lint_source_with_mode(
+        let diagnostics = super::analyze_template_source(
             std::path::Path::new("payload.json.j2"),
             "{\"value\": {{ value }}}\n",
             sc_composer::JsonEscapeMode::Auto,
@@ -548,7 +605,7 @@ mod tests {
 
     #[test]
     fn filtered_json_placeholder_is_a_conservative_finding() {
-        let diagnostics = super::lint_source_with_mode(
+        let diagnostics = super::analyze_template_source(
             std::path::Path::new("payload.json.j2"),
             "{\"value\": \"{{ value | upper }}\"}\n",
             sc_composer::JsonEscapeMode::Auto,
@@ -566,7 +623,7 @@ mod tests {
 
     #[test]
     fn ambiguous_json_placeholder_gets_a_warning_instead_of_being_skipped() {
-        let diagnostics = super::lint_source_with_mode(
+        let diagnostics = super::analyze_template_source(
             std::path::Path::new("payload.json.j2"),
             "{\"value\": \"{{ value.foo[\\\"key\\\"] }}\"}\n",
             sc_composer::JsonEscapeMode::Auto,
