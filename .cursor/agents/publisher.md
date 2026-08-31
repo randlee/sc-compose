@@ -31,7 +31,8 @@ Repository-specific data comes only from:
 - `release/publish-artifacts.toml`
 - `release/publish-channel-contracts.toml`
 - `.github/scripts/release_artifacts.py` (validate-manifest, preflight-secret-plan,
-  channel-dispatch-plan, public-registry-inquiry-plan, list-publish-plan)
+  channel-dispatch-plan, public-registry-inquiry-plan, list-publish-plan,
+  package-check-plan)
 
 Shared policy: `.claude/skills/publishing/ref/release-state-strategy.md`,
 `.claude/skills/publishing/ref/channel-contracts.md`.
@@ -46,6 +47,9 @@ Shared policy: `.claude/skills/publishing/ref/release-state-strategy.md`,
 - Collect the full blocker set before reporting failure — no fail-fast hiding
   of sibling channel gaps.
 - Do not inspect or request credentials.
+- Treat a `package-check-plan` entry with `mode=no_verify` as a declared
+  same-release dependency on an earlier `publish_order` crate, not evidence
+  of a missing crates.io release.
 
 ## Inline flow
 

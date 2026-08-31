@@ -180,6 +180,48 @@ def validate_publish_order(args: object) -> int:
     return 0
 
 
+def cargo_package_check_plan(workspace_toml: Path, manifest: dict) -> list[dict[str, object]]:
+    """Return the registry-aware Cargo package validation plan.
+
+    ``cargo package`` verifies a crate against the public registry. During a
+    new multi-crate release, a dependent crate can legitimately require an
+    earlier manifest crate at the target version before that earlier crate has
+    been published. Package the dependent crate without Cargo's registry
+    verification in that one case; the ordered crates.io workflow will publish
+    the dependency first and performs the final registry-backed verification.
+    """
+    publishable = {
+        crate["package"]: crate
+        for crate in manifest["crates"]
+        if crate.get("publish", True) is True
+    }
+    plan: list[dict[str, object]] = []
+    for crate in manifest["crates"]:
+        package = crate["package"]
+        crate_toml = workspace_toml.parent / crate["cargo_toml"]
+        earlier_release_dependencies = sorted(
+            dependency
+            for dependency in workspace_dependency_names(crate_toml, workspace_toml)
+            if dependency in publishable
+            and publishable[dependency]["publish_order"] < crate["publish_order"]
+        )
+        plan.append(
+            {
+                "package": package,
+                "mode": "no_verify" if earlier_release_dependencies else "verify",
+                "earlier_release_dependencies": earlier_release_dependencies,
+            }
+        )
+    return plan
+
+
+def cmd_package_check_plan(args: object) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    for entry in cargo_package_check_plan(Path(args.workspace_toml), manifest):
+        print(f"{entry['package']}|{entry['mode']}|{','.join(entry['earlier_release_dependencies'])}")
+    return 0
+
+
 def workspace_version(workspace_toml: Path) -> str:
     """Resolve the release version from the manifest-declared version source.
 
