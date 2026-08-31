@@ -830,7 +830,7 @@ def test_package_check_plan_skips_registry_verification_only_for_earlier_release
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines() == [
         "sc-composer|verify|",
-        "sc-compose|no_verify|sc-composer",
+        "sc-compose|deferred_same_release|sc-composer",
     ]
 
 
@@ -956,10 +956,12 @@ def test_crates_leg_is_separate_and_independently_retryable() -> None:
 
 def test_preflight_uses_manifest_aware_package_check_plan() -> None:
     preflight_text = release_preflight_workflow_text()
+    deferred_branch = preflight_text.split("deferred_same_release)", 1)[1].split("*)", 1)[0]
 
     assert "package-check-plan" in preflight_text
-    assert "--no-verify" in preflight_text
-    assert "earlier release crate(s)" in preflight_text
+    assert "deferred_same_release" in preflight_text
+    assert "Deferring %s package check" in preflight_text
+    assert "cargo package" not in deferred_branch
 
 
 @pytest.mark.parametrize(

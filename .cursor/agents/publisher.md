@@ -47,9 +47,9 @@ Shared policy: `.claude/skills/publishing/ref/release-state-strategy.md`,
 - Collect the full blocker set before reporting failure — no fail-fast hiding
   of sibling channel gaps.
 - Do not inspect or request credentials.
-- Treat a `package-check-plan` entry with `mode=no_verify` as a declared
-  same-release dependency on an earlier `publish_order` crate, not evidence
-  of a missing crates.io release.
+- Treat a `package-check-plan` entry with `mode=deferred_same_release` as an
+  expected non-blocking preflight deferral for an earlier `publish_order`
+  crate. The ordered crates.io workflow validates it after publication.
 
 ## Inline flow
 

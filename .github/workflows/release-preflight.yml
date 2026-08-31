@@ -382,10 +382,9 @@ jobs:
               verify)
                 cargo package -p "$package" --locked --allow-dirty
                 ;;
-              no_verify)
-                printf 'Validating %s without registry verification; waiting for earlier release crate(s): %s\n' \
+              deferred_same_release)
+                printf 'Deferring %s package check until earlier same-release crate(s) publish: %s\n' \
                   "$package" "$earlier_release_dependencies"
-                cargo package -p "$package" --locked --allow-dirty --no-verify
                 ;;
               *)
                 printf 'Unknown package-check mode for %s: %s\n' "$package" "$mode" >&2
