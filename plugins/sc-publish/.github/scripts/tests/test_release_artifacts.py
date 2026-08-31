@@ -2535,7 +2535,7 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
             "binary_paths": ["bin/sc-compose", "bin/sc-compose-daemon"],
             "bundled_paths": [
                 {
-                    "destination_components": ["pkgshare"],
+                    "destination_components": ["pkgshare", "examples", "nested"],
                     "source_glob": "share/sc-compose/examples/*",
                 }
             ],
@@ -2545,6 +2545,7 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
     assert 'bin.install "bin/sc-compose"' in formula
     assert 'bin.install "bin/sc-compose-daemon"' in formula
     assert 'shell_output("#{bin}/" + "sc-compose-daemon"' in formula
+    assert '(pkgshare/"examples"/"nested").install' in formula
 
     scoop = render_release_template(
         tmp_path,

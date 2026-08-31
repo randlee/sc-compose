@@ -44,3 +44,20 @@ path helper and quote only later path segments. This produces, for example,
   fixed template; no xfail or skip is used. The CI guard permits this single,
   tracked, exact PR #85 divergence while that PR is open, while still failing
   any divergence from both upstream sources.
+
+## QA7 coverage and follow-up
+
+At `d942f7b`, the fixed vendored template matches the exact template in
+[sc-publish PR #85](https://github.com/randlee/sc-publish/pull/85), while
+upstream `develop` remains unfixed. The CI guard fetches both sources and
+accepts only byte parity with `develop` or the exact PR #85 head; every other
+vendored divergence fails.
+
+The top-level and vendored Ruby-execution fixtures both use
+`["pkgshare", "examples", "nested"]`. They therefore execute the bare helper
+and the subsequently JSON-quoted path components, and fail against the
+pre-fix template. QA7 re-runs both focused tests as genuine passes.
+
+- **Tracked follow-up:** when PR #85 merges upstream and this repository
+  synchronizes its vendored copy, remove the PR #85 fetch-and-diff branch from
+  `.github/workflows/ci.yml` and require `sc-publish/develop` byte parity only.
