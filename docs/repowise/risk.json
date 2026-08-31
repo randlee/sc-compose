@@ -1,62 +1,257 @@
 {
-  "ref": "HEAD",
+  "ref": "working tree",
+  "working_tree": true,
+  "fix_history": {
+    "available": true,
+    "density": 0.0,
+    "percentile": null,
+    "files": []
+  },
+  "risk_authority": {
+    "authoritative_for": "live_change_review",
+    "primary_fields": [
+      "risk_percentile",
+      "classification"
+    ],
+    "primary_basis": "benchmarked_population_relative",
+    "fallback_field": "fallback_band",
+    "fallback_basis": "absolute_model_score_band",
+    "score_role": "supporting_diff_shape_signal"
+  },
   "score": 9.9,
-  "probability": 0.9945,
-  "level": "high",
+  "score_measures": "diff size and spread; not where the change lands",
+  "score_unit": "per-commit",
   "risk_percentile": 99.5,
   "review_priority": "high",
+  "classification": "Elevated",
+  "fallback_band": null,
+  "baseline_sample_size": 200,
+  "exclude_patterns": [],
+  "risk_scales": [
+    {
+      "field": "score",
+      "kind": "benchmarked_model_score",
+      "unit": "normalized_points",
+      "range": {
+        "minimum": 0.0,
+        "maximum": 10.0
+      },
+      "measures": "diff size and spread; not where the change lands",
+      "deterministic": true,
+      "calibration": {
+        "status": "benchmarked",
+        "source": "repowise-bench/health-defect/jit_calibration.py",
+        "calibrated_at": "2026-05-30",
+        "population": "4102 commits across 7 repositories using AG-SZZ labels",
+        "granularity": "single_commit"
+      },
+      "authoritative": false
+    },
+    {
+      "field": "risk_percentile",
+      "kind": "percentile",
+      "unit": "percentile_rank",
+      "range": {
+        "minimum": 0.0,
+        "maximum": 100.0
+      },
+      "measures": "rank of the diff-shape score among sampled recent commits",
+      "deterministic": true,
+      "calibration": {
+        "status": "benchmarked",
+        "source": "live repository baseline",
+        "population": "sampled recent commits after the same filters"
+      },
+      "authoritative": true
+    },
+    {
+      "field": "review_priority",
+      "kind": "classification",
+      "unit": "category",
+      "range": null,
+      "measures": "repo-relative review-priority tercile",
+      "deterministic": true,
+      "thresholds": {
+        "moderate_percentile": 33.333333333333336,
+        "high_percentile": 66.66666666666667
+      },
+      "authoritative": true
+    },
+    {
+      "field": "classification",
+      "kind": "classification_label",
+      "unit": "category",
+      "range": null,
+      "measures": "human-facing label for review_priority",
+      "deterministic": true,
+      "authoritative": true
+    },
+    {
+      "field": "fallback_band",
+      "kind": "absolute_classification",
+      "unit": "category",
+      "range": null,
+      "measures": "absolute model-score band when no baseline can rank the change",
+      "deterministic": true,
+      "thresholds": {
+        "moderate_score": 4.0,
+        "high_score": 7.0
+      },
+      "calibration": {
+        "status": "heuristic_thresholds",
+        "source": "shared 4.0 and 7.0 model-score thresholds",
+        "granularity": "single_commit"
+      },
+      "authoritative": false
+    },
+    {
+      "field": "fix_history.density",
+      "kind": "historical_heuristic",
+      "unit": "recency_weighted_prior_fixes",
+      "range": {
+        "minimum": 0.0,
+        "maximum": null
+      },
+      "measures": "churn-weighted prior bug-fix pressure of touched files",
+      "deterministic": true,
+      "calibration": {
+        "status": "uncalibrated",
+        "source": null
+      },
+      "authoritative": false
+    },
+    {
+      "field": "fix_history.percentile",
+      "kind": "percentile",
+      "unit": "percentile_rank",
+      "range": {
+        "minimum": 0.0,
+        "maximum": 100.0
+      },
+      "measures": "rank of fix-history density among sampled recent commits",
+      "deterministic": true,
+      "calibration": {
+        "status": "benchmarked",
+        "source": "live repository baseline",
+        "population": "sampled recent commits after the same filters"
+      },
+      "authoritative": false
+    },
+    {
+      "field": "features.la|features.ld",
+      "kind": "raw_count",
+      "unit": "lines",
+      "range": {
+        "minimum": 0.0,
+        "maximum": null
+      },
+      "measures": "added or deleted lines in the filtered live diff",
+      "deterministic": true,
+      "calibration": {
+        "status": "not_applicable",
+        "source": null
+      },
+      "authoritative": false
+    },
+    {
+      "field": "features.nf|features.nd|features.ns",
+      "kind": "raw_count",
+      "unit": "items",
+      "range": {
+        "minimum": 0.0,
+        "maximum": null
+      },
+      "measures": "changed files, directories, or top-level subsystems",
+      "deterministic": true,
+      "calibration": {
+        "status": "not_applicable",
+        "source": null
+      },
+      "authoritative": false
+    },
+    {
+      "field": "features.entropy",
+      "kind": "distribution_statistic",
+      "unit": "shannon_bits",
+      "range": {
+        "minimum": 0.0,
+        "maximum": null
+      },
+      "measures": "Shannon entropy of changed-line distribution across files",
+      "deterministic": true,
+      "calibration": {
+        "status": "not_applicable",
+        "source": null
+      },
+      "authoritative": false
+    },
+    {
+      "field": "features.exp",
+      "kind": "raw_count",
+      "unit": "prior_commits",
+      "range": {
+        "minimum": 0.0,
+        "maximum": null
+      },
+      "measures": "author commits before the assessed change; null when unknown",
+      "deterministic": true,
+      "calibration": {
+        "status": "not_applicable",
+        "source": null
+      },
+      "authoritative": false
+    },
+    {
+      "field": "drivers[].contribution",
+      "kind": "model_component",
+      "unit": "logit_points",
+      "range": {
+        "minimum": null,
+        "maximum": null
+      },
+      "measures": "signed exact feature contribution to the model logit",
+      "deterministic": true,
+      "calibration": {
+        "status": "benchmarked",
+        "source": "repowise-bench/health-defect/jit_calibration.py"
+      },
+      "authoritative": false
+    }
+  ],
   "is_fix": false,
   "features": {
-    "la": 23048,
-    "ld": 24,
-    "nf": 75,
-    "nd": 4,
-    "ns": 2,
-    "entropy": 3.5365,
-    "exp": 339
+    "la": 18869,
+    "ld": 7871,
+    "nf": 12,
+    "nd": 7,
+    "ns": 5,
+    "entropy": 0.9504,
+    "exp": 931
   },
   "drivers": [
     {
       "feature": "la",
-      "value": 23048.0,
-      "contribution": 6.0437,
+      "value": 18869.0,
+      "contribution": 5.8847,
       "label": "more lines added than baseline"
     },
     {
-      "feature": "nf",
-      "value": 75.0,
-      "contribution": -0.7886,
-      "label": "more files than baseline"
-    },
-    {
-      "feature": "entropy",
-      "value": 3.5365114455765303,
-      "contribution": 0.5732,
-      "label": "more scattered than baseline"
-    },
-    {
-      "feature": "nd",
-      "value": 4.0,
-      "contribution": -0.1065,
-      "label": "more directories than baseline"
-    },
-    {
       "feature": "exp",
-      "value": 339.0,
-      "contribution": -0.0871,
+      "value": 931.0,
+      "contribution": -0.1183,
       "label": "more experienced author than baseline"
     },
     {
-      "feature": "ns",
-      "value": 2.0,
-      "contribution": -0.069,
-      "label": "more subsystems than baseline"
+      "feature": "ld",
+      "value": 7871.0,
+      "contribution": 0.0793,
+      "label": "more lines deleted than baseline"
     },
     {
-      "feature": "ld",
-      "value": 24.0,
-      "contribution": 0.0164,
-      "label": "more lines deleted than baseline"
+      "feature": "entropy",
+      "value": 0.9504283649803426,
+      "contribution": 0.079,
+      "label": "more scattered than baseline"
     }
   ]
 }
