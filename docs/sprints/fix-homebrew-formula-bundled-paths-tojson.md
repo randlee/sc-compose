@@ -47,11 +47,10 @@ path helper and quote only later path segments. This produces, for example,
 
 ## QA7 coverage and follow-up
 
-At `d942f7b`, the fixed vendored template matches the exact template in
-[sc-publish PR #85](https://github.com/randlee/sc-publish/pull/85), while
-upstream `develop` remains unfixed. The CI guard fetches both sources and
-accepts only byte parity with `develop` or the exact PR #85 head; every other
-vendored divergence fails.
+At `d942f7b`, the CI guard began accepting only byte parity with upstream
+`develop` or the exact [sc-publish PR #85](https://github.com/randlee/sc-publish/pull/85)
+head; every other vendored divergence fails. The vendored three-component
+fixture was added later, at `c48b046`.
 
 The top-level and vendored Ruby-execution fixtures both use
 `["pkgshare", "examples", "nested"]`. They therefore execute the bare helper
