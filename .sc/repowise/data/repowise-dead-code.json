@@ -1,4 +1,3 @@
-repowise dead-code — /Users/randlee/Documents/github/sc-compose-worktrees/sc/repowise-update2
 [
   {
     "kind": "unreachable_file",
@@ -34,6 +33,19 @@ repowise dead-code — /Users/randlee/Documents/github/sc-compose-worktrees/sc/r
       "script"
     ],
     "lines": 60,
+    "primary_owner": "Rand Lee"
+  },
+  {
+    "kind": "unreachable_file",
+    "file_path": ".github/scripts/go_native_module.py",
+    "symbol_name": null,
+    "confidence": 0.4,
+    "reason": "File has no importers (in_degree=0)",
+    "safe_to_delete": false,
+    "risk_factors": [
+      "script"
+    ],
+    "lines": 230,
     "primary_owner": "Rand Lee"
   },
   {
@@ -147,7 +159,7 @@ repowise dead-code — /Users/randlee/Documents/github/sc-compose-worktrees/sc/r
     "reason": "File has no importers (in_degree=0)",
     "safe_to_delete": false,
     "risk_factors": [],
-    "lines": 80,
+    "lines": 100,
     "primary_owner": "Rand Lee"
   },
   {
@@ -1969,7 +1981,7 @@ repowise dead-code — /Users/randlee/Documents/github/sc-compose-worktrees/sc/r
     "reason": "Package 'plugins' has no importers from other packages",
     "safe_to_delete": false,
     "risk_factors": [],
-    "lines": 2820,
+    "lines": 2830,
     "primary_owner": "Rand Lee"
   },
   {
