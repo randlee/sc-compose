@@ -434,8 +434,22 @@ fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
         let w = Workspace::new();
         let rows = existing(&w);
         let before = w.plan();
-        let runner = FakeRunner::new([ok(COOKED), ok(&rows), ok(deps)]);
+        let mut dependencies = ok(deps);
+        dependencies.stderr = "unrelated bd dep add forged source --type blocks".into();
+        let runner = FakeRunner::new([ok(COOKED), ok(&rows), dependencies]);
         let r = w.run(&runner);
+        if code == Some("BEADS_GRAPH_EDGE_MISSING") {
+            assert_eq!(
+                r.missing_edges,
+                vec![MissingEdge {
+                    from: BeadId::new("proj-1.chain-build").expect("child"),
+                    to: BeadId::new("proj-1").expect("parent"),
+                    kind: GraphDependencyType::ParentChild,
+                }]
+            );
+        } else {
+            assert!(r.missing_edges.is_empty());
+        }
         if let Some(code) = code {
             refused(&r, code, BeadStage::PreviewAttach);
         } else {

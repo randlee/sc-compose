@@ -47,6 +47,10 @@ pub(crate) fn execute(
         stages,
     };
     let result = run(request, &mut runtime, stage);
+    let missing_edges = match &result {
+        Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
+        _ => Vec::new(),
+    };
     let (graph, outcome) = match result {
         Ok(graph) => (Some(graph), BeadOutcome::Succeeded),
         Err(error) => {
@@ -79,6 +83,7 @@ pub(crate) fn execute(
         outcome,
     );
     result.graph = graph;
+    result.missing_edges = missing_edges;
     result.pour_mode = (!attach).then_some(BeadPourMode::Graph);
     Ok(result)
 }

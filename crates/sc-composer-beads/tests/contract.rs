@@ -679,7 +679,32 @@ fn phase_r_request_defaults_and_receipt_bytes_are_unchanged() {
     let receipt: BeadComposeReceipt = serde_json::from_str(old).expect("Phase R receipt");
     assert!(receipt.pour_mode.is_none());
     assert!(receipt.graph.is_none());
+    assert!(receipt.missing_edges.is_empty());
     assert_eq!(serde_json::to_string(&receipt).expect("serialize"), old);
+}
+
+#[test]
+fn missing_edges_receipt_field_round_trips_as_typed_edges() {
+    use serde_json::json;
+
+    let wire = json!({
+        "schema": BEADS_SCHEMA_V1,
+        "operation": "attach",
+        "rendered_formula": "release.formula.toml",
+        "stages": [],
+        "outcome": {"refused": {"code": "BEADS_GRAPH_EDGE_MISSING"}},
+        "missing_edges": [
+            {"from":"proj-1.release-verify", "to":"proj-1.release-build", "type":"blocks"},
+            {"from":"proj-1.release-publish", "to":"proj-1.release-verify", "type":"validates"}
+        ]
+    });
+    let receipt: BeadComposeReceipt = serde_json::from_value(wire.clone()).expect("receipt");
+    assert_eq!(receipt.missing_edges.len(), 2);
+    assert_eq!(
+        receipt.missing_edges[0].from.as_str(),
+        "proj-1.release-verify"
+    );
+    assert_eq!(serde_json::to_value(&receipt).expect("receipt JSON"), wire);
 }
 
 #[test]

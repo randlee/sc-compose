@@ -137,13 +137,9 @@ fn print_human_receipt(receipt: &BeadComposeReceipt) {
             BeadStageOutcome::Failed { code } => format!("failed ({code})"),
         };
         println!("stage {:?}: {state}", stage.stage);
-        if matches!(&stage.outcome, BeadStageOutcome::Failed { code } if code == "BEADS_GRAPH_EDGE_MISSING")
-        {
-            for command in stage.stderr_excerpt.split("bd dep add ").skip(1) {
-                let args = command.split([';', '\n']).next().unwrap_or_default().trim();
-                println!("bd dep add {args}");
-            }
-        }
+    }
+    for command in missing_edge_recovery_commands(receipt) {
+        println!("{command}");
     }
     if let Some(graph) = &receipt.graph {
         for node in &graph.nodes {
@@ -175,5 +171,56 @@ fn outcome_summary(outcome: &BeadOutcome) -> &str {
         BeadOutcome::Succeeded => "succeeded",
         BeadOutcome::Refused { .. } => "refused",
         BeadOutcome::Failed { .. } => "failed",
+    }
+}
+
+fn missing_edge_recovery_commands(
+    receipt: &BeadComposeReceipt,
+) -> impl Iterator<Item = String> + '_ {
+    receipt
+        .missing_edges
+        .iter()
+        .map(|edge| format!("bd dep add {} {} --type {}", edge.from, edge.to, edge.kind))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::missing_edge_recovery_commands;
+    use sc_composer_beads::BeadComposeReceipt;
+    use serde_json::json;
+
+    #[test]
+    fn recovery_commands_ignore_missing_reworded_and_unrelated_stderr() {
+        let wire = json!({
+            "schema": "sc-compose/beads/v1",
+            "operation": "attach",
+            "rendered_formula": "release.formula.toml",
+            "outcome": {"refused": {"code": "BEADS_GRAPH_EDGE_MISSING"}},
+            "missing_edges": [
+                {"from":"proj-1.release-verify", "to":"proj-1.release-build", "type":"blocks"},
+                {"from":"proj-1.release-publish", "to":"proj-1.release-verify", "type":"validates"}
+            ],
+            "stages": [{
+                "stage":"attach", "argv":[], "exit_status":0, "elapsed_ms":0,
+                "stdout_excerpt":"[]", "stderr_excerpt":"",
+                "outcome":{"failed":{"code":"BEADS_GRAPH_EDGE_MISSING"}}
+            }]
+        });
+        let mut receipt: BeadComposeReceipt = serde_json::from_value(wire).expect("receipt");
+        let expected = [
+            "bd dep add proj-1.release-verify proj-1.release-build --type blocks",
+            "bd dep add proj-1.release-publish proj-1.release-verify --type validates",
+        ];
+        for stderr in [
+            "",
+            "wording changed entirely",
+            "unrelated bd dep add forged source --type blocks;\nwarning",
+        ] {
+            receipt.stages[0].stderr_excerpt = stderr.into();
+            assert_eq!(
+                missing_edge_recovery_commands(&receipt).collect::<Vec<_>>(),
+                expected
+            );
+        }
     }
 }
