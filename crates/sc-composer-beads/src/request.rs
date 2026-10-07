@@ -1,8 +1,8 @@
 //! Typed request preflight; protocol classification never parses serializer prose.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use serde::de::{MapAccess, Visitor};
+use serde::de::{IgnoredAny, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
@@ -72,9 +72,41 @@ fn request_error(error: &serde_json::Error) -> BeadComposeError {
     }
 }
 
+fn duplicate_top_level_key(input: &str) -> Result<Option<String>, BeadComposeError> {
+    struct Keys;
+    impl<'de> Visitor<'de> for Keys {
+        type Value = Option<String>;
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str("a JSON object")
+        }
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: MapAccess<'de>,
+        {
+            let mut seen = BTreeSet::new();
+            let mut duplicate = None;
+            while let Some((key, _)) = map.next_entry::<String, IgnoredAny>()? {
+                if !seen.insert(key.clone()) && duplicate.is_none() {
+                    duplicate = Some(key);
+                }
+            }
+            Ok(duplicate)
+        }
+    }
+    let mut deserializer = serde_json::Deserializer::from_str(input);
+    deserializer
+        .deserialize_map(Keys)
+        .map_err(|error| request_error(&error))
+}
+
 pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
     // Finish parsing the JSON before classifying semantic errors. The captured
     // duplicate is an exact decoded key, independent of serde's display format.
+    if let Some(key) = duplicate_top_level_key(input)? {
+        return Err(BeadComposeError::RequestDeserializationFailed {
+            message: format!("duplicate field `{key}`"),
+        });
+    }
     let preflight: RequestPreflight =
         serde_json::from_str(input).map_err(|error| request_error(&error))?;
     if let Some(key) = preflight.bead_variables.duplicate {
@@ -213,12 +245,14 @@ fn deserialize_request(input: &str) -> Result<BeadComposeRequest, BeadComposeErr
         Err(error) => {
             let mut value: Value =
                 serde_json::from_str(input).map_err(|_reparse| request_error(&error))?;
-            let legacy_name = value
-                .get("formula_name")
-                .and_then(Value::as_str)
-                .map(str::to_owned);
+            let formula_name = value.get("formula_name");
+            if formula_name.is_some_and(|name| !name.is_string()) {
+                return Err(BeadComposeError::RequestDeserializationFailed {
+                    message: format!("formula_name: {error}"),
+                });
+            }
+            let legacy_name = formula_name.and_then(Value::as_str).map(str::to_owned);
             if legacy_name.is_some()
-                && !error.to_string().contains("duplicate field")
                 && !matches!(
                     value.get("operation").and_then(Value::as_str),
                     Some("attach" | "preview_attach")
