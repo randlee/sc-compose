@@ -101,13 +101,25 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
         Err(error) => {
             let mut value: Value =
                 serde_json::from_str(input).map_err(|_reparse| request_error(&error))?;
-            if value.get("operation").and_then(Value::as_str) == Some("render") {
+            if !matches!(
+                value.get("operation").and_then(Value::as_str),
+                Some("attach" | "preview_attach")
+            ) {
+                let legacy_name = value
+                    .get("formula_name")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned);
                 value
                     .as_object_mut()
                     .expect("JSON object")
                     .remove("formula_name");
                 // Report the original typed parse error, not the retry's.
-                return serde_json::from_value(value).map_err(|_retry| request_error(&error));
+                let mut request: BeadComposeRequest =
+                    serde_json::from_value(value).map_err(|_retry| request_error(&error))?;
+                if let Some(name) = legacy_name.filter(|name| !name.is_empty()) {
+                    request.formula_name = Some(crate::FormulaName::legacy(name));
+                }
+                return Ok(request);
             }
             Err(request_error(&error))
         }

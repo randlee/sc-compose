@@ -150,20 +150,22 @@ impl ProcessRunner for RewritingRunner {
 
 // FUZZ-013: Phase R requests parse unchanged (ADR-0023 Decision 1).
 #[test]
-fn fuzz_013_phase_r_render_request_keeps_accepting_its_formula_name() {
-    for name in ["café", "re g0"] {
-        let request = json!({
-            "schema": BEADS_SCHEMA_V1,
-            "operation": "render",
-            "working_directory": "/work",
-            "template": "f.formula.toml.j2",
-            "rendered_formula": "/work/build/f.formula.toml",
-            "formula_name": name,
-            "compose_variables": {},
-            "bead_variables": {}
-        });
-        let parsed = parse_request(&request.to_string());
-        assert!(parsed.is_ok(), "{name}: {:?}", parsed.err());
+fn fuzz_013_phase_r_operations_keep_accepting_legacy_formula_names() {
+    for operation in ["render", "validate", "preview_pour", "pour"] {
+        for name in ["café", "re g0", "a+b"] {
+            let request = json!({
+                "schema": BEADS_SCHEMA_V1,
+                "operation": operation,
+                "working_directory": "/work",
+                "template": "f.formula.toml.j2",
+                "rendered_formula": "/work/build/f.formula.toml",
+                "formula_name": name,
+                "compose_variables": {},
+                "bead_variables": {}
+            });
+            let parsed = parse_request(&request.to_string());
+            assert!(parsed.is_ok(), "{operation} {name}: {:?}", parsed.err());
+        }
     }
 }
 
