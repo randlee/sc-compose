@@ -50,7 +50,7 @@ impl std::fmt::Display for GraphIdField {
     }
 }
 
-fn graph_id_rule(field: GraphIdField) -> &'static str {
+pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
     match field {
         GraphIdField::Bead => "bead ids are non-empty without whitespace",
         GraphIdField::Ref => "ref is [A-Za-z0-9_-]{1,32}",

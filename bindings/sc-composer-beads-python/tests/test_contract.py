@@ -560,3 +560,16 @@ def test_invalid_authorization_uses_stable_error_code(tmp_path: Path) -> None:
     assert caught.value.code == "BEADS_POUR_AUTH_INVALID"
     assert caught.value.stage == "request"
     assert not output.exists()
+
+
+def test_identifier_refused_receipt_accepts_additive_canonical_error() -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-conflict.json").read_text(encoding="utf-8"))
+    fixture["outcome"] = {"refused": {"code": "BEADS_GRAPH_ID_INVALID"}}
+    fixture["error"] = {
+        "code": "BEADS_GRAPH_ID_INVALID",
+        "message": "invalid ref `a.b`: ref is [A-Za-z0-9_-]{1,32}",
+        "details": {"field": "ref", "value": "a.b", "rule": "ref is [A-Za-z0-9_-]{1,32}"},
+    }
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+    assert receipt.to_json()["outcome"] == fixture["outcome"]
+    assert receipt.outcome.code == beads.BEADS_GRAPH_ID_INVALID

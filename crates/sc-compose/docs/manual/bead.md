@@ -320,6 +320,13 @@ and 64 KiB of stderr; other Beads commands retain at most 64 KiB per stream.
 Exceeding either applicable limit terminates the process tree and reports
 `BEADS_PROCESS_OUTPUT_LIMIT` with the actual limit.
 
+Identifier validation refusals also carry an additive `error` object with the canonical
+`code`, `message`, `details` (`field`, rejected `value`, and native validation `rule`),
+and recovery guidance when available. Invalid attach identifiers produce a refused
+receipt with a failed validation stage and exit `2`; malformed requests and missing
+persistent-write authorization retain request-error exit `3`. Existing receipt
+consumers can continue reading the ordinary receipt fields.
+
 Graph block:
 
 ```json

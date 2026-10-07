@@ -22,12 +22,13 @@ mod snapshot;
 
 #[doc(inline)]
 pub use contract::{
-    BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadDependencyType, BeadEdgeAction,
-    BeadEndpoint, BeadGraph, BeadGraphEdge, BeadGraphMode, BeadGraphNode, BeadGraphProvenance,
-    BeadId, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadRelation, BeadStage,
-    BeadStageOutcome, BeadStageReceipt, DependencyName, FormulaName, GraphDependencyType,
-    GraphEndpoint, GraphRef, MissingEdge, PROVENANCE_KEY, PourAuthorization, Sha256Digest, StepId,
-    parse_relations, parse_request,
+    BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadDependencyType, BeadDiagnostic,
+    BeadEdgeAction, BeadEndpoint, BeadGraph, BeadGraphEdge, BeadGraphMode, BeadGraphNode,
+    BeadGraphProvenance, BeadId, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode,
+    BeadRelation, BeadStage, BeadStageOutcome, BeadStageReceipt, DependencyName, FormulaName,
+    GraphDependencyType, GraphEndpoint, GraphRef, MissingEdge, PROVENANCE_KEY, PourAuthorization,
+    RefusedBeadComposeReceipt, RequestParseOutcome, Sha256Digest, StepId, parse_relations,
+    parse_request, parse_request_with_outcome,
 };
 #[doc(inline)]
 pub use error::{
