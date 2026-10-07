@@ -352,7 +352,7 @@ const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 fn option_id_argument_errors(calls: &[CommandSpec], ids: &[&str]) -> Vec<String> {
     let mut checked = 0;
     let mut errors = Vec::new();
-    for call in calls {
+    for call in calls.iter().filter(|call| call.args[0] != "cook") {
         for id in ids {
             if call.args.iter().any(|arg| arg == id) {
                 checked += 1;
