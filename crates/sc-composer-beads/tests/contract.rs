@@ -504,20 +504,26 @@ fn phase_r_request_defaults_and_receipt_bytes_are_unchanged() {
 
 #[test]
 fn captured_parser_fixtures_and_cross_surface_receipts_deserialize() {
+    use std::collections::BTreeSet;
+
     use serde_json::Value;
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/beads/graph");
     let read = |name: &str| std::fs::read_to_string(root.join(name)).expect("fixture file");
     let index: Value = serde_json::from_str(&read("captures.json")).expect("capture index");
     let cases = index["cases"].as_array().expect("cases");
     assert_eq!(cases.len(), 27);
+    let mut covered = BTreeSet::from(["captures.json".to_owned()]);
     for case in cases {
-        let input: Value = serde_json::from_str(&read(case["input"].as_str().expect("input")))
-            .expect("formula JSON");
+        let input_name = case["input"].as_str().expect("input");
+        covered.insert(input_name.to_owned());
+        let input: Value = serde_json::from_str(&read(input_name)).expect("formula JSON");
         assert!(input["formula"].is_string());
         let capture: Value =
             serde_json::from_str(&read(case["capture"].as_str().expect("capture")))
                 .expect("capture JSON");
+        covered.insert(case["capture"].as_str().expect("capture").to_owned());
         if let Some(cooked) = case["cooked"].as_str() {
+            covered.insert(cooked.to_owned());
             assert_eq!(capture["exit_status"], 0);
             let raw = read(cooked);
             assert_eq!(raw, capture["stdout"].as_str().expect("captured stdout"));
@@ -537,6 +543,7 @@ fn captured_parser_fixtures_and_cross_surface_receipts_deserialize() {
             Some("BEADS_GRAPH_EDGE_MISSING"),
         ),
     ] {
+        covered.insert(file.to_owned());
         let wire: Value = serde_json::from_str(&read(file)).expect("receipt JSON");
         let receipt: BeadComposeReceipt =
             serde_json::from_value(wire.clone()).expect("receipt contract");
@@ -551,6 +558,30 @@ fn captured_parser_fixtures_and_cross_surface_receipts_deserialize() {
             })
         );
     }
+    for support in ["base.formula.json", "exp.formula.json"] {
+        let formula: Value = serde_json::from_str(&read(support)).expect("support formula JSON");
+        assert!(formula["formula"].is_string());
+        covered.insert(support.to_owned());
+    }
+    let actual = std::fs::read_dir(&root)
+        .expect("graph fixture directory")
+        .map(|entry| {
+            entry
+                .expect("fixture entry")
+                .file_name()
+                .into_string()
+                .expect("UTF-8 fixture name")
+        })
+        .filter(|name| {
+            std::path::Path::new(name)
+                .extension()
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
+        })
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        actual, covered,
+        "every graph JSON fixture must be indexed, a receipt, or named support"
+    );
 }
 
 #[test]
