@@ -27,8 +27,9 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     let input = match fs::read_to_string(request_path) {
         Ok(input) => input,
         Err(error) => {
-            let error = BeadComposeError::RequestDeserializationFailed {
-                message: format!("read {}: {error}", request_path.display()),
+            let error = BeadComposeError::RequestReadFailed {
+                path: request_path.clone(),
+                source: error,
             };
             return print_bead_error(&error, operation, json);
         }
@@ -66,7 +67,8 @@ fn print_bead_error(
     json: bool,
 ) -> Result<i32, CommandError> {
     let exit_code = match &error {
-        BeadComposeError::RequestDeserializationFailed { .. }
+        BeadComposeError::RequestReadFailed { .. }
+        | BeadComposeError::RequestDeserializationFailed { .. }
         | BeadComposeError::RelationEndpointInvalid { .. }
         | BeadComposeError::UnknownSchema { .. }
         | BeadComposeError::FormulaPathNotFile { .. }

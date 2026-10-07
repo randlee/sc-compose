@@ -116,6 +116,13 @@ fn every_advertised_error_has_its_stable_code() {
     let path = PathBuf::from("formula.formula.toml");
     let examples = [
         (
+            BeadComposeError::RequestReadFailed {
+                path: path.clone(),
+                source: std::io::Error::from(std::io::ErrorKind::NotFound),
+            },
+            "BEADS_REQUEST_READ_FAILED",
+        ),
+        (
             BeadComposeError::RequestDeserializationFailed {
                 message: "invalid JSON".to_owned(),
             },
