@@ -158,6 +158,7 @@ fn append_json_record(
         })?;
     let mut line = serde_json::to_string(&object)
         .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+    compact_json_whitespace(&mut line);
     line.push('\n');
     let mut file = std::fs::OpenOptions::new()
         .read(true)
@@ -211,6 +212,29 @@ fn append_json_record(
         return Err(CommandError::render_write(message));
     }
     Ok(line.len())
+}
+
+/// Compact already validated JSON without parsing numeric or string lexemes again.
+fn compact_json_whitespace(json: &mut String) {
+    let mut in_string = false;
+    let mut escaped = false;
+    json.retain(|character| {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if character == '"' {
+                in_string = false;
+            }
+            true
+        } else if character == '"' {
+            in_string = true;
+            true
+        } else {
+            !matches!(character, ' ' | '\t' | '\r' | '\n')
+        }
+    });
 }
 
 fn add_render_check(
