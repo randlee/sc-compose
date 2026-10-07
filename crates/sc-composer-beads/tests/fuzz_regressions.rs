@@ -170,7 +170,6 @@ fn fuzz_013_phase_r_render_request_keeps_accepting_its_formula_name() {
 
 // FUZZ-014: graph planning uses this request's rendered text.
 #[test]
-#[ignore = "FUZZ-014"]
 fn fuzz_014_graph_is_built_from_this_requests_rendered_text() {
     let w = Workspace::new();
     let clean = w.run(&FakeRunner::new([ok(COOKED), parent(), ok("{}")]));
@@ -225,7 +224,6 @@ impl ProcessRunner for PlanRewritingRunner {
 
 // FUZZ-014: bd must consume this request's graph plan despite another request's overwrite.
 #[test]
-#[ignore = "FUZZ-014"]
 fn fuzz_014_graph_create_reads_this_requests_plan() {
     let w = Workspace::new();
     let runner = PlanRewritingRunner {
@@ -549,5 +547,261 @@ fn fuzz_021_invalid_refs_and_relation_steps_keep_typed_errors() {
                 );
             }
         }
+    }
+}
+
+/// Coordinates both real threads at each bd read, with bounded waits on failure.
+struct ConcurrentRunner {
+    peer: std::sync::mpsc::Sender<&'static str>,
+    ready: Mutex<std::sync::mpsc::Receiver<&'static str>>,
+    formula: Mutex<Option<Value>>,
+    plan: Mutex<Option<Value>>,
+}
+
+impl ConcurrentRunner {
+    fn rendezvous(&self, stage: &'static str) {
+        self.peer.send(stage).expect("peer alive");
+        assert_eq!(
+            self.ready
+                .lock()
+                .expect("ready")
+                .recv_timeout(Duration::from_secs(10))
+                .expect("peer reached read"),
+            stage
+        );
+    }
+}
+
+impl ProcessRunner for ConcurrentRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        match spec.args[0].as_str() {
+            "cook" => {
+                self.rendezvous("cook");
+                let path = std::path::Path::new(&spec.args[1]);
+                assert!(
+                    path.to_string_lossy().ends_with(".formula.toml")
+                        || path.to_string_lossy().ends_with(".formula.json"),
+                    "bd must recognize the formula format"
+                );
+                let text = fs::read_to_string(path).expect("own formula input");
+                let formula: Value = if path.extension().is_some_and(|ext| ext == "json") {
+                    serde_json::from_str(&text).expect("JSON formula")
+                } else {
+                    serde_json::to_value(
+                        toml::from_str::<toml::Value>(&text).expect("TOML formula"),
+                    )
+                    .expect("formula JSON")
+                };
+                *self.formula.lock().expect("formula") = Some(formula.clone());
+                Ok(ok(&formula.to_string()))
+            }
+            "show" => Ok(parent()),
+            "create" => {
+                self.rendezvous("create");
+                let plan: Value =
+                    serde_json::from_slice(&fs::read(&spec.args[2]).expect("own graph input"))
+                        .expect("graph JSON");
+                let ids: serde_json::Map<String, Value> = plan["nodes"]
+                    .as_array()
+                    .expect("nodes")
+                    .iter()
+                    .map(|node| {
+                        (
+                            node["key"].as_str().expect("key").into(),
+                            node["id"].clone(),
+                        )
+                    })
+                    .collect();
+                *self.plan.lock().expect("plan") = Some(plan);
+                Ok(ok(&json!({"ids":ids}).to_string()))
+            }
+            other => panic!("unexpected bd command: {other}"),
+        }
+    }
+}
+
+#[test]
+#[allow(
+    clippy::too_many_lines,
+    reason = "Keep the coordinated concurrent requests and their complete payload/receipt oracles together."
+)]
+fn fuzz_014_concurrent_attaches_keep_complete_inputs_and_receipts() {
+    for suffix in ["toml", "json"] {
+        let mut w = Workspace::new();
+        w.req.operation = BeadOperation::Attach;
+        w.req.template = w.root.join(format!("sample.formula.{suffix}.j2"));
+        w.req.rendered_formula = w.root.join(format!("sample.formula.{suffix}"));
+        fs::write(&w.req.template, if suffix == "toml" {
+            "formula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\ndescription = \"{{{ description }}}\"\n"
+        } else {
+            r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}","description":"{{{ description }}}"}]}"#
+        }).expect("template");
+        let (tx_a, rx_a) = std::sync::mpsc::channel();
+        let (tx_b, rx_b) = std::sync::mpsc::channel();
+        let runners = [
+            ConcurrentRunner {
+                peer: tx_b,
+                ready: Mutex::new(rx_a),
+                formula: Mutex::new(None),
+                plan: Mutex::new(None),
+            },
+            ConcurrentRunner {
+                peer: tx_a,
+                ready: Mutex::new(rx_b),
+                formula: Mutex::new(None),
+                plan: Mutex::new(None),
+            },
+        ];
+        let requests: Vec<_> = ["alpha", "beta"]
+            .into_iter()
+            .map(|step| {
+                let mut request = w.req.clone();
+                request.ref_ = Some(GraphRef::new(step).expect("ref"));
+                request.compose_variables = serde_json::Map::from_iter([
+                    ("step".into(), json!(step)),
+                    ("title".into(), json!(format!("{step} – own title"))),
+                    (
+                        "description".into(),
+                        json!(format!("{step} {}", step.repeat(100))),
+                    ),
+                ]);
+                request
+            })
+            .collect();
+        let receipts = std::thread::scope(|scope| {
+            let a = scope.spawn(|| {
+                execute_bead_request_with_runner(&requests[0], &runners[0]).expect("first request")
+            });
+            let b = scope.spawn(|| {
+                execute_bead_request_with_runner(&requests[1], &runners[1]).expect("second request")
+            });
+            [
+                a.join().expect("first thread"),
+                b.join().expect("second thread"),
+            ]
+        });
+        for ((request, runner), receipt) in requests.iter().zip(&runners).zip(&receipts) {
+            assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+            let step = request.compose_variables["step"].as_str().expect("step");
+            let expected_formula = json!({"formula":"sample","type":"workflow","steps":[{
+                "id":step,"title":request.compose_variables["title"],"description":request.compose_variables["description"]
+            }]});
+            assert_eq!(
+                runner
+                    .formula
+                    .lock()
+                    .expect("formula")
+                    .as_ref()
+                    .expect("consumed formula"),
+                &expected_formula
+            );
+            let plan = runner.plan.lock().expect("plan");
+            let plan = plan.as_ref().expect("consumed plan");
+            let graph = receipt.graph.as_ref().expect("graph");
+            let id = format!("proj-1.{step}-{step}");
+            assert_eq!(graph.ids[&StepId::new(step).expect("step")].as_str(), id);
+            assert_eq!(graph.ref_.as_ref().expect("ref").as_str(), step);
+            assert_eq!(graph.nodes[0].action, BeadNodeAction::Created);
+            assert_eq!(graph.nodes[0].id.as_ref().expect("node id").as_str(), id);
+            let provenance = &plan["nodes"][0]["metadata"][PROVENANCE_KEY];
+            assert_eq!(provenance["ref"], step);
+            assert_eq!(provenance["step"], step);
+            assert_eq!(provenance["revision"], json!(graph.revision));
+            assert_eq!(
+                plan,
+                &json!({"edges":[],"nodes":[{
+                    "key":step,"id":id,"parent_id":"proj-1", "title":request.compose_variables["title"],
+                    "description":request.compose_variables["description"],"metadata":{PROVENANCE_KEY:provenance}
+                }]})
+            );
+            assert_eq!(receipt.rendered_formula, w.req.rendered_formula);
+            assert_eq!(
+                graph.plan_path.as_ref().expect("public plan"),
+                &w.req
+                    .rendered_formula
+                    .with_extension(format!("{suffix}.graph.json"))
+            );
+        }
+        let public_formula =
+            fs::read_to_string(&w.req.rendered_formula).expect("published formula");
+        let public_formula: Value = if suffix == "json" {
+            serde_json::from_str(&public_formula).unwrap()
+        } else {
+            serde_json::to_value(toml::from_str::<toml::Value>(&public_formula).unwrap()).unwrap()
+        };
+        assert!(
+            runners
+                .iter()
+                .any(|runner| runner.formula.lock().unwrap().as_ref() == Some(&public_formula)),
+            "public formula must be one complete request"
+        );
+        let public_plan: Value = serde_json::from_slice(
+            &fs::read(
+                w.req
+                    .rendered_formula
+                    .with_extension(format!("{suffix}.graph.json")),
+            )
+            .expect("published plan"),
+        )
+        .expect("plan JSON");
+        assert!(
+            runners
+                .iter()
+                .any(|runner| runner.plan.lock().unwrap().as_ref() == Some(&public_plan)),
+            "public plan must be one complete request"
+        );
+        assert!(
+            !fs::read_dir(&w.root).unwrap().any(|entry| entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".sc-compose")),
+            "private inputs must be cleaned up"
+        );
+    }
+}
+
+#[test]
+fn graph_private_inputs_are_cleaned_after_failed_reads_and_apply() {
+    for failure in ["cook", "apply", "spawn"] {
+        let w = Workspace::new();
+        let runner = if failure == "cook" {
+            FakeRunner::new([out(Some(1), "invalid formula")])
+        } else {
+            FakeRunner::new([ok(COOKED), parent(), out(Some(1), "apply refused")])
+        };
+        if failure == "spawn" {
+            *runner
+                .outputs
+                .lock()
+                .expect("outputs")
+                .back_mut()
+                .expect("apply") = Err(io::Error::new(io::ErrorKind::NotFound, "bd unavailable"));
+        }
+        let result = execute_bead_request_with_runner(&w.req, &runner);
+        if failure == "spawn" {
+            assert!(matches!(
+                result,
+                Err(BeadComposeError::BdUnavailable { .. })
+            ));
+        } else {
+            let receipt = result.expect("failure receipt");
+            assert!(
+                matches!(receipt.outcome, BeadOutcome::Failed { .. }),
+                "{receipt:#?}"
+            );
+        }
+        assert_eq!(
+            fs::read_to_string(&w.req.rendered_formula).expect("published formula"),
+            "formula = \"sample\""
+        );
+        assert!(
+            !fs::read_dir(&w.root).expect("directory").any(|entry| entry
+                .expect("entry")
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".sc-compose")),
+            "private input leaked after {failure}"
+        );
     }
 }

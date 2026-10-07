@@ -175,26 +175,43 @@ fn attach_preview_and_apply_have_only_the_authorized_argv() {
         assert_eq!(calls.len(), 3);
         assert_eq!(
             calls[0].args,
-            vec![
-                "cook".into(),
-                w.req.rendered_formula.to_string_lossy().into_owned(),
-                "--json".into()
-            ]
+            vec!["cook".into(), calls[0].args[1].clone(), "--json".into()]
         );
         assert_eq!(
             calls[1].args,
             ["show", "proj-1", "proj-1.chain-build", "--json"]
         );
-        let mut expected = vec![
-            "create".into(),
-            "--graph".into(),
-            format!("{}.graph.json", w.req.rendered_formula.display()),
-        ];
+        let mut expected = vec!["create".into(), "--graph".into(), calls[2].args[2].clone()];
         if preview {
             expected.push("--dry-run".into());
         }
         expected.push("--json".into());
         assert_eq!(calls[2].args, expected);
+        for (input, suffix) in [(&calls[0].args[1], "toml"), (&calls[2].args[2], "json")] {
+            let input = std::path::Path::new(input);
+            assert_eq!(input.parent(), Some(w.root.as_path()));
+            assert_eq!(input.extension().and_then(|ext| ext.to_str()), Some(suffix));
+            assert!(
+                input
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .starts_with(".sc-compose-input-")
+            );
+            assert!(
+                !input.exists(),
+                "private inputs must be removed or published"
+            );
+        }
+        assert!(
+            calls[0].args[1].ends_with(".formula.toml"),
+            "bd's TOML parser requires the full suffix"
+        );
+        assert_ne!(calls[0].args[1], w.req.rendered_formula.to_string_lossy());
+        assert_ne!(
+            calls[2].args[2],
+            format!("{}.graph.json", w.req.rendered_formula.display())
+        );
         let plan = w.plan();
         assert_eq!(plan["nodes"][0]["parent_id"], "proj-1");
         assert_eq!(

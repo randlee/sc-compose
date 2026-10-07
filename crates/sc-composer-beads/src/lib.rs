@@ -18,6 +18,7 @@ pub mod render;
 mod request;
 /// Injectable direct-process runner abstraction.
 pub mod runner;
+mod snapshot;
 
 #[doc(inline)]
 pub use contract::{

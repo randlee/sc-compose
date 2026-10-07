@@ -9,6 +9,7 @@ use crate::execute::{
     run_stage, run_stage_with_output,
 };
 use crate::runner::{CommandSpec, ProcessRunner};
+use crate::snapshot::InputSnapshot;
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -17,6 +18,7 @@ pub(crate) fn execute_pour(
     request: &BeadComposeRequest,
     runner: &dyn ProcessRunner,
     normalized: NormalizedRequest,
+    formula_input: &InputSnapshot,
     bd: PathBuf,
     mut stages: Vec<BeadStageReceipt>,
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
@@ -59,7 +61,7 @@ pub(crate) fn execute_pour(
         if let Some(refusal) = refuse_outside_workspace(request, &normalized, &stages) {
             return Ok(refusal);
         }
-        return crate::graph::execute(request, runner, &normalized, bd, stages);
+        return crate::graph::execute(request, runner, &normalized, formula_input, bd, stages);
     }
     if !request.relations.is_empty() {
         return Ok(refuse_registry_relations(request, normalized, stages));
