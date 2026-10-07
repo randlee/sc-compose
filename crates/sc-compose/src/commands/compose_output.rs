@@ -135,6 +135,7 @@ fn append_json_record(path: &Path, rendered: &str) -> Result<usize, CommandError
         .read(true)
         .write(true)
         .create(true)
+        .truncate(false)
         .open(path)
         .map_err(|error| {
             CommandError::render_write(
