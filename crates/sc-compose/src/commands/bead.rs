@@ -2,7 +2,7 @@
 
 use std::fs;
 
-use sc_composer_beads::error::shell_quote;
+use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadNodeAction,
     BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome, RefusedBeadComposeReceipt,
@@ -169,7 +169,11 @@ fn print_bead_error(
 /// Present the library's canonical error envelope without duplicating its recovery rules.
 fn human_bead_error(error: &BeadComposeError) -> Result<String, serde_json::Error> {
     let envelope = serde_json::to_value(error)?;
-    let mut output = format!("{}: {error}", error.code());
+    let mut output = format!(
+        "{}: {}",
+        error.code(),
+        escape_human_text(&error.to_string())
+    );
     output.push_str(&human_error_fields(&envelope));
     Ok(output)
 }
@@ -408,5 +412,35 @@ mod tests {
             human_bead_error(&error).unwrap(),
             format!("{}: {error}", error.code())
         );
+    }
+
+    #[test]
+    fn human_refusal_message_escapes_terminal_controls_and_format_characters() {
+        let error = BeadComposeError::GraphScopeMismatch {
+            field: GraphIdField::Parent,
+            value: "item\u{7}\u{202e}\u{200b}\u{feff}\u{2028}\u{2029}\u{00ad}".into(),
+        };
+
+        let first_line = human_bead_error(&error).unwrap();
+        let first_line = first_line.lines().next().unwrap();
+        assert!(!first_line.chars().any(char::is_control), "{first_line:?}");
+        assert!(
+            !first_line.chars().any(|character| matches!(
+                character,
+                '\u{2028}' | '\u{2029}' | '\u{00ad}' | '\u{200b}' | '\u{feff}' | '\u{202e}'
+            )),
+            "{first_line:?}"
+        );
+        for escaped in [
+            "\\u{0007}",
+            "\\u{202E}",
+            "\\u{200B}",
+            "\\u{FEFF}",
+            "\\u{2028}",
+            "\\u{2029}",
+            "\\u{00AD}",
+        ] {
+            assert!(first_line.contains(escaped), "{first_line:?}");
+        }
     }
 }

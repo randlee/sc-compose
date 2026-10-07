@@ -4,6 +4,7 @@ use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use thiserror::Error;
+use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 
 use crate::contract::{BeadId, BeadStage, GraphDependencyType, MissingEdge};
 use serde::{Deserialize, Serialize};
@@ -521,15 +522,11 @@ pub fn shell_quote(argument: &str) -> String {
             '\\' => quoted.push_str("\\\\"),
             '\'' => quoted.push_str("\\'"),
             character if needs_shell_escape(character) => {
-                let code = u32::from(character);
-                // String formatting is infallible.
-                let _ = if character.is_ascii() {
-                    write!(quoted, "\\x{code:02X}")
-                } else if code <= 0xFFFF {
-                    write!(quoted, "\\u{code:04X}")
-                } else {
-                    write!(quoted, "\\U{code:08X}")
-                };
+                let mut encoded = [0; 4];
+                for byte in character.encode_utf8(&mut encoded).bytes() {
+                    // String formatting is infallible.
+                    let _ = write!(quoted, "\\x{byte:02X}");
+                }
             }
             character => quoted.push(character),
         }
@@ -540,7 +537,22 @@ pub fn shell_quote(argument: &str) -> String {
 
 fn needs_shell_escape(character: char) -> bool {
     character.is_control()
-        || matches!(character, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{200e}' | '\u{200f}')
+        || matches!(character, '\u{2028}' | '\u{2029}')
+        || character.general_category() == GeneralCategory::Format
+}
+
+/// Render terminal control and formatting characters as visible Unicode escapes.
+#[must_use]
+pub fn escape_human_text(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for character in text.chars() {
+        if needs_shell_escape(character) {
+            let _ = write!(escaped, "\\u{{{:04X}}}", u32::from(character));
+        } else {
+            escaped.push(character);
+        }
+    }
+    escaped
 }
 
 fn missing_edge_commands(edges: &[MissingEdge]) -> String {

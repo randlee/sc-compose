@@ -417,8 +417,8 @@ const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 // FUZZ-040: recovery command arguments cannot execute shell syntax or emit controls.
 #[test]
 fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
-    let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}";
-    let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
+    let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}\u{200b}\u{00ad}";
+    let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}\u{feff}";
     let error = sc_composer_beads::BeadComposeError::GraphEdgeMissing {
         edges: vec![sc_composer_beads::MissingEdge {
             from: sc_composer_beads::BeadId::new(from).unwrap(),
@@ -428,10 +428,17 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
     };
     let message = error.to_string(); // Drives missing_edge_commands, not just shell_quote.
     assert!(!message.chars().any(char::is_control), "{message:?}");
-    assert!(
-        !message.chars().any(|c| matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{200e}' | '\u{200f}')),
-        "{message:?}"
-    );
+    for raw in ['\u{200b}', '\u{feff}', '\u{00ad}', '\u{202e}'] {
+        assert!(!message.contains(raw), "{message:?}");
+    }
+    for escaped in [
+        "\\xE2\\x80\\x8B",
+        "\\xEF\\xBB\\xBF",
+        "\\xC2\\xAD",
+        "\\xE2\\x80\\xAE",
+    ] {
+        assert!(message.contains(escaped), "{message:?}");
+    }
     let command = message
         .strip_prefix("graph edges missing; repair then retry: ")
         .unwrap();
@@ -440,14 +447,34 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
         .unwrap()
         .strip_suffix(" --type 'blocks'")
         .unwrap();
-    let output = std::process::Command::new("bash")
-        .args(["-c", &format!("printf '%s\\0' {arguments}")])
-        .env("LC_ALL", "C.UTF-8")
-        .output()
-        .expect("isolated Bash printf");
-    assert!(output.status.success(), "{output:?}");
-    assert_eq!(output.stdout, format!("{from}\0{to}\0").into_bytes());
+    assert_bash_round_trip(arguments, format!("{from}\0{to}\0").as_bytes());
+
+    let separators = "line\u{2028}paragraph\u{2029}end";
+    let escaped_separators = sc_composer_beads::error::shell_quote(separators);
+    assert!(escaped_separators.contains("\\xE2\\x80\\xA8"));
+    assert!(escaped_separators.contains("\\xE2\\x80\\xA9"));
+    assert_bash_round_trip(&escaped_separators, format!("{separators}\0").as_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
+}
+
+fn assert_bash_round_trip(arguments: &str, expected: &[u8]) {
+    let mut tested_shell = false;
+    for shell in ["/bin/bash", "bash"] {
+        let output = std::process::Command::new(shell)
+            .args(["-c", &format!("printf '%s\\0' {arguments}")])
+            .env("LC_ALL", "C.UTF-8")
+            .output();
+        let Ok(output) = output else {
+            continue;
+        };
+        tested_shell = true;
+        assert!(output.status.success(), "{shell}: {output:?}");
+        assert_eq!(output.stdout, expected, "{shell}");
+    }
+    assert!(
+        tested_shell,
+        "neither /bin/bash nor bash from PATH is available"
+    );
 }
 
 fn option_id_argument_errors(calls: &[CommandSpec], ids: &[&str]) -> Vec<String> {
