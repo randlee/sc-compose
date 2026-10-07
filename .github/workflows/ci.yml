@@ -175,6 +175,11 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
+      - name: Run real Beads CLI integration
+        run: cargo test -p sc-compose --test cli bead
+        env:
+          BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
+
       - name: Install just
         uses: taiki-e/install-action@just
 
@@ -392,6 +397,12 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
           SC_COMPOSER_BEADS_ARTIFACT_DIR: ${{ github.workspace }}/dist
+
+      - name: Run installed-wheel attach integration
+        working-directory: bindings/sc-composer-beads-python
+        run: python -m pytest -q tests/test_attach_e2e.py
+        env:
+          BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
   sc-sha-go-plan:
     name: sc-sha Go native target plan

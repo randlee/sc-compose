@@ -197,6 +197,23 @@ template loops, conditionals and includes, where `preview-attach` and
 
 ## Recipes
 
+### Release under an epic
+
+Copy `examples/beads/release-under-epic/` into your Beads workspace and create
+an epic with `bd create "Release 1.6.1" --type epic --json`. Create `build/`,
+then edit the example's `request.json`: set the absolute `working_directory`
+and `rendered_formula` paths and the returned epic id as `parent`.
+
+```shell
+sc-compose bead preview-attach --request request.json --json
+sc-compose bead attach --request request.json --json
+sc-compose bead attach --request request.json --json
+```
+
+The template creates a build, verify and publish chain under the epic. The
+repeat reports the same step-to-id map with `existing` actions and writes
+nothing. See the example README for fresh-workspace setup.
+
 ### A chain of N steps
 
 `compose_variables`: `{"count": 10}`
@@ -363,6 +380,12 @@ Use `--json` for the standard sc-compose diagnostic envelope. On success its
 payload is the receipt. On a request error its payload carries the stable code
 and message. Human output is derived from the receipt and does not include the
 `bd` version.
+
+Human output includes `pour_mode` for pour operations, one
+`<action>: <step> -> <id>` line per graph node, the edge count, and `plan_path`
+when a plan was written. A pour root is shown as `_root`; a preview id that bd
+has not assigned is shown as `pending`. Missing-edge refusals print each
+`bd dep add` recovery command on its own line.
 
 ## Troubleshooting
 

@@ -1,0 +1,14 @@
+{
+  "schema": "sc-compose/beads/v1",
+  "operation": "attach",
+  "working_directory": "/work/project",
+  "template": "release.formula.toml.j2",
+  "rendered_formula": "/work/project/build/release.formula.toml",
+  "formula_name": "release",
+  "compose_variables": {"version": "1.6.1"},
+  "bead_variables": {},
+  "parent": "proj-42",
+  "ref": "release",
+  "relations": [],
+  "pour_authorization": "CreatePersistentBeads"
+}
