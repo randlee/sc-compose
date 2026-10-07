@@ -361,14 +361,18 @@ mode bd assigns every id and the receipt reports them; step ids follow the
 same rule.
 
 ### Revision
-The sha256 of bd's parse of the formula, so it covers whatever bd resolved
-while parsing (an `extends` base, `loop` and `expand` output) as well as the
-rendered text: the `bd cook <path> --json` output with the top-level `source`
-(an absolute path) and `schema_version` (bd's envelope) removed, serialized as
-canonical JSON (sorted keys, compact), hashed with `sc_composer::
-calculate_hash` (ADR-0018 re-export) and written `sha256:<hex>`. Line-ending
-and formatting differences that bd's parse does not keep are the same
-revision; a changed `extends` base is a different revision.
+The sha256 of the newline-normalized UTF-8 text of the rendered formula:
+`sc_composer::calculate_hash` (ADR-0018 re-export; strict UTF-8, CRLF/CR
+normalized to LF), written `sha256:<hex>`. Line-ending-only differences are
+the same revision. A rendered formula that is not valid UTF-8 is
+`GraphFormulaUnsupported` (`not_utf8`).
+
+The revision depends only on sc-compose's own output, never on the format of
+bd's parse, so a bd upgrade that changes `bd cook` JSON does not change any
+revision and does not make earlier attachments conflict. The cost: a changed
+`extends` base (a file sc-compose did not render) is not detected while the
+rendered text is unchanged; a re-run then creates nothing new and leaves the
+earlier beads as they are. Attach a changed base under a new `ref`.
 
 ### Inputs
 `inputs` is `sha256:<hex>` of the canonical JSON (sorted keys, compact) of
@@ -392,7 +396,7 @@ during planning):
 
 | Construct in the rendered formula | What `bd cook` does | Result |
 |---|---|---|
-| `extends = [...]` | merges the base formula's steps, found in bd's own formula search paths; the key is gone from the parse | the merged steps are checked like any other; the revision covers them. Base not found: `BEADS_COOK_FAILED` |
+| `extends = [...]` | merges the base formula's steps, found in bd's own formula search paths; the key is gone from the parse | the merged steps are checked like any other. The revision does not cover the base (see "Revision"). Base not found: `BEADS_COOK_FAILED` |
 | step `loop` | replaces the step with its body, once per iteration, with ids `<step>.iter<n>.<body id>` | always refused: `GraphIdInvalid` (`field: "step"`), because the ids contain `.` |
 | step `expand` | replaces the step with the expansion formula's `template` steps, ids from that template (conventionally `<step>.<id>`) | ids containing `.` or `-`: `GraphIdInvalid`; otherwise checked like any other step. Expansion formula missing or not `type = "expansion"`: `BEADS_COOK_FAILED` |
 

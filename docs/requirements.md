@@ -1462,7 +1462,9 @@ and `bd` argv are unchanged.
   `BEADS_GRAPH_FORMULA_UNSUPPORTED`, never ignored. `extends`, `loop` and
   `expand` are resolved by `bd` while it parses; their output is held to the
   same rules (a `loop` always yields `.` in step ids and is refused as
-  `BEADS_GRAPH_ID_INVALID`), and the revision covers it.
+  `BEADS_GRAPH_ID_INVALID`). The revision is the hash of the rendered text
+  only, so it never depends on `bd`'s output format; a changed `extends` base
+  is not detected (ADR-0023 "Revision").
 - **FR-23.9 Receipt.** Graph receipts carry `graph`: mode, parent, ref,
   formula, revision, `plan_path` (present only when there were beads to
   create), `ids` (step -> bead id) and every node and edge with its action

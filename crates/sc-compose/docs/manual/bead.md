@@ -187,7 +187,7 @@ only sees what they produce:
 
 | In the formula | What happens |
 |---|---|
-| `extends` | `bd` merges the base formula's steps, found in its own formula search paths. The merged steps are created like any others, and the revision changes when the base changes. A base `bd` cannot find fails with `BEADS_COOK_FAILED`. |
+| `extends` | `bd` merges the base formula's steps, found in its own formula search paths. The merged steps are created like any others. A later change to the base alone is not detected (the revision is the hash of your rendered formula), so attach a changed base under a new `ref`. A base `bd` cannot find fails with `BEADS_COOK_FAILED`. |
 | `loop` | `bd` expands it into steps named `<step>.iter<n>.<id>`. The `.` makes them invalid step ids, so the request is always refused with `BEADS_GRAPH_ID_INVALID`. |
 | `expand` | `bd` replaces the step with the expansion formula's steps. Ids containing `.` or `-` (the usual `<step>.<id>` pattern) are refused with `BEADS_GRAPH_ID_INVALID`; a missing expansion formula fails with `BEADS_COOK_FAILED`. |
 
