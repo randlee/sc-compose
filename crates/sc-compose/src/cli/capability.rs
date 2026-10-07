@@ -296,6 +296,42 @@ mod tests {
                 &[
                     "sc-compose",
                     "bead",
+                    "preview-attach",
+                    "--request",
+                    "request.json",
+                ],
+                false,
+            ),
+            (
+                &[
+                    "sc-compose",
+                    "bead",
+                    "preview-attach",
+                    "--request",
+                    "request.json",
+                    "--json",
+                ],
+                true,
+            ),
+            (
+                &["sc-compose", "bead", "attach", "--request", "request.json"],
+                false,
+            ),
+            (
+                &[
+                    "sc-compose",
+                    "bead",
+                    "attach",
+                    "--request",
+                    "request.json",
+                    "--json",
+                ],
+                true,
+            ),
+            (
+                &[
+                    "sc-compose",
+                    "bead",
                     "pour",
                     "--request",
                     "request.json",
