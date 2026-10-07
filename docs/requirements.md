@@ -529,7 +529,8 @@ Each block may be empty. Ordering is never caller-defined.
 - `render`
 - `resolve`
 - `validate`
-- `bead {render|validate|preview-pour|pour} --request <JSON> --json`
+- `bead {render|validate|preview-pour|pour|preview-attach|attach} --request <JSON> --json`
+  (`preview-attach` / `attach`: see FR-23)
 - `frontmatter-init`
 - `template-init`
 - `init`
@@ -559,6 +560,10 @@ The CLI must support:
 - `--root <path>`
 - `--file <path>`
 - `--output <path>` where applicable
+- `--append <path>` on `render` only: appends the rendered JSON object as one
+  compact line to a JSONL file (see `render` below); mutually exclusive with
+  `--output` and `--dry-run`; on `examples` or `templates` it is a usage error
+  (exit `3`)
 - `--guidance <text>`
 - `--guidance-file <path|->`
 - `--prompt <text>`
@@ -578,7 +583,15 @@ Command behavior:
   - writes to stdout by default,
   - may write to a file when requested,
   - must honor validation and strictness policy,
-  - accepts optional guidance and user prompt blocks.
+  - accepts optional guidance and user prompt blocks,
+  - with `--append <path>`, renders and validates first, requires the output
+    to be one JSON object, then appends it as one compact JSON line plus
+    `\n` under an exclusive file lock. A non-empty destination whose last
+    byte is not `\n` is refused unchanged. Every failure before the write
+    leaves existing content byte-identical (a destination that did not exist
+    may remain as an empty file after an open or lock failure); a write that
+    fails part-way is truncated back to the pre-write length, or reported as
+    possibly leaving a partial last line if that truncation also fails.
 - `resolve`
   - is defined for `profile` mode,
   - prints the selected profile path,
@@ -724,6 +737,15 @@ CLI exit codes must be:
 All other commands, including `template-init`, continue to use only `0`, `2`,
 and `3`.
 
+`render --append` failures exit `2`: `ERR_RENDER_JSON_MALFORMED` (output is
+not JSON), `ERR_RENDER_APPEND_NOT_OBJECT` (JSON but not one object),
+`ERR_RENDER_APPEND_NO_FINAL_NEWLINE` (non-empty destination not ending in
+`\n`) and `ERR_RENDER_WRITE` (lock or write failure). Its usage errors exit `3`.
+
+`bead preview-attach` / `bead attach` and graph-mode `bead preview-pour` /
+`bead pour` (FR-23): `0` succeeded; `2` for a refused or failed receipt (every
+`BEADS_GRAPH_*` code); `3` for request errors.
+
 ### FR-7c: Template Whitespace Control
 
 The template engine must enable `trim_blocks` and `lstrip_blocks` by default.
@@ -764,6 +786,14 @@ canonical transport format:
 
 Per-command schemas below describe the shape of the `payload` field within that
 envelope.
+
+`render --append --json` uses the `render --json` payload with
+`output_path` = the destination, `bytes_written` = the bytes appended
+(including the final `\n`), `appended: true`, and no `body`.
+
+`bead ... --json` emits the `sc-compose/beads/v1` receipt (ADR-0021). The
+receipt additions of FR-23 (`pour_mode`, `graph`) are optional fields, omitted
+when absent.
 
 `render --json`
 
@@ -1381,6 +1411,68 @@ sprints.
 - The root `sc-compose --help` output shall end with a line pointing callers
   to `sc-compose help` for the full manual/topic index, so the manual system
   is discoverable without already knowing it exists.
+
+### FR-23: Beads Attach and By-Path Pour
+
+Normative contract: [ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md).
+User manual: `sc-compose help bead` (`crates/sc-compose/docs/manual/bead.md`).
+Everything is additive to ADR-0021; existing operations, stages, fields, codes
+and `bd` argv are unchanged.
+
+- **FR-23.1 Rendered formulas are final.** For the graph operations below,
+  structure and values come from the sc-compose template (loops, conditionals,
+  includes, `{{{ ... }}}` values). No `--var` is passed to `bd`, the formula
+  declares no `vars`, and Beads substitution never runs; `{{ ... }}` left in
+  rendered text is kept literally.
+- **FR-23.2 Render anywhere (#615).** `bead render` shall write the rendered
+  formula to any existing directory inside `working_directory`; it shall not
+  require a Beads `formulas/` directory to exist.
+- **FR-23.3 Pour mode (#615).** `preview-pour` / `pour` of a formula in the
+  active registry shall behave exactly as before (`pour_mode: "registry"`). Any
+  other rendered formula inside `working_directory` shall use the graph engine
+  (`pour_mode: "graph"`): a new root bead of type `molecule` plus one child per
+  step and all edges, created by one `bd create --graph` transaction.
+  `preview-pour` shall write nothing to Beads.
+- **FR-23.4 Attach (#613).** New operations `preview-attach` and `attach` shall
+  create the steps as direct children of an existing `parent`, with ids
+  `<parent>.<ref>-<step>` (a `ref` may contain `-`, a step id may not, so the
+  last `-` separates them) and `sc_compose_graph` provenance metadata on each
+  created bead. `preview-attach` writes nothing to Beads; `attach` requires
+  `CreatePersistentBeads`, like `pour`.
+- **FR-23.5 Safe repetition (#613).** Re-running an attach request whose beads
+  all exist with matching provenance shall write nothing (no `bd` write and no
+  plan file) and succeed. Status,
+  notes, assignee, claims and other fields of existing beads are never compared
+  or written; sc-compose never updates, closes, reopens or deletes a bead. A
+  changed formula revision, changed relations, a bead without matching
+  provenance at a planned id, a conflicting edge, or a planned edge between two
+  existing beads that is absent in `bd` shall refuse the whole request before
+  any write. A bead counts as absent only on `bd`'s not-found response; any
+  other read failure fails the request.
+- **FR-23.6 Atomic apply (#613).** Everything one request creates is written
+  by a single `bd create --graph` call, so an interrupted request leaves all or
+  none of its missing beads and edges; a re-run creates what is missing.
+- **FR-23.7 Edges.** `needs` / `depends_on` become `blocks` edges.
+  `relations[]` adds edges of any well-known `bd` dependency type except
+  `parent-child`, between steps and existing beads, in either direction; an
+  edge from an existing bead changes nothing else about it.
+- **FR-23.8 Formula subset.** Graph operations read the formula through `bd
+  cook <path> --json` and accept flat steps with the keys listed in ADR-0023
+  "Formula grammar". Every construct that remains in that parse is refused as
+  `BEADS_GRAPH_FORMULA_UNSUPPORTED`, never ignored. `extends`, `loop` and
+  `expand` are resolved by `bd` while it parses; their output is held to the
+  same rules (a `loop` always yields `.` in step ids and is refused as
+  `BEADS_GRAPH_ID_INVALID`). The revision is the hash of the rendered text
+  only, so it never depends on `bd`'s output format; a changed `extends` base
+  is not detected (ADR-0023 "Revision").
+- **FR-23.9 Receipt.** Graph receipts carry `graph`: mode, parent, ref,
+  formula, revision, `plan_path` (present only when there were beads to
+  create), `ids` (step -> bead id) and every node and edge with its action
+  (`create`/`created`/`existing`; `add`/`added`/`existing`).
+- **FR-23.10 Codes.** The ten `BEADS_GRAPH_*` codes, their stages and exit
+  statuses are ADR-0023 "Errors".
+- **FR-23.11 bd support.** Production `bd` v1.3.1 is supported; every command
+  used exists there. No Beads fork, version probe or persisted proto is used.
 
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 

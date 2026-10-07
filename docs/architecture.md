@@ -99,6 +99,13 @@ dependency on `sc-observability`.
 - exclusive ownership of the `help_topics` module and ordered manual-topic
   registry; `sc-composer` and `bindings/python` do not define, import, or
   mutate manual-topic metadata.
+- `render --append` (FR-7, FR-7b, FR-8a): validated, compacted JSON Lines
+  append under an exclusive `std::fs::File::lock`. All file I/O stays in the
+  CLI; `sc-composer` only contributes the two additive `DiagnosticCode`
+  variants `ErrRenderAppendNotObject` and `ErrRenderAppendNoFinalNewline`.
+- the `bead preview-attach` / `bead attach` subcommands, which, like the other
+  `bead` subcommands, read one request file and print the
+  `sc-composer-beads` receipt.
 
 ### 3.3 `bindings/python`
 
@@ -161,6 +168,28 @@ the `bd` executable.
 It must not depend on `sc-compose`, a Python or Go adapter, Beads source or a
 Beads database library, ATM/runtime code, or any CLI argument type. The CLI
 and foreign-language bindings are callers of this library, never dependencies.
+
+Operations are split by family: `execute.rs` holds request validation,
+dispatch and the shared stage helpers; `pour.rs` holds `preview-pour` / `pour`
+(registry mode unchanged, plus selection of graph mode for a formula outside
+the active registry); `graph.rs` holds the graph engine used by graph-mode pour
+and by `preview-attach` / `attach` ([ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md)).
+The graph engine:
+
+1. reads the rendered formula through `bd cook <path> --json` (bd's own
+   parser; no TOML dependency) and checks the flat-formula subset;
+2. computes the planned nodes (attach ids `<parent>.<ref>-<step>`, provenance
+   under `sc_compose_graph`) and edges (`needs` -> `blocks`, `relations[]`);
+3. reads existing state with `bd show` / `bd dep list` and classifies each node
+   and edge (`existing`, to create, conflict, missing edge), refusing before
+   any write; only `bd`'s not-found response means absent, and any other read
+   failure is `BEADS_GRAPH_READ_FAILED`;
+4. when something is missing, writes it as one bd graph plan beside the
+   rendered formula and applies it with a single `bd create --graph`
+   transaction (`--dry-run` for previews); a no-op writes nothing.
+
+It issues no other mutating `bd` command and never passes `--var` for graph
+operations: structure and values come from the sc-compose template.
 
 For bounded subprocess output, the library contains the child process tree on
 supported platforms: Unix uses a dedicated process group and Windows uses a

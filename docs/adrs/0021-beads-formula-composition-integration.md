@@ -7,6 +7,9 @@ authored until the remaining pre-source gate items (CLAUDE.md/architecture.md
 boundary amendment, sc-lint negative boundary fixture) are separately
 satisfied per sprint R.1's pre-source gate.
 
+Extended by [ADR-0023](0023-beads-attach-and-by-path-pour.md) (attach and
+by-path pour). Nothing in this ADR is withdrawn.
+
 ## Context
 
 Beads formulas may be authored as `.formula.toml` or `.formula.json` files.
@@ -183,6 +186,8 @@ codes:
 | `FormulaRegistryAmbiguous` | `BEADS_FORMULA_REGISTRY_AMBIGUOUS` | Same-name TOML and JSON formulas coexist in the active registry. |
 | `PreviewPourFailed` | `BEADS_PREVIEW_POUR_FAILED` | `bd mol pour --dry-run` failed. |
 | `PourFailed` | `BEADS_POUR_FAILED` | Authorized persistent `bd mol pour` failed. |
+| `BeadVariableValueInvalid` | `BEADS_VARIABLE_VALUE_INVALID` | A Beads variable value contains a byte that cannot be passed in argv. |
+| `ProcessArgumentInvalid` | `BEADS_PROCESS_ARGUMENT_INVALID` | A process argument cannot be represented by the operating system. |
 
 The `BeadComposeError` variants, their stable codes, `BeadStageReceipt`, and
 `BeadOutcome` are the single definition consumed by R.1, R.2, and R.3. A
@@ -248,6 +253,9 @@ that active registry: Beads prefers TOML, so accepting both would make the
 requested file ambiguous. The crate does not silently copy a rendered formula
 into that directory. This makes the file-writing boundary explicit, avoids
 worktree/redirect search-path shadowing, and matches Beads' own resolution.
+This registry rule governs formulas placed in the active registry. A formula
+elsewhere inside `working_directory` is poured by path under
+[ADR-0023](0023-beads-attach-and-by-path-pour.md).
 
 `Pour` requires the exact typed authorization value
 `PourAuthorization::CreatePersistentBeads`; neither CLI nor Python defaults to
@@ -259,7 +267,9 @@ it. The runner uses `std::process::Command` arguments, never a shell string or
 Phase R verifies the contract against a pinned Beads `v1.2.2` release binary
 for Linux, macOS, and Windows, including its published checksum. The local
 developer binary is not the CI source of truth. A later Beads upgrade requires
-the same real integration tests before the pin changes.
+the same real integration tests before the pin changes. Phase T moves the pin to
+`v1.3.1` ([ADR-0023](0023-beads-attach-and-by-path-pour.md)) once those tests pass
+on it.
 
 Before source is authored, update `docs/architecture.md`, `CLAUDE.md`, and
 the sc-lint boundary inventory so that:

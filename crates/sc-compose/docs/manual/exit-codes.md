@@ -18,6 +18,11 @@ failure. All other commands use only `0`, `2`, and `3`.
 | `2` | Validation or render failure. The input was understood, but it could not be validated or rendered. |
 | `3` | Usage or configuration failure. The command line or configuration was invalid. |
 
+`render --append` failures (not one JSON object, a destination without a final
+newline, a lock or write failure) exit `2`. `bead` commands exit `0` when the
+receipt succeeded, `2` when it was refused or failed (every `BEADS_GRAPH_*`
+code), and `3` for a malformed request.
+
 Display requests such as `sc-compose --help` and `sc-compose --version` return
 `0`. For non-display commands, scripts should treat any non-zero status as a
 result that is not clean and use the command's diagnostic code or stderr
