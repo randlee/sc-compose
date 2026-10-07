@@ -628,6 +628,10 @@ fn pour(
 }
 
 #[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
 fn preview_attach(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
@@ -635,6 +639,10 @@ fn preview_attach(
     execute_with_operation(py, &request, Some(BeadOperation::PreviewAttach))
 }
 #[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
 fn attach(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
