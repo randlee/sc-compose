@@ -313,6 +313,7 @@ impl GraphReader for Runtime<'_> {
         let output = self.invoke(vec![
             "dep".into(),
             "list".into(),
+            "--".into(),
             id.to_string(),
             "--json".into(),
         ])?;
