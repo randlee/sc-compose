@@ -165,10 +165,14 @@ fn append_json_record(path: &Path, rendered: &str) -> Result<usize, CommandError
     file.seek(SeekFrom::End(0))
         .map_err(|error| CommandError::render_write(anyhow!(error)))?;
     if let Err(error) = file.write_all(line.as_bytes()).and_then(|()| file.flush()) {
-        let _ = file.set_len(original_len);
-        return Err(CommandError::render_write(
-            anyhow!(error).context("failed to append JSON record"),
-        ));
+        let rollback = file.set_len(original_len);
+        let message = match rollback {
+            Ok(()) => anyhow!(error).context("failed to append JSON record; restored append target"),
+            Err(rollback_error) => anyhow!(error).context(format!(
+                "failed to append JSON record; rollback also failed ({rollback_error}); a partial last line may remain; inspect the append target"
+            )),
+        };
+        return Err(CommandError::render_write(message));
     }
     Ok(line.len())
 }
