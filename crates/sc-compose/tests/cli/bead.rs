@@ -435,3 +435,27 @@ fn pinned_bd_validates_the_canonical_cli_fixture_when_configured() {
     let envelope: serde_json::Value = serde_json::from_slice(&command.stdout).expect("envelope");
     assert_eq!(envelope["payload"]["outcome"], "succeeded");
 }
+
+#[test]
+fn invalid_pour_authorization_returns_its_code_before_render_or_bd() {
+    let fixture = TempFixture::new("bead-pour-invalid-auth");
+    let template = copy_canonical_template(&fixture.path, "toml-workflow.formula.toml.j2");
+    let (fake_bd, trace) = write_fake_bd(&fixture.path, 0, 0);
+    let output = fixture.path.join("out").join("workflow.formula.toml");
+    fs::create_dir_all(output.parent().expect("parent")).expect("output directory");
+    let request = write_request(&fixture.path, &template, &output, &fake_bd, Some("invalid"));
+    let command = sc_compose()
+        .args(["bead", "pour", "--request"])
+        .arg(request)
+        .arg("--json")
+        .output()
+        .expect("bead pour");
+    assert_eq!(command.status.code(), Some(3), "{command:?}");
+    let envelope: serde_json::Value = serde_json::from_slice(&command.stdout).expect("envelope");
+    assert_eq!(
+        envelope["payload"]["error"]["code"],
+        "BEADS_POUR_AUTH_INVALID"
+    );
+    assert!(!trace.exists(), "authorization error starts no bd process");
+    assert!(!output.exists(), "authorization error writes no formula");
+}
