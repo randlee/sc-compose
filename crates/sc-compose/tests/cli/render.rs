@@ -50,6 +50,39 @@ fn render_append_writes_compact_json_line() {
 }
 
 #[test]
+fn examples_and_templates_reject_append_without_changing_destination() {
+    let root = temp_root("append-unsupported-packs");
+    let destination = root.join("records.jsonl");
+    let original = "{\"old\":true}\n";
+    write_file(&destination, original);
+
+    for command in ["examples", "templates"] {
+        let output = sc_compose()
+            .args([command, "hello", "--append", destination.to_str().unwrap()])
+            .output()
+            .unwrap();
+
+        assert_eq!(
+            output.status.code(),
+            Some(3),
+            "{command} --append must be a usage error: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains("--append is only supported by sc-compose render"),
+            "{command} should explain why --append is rejected: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            fs::read_to_string(&destination).unwrap(),
+            original,
+            "{command} --append must leave the destination unchanged"
+        );
+    }
+}
+
+#[test]
 fn render_append_rejects_non_object_without_changing_destination() {
     let root = temp_root("append-non-object");
     write_file(&root.join("record.json.j2"), "[1, 2]");
