@@ -11,6 +11,75 @@ use sc_composer_beads::{
 };
 
 #[test]
+fn shared_enum_names_match_serde_wire_names() {
+    fn wire_name(value: &serde_json::Value) -> &str {
+        value.as_str().unwrap_or_else(|| {
+            value
+                .as_object()
+                .expect("tagged outcome")
+                .keys()
+                .next()
+                .expect("variant")
+        })
+    }
+    for operation in [
+        BeadOperation::Render,
+        BeadOperation::Validate,
+        BeadOperation::PreviewPour,
+        BeadOperation::Pour,
+        BeadOperation::PreviewAttach,
+        BeadOperation::Attach,
+    ] {
+        let wire = serde_json::to_value(operation).expect("operation serializes");
+        assert_eq!(operation.as_str(), wire_name(&wire));
+        assert_eq!(
+            serde_json::from_value::<BeadOperation>(wire).expect("parse operation"),
+            operation
+        );
+    }
+    for stage in [
+        BeadStage::Render,
+        BeadStage::Validate,
+        BeadStage::ResolveActiveRegistry,
+        BeadStage::PreviewPour,
+        BeadStage::Pour,
+        BeadStage::PreviewAttach,
+        BeadStage::Attach,
+    ] {
+        assert_eq!(
+            stage.as_str(),
+            wire_name(&serde_json::to_value(stage).expect("stage serializes"))
+        );
+    }
+    for outcome in [
+        BeadStageOutcome::Succeeded,
+        BeadStageOutcome::Skipped,
+        BeadStageOutcome::Failed {
+            code: "test-code".into(),
+        },
+    ] {
+        assert_eq!(
+            outcome.as_str(),
+            wire_name(&serde_json::to_value(&outcome).expect("stage outcome serializes"))
+        );
+    }
+    for outcome in [
+        BeadOutcome::Succeeded,
+        BeadOutcome::Refused {
+            code: "test-code".into(),
+        },
+        BeadOutcome::Failed {
+            code: "test-code".into(),
+        },
+    ] {
+        assert_eq!(
+            outcome.as_str(),
+            wire_name(&serde_json::to_value(&outcome).expect("outcome serializes"))
+        );
+    }
+}
+
+#[test]
 fn protocol_types_serialize_with_stable_names() {
     assert_eq!(
         serde_json::to_string(&BeadOperation::PreviewPour).expect("serialize"),

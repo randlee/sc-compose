@@ -136,6 +136,62 @@ def test_receipt_decode_errors_have_a_receipt_code_and_stage() -> None:
     assert raised.value.message.startswith("failed to decode receipt:")
 
 
+@pytest.mark.parametrize("name", ["render", "validate", "preview_pour", "pour", "preview_attach", "attach"])
+def test_operation_names_preserve_the_wire_contract(tmp_path: Path, name: str) -> None:
+    request = beads.BeadComposeRequest(
+        tmp_path, tmp_path / "template.j2", tmp_path / "output.toml", {}, operation=name
+    )
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
+    fixture["operation"] = name
+
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+
+    assert request.operation == getattr(beads.BeadOperation, name.upper()) == name
+    assert receipt.operation == receipt.to_json()["operation"] == name
+
+
+@pytest.mark.parametrize("name", ["render", "validate", "resolve_active_registry", "preview_pour", "pour", "preview_attach", "attach"])
+@pytest.mark.parametrize("kind", ["succeeded", "skipped", "failed"])
+def test_stage_names_and_outcomes_preserve_the_wire_contract(name: str, kind: str) -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
+    fixture["stages"] = [{
+        "stage": name, "argv": [], "exit_status": None, "elapsed_ms": 0,
+        "stdout_excerpt": "", "stderr_excerpt": "",
+        "outcome": {kind: {"code": "test-code"}} if kind == "failed" else kind,
+    }]
+
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+
+    assert receipt.stages[0].stage == getattr(beads.BeadStage, name.upper()) == name
+    assert receipt.stages[0].outcome.kind == kind
+    assert receipt.stages[0].outcome.code == ("test-code" if kind == "failed" else None)
+    assert receipt.to_json() == fixture
+
+
+@pytest.mark.parametrize("kind", ["succeeded", "refused", "failed"])
+def test_receipt_outcome_names_preserve_the_wire_contract(kind: str) -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
+    fixture["outcome"] = kind if kind == "succeeded" else {kind: {"code": "test-code"}}
+
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+
+    assert receipt.outcome.kind == kind
+    assert receipt.outcome.code == (None if kind == "succeeded" else "test-code")
+    assert receipt.to_json() == fixture
+
+
+@pytest.mark.parametrize("name", ["", "unknown", "preview-attach", "Render"])
+def test_unknown_operation_preserves_the_request_error(tmp_path: Path, name: str) -> None:
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path, tmp_path / "template.j2", tmp_path / "output.toml", {}, operation=name
+        )
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+    assert raised.value.message == "operation must be render, validate, preview_pour, pour, preview_attach, or attach"
+
+
 @pytest.mark.parametrize("failure", ["import", "loads"])
 def test_graph_receipt_conversion_failures_raise_bead_compose_error(
     monkeypatch: pytest.MonkeyPatch, failure: str
