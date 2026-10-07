@@ -103,6 +103,90 @@ fn render_append_rejects_incomplete_destination_without_changing_it() {
 }
 
 #[test]
+fn render_append_keeps_prior_records_and_json_types() {
+    let root = temp_root("append-repeat");
+    write_file(
+        &root.join("record.json.j2"),
+        "{\"text\": {{ text }}, \"flag\": true, \"count\": 2}",
+    );
+    let destination = root.join("records.jsonl");
+    for value in ["\"first\\nline\"", "\"second\""] {
+        let output = sc_compose()
+            .args([
+                "render",
+                "--mode",
+                "file",
+                "--root",
+                root.to_str().unwrap(),
+                "--file",
+                "record.json.j2",
+                "--var",
+                &format!("text={value}"),
+                "--append",
+                destination.to_str().unwrap(),
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let records: Vec<Value> = fs::read_to_string(destination)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(records.len(), 2);
+    assert_eq!(records[0]["text"], "\"first\\nline\"");
+    assert_eq!(records[1]["count"], 2);
+    assert_eq!(records[1]["flag"], true);
+}
+
+#[test]
+fn render_append_rejects_non_json_and_conflicting_flags() {
+    let root = temp_root("append-invalid");
+    write_file(&root.join("text.md.j2"), "not json");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let invalid = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "text.md.j2",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(invalid.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&invalid.stderr).contains("ERR_RENDER_JSON_MALFORMED"));
+    assert_eq!(
+        fs::read_to_string(&destination).unwrap(),
+        "{\"old\":true}\n"
+    );
+    let conflicting = sc_compose()
+        .args([
+            "render",
+            "--file",
+            "text.md.j2",
+            "--root",
+            root.to_str().unwrap(),
+            "--append",
+            destination.to_str().unwrap(),
+            "--dry-run",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(conflicting.status.code(), Some(3));
+}
+
+#[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
     write_file(
