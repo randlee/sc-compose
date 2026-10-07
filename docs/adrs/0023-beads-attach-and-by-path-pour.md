@@ -457,7 +457,7 @@ planned bead with `bd dep list <id> --json`. A bead is absent only on bd's
 not-found response: the id is missing from a list that `bd show` returned with
 exit 0, or `bd show` exits 1 with JSON `error` equal to `no issues found
 matching the provided IDs` (every id absent). Any other failure of a read
-(another exit, unparseable output, a killed process) is `GraphReadFailed` with
+(another exit, unparsable output, a killed process) is `GraphReadFailed` with
 nothing written; it is never read as "absent".
 
 | Case | Result (`GraphConflict` reason, or other code) |
