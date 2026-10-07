@@ -7,7 +7,7 @@
     {
       "id": "build",
       "title": "Build {{literal}}",
-      "condition": "{{optional}}"
+      "condition": "{{optional}} == true"
     }
   ]
 }

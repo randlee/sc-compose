@@ -5,7 +5,7 @@
   "source": "<workspace>/condition.formula.json",
   "steps": [
     {
-      "condition": "{{optional}}",
+      "condition": "{{optional}} == true",
       "id": "build",
       "title": "Build {{literal}}"
     }
