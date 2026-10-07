@@ -52,7 +52,7 @@ pub(super) struct ValidatedGraph {
     pub mode: BeadGraphMode,
     pub parent: Option<BeadId>,
     pub reference: Option<GraphRef>,
-    pub formula: String,
+    pub formula: crate::FormulaName,
     pub description: String,
     pub revision: Sha256Digest,
     pub inputs: Sha256Digest,
@@ -196,7 +196,10 @@ pub(super) fn validate(
         mode,
         parent: req.parent.clone(),
         reference: req.ref_.clone(),
-        formula: req.formula_name.clone().unwrap_or(cooked.formula),
+        formula: req
+            .formula_name
+            .clone()
+            .map_or_else(|| crate::FormulaName::new(cooked.formula), Ok)?,
         description: cooked.description,
         revision: digest(rendered)?,
         inputs: digest(&inputs)?,

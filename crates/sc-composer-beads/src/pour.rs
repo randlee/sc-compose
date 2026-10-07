@@ -22,7 +22,7 @@ pub(crate) fn execute_pour(
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     let formula_name = request
         .formula_name
-        .as_deref()
+        .as_ref()
         .ok_or(BeadComposeError::FormulaNameRequired)?;
     let where_spec = CommandSpec {
         executable: bd.clone(),
@@ -118,11 +118,15 @@ pub(crate) fn execute_pour(
     Ok(result)
 }
 
-fn pour_args(formula_name: &str, request: &BeadComposeRequest, preview: bool) -> Vec<String> {
+fn pour_args(
+    formula_name: &crate::FormulaName,
+    request: &BeadComposeRequest,
+    preview: bool,
+) -> Vec<String> {
     let mut args = vec![
         String::from("mol"),
         String::from("pour"),
-        formula_name.to_owned(),
+        formula_name.to_string(),
     ];
     if preview {
         args.push(String::from("--dry-run"));
@@ -138,7 +142,7 @@ fn parse_active_beads_dir(stdout: &str) -> Option<PathBuf> {
 }
 
 fn validate_active_registry_path(
-    formula_name: &str,
+    formula_name: &crate::FormulaName,
     rendered_formula: &Path,
     active_beads_dir: &Path,
 ) -> Result<(), BeadComposeError> {
@@ -150,7 +154,7 @@ fn validate_active_registry_path(
         .join(format!("{formula_name}.formula.json"));
     if toml.is_file() && json.is_file() {
         return Err(BeadComposeError::FormulaRegistryAmbiguous {
-            formula_name: formula_name.to_owned(),
+            formula_name: formula_name.to_string(),
         });
     }
     if rendered_formula != toml && rendered_formula != json {

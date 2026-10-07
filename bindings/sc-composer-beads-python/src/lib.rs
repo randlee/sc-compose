@@ -491,7 +491,10 @@ impl PyBeadComposeRequest {
                 template: coerce_path(py, template, "template")?,
                 rendered_formula: coerce_path(py, rendered_formula, "rendered_formula")?,
                 compose_variables,
-                formula_name,
+                formula_name: formula_name
+                    .map(sc_composer_beads::FormulaName::new)
+                    .transpose()
+                    .map_err(|error| request_error(py, error.to_string()))?,
                 bead_variables: parse_bead_variables(py, bead_variables)?,
                 bd_executable: bd_executable
                     .map(|value| coerce_path(py, value, "bd_executable"))
@@ -550,7 +553,7 @@ impl PyBeadComposeRequest {
 
     #[getter]
     fn formula_name(&self) -> Option<String> {
-        self.inner.formula_name.clone()
+        self.inner.formula_name.as_ref().map(ToString::to_string)
     }
 
     #[getter]

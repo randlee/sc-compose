@@ -647,3 +647,46 @@ fn graph_edge_types_validate_strings_without_changing_wire_format() {
             .ends_with("bd dep add proj-42 proj-3 --type custom-audit_1")
     );
 }
+
+#[test]
+fn formula_names_are_validated_in_requests_and_graph_metadata() {
+    use sc_composer_beads::FormulaName;
+    use serde_json::{Value, json};
+    for name in ["release", "release-1_2", "release.v1", "_private"] {
+        round_trip::<FormulaName>(json!(name));
+        assert_eq!(FormulaName::new(name).expect("name").as_str(), name);
+    }
+    let request: Value =
+        serde_json::from_str(include_str!("fixtures/beads/request.json")).expect("request");
+    let digest = format!("sha256:{}", "a".repeat(64));
+    for name in [
+        "",
+        ".",
+        "..",
+        "a..b",
+        "../release",
+        "/absolute",
+        "nested/name",
+        r"nested\name",
+        "C:name",
+        "--help",
+        "two names",
+        "nul\0name",
+    ] {
+        FormulaName::new(name).expect_err("invalid Rust name");
+        let mut invalid = request.clone();
+        invalid["formula_name"] = json!(name);
+        let error = parse_request(&invalid.to_string()).expect_err("invalid wire name");
+        assert_eq!(error.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
+        serde_json::from_value::<BeadGraph>(json!({
+            "mode":"pour","parent":null,"ref":null,"formula":name,"revision":digest,
+            "ids":{},"nodes":[],"edges":[]
+        }))
+        .expect_err("graph name validated");
+        serde_json::from_value::<BeadGraphProvenance>(json!({
+            "v":1,"mode":"pour","formula":name,"revision":digest,"inputs":digest,
+            "parent":null,"ref":null,"step":null
+        }))
+        .expect_err("provenance name validated");
+    }
+}

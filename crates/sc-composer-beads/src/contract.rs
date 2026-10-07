@@ -55,7 +55,7 @@ pub struct BeadComposeRequest {
     /// Structured values supplied to fixed triple-brace composition expressions.
     pub compose_variables: Map<String, Value>,
     /// Required active-registry formula name for preview and persistent pour.
-    pub formula_name: Option<String>,
+    pub formula_name: Option<FormulaName>,
     /// Sorted scalar variables supplied to Beads as `--var key=value`.
     #[serde(deserialize_with = "deserialize_unique_bead_variables")]
     pub bead_variables: BTreeMap<String, String>,
@@ -289,6 +289,19 @@ macro_rules! graph_string {
 }
 
 graph_string!(
+    FormulaName,
+    "formula",
+    "A portable formula name: ASCII letters, digits, underscores, dots and hyphens; no leading dot/hyphen or consecutive dots.",
+    |s: &str| s
+        .as_bytes()
+        .first()
+        .is_some_and(|c| c.is_ascii_alphanumeric() || *c == b'_')
+        && !s.contains("..")
+        && s.bytes()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'_' | b'-' | b'.'))
+);
+
+graph_string!(
     BeadId,
     "bead",
     "A non-empty bead id containing no whitespace.",
@@ -442,7 +455,7 @@ pub struct BeadGraph {
     #[serde(rename = "ref")]
     pub ref_: Option<GraphRef>,
     /// Formula name.
-    pub formula: String,
+    pub formula: FormulaName,
     /// Hash of normalized rendered formula text.
     pub revision: Sha256Digest,
     /// Graph plan path, absent when nothing must be created.
@@ -658,7 +671,7 @@ pub struct BeadGraphProvenance {
     /// Construction mode.
     pub mode: BeadGraphMode,
     /// Formula name.
-    pub formula: String,
+    pub formula: FormulaName,
     /// Normalized rendered formula hash.
     pub revision: Sha256Digest,
     /// Hash of canonical mode and sorted relations.
