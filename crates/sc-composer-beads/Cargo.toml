@@ -17,6 +17,7 @@ sc-composer.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+unicode-properties = { version = "=0.1.4", default-features = false, features = ["general-category"] }
 
 [dev-dependencies]
 toml.workspace = true
