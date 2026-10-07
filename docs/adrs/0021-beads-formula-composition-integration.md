@@ -267,7 +267,9 @@ it. The runner uses `std::process::Command` arguments, never a shell string or
 Phase R verifies the contract against a pinned Beads `v1.2.2` release binary
 for Linux, macOS, and Windows, including its published checksum. The local
 developer binary is not the CI source of truth. A later Beads upgrade requires
-the same real integration tests before the pin changes.
+the same real integration tests before the pin changes. Phase T moves the pin to
+`v1.3.1` ([ADR-0023](0023-beads-attach-and-by-path-pour.md)) once those tests pass
+on it.
 
 Before source is authored, update `docs/architecture.md`, `CLAUDE.md`, and
 the sc-lint boundary inventory so that:

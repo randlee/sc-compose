@@ -1469,19 +1469,8 @@ and `bd` argv are unchanged.
   formula, revision, `plan_path` (present only when there were beads to
   create), `ids` (step -> bead id) and every node and edge with its action
   (`create`/`created`/`existing`; `add`/`added`/`existing`).
-- **FR-23.10 Codes.** `BEADS_GRAPH_PARENT_NOT_FOUND`, `BEADS_GRAPH_ID_INVALID`,
-  `BEADS_GRAPH_SCOPE_MISMATCH`, `BEADS_GRAPH_FORMULA_UNSUPPORTED`,
-  `BEADS_GRAPH_RELATION_INVALID`, `BEADS_GRAPH_CONFLICT`,
-  `BEADS_GRAPH_EDGE_CONFLICT`, `BEADS_GRAPH_EDGE_MISSING` (the message gives
-  the `bd dep add` command for each missing edge), `BEADS_GRAPH_READ_FAILED`
-  and `BEADS_GRAPH_APPLY_FAILED`, each a refused or
-  failed receipt (exit `2`, FR-7b). Request-shape problems, including
-  non-empty `bead_variables` on an attach operation, are request errors (exit
-  `3`). A pour learns its mode only after resolving the registry, so
-  `bead_variables` on a graph-mode pour and `relations` on a registry-mode
-  pour are refused receipts (exit `2`). A pour runs `resolve_active_registry`
-  in both modes; in graph mode its formula checks run in the `preview_pour` /
-  `pour` stage (ADR-0023 "Stages").
+- **FR-23.10 Codes.** The ten `BEADS_GRAPH_*` codes, their stages and exit
+  statuses are ADR-0023 "Errors".
 - **FR-23.11 bd support.** Production `bd` v1.3.1 is supported; every command
   used exists there. No Beads fork, version probe or persisted proto is used.
 
