@@ -363,6 +363,13 @@ graph_string!(
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'_' | b'-' | b'.'))
 );
 
+impl FormulaName {
+    /// Preserve a Phase R registry formula name that predates graph validation.
+    pub(crate) fn legacy(value: String) -> Self {
+        Self(value)
+    }
+}
+
 graph_string!(
     BeadId,
     GraphIdField::Bead,
