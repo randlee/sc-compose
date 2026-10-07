@@ -30,7 +30,7 @@ Use this checklist before every crates.io release of `sc-sha`, `sc-composer`, an
     `just sql-diagrams`, `just reports`, and `just reports-verify`
   - publish-manifest handoff remains verified through
     `reports/latest/publish-manifest.json`
-  - `observability-health` and the shipped `sc-observability 1.2.0`
+  - `observability-health` and the shipped `sc-observability 1.5.0` (v2 logger, v1 disabled)
     queue-admission / shutdown behavior remain covered by tests
   - failure-mode matrix `ERR_*` codes exercised by tests
   - `--json` commands are verified to keep stdout machine-readable
@@ -120,6 +120,6 @@ failure.
   - HTML-report line remains release-ready
   - Phase A and Phase B reporting runtime remains release-ready
   - publish-manifest handoff remains release-ready
-  - `sc-observability 1.2.0` observability behavior remains release-ready
+  - `sc-observability 1.5.0` (v2 logger, v1 disabled) observability behavior remains release-ready
 - [ ] standalone boundary verification passes with no forbidden ATM references in source
 - [ ] downstream cutover notes are published alongside the release notes
