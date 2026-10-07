@@ -262,6 +262,35 @@ fn fuzz_015_first_attach_and_rerun_of_500_steps_have_bounded_graph_output() {
     scalable_attach_roundtrip(500, true);
 }
 
+// FUZZ-015 round 3: bd emits one diagnostic per missing planned id.
+#[cfg(unix)]
+#[test]
+fn fuzz_015_preview_of_500_missing_steps_batches_not_found_diagnostics() {
+    scalable_attach_roundtrip(500, false);
+}
+
+#[test]
+fn fuzz_015_later_issue_batch_failure_stops_before_graph_apply() {
+    let w = Workspace::new();
+    let steps: Vec<Value> = (0..500)
+        .map(|i| json!({"id":format!("item_{i}"), "title":"Item"}))
+        .collect();
+    let cooked = json!({"formula":"sample", "type":"workflow", "steps":steps}).to_string();
+    for failure in [
+        out(Some(2), r#"{"error":"read failed"}"#),
+        ok(r#"[{"id":"proj-1"}]"#), // A parent row belongs to the first batch, not the second.
+    ] {
+        let runner = FakeRunner::new([ok(&cooked), parent(), failure]);
+        let receipt = w.run(&runner);
+        failed(
+            &receipt,
+            "BEADS_GRAPH_READ_FAILED",
+            BeadStage::PreviewAttach,
+        );
+        assert!(runner.calls().iter().all(|call| call.args[0] != "create"));
+    }
+}
+
 #[cfg(unix)]
 fn scalable_attach_roundtrip(count: usize, apply: bool) {
     use std::os::unix::fs::PermissionsExt;
@@ -296,16 +325,7 @@ fn scalable_attach_roundtrip(count: usize, apply: bool) {
     .expect("cooked");
     fs::write(&shown, r#"[{"id":"proj-1"}]"#).expect("show");
     let bd = w.root.join("fake-bd");
-    fs::write(
-        &bd,
-        format!(
-            "#!/bin/sh\ncase \"$1\" in\n  cook) cat '{}' ;;\n  show) cat '{}' ;;\n  dep) printf '%s' '[{{\"id\":\"proj-1\",\"dependency_type\":\"parent-child\"}}]' ;;\n  create) cat '{}' ;;\n  *) printf '{{}}' ;;\nesac\n",
-            cooked.display(),
-            shown.display(),
-            created.display()
-        ),
-    )
-    .expect("fake bd");
+    write_scalable_fake_bd(&bd, &cooked, &created, &shown);
     fs::set_permissions(&bd, fs::Permissions::from_mode(0o755)).expect("chmod");
     w.req.bd_executable = Some(bd);
     let first = execute_bead_request(&w.req).expect("first preview");
@@ -347,6 +367,49 @@ fn scalable_attach_roundtrip(count: usize, apply: bool) {
             .iter()
             .all(|node| node.action == BeadNodeAction::Existing)
     );
+}
+
+#[cfg(unix)]
+fn write_scalable_fake_bd(
+    bd: &std::path::Path,
+    cooked: &std::path::Path,
+    created: &std::path::Path,
+    shown: &std::path::Path,
+) {
+    let script = r#"#!/usr/bin/env python3
+import json, sys
+command = sys.argv[1]
+if command in ('cook', 'create'):
+    with open(COOKED_PATH if command == 'cook' else CREATED_PATH) as source:
+        sys.stdout.write(source.read())
+elif command == 'show':
+    requested = sys.argv[sys.argv.index('--') + 1:]
+    with open(SHOWN_PATH) as source:
+        existing = {row['id']: row for row in json.load(source)}
+    found = [existing[id] for id in requested if id in existing]
+    for id in requested:
+        if id not in existing:
+            sys.stderr.write('Issue ' + id + ' not found: ' + 'diagnostic ' * 20 + '\n')
+    print(json.dumps(found if found else {'error': 'no issues found matching the provided IDs'}))
+    sys.exit(0 if found else 1)
+elif command == 'dep':
+    print('[{"id":"proj-1","dependency_type":"parent-child"}]')
+else:
+    print('{}')
+"#
+    .replace(
+        "COOKED_PATH",
+        &serde_json::to_string(cooked).expect("UTF-8 fixture path"),
+    )
+    .replace(
+        "CREATED_PATH",
+        &serde_json::to_string(created).expect("UTF-8 fixture path"),
+    )
+    .replace(
+        "SHOWN_PATH",
+        &serde_json::to_string(shown).expect("UTF-8 fixture path"),
+    );
+    fs::write(bd, script).expect("fake bd");
 }
 
 const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];

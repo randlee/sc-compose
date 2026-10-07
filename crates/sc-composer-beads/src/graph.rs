@@ -272,36 +272,41 @@ fn process_failure_cause(output: &ProcessOutput) -> String {
 
 impl GraphReader for Runtime<'_> {
     fn issues(&mut self, ids: &[BeadId]) -> Result<BTreeMap<BeadId, Value>, BeadComposeError> {
-        let mut args = vec!["show".into(), "--json".into()];
-        args.push("--".into());
-        args.extend(ids.iter().map(ToString::to_string));
-        let output = self.invoke(args)?;
-        if all_missing(&output) {
-            return Ok(BTreeMap::new());
-        }
-        if output.exit_status != Some(0) {
-            return Err(self.read_error(output.exit_status, &process_failure_cause(&output)));
-        }
-        let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|error| {
-            self.read_error(output.exit_status, &short_cause(&error.to_string()))
-        })?;
+        // bd prints a not-found diagnostic for each absent id. Keep every
+        // show invocation bounded while retaining the existing stream caps.
+        const SHOW_BATCH_SIZE: usize = 64;
         let mut found = BTreeMap::new();
-        for row in rows {
-            let id = row
-                .get("id")
-                .and_then(Value::as_str)
-                .and_then(|s| BeadId::new(s).ok())
-                .ok_or_else(|| {
-                    self.read_error(
+        for ids in ids.chunks(SHOW_BATCH_SIZE) {
+            let mut args = vec!["show".into(), "--json".into()];
+            args.push("--".into());
+            args.extend(ids.iter().map(ToString::to_string));
+            let output = self.invoke(args)?;
+            if all_missing(&output) {
+                continue;
+            }
+            if output.exit_status != Some(0) {
+                return Err(self.read_error(output.exit_status, &process_failure_cause(&output)));
+            }
+            let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|error| {
+                self.read_error(output.exit_status, &short_cause(&error.to_string()))
+            })?;
+            for row in rows {
+                let id = row
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .and_then(|s| BeadId::new(s).ok())
+                    .ok_or_else(|| {
+                        self.read_error(
+                            output.exit_status,
+                            "bd show returned a row without a valid id",
+                        )
+                    })?;
+                if !ids.contains(&id) || found.insert(id, row).is_some() {
+                    return Err(self.read_error(
                         output.exit_status,
-                        "bd show returned a row without a valid id",
-                    )
-                })?;
-            if !ids.contains(&id) || found.insert(id, row).is_some() {
-                return Err(self.read_error(
-                    output.exit_status,
-                    "bd show returned an unexpected or duplicate issue id",
-                ));
+                        "bd show returned an unexpected or duplicate issue id",
+                    ));
+                }
             }
         }
         Ok(found)
