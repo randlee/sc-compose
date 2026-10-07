@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use anyhow::anyhow;
 use sc_composer::{
     ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode, DiagnosticSeverity,
-    ValidationOutcomeEvent,
+    RecoveryHint, RecoveryHintKind, ValidationOutcomeEvent,
 };
 
 use crate::cli::RenderBehaviorArgs;
@@ -126,6 +126,9 @@ fn append_json_record(path: &Path, rendered: &str) -> Result<usize, CommandError
         return Err(CommandError::render_append(
             anyhow!("--append requires the rendered output to be a JSON object"),
             DiagnosticCode::ErrRenderAppendNotObject,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectInput {
+                description: "the rendered output; --append requires a JSON object".to_owned(),
+            })],
         ));
     }
     let mut line = serde_json::to_string(&value)
@@ -159,6 +162,9 @@ fn append_json_record(path: &Path, rendered: &str) -> Result<usize, CommandError
             return Err(CommandError::render_append(
                 anyhow!("append target must end with a newline"),
                 DiagnosticCode::ErrRenderAppendNoFinalNewline,
+                vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
+                    path: path.to_path_buf(),
+                })],
             ));
         }
     }

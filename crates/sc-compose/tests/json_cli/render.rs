@@ -27,6 +27,59 @@ fn render_json_append(root: &Path, template: &str, destination: &Path) -> std::p
         .unwrap()
 }
 
+fn render_plain_append(root: &Path, template: &str, destination: &Path) -> std::process::Output {
+    sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            template,
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap()
+}
+
+#[test]
+fn render_append_non_object_reports_inspect_input_recovery_hint() {
+    let root = temp_root("render-append-non-object-hint");
+    write_file(&root.join("record.json.j2"), "[1, 2]");
+    let destination = root.join("records.jsonl");
+
+    let output = render_plain_append(&root, "record.json.j2", &destination);
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains(
+            "recovery: inspect input: the rendered output; --append requires a JSON object"
+        )
+    );
+}
+
+#[test]
+fn render_append_missing_final_newline_reports_target_recovery_hint() {
+    let root = temp_root("render-append-missing-newline-hint");
+    write_file(&root.join("record.json.j2"), r#"{"record":"new"}"#);
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"existing\":true}");
+
+    let output = render_plain_append(&root, "record.json.j2", &destination);
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains(&format!("recovery: inspect {}", destination.display()))
+    );
+    assert_eq!(
+        fs::read_to_string(destination).unwrap(),
+        "{\"existing\":true}"
+    );
+}
+
 #[test]
 fn render_json_append_reports_appended_payload() {
     let root = temp_root("render-json-append-success");
