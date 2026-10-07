@@ -571,6 +571,10 @@ fn invalid_relations_refuse_before_reading_beads() {
             "no_step",
         ),
         (
+            json!({"from":"bead:proj-1","to":"bead:proj-2","type":"related"}),
+            "no_step",
+        ),
+        (
             json!({"from":"step:build","to":"bead:proj-1","type":"related"}),
             "parent_pair",
         ),
