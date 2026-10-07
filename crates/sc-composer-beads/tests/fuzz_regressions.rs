@@ -1353,3 +1353,80 @@ fn fuzz_050_attach_publishes_all_outputs_before_create_and_never_after() {
         }));
     }
 }
+
+#[test]
+fn fuzz_021_refused_parse_preserves_native_details_and_legacy_consumers() {
+    for operation in ["attach", "preview_attach"] {
+        let base = json!({"schema":BEADS_SCHEMA_V1,"operation":operation,
+            "working_directory":"relative-work", "template":"missing.toml.j2",
+            "rendered_formula":"out.toml", "compose_variables":{},"bead_variables":{},
+            "parent":"proj-1","ref":"valid","pour_authorization":"CreatePersistentBeads"});
+        assert!(matches!(
+            parse_request_with_outcome(&base.to_string()).unwrap(),
+            RequestParseOutcome::Ready(_)
+        ));
+        for (field, value, endpoint) in [
+            ("bead", "bad id", None),
+            ("step", "bad-step", Some("step:bad-step")),
+            ("bead", "bad id", Some("bead:bad id")),
+            ("ref", "a.b", None),
+        ] {
+            let mut input = base.clone();
+            if let Some(endpoint) = endpoint {
+                input["relations"] = json!([{"from":endpoint,"to":"bead:proj-1","type":"blocks"}]);
+            } else {
+                input[if field == "bead" { "parent" } else { "ref" }] = json!(value);
+            }
+            let error = parse_request(&input.to_string()).unwrap_err();
+            let RequestParseOutcome::Refused(refused) =
+                parse_request_with_outcome(&input.to_string()).unwrap()
+            else {
+                panic!("expected refused receipt")
+            };
+            assert_eq!(
+                refused.error,
+                BeadDiagnostic::graph_id_invalid(&error).unwrap()
+            );
+            assert_eq!(refused.error.details.as_ref().unwrap()["field"], field);
+            assert_eq!(refused.error.details.as_ref().unwrap()["value"], value);
+            assert!(refused.error.details.as_ref().unwrap()["rule"].is_string());
+            assert!(refused.receipt.rendered_formula.is_absolute());
+            assert_eq!(refused.receipt.stages[0].stage, BeadStage::Validate);
+            let wire = serde_json::to_value(&refused).unwrap();
+            let legacy: BeadComposeReceipt = serde_json::from_value(wire.clone()).unwrap();
+            assert_eq!(legacy, refused.receipt);
+            assert_eq!(
+                serde_json::from_value::<RefusedBeadComposeReceipt>(wire).unwrap(),
+                refused
+            );
+        }
+        let mut invalid = base.clone();
+        invalid["ref"] = json!("x".repeat(100_000));
+        let RequestParseOutcome::Refused(receipt) =
+            parse_request_with_outcome(&invalid.to_string()).unwrap()
+        else {
+            panic!("refused")
+        };
+        assert!(receipt.receipt.stages[0].stderr_excerpt.chars().count() <= 16 * 1024);
+        invalid["operation"] = json!("unknown");
+        assert_eq!(
+            parse_request_with_outcome(&invalid.to_string())
+                .unwrap_err()
+                .code(),
+            "BEADS_REQUEST_DESERIALIZATION_FAILED"
+        );
+        if operation == "attach" {
+            invalid["operation"] = json!(operation);
+            invalid
+                .as_object_mut()
+                .unwrap()
+                .remove("pour_authorization");
+            assert_eq!(
+                parse_request_with_outcome(&invalid.to_string())
+                    .unwrap_err()
+                    .code(),
+                "BEADS_POUR_AUTH_REQUIRED"
+            );
+        }
+    }
+}

@@ -142,6 +142,48 @@ pub fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError
     crate::request::parse_request(input)
 }
 
+/// Parse a request, retaining attach identifier refusals as receipts.
+///
+/// # Errors
+/// Request-shape and authorization errors retain [`parse_request`]'s errors.
+pub fn parse_request_with_outcome(input: &str) -> Result<RequestParseOutcome, BeadComposeError> {
+    crate::request::parse_request_with_outcome(input)
+}
+
+/// A valid request or an attach identifier validation refusal.
+#[derive(Clone, Debug, PartialEq)]
+pub enum RequestParseOutcome {
+    /// Fully typed request ready for execution.
+    Ready(BeadComposeRequest),
+    /// Refused request with its canonical identifier diagnostic.
+    Refused(RefusedBeadComposeReceipt),
+}
+
+/// Canonical owned diagnostic retained alongside a refused receipt.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BeadDiagnostic {
+    /// Stable protocol error code.
+    pub code: String,
+    /// Native error message including the applicable rule.
+    pub message: String,
+    /// Typed wire details, including field, original value, and rule for ids.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<Value>,
+    /// Actionable recovery guidance from the core error contract.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recovery: Option<String>,
+}
+
+/// Existing receipt fields plus an additive canonical refusal diagnostic.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RefusedBeadComposeReceipt {
+    /// Ordinary receipt readable by existing receipt consumers.
+    #[serde(flatten)]
+    pub receipt: BeadComposeReceipt,
+    /// Diagnostic for the invalid identifier that caused this refusal.
+    pub error: BeadDiagnostic,
+}
+
 /// Parse relation JSON using the same stable endpoint errors as requests.
 ///
 /// # Errors

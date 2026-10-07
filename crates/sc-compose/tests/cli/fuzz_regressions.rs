@@ -268,12 +268,23 @@ fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
             assert_eq!(output.status.code(), Some(2), "{output:?}");
             let payload = parse_stdout(&output);
             assert_eq!(
+                payload["payload"]["outcome"],
+                serde_json::json!({"refused":{"code":"BEADS_GRAPH_ID_INVALID"}})
+            );
+            let receipt: sc_composer_beads::BeadComposeReceipt =
+                serde_json::from_value(payload["payload"].clone()).unwrap();
+            assert!(matches!(
+                receipt.outcome,
+                sc_composer_beads::BeadOutcome::Refused { .. }
+            ));
+
+            assert_eq!(
                 payload["payload"]["error"]["code"],
                 "BEADS_GRAPH_ID_INVALID"
             );
             assert_eq!(
                 payload["payload"]["error"]["details"],
-                serde_json::json!({"field":"ref", "value":reference})
+                serde_json::json!({"field":"ref", "value":reference, "rule":"ref is [A-Za-z0-9_-]{1,32}"})
             );
         }
     }
@@ -489,6 +500,13 @@ fn fuzz_052_request_errors_take_precedence_over_invalid_ids() {
         } else {
             "preview-attach"
         };
+        // Preserve parse-first authorization precedence even when the CLI
+        // subcommand overrides the serialized operation after parsing.
+        let command = if case["operation"] == "attach" {
+            "preview-attach"
+        } else {
+            command
+        };
         let output = sc_compose()
             .args(["bead", command, "--request"])
             .arg(&request)
@@ -504,7 +522,7 @@ fn fuzz_052_request_errors_take_precedence_over_invalid_ids() {
         if exit == 2 {
             assert_eq!(
                 envelope["payload"]["error"]["details"],
-                serde_json::json!({"field":"ref", "value":"a.b"})
+                serde_json::json!({"field":"ref", "value":"a.b", "rule":"ref is [A-Za-z0-9_-]{1,32}"})
             );
             assert!(
                 envelope["payload"]["error"]["message"]
@@ -512,6 +530,53 @@ fn fuzz_052_request_errors_take_precedence_over_invalid_ids() {
                     .unwrap()
                     .contains("[A-Za-z0-9_-]")
             );
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn fuzz_021_cooked_step_refusal_has_canonical_error_and_legacy_receipt() {
+    for command in ["attach", "preview-attach"] {
+        let request = human_graph_request("fuzz-021-cooked-step", "[]", "", 0);
+        let mut input: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&request).unwrap()).unwrap();
+        input["operation"] = serde_json::json!(command.replace('-', "_"));
+        input["pour_authorization"] = serde_json::json!("CreatePersistentBeads");
+        write_file(&request, &input.to_string());
+        let bd = std::path::Path::new(input["bd_executable"].as_str().unwrap());
+        let script = std::fs::read_to_string(bd)
+            .unwrap()
+            .replace("\"id\":\"a\"", "\"id\":\"bad-step\"");
+        write_file(bd, &script);
+        for json in [true, false] {
+            let mut process = sc_compose();
+            process.args(["bead", command, "--request"]).arg(&request);
+            if json {
+                process.arg("--json");
+            }
+            let output = process.output().unwrap();
+            assert_eq!(output.status.code(), Some(2), "{output:?}");
+            if json {
+                let envelope = parse_stdout(&output);
+                let payload = &envelope["payload"];
+                assert_eq!(
+                    payload["error"]["details"],
+                    serde_json::json!({"field":"step","value":"bad-step","rule":"step is [A-Za-z0-9_]{1,64}; hyphens are forbidden"})
+                );
+                let receipt: sc_composer_beads::BeadComposeReceipt =
+                    serde_json::from_value(payload.clone()).unwrap();
+                assert!(matches!(
+                    receipt.outcome,
+                    sc_composer_beads::BeadOutcome::Refused { .. }
+                ));
+            } else {
+                let output = String::from_utf8(output.stdout).unwrap();
+                assert!(
+                    output.contains("bad-step") && output.contains("hyphens are forbidden"),
+                    "{output}"
+                );
+            }
         }
     }
 }

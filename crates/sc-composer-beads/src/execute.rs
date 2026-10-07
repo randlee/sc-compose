@@ -575,7 +575,7 @@ fn elapsed_ms(duration: std::time::Duration) -> u64 {
     duration.as_millis().try_into().unwrap_or(u64::MAX)
 }
 
-fn excerpt(value: &str) -> String {
+pub(crate) fn excerpt(value: &str) -> String {
     value.chars().take(OUTPUT_EXCERPT_LIMIT).collect()
 }
 

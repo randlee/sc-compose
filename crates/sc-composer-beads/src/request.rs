@@ -7,8 +7,9 @@ use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
 use crate::{
-    BeadComposeError, BeadComposeRequest, BeadId, BeadOperation, BeadRelation, GraphRef,
-    PourAuthorization, StepId,
+    BeadComposeError, BeadComposeRequest, BeadDiagnostic, BeadId, BeadOperation, BeadOutcome,
+    BeadRelation, BeadStage, BeadStageOutcome, BeadStageReceipt, GraphRef, PourAuthorization,
+    RefusedBeadComposeReceipt, RequestParseOutcome, StepId,
 };
 
 #[derive(Default)]
@@ -86,24 +87,8 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
             .ok_or(BeadComposeError::PourAuthorizationInvalid)?;
         PourAuthorization::try_from(token)?;
     }
-    // Check the complete serde contract without allowing identifier grammar
-    // errors to mask operation, field-type, or required-field diagnostics.
-    let mut shape: Value = serde_json::from_str(input).map_err(|error| request_error(&error))?;
-    for field in ["parent", "ref"] {
-        if let Some(value) = shape.get_mut(field).filter(|value| value.is_string()) {
-            *value = Value::String("valid".into());
-        }
-    }
-    if let Some(relations) = shape.get_mut("relations").and_then(Value::as_array_mut) {
-        for relation in relations {
-            for field in ["from", "to"] {
-                if let Some(value) = relation.get_mut(field).filter(|value| value.is_string()) {
-                    *value = Value::String("bead:valid".into());
-                }
-            }
-        }
-    }
-    let shape = deserialize_request(&shape.to_string())?;
+    // Request shape and authorization take precedence over identifier grammar.
+    let shape = request_shape(input)?;
     let identifiers = (|| {
         if let Some(parent) = preflight.parent.as_str() {
             BeadId::new(parent)?;
@@ -127,6 +112,99 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
         return Err(error);
     }
     deserialize_request(input)
+}
+
+fn request_shape(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
+    let mut shape: Value = serde_json::from_str(input).map_err(|error| request_error(&error))?;
+    for field in ["parent", "ref"] {
+        if let Some(value) = shape.get_mut(field).filter(|value| value.is_string()) {
+            *value = Value::String("valid".into());
+        }
+    }
+    if let Some(relations) = shape.get_mut("relations").and_then(Value::as_array_mut) {
+        for relation in relations {
+            for field in ["from", "to"] {
+                if let Some(value) = relation.get_mut(field).filter(|value| value.is_string()) {
+                    *value = Value::String("bead:valid".into());
+                }
+            }
+        }
+    }
+    deserialize_request(&shape.to_string())
+}
+
+pub(crate) fn parse_request_with_outcome(
+    input: &str,
+) -> Result<RequestParseOutcome, BeadComposeError> {
+    match parse_request(input) {
+        Ok(request) => Ok(RequestParseOutcome::Ready(request)),
+        Err(error) => {
+            let Some(diagnostic) = BeadDiagnostic::graph_id_invalid(&error) else {
+                return Err(error);
+            };
+            let shape = request_shape(input)?;
+            if !matches!(
+                shape.operation,
+                BeadOperation::Attach | BeadOperation::PreviewAttach
+            ) {
+                return Err(error);
+            }
+            let rendered_formula = refused_formula_path(&shape)?;
+            let receipt = crate::execute::receipt(
+                &shape,
+                rendered_formula,
+                vec![BeadStageReceipt {
+                    stage: BeadStage::Validate,
+                    argv: Vec::new(),
+                    exit_status: None,
+                    elapsed_ms: 0,
+                    stdout_excerpt: String::new(),
+                    stderr_excerpt: crate::execute::excerpt(&error.to_string()),
+                    outcome: BeadStageOutcome::Failed {
+                        code: error.code().into(),
+                    },
+                }],
+                BeadOutcome::Refused {
+                    code: error.code().into(),
+                },
+            );
+            Ok(RequestParseOutcome::Refused(RefusedBeadComposeReceipt {
+                receipt,
+                error: diagnostic,
+            }))
+        }
+    }
+}
+
+fn refused_formula_path(
+    request: &BeadComposeRequest,
+) -> Result<std::path::PathBuf, BeadComposeError> {
+    let path = if request.rendered_formula.is_absolute() {
+        request.rendered_formula.clone()
+    } else if request.working_directory.is_absolute() {
+        request.working_directory.join(&request.rendered_formula)
+    } else {
+        std::env::current_dir()
+            .map_err(|source| BeadComposeError::RequestReadFailed {
+                path: request.working_directory.clone(),
+                source,
+            })?
+            .join(&request.working_directory)
+            .join(&request.rendered_formula)
+    };
+    // Refusal requires no filesystem validation: normalize lexically so missing
+    // templates or output directories cannot mask the native identifier error.
+    let mut normalized = std::path::PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                normalized.pop();
+            }
+            component => normalized.push(component.as_os_str()),
+        }
+    }
+    Ok(normalized)
 }
 
 fn deserialize_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {

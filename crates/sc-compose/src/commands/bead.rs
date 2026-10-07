@@ -4,9 +4,9 @@ use std::fs;
 
 use sc_composer_beads::error::shell_quote;
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadNodeAction, BeadOperation,
-    BeadOutcome, BeadPourMode, BeadStageOutcome, execute_bead_request_with_diagnostics,
-    parse_request,
+    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadNodeAction,
+    BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome, RefusedBeadComposeReceipt,
+    RequestParseOutcome, execute_bead_request_with_diagnostics, parse_request_with_outcome,
 };
 
 use crate::CommandError;
@@ -36,20 +36,29 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
             return print_bead_error(&error, operation, json);
         }
     };
-    let mut request = match parse_request(&input) {
-        Ok(request) => request,
+    let mut request = match parse_request_with_outcome(&input) {
+        Ok(RequestParseOutcome::Ready(request)) => request,
+        Ok(RequestParseOutcome::Refused(mut receipt)) => {
+            receipt.receipt.operation = operation;
+            return print_refused_receipt(receipt, json);
+        }
         Err(error) => return print_bead_error(&error, operation, json),
     };
     request.operation = operation;
 
     let mut diagnostics = Vec::new();
+    let mut identifier_diagnostic = None;
     let result = execute_bead_request_with_diagnostics(&request, &mut |error| {
+        identifier_diagnostic = BeadDiagnostic::graph_id_invalid(error);
         if !json {
             diagnostics.push(serde_json::to_value(error));
         }
     });
     match result {
         Ok(receipt) => {
+            if let Some(error) = identifier_diagnostic {
+                return print_refused_receipt(RefusedBeadComposeReceipt { receipt, error }, json);
+            }
             let diagnostics = diagnostics
                 .into_iter()
                 .collect::<Result<Vec<_>, _>>()
@@ -58,6 +67,20 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         }
         Err(error) => print_bead_error(&error, operation, json),
     }
+}
+
+fn print_refused_receipt(
+    receipt: RefusedBeadComposeReceipt,
+    json: bool,
+) -> Result<i32, CommandError> {
+    if json {
+        print_json(receipt, Vec::new()).map_err(CommandError::usage)?;
+    } else {
+        let diagnostic = serde_json::to_value(&receipt.error)
+            .map_err(|error| CommandError::usage(error.into()))?;
+        print_human_receipt(&receipt.receipt, &[diagnostic]);
+    }
+    Ok(exit_codes::VALIDATION_OR_RENDER_FAIL)
 }
 
 fn print_receipt(
