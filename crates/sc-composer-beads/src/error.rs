@@ -253,11 +253,15 @@ pub enum BeadComposeError {
 }
 
 impl BeadComposeError {
+    /// Stable code for malformed requests, available without constructing an error.
+    pub const REQUEST_DESERIALIZATION_FAILED_CODE: &'static str =
+        "BEADS_REQUEST_DESERIALIZATION_FAILED";
+
     /// Return the stable protocol code for this condition.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
-            Self::RequestDeserializationFailed { .. } => "BEADS_REQUEST_DESERIALIZATION_FAILED",
+            Self::RequestDeserializationFailed { .. } => Self::REQUEST_DESERIALIZATION_FAILED_CODE,
             Self::UnknownSchema { .. } => "BEADS_UNKNOWN_SCHEMA",
             Self::FormulaPathNotFile { .. } => "BEADS_FORMULA_NOT_FILE",
             Self::FormulaExtensionUnsupported { .. } => "BEADS_FORMULA_EXTENSION_UNSUPPORTED",

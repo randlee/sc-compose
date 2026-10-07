@@ -58,10 +58,7 @@ fn error(
 fn request_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
     error(
         py,
-        RustBeadComposeError::RequestDeserializationFailed {
-            message: String::new(),
-        }
-        .code(),
+        RustBeadComposeError::REQUEST_DESERIALIZATION_FAILED_CODE,
         Some(REQUEST_STAGE),
         message,
     )
