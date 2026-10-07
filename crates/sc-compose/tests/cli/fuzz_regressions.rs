@@ -175,3 +175,53 @@ fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
         }
     }
 }
+
+// FUZZ-038: native request paths must produce typed usage errors, never serializer panics.
+#[cfg(unix)]
+#[test]
+fn fuzz_038_non_utf8_request_paths_are_typed_errors_in_json_and_human_modes() {
+    use std::os::unix::ffi::OsStringExt;
+
+    let root = temp_root("fuzz-038-non-utf8-request-path");
+    let request = root.join(std::ffi::OsString::from_vec(b"missing-\xff.json".to_vec()));
+    for operation in [
+        "render",
+        "validate",
+        "preview-pour",
+        "pour",
+        "preview-attach",
+        "attach",
+    ] {
+        for json in [false, true] {
+            let mut command = sc_compose();
+            command.args(["bead", operation, "--request"]).arg(&request);
+            if json {
+                command.arg("--json");
+            }
+            let output = command.output().expect("CLI");
+            assert_eq!(
+                output.status.code(),
+                Some(3),
+                "{operation}, JSON={json}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            if json {
+                let envelope = parse_stdout(&output);
+                let error = &envelope["payload"]["error"];
+                assert_eq!(error["code"], "BEADS_REQUEST_READ_FAILED");
+                assert_eq!(error["details"]["path"], request.to_string_lossy().as_ref());
+                assert_eq!(error["details"]["kind"], "NotFound");
+                assert!(!error["recovery"].as_str().expect("recovery").is_empty());
+            } else {
+                assert!(output.stdout.is_empty());
+                let stderr = String::from_utf8(output.stderr).expect("human diagnostic is UTF-8");
+                assert!(stderr.contains("BEADS_REQUEST_READ_FAILED:"), "{stderr}");
+                assert!(
+                    stderr.contains(request.to_string_lossy().as_ref()),
+                    "{stderr}"
+                );
+                assert!(stderr.contains("recovery:"), "{stderr}");
+            }
+        }
+    }
+}
