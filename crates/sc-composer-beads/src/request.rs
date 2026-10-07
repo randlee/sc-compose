@@ -213,14 +213,17 @@ fn deserialize_request(input: &str) -> Result<BeadComposeRequest, BeadComposeErr
         Err(error) => {
             let mut value: Value =
                 serde_json::from_str(input).map_err(|_reparse| request_error(&error))?;
-            if !matches!(
-                value.get("operation").and_then(Value::as_str),
-                Some("attach" | "preview_attach")
-            ) {
-                let legacy_name = value
-                    .get("formula_name")
-                    .and_then(Value::as_str)
-                    .map(str::to_owned);
+            let legacy_name = value
+                .get("formula_name")
+                .and_then(Value::as_str)
+                .map(str::to_owned);
+            if legacy_name.is_some()
+                && !error.to_string().contains("duplicate field")
+                && !matches!(
+                    value.get("operation").and_then(Value::as_str),
+                    Some("attach" | "preview_attach")
+                )
+            {
                 value
                     .as_object_mut()
                     .expect("JSON object")
