@@ -17,6 +17,29 @@ identity = "comp"
 sandbox = "workspace-write"
 approval_policy = "on-failure"
 
+[startup.team-lead]
+all = ["Read /atm-bd-orchestration SKILL.md and /atm-beads SKILL.md; a phase planned in beads runs under atm-bd-orchestration",
+       "Use native atm send or atm ack for messages to comp, comp2, comp3, comp-sanity, or quality-mgr",
+       "Use native atm read to read messages from team-members" ]
+
+[startup.quality-mgr]
+all = ["read .claude/agents/quality-mgr.md for directive",
+       "When the phase runs under atm-bd-orchestration, also read .claude/skills/atm-bd-orchestration/roles/quality-mgr.md; where the two differ, the role file wins",
+       "Use native atm send or atm ack for messages to team-lead, comp, comp2, or comp3",
+       "Use native atm read to read messages from team-members" ]
+
+[startup.comp]
+all = ["Use native atm send or atm ack for messages to team-lead or quality-mgr",
+       "Use native atm read to read messages from team-members" ]
+
+[startup.comp2]
+all = ["Use native atm send or atm ack for messages to team-lead or quality-mgr",
+       "Use native atm read to read messages from team-members" ]
+
+[startup.comp3]
+all = ["Use native atm send or atm ack for messages to team-lead or quality-mgr",
+       "Use native atm read to read messages from team-members" ]
+
 # ── rmux: pane layout ─────
 [rmux]
 session = "sc-compose"
