@@ -358,7 +358,11 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
         })?;
     let parent = fs::canonicalize(parent).map_err(|error| {
         let rule = if error.kind() == std::io::ErrorKind::NotFound {
-            format!("parent directory `{}` must exist", parent.display())
+            format!(
+                "parent directory `{}` for `{}` must exist",
+                parent.display(),
+                path.display()
+            )
         } else {
             String::from("parent directory must be resolvable")
         };
@@ -367,6 +371,12 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
             rule,
         }
     })?;
+    if !parent.is_dir() {
+        return Err(BeadComposeError::OutputPathInvalid {
+            path: path.into(),
+            rule: format!("parent `{}` must be a directory", parent.display()),
+        });
+    }
     let name = path
         .file_name()
         .ok_or_else(|| BeadComposeError::OutputPathInvalid {
