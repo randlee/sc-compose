@@ -1461,3 +1461,32 @@ fn fuzz_049_request_fallback_preserves_typed_errors() {
         }
     }
 }
+
+// FUZZ-042: invalid output parents name the requested rendered formula.
+#[test]
+fn fuzz_042_parent_file_and_relative_output_are_typed() {
+    let mut w = Workspace::new();
+    let parent_file = w.root.join("not-a-directory");
+    fs::write(&parent_file, "file").expect("parent file");
+    w.req.rendered_formula = parent_file.join("out.formula.toml");
+    let error = execute_bead_request_with_runner(&w.req, &FakeRunner::new([]))
+        .expect_err("file parent must be rejected as an output path");
+    assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID");
+    assert!(
+        error
+            .to_string()
+            .contains("not-a-directory/out.formula.toml"),
+        "{error}"
+    );
+
+    let mut w = Workspace::new();
+    w.req.rendered_formula = PathBuf::from("missing.formula.toml");
+    let error = execute_bead_request_with_runner(&w.req, &FakeRunner::new([]))
+        .expect_err("relative output with no parent must be rejected");
+    assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID");
+    assert!(!error.to_string().contains("``"), "{error}");
+    assert!(
+        error.to_string().contains("missing.formula.toml"),
+        "{error}"
+    );
+}
