@@ -46,6 +46,7 @@ After initialization, use these repo-local skills to coordinate work:
 
 | Skill | Trigger |
 |-------|---------|
+| `/atm-bd-orchestration` | Run phases planned in beads: dispatch, dev-sanity, QA and stack landing driven by `bd ready` |
 | `/codex-orchestration` | Run phases where comp is sole dev, with pipelined QA via quality-mgr |
 | `/plan-hardening` | Harden a phase plan and create any missing sprint docs before implementation starts or resumes |
 | `/sprint-report` | Generate a concise phase or sprint status report from repo data |
@@ -56,7 +57,8 @@ Additional orchestration guides live in `.claude/skills/*/SKILL.md`.
 
 ### Phased Development — Mandatory
 
-For any multi-sprint phased development, `/codex-orchestration` must be used
+A phase planned in beads runs under `/atm-bd-orchestration`. For any other
+multi-sprint phased development, `/codex-orchestration` must be used
 unless the user explicitly directs a different repo-local orchestration flow.
 
 After every session start or context compaction, if a phase is in progress:
@@ -64,7 +66,7 @@ After every session start or context compaction, if a phase is in progress:
 2. read only that skill
 3. resume from the last documented state rather than memory alone
 
-If unsure whether `/codex-orchestration` or `/plan-hardening` applies, ask the
+If unsure whether `/atm-bd-orchestration`, `/codex-orchestration` or `/plan-hardening` applies, ask the
 user immediately.
 
 ## Task Assignment Protocol
