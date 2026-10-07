@@ -67,7 +67,7 @@ sc-composer library and are normalized by the shared lint runner.
 | `ERR_RENDER_APPEND_NOT_OBJECT` | `RenderError` | error | JSON Lines append rendered a non-object JSON value | CLI output layer |
 | `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` | `RenderError` | error | JSON Lines append target has no final newline | CLI output layer |
 | `ERR_CONFIG_READONLY` | `ConfigError` | error | frontmatter rewrite or workspace update refused on read-only target | `frontmatter_init()`, `init_workspace()` |
-| `ERR_CONFIG_MODE` | `ConfigError` | error | command or helper invoked in an incompatible mode | CLI argument validation, `resolve_profile()` |
+| `ERR_CONFIG_MODE` | `ConfigError` | error | command or helper invoked in an incompatible mode, including `--append` outside `render` | CLI argument validation, `resolve_profile()`, `examples`, `templates` |
 | `ERR_CONFIG_READ` | `ConfigError` | error | a required text/config file exists but cannot be read as valid text | include engine, `verify()`, workspace helpers |
 | `ERR_CONFIG_PARSE` | `ConfigError` | error | malformed or unreadable configuration input | var-file/config parsing |
 | `ERR_CONFIG_VARFILE` | `ConfigError` | error | invalid var-file shape or unsupported structure, including YAML merge keys (`<<`) rejected with a source line/column and explicit-mapping recovery guidance | var-file parsing |
