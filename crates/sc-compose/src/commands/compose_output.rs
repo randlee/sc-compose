@@ -145,7 +145,19 @@ fn append_json_record(
             })],
         ));
     }
-    let mut line = compact_json_record(checked.body());
+    let object: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
+        serde_json::from_str(checked.body()).map_err(|error| {
+            CommandError::render_append(
+                anyhow!(error).context(format!(
+                    "failed to parse checked JSON from template {}",
+                    template_path.display()
+                )),
+                DiagnosticCode::ErrRenderJsonMalformed,
+                Vec::new(),
+            )
+        })?;
+    let mut line = serde_json::to_string(&object)
+        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
     line.push('\n');
     let mut file = std::fs::OpenOptions::new()
         .read(true)
@@ -199,30 +211,6 @@ fn append_json_record(
         return Err(CommandError::render_write(message));
     }
     Ok(line.len())
-}
-
-fn compact_json_record(json: &str) -> String {
-    let mut compact = String::with_capacity(json.len());
-    let mut in_string = false;
-    let mut escaped = false;
-    for character in json.chars() {
-        if in_string {
-            compact.push(character);
-            if escaped {
-                escaped = false;
-            } else if character == '\\' {
-                escaped = true;
-            } else if character == '"' {
-                in_string = false;
-            }
-        } else if character == '"' {
-            in_string = true;
-            compact.push(character);
-        } else if !character.is_ascii_whitespace() {
-            compact.push(character);
-        }
-    }
-    compact
 }
 
 fn add_render_check(
