@@ -94,7 +94,7 @@ pub(crate) fn execute(
     for stage in &mut result.stages {
         for argument in &mut stage.argv {
             if argument == snapshot.as_ref() {
-                *argument = source.clone();
+                argument.clone_from(&source);
             }
         }
         stage.stderr_excerpt = stage.stderr_excerpt.replace(snapshot.as_ref(), &source);
