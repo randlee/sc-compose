@@ -255,7 +255,8 @@ fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
                     "schema":"sc-compose/beads/v1", "operation":operation.replace('-', "_"),
                     "working_directory":root, "template":"missing.formula.toml.j2",
                     "rendered_formula":root.join("out.formula.toml"),
-                    "compose_variables":{}, "bead_variables":{}, "parent":"proj-1", "ref":reference
+                    "compose_variables":{}, "bead_variables":{}, "parent":"proj-1", "ref":reference,
+                    "pour_authorization":"CreatePersistentBeads"
                 })
                 .to_string(),
             );
@@ -448,4 +449,69 @@ fn fuzz_017_append_preserves_large_exponent_lexemes() {
         std::fs::read_to_string(destination).unwrap(),
         "{\"n\":1e400,\"tiny\":-1.2300e-4000}\n"
     );
+}
+
+#[test]
+fn fuzz_052_request_errors_take_precedence_over_invalid_ids() {
+    let root = temp_root("fuzz-052-request-precedence");
+    let valid = serde_json::json!({
+        "schema":"sc-compose/beads/v1", "operation":"preview_attach",
+        "working_directory":root, "template":"missing.formula.toml.j2",
+        "rendered_formula":root.join("out.formula.toml"), "compose_variables":{},
+        "bead_variables":{}, "parent":"proj-1", "ref":"valid", "relations":[]
+    });
+    let mut unknown = valid.clone();
+    unknown["operation"] = serde_json::json!("bogus");
+    unknown["relations"] =
+        serde_json::json!([{"from":"step:a", "to":"bead:bad id", "type":"blocks"}]);
+    let mut unauthorized = valid.clone();
+    unauthorized["operation"] = serde_json::json!("attach");
+    unauthorized["ref"] = serde_json::json!("a.b");
+    let mut wrong_type = valid.clone();
+    wrong_type["compose_variables"] = serde_json::json!([]);
+    wrong_type["parent"] = serde_json::json!("bad id");
+    let mut missing = valid.clone();
+    missing.as_object_mut().unwrap().remove("template");
+    missing["ref"] = serde_json::json!("a.b");
+    let mut id_only = valid.clone();
+    id_only["ref"] = serde_json::json!("a.b");
+    for (case, code, exit) in [
+        (unknown, "BEADS_REQUEST_DESERIALIZATION_FAILED", 3),
+        (unauthorized, "BEADS_POUR_AUTH_REQUIRED", 3),
+        (wrong_type, "BEADS_REQUEST_DESERIALIZATION_FAILED", 3),
+        (missing, "BEADS_REQUEST_DESERIALIZATION_FAILED", 3),
+        (id_only, "BEADS_GRAPH_ID_INVALID", 2),
+    ] {
+        let request = root.join("request.json");
+        write_file(&request, &case.to_string());
+        let command = if case["operation"] == "attach" {
+            "attach"
+        } else {
+            "preview-attach"
+        };
+        let output = sc_compose()
+            .args(["bead", command, "--request"])
+            .arg(&request)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(exit), "{case}: {output:?}");
+        let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(
+            envelope["payload"]["error"]["code"], code,
+            "{case}: {envelope}"
+        );
+        if exit == 2 {
+            assert_eq!(
+                envelope["payload"]["error"]["details"],
+                serde_json::json!({"field":"ref", "value":"a.b"})
+            );
+            assert!(
+                envelope["payload"]["error"]["message"]
+                    .as_str()
+                    .unwrap()
+                    .contains("[A-Za-z0-9_-]")
+            );
+        }
+    }
 }

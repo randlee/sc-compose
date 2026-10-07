@@ -650,7 +650,8 @@ fn fuzz_021_invalid_refs_and_relation_steps_keep_typed_errors() {
                 "schema": BEADS_SCHEMA_V1, "operation": operation,
                 "working_directory": "/work", "template": "sample.formula.toml.j2",
                 "rendered_formula": "/work/sample.formula.toml", "compose_variables": {},
-                "bead_variables": {}, "parent": "proj-1", "ref": reference
+                "bead_variables": {}, "parent": "proj-1", "ref": reference,
+                "pour_authorization": "CreatePersistentBeads"
             });
             let error = parse_request(&request.to_string()).expect_err("invalid ref");
             assert_eq!(error.code(), "BEADS_GRAPH_ID_INVALID");
@@ -954,7 +955,8 @@ fn invalid_parent_and_relation_bead_ids_keep_native_typed_errors() {
                 "schema": BEADS_SCHEMA_V1, "operation": operation,
                 "working_directory": "/work", "template": "sample.formula.toml.j2",
                 "rendered_formula": "/work/sample.formula.toml", "compose_variables": {},
-                "bead_variables": {}, "parent": invalid, "ref": "valid"
+                "bead_variables": {}, "parent": invalid, "ref": "valid",
+                "pour_authorization": "CreatePersistentBeads"
             });
             let error = parse_request(&request.to_string()).expect_err("invalid parent");
             assert_native_bead_id_error(&error, invalid);

@@ -7,7 +7,8 @@ use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
 use crate::{
-    BeadComposeError, BeadComposeRequest, BeadId, BeadRelation, GraphRef, PourAuthorization, StepId,
+    BeadComposeError, BeadComposeRequest, BeadId, BeadOperation, BeadRelation, GraphRef,
+    PourAuthorization, StepId,
 };
 
 #[derive(Default)]
@@ -85,17 +86,50 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
             .ok_or(BeadComposeError::PourAuthorizationInvalid)?;
         PourAuthorization::try_from(token)?;
     }
-    if let Some(parent) = preflight.parent.as_str() {
-        BeadId::new(parent)?;
+    // Check the complete serde contract without allowing identifier grammar
+    // errors to mask operation, field-type, or required-field diagnostics.
+    let mut shape: Value = serde_json::from_str(input).map_err(|error| request_error(&error))?;
+    for field in ["parent", "ref"] {
+        if let Some(value) = shape.get_mut(field).filter(|value| value.is_string()) {
+            *value = Value::String("valid".into());
+        }
     }
-    if matches!(
-        preflight.operation.as_str(),
-        Some("attach" | "preview_attach")
-    ) && let Some(reference) = preflight.reference.as_str()
-    {
-        GraphRef::new(reference)?;
+    if let Some(relations) = shape.get_mut("relations").and_then(Value::as_array_mut) {
+        for relation in relations {
+            for field in ["from", "to"] {
+                if let Some(value) = relation.get_mut(field).filter(|value| value.is_string()) {
+                    *value = Value::String("bead:valid".into());
+                }
+            }
+        }
     }
-    validate_endpoint_prefixes(&preflight.relations)?;
+    let shape = deserialize_request(&shape.to_string())?;
+    let identifiers = (|| {
+        if let Some(parent) = preflight.parent.as_str() {
+            BeadId::new(parent)?;
+        }
+        if matches!(
+            preflight.operation.as_str(),
+            Some("attach" | "preview_attach")
+        ) && let Some(reference) = preflight.reference.as_str()
+        {
+            GraphRef::new(reference)?;
+        }
+        validate_endpoint_prefixes(&preflight.relations)
+    })();
+    if let Err(error) = identifiers {
+        if matches!(&error, BeadComposeError::GraphIdInvalid { .. })
+            && matches!(shape.operation, BeadOperation::Attach | BeadOperation::Pour)
+            && shape.pour_authorization.is_none()
+        {
+            return Err(BeadComposeError::PourAuthorizationRequired);
+        }
+        return Err(error);
+    }
+    deserialize_request(input)
+}
+
+fn deserialize_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
     match serde_json::from_str(input) {
         Ok(request) => Ok(request),
         Err(error) => {
