@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde_json::{Map, Value, json};
 
-use crate::observability::SERVICE_NAME;
+use crate::observability::validated_service_name;
 use crate::path_utils::to_forward_slash;
 use sc_composer::{
     CompositionObserver, IncludeOutcomeEvent, ObservationEvent, ObservationSink,
@@ -463,9 +463,9 @@ fn schema_version() -> SchemaVersion {
 /// Panics only if the crate-owned `SERVICE_NAME` constant stops satisfying
 /// `sc-observability` service-name validation.
 fn service_name() -> ServiceName {
-    match ServiceName::new(SERVICE_NAME) {
+    match validated_service_name() {
         Ok(value) => value,
-        Err(error) => panic!("invalid observability service name {SERVICE_NAME:?}: {error}"),
+        Err(error) => panic!("invalid observability service name: {error}"),
     }
 }
 
