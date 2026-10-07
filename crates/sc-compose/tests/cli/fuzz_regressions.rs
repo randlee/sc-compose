@@ -124,6 +124,45 @@ fn fuzz_039_human_receipts_preserve_conflict_id_and_read_cause() {
     }
 }
 
+// FUZZ-053: successful graph stages never print their bd stderr in human output.
+#[cfg(unix)]
+#[test]
+fn fuzz_053_human_preview_attach_suppresses_successful_stage_stderr() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = temp_root("fuzz-053-human-success-stderr");
+    let bd = root.join("fake-bd");
+    let cooked = r#"{"formula":"m","type":"workflow","steps":[{"id":"a","title":"A"}]}"#;
+    write_file(
+        &bd,
+        &format!(
+            "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{cooked}' ;;\n show) printf '%s' '[{{\"id\":\"proj-1\"}}]'; printf '%s' 'Hint: harmless' >&2 ;;\nesac\n"
+        ),
+    );
+    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    write_file(
+        &root.join("m.formula.toml.j2"),
+        "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
+    );
+    let request = root.join("request.json");
+    write_file(&request, &serde_json::json!({"schema":"sc-compose/beads/v1","operation":"preview_attach","working_directory":root,"template":"m.formula.toml.j2","rendered_formula":root.join("out.formula.toml"),"compose_variables":{},"bead_variables":{},"parent":"proj-1","ref":"r","bd_executable":bd}).to_string());
+    let output = sc_compose()
+        .args(["bead", "preview-attach", "--request"])
+        .arg(&request)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let human = String::from_utf8(output.stdout).unwrap();
+    assert!(!human.contains("Hint: harmless"), "{human}");
+    assert_eq!(
+        human
+            .lines()
+            .filter(|line| line.starts_with("stage "))
+            .count(),
+        4,
+        "{human}"
+    );
+}
+
 // FUZZ-012: a relative template resolves against working_directory.
 #[test]
 fn fuzz_012_bead_request_template_is_relative_to_working_directory() {
