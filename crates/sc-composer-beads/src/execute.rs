@@ -358,9 +358,13 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
         })?;
     let parent = fs::canonicalize(parent).map_err(|error| {
         let rule = if error.kind() == std::io::ErrorKind::NotFound {
+            let parent_display = if parent.as_os_str().is_empty() {
+                path.display().to_string()
+            } else {
+                parent.display().to_string()
+            };
             format!(
-                "parent directory `{}` for `{}` must exist",
-                parent.display(),
+                "parent directory `{parent_display}` for `{}` must exist",
                 path.display()
             )
         } else {
