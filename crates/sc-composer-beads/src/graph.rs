@@ -8,7 +8,7 @@ use crate::contract::{
     BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadStage, BeadStageOutcome,
     BeadStageReceipt, GraphDependencyType,
 };
-use crate::error::BeadComposeError;
+use crate::error::{BeadComposeError, short_cause};
 use crate::execute::{NormalizedRequest, process_receipt, receipt};
 use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
 use plan::{GraphPlan, GraphReader, PendingCreate};
@@ -118,11 +118,13 @@ fn run(
     if output.exit_status != Some(0) {
         return Err(BeadComposeError::CookFailed {
             exit_status: output.exit_status,
+            cause: process_failure_cause(&output),
         });
     }
     let cooked =
-        serde_json::from_str(&output.stdout).map_err(|_error| BeadComposeError::CookFailed {
+        serde_json::from_str(&output.stdout).map_err(|error| BeadComposeError::CookFailed {
             exit_status: output.exit_status,
+            cause: short_cause(&error.to_string()),
         })?;
     let mode = if is_attach(request.operation) {
         BeadGraphMode::Attach
@@ -201,10 +203,11 @@ impl Runtime<'_> {
         Ok(output)
     }
 
-    fn read_error(&self, status: Option<i32>) -> BeadComposeError {
+    fn read_error(&self, status: Option<i32>, cause: &str) -> BeadComposeError {
         BeadComposeError::GraphReadFailed {
             command: self.stages.last().map_or_else(Vec::new, |s| s.argv.clone()),
             status,
+            cause: short_cause(cause),
         }
     }
 
@@ -251,6 +254,15 @@ fn all_missing(output: &ProcessOutput) -> bool {
             .is_some_and(|s| s == "no issues found matching the provided IDs")
 }
 
+fn process_failure_cause(output: &ProcessOutput) -> String {
+    let diagnostic = if output.stderr.trim().is_empty() {
+        &output.stdout
+    } else {
+        &output.stderr
+    };
+    short_cause(diagnostic)
+}
+
 impl GraphReader for Runtime<'_> {
     fn issues(&mut self, ids: &[BeadId]) -> Result<BTreeMap<BeadId, Value>, BeadComposeError> {
         let mut args = vec!["show".into()];
@@ -261,19 +273,28 @@ impl GraphReader for Runtime<'_> {
             return Ok(BTreeMap::new());
         }
         if output.exit_status != Some(0) {
-            return Err(self.read_error(output.exit_status));
+            return Err(self.read_error(output.exit_status, &process_failure_cause(&output)));
         }
-        let rows: Vec<Value> = serde_json::from_str(&output.stdout)
-            .map_err(|_error| self.read_error(output.exit_status))?;
+        let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|error| {
+            self.read_error(output.exit_status, &short_cause(&error.to_string()))
+        })?;
         let mut found = BTreeMap::new();
         for row in rows {
             let id = row
                 .get("id")
                 .and_then(Value::as_str)
                 .and_then(|s| BeadId::new(s).ok())
-                .ok_or_else(|| self.read_error(output.exit_status))?;
+                .ok_or_else(|| {
+                    self.read_error(
+                        output.exit_status,
+                        "bd show returned a row without a valid id",
+                    )
+                })?;
             if !ids.contains(&id) || found.insert(id, row).is_some() {
-                return Err(self.read_error(output.exit_status));
+                return Err(self.read_error(
+                    output.exit_status,
+                    "bd show returned an unexpected or duplicate issue id",
+                ));
             }
         }
         Ok(found)
@@ -290,26 +311,33 @@ impl GraphReader for Runtime<'_> {
             "--json".into(),
         ])?;
         if output.exit_status != Some(0) {
-            return Err(self.read_error(output.exit_status));
+            return Err(self.read_error(output.exit_status, &process_failure_cause(&output)));
         }
-        let rows: Vec<Value> = serde_json::from_str(&output.stdout)
-            .map_err(|_error| self.read_error(output.exit_status))?;
+        let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|error| {
+            self.read_error(output.exit_status, &short_cause(&error.to_string()))
+        })?;
         rows.into_iter()
             .map(|row| {
                 let id = row
                     .get("id")
                     .and_then(Value::as_str)
                     .and_then(|s| BeadId::new(s).ok())
-                    .ok_or_else(|| self.read_error(output.exit_status))?;
+                    .ok_or_else(|| {
+                        self.read_error(output.exit_status, "bd dep list returned an invalid id")
+                    })?;
                 let kind = row
                     .get("dependency_type")
                     .and_then(Value::as_str)
-                    .ok_or_else(|| self.read_error(output.exit_status))?;
-                Ok((
-                    id,
-                    GraphDependencyType::try_from(kind.to_owned())
-                        .map_err(|_error| self.read_error(output.exit_status))?,
-                ))
+                    .ok_or_else(|| {
+                        self.read_error(
+                            output.exit_status,
+                            "bd dep list returned a row without dependency_type",
+                        )
+                    })?;
+                let kind = GraphDependencyType::try_from(kind.to_owned()).map_err(|error| {
+                    self.read_error(output.exit_status, &short_cause(&error.to_string()))
+                })?;
+                Ok((id, kind))
             })
             .collect()
     }
@@ -361,23 +389,31 @@ impl PendingCreate {
         }
         .argv();
         let output = runtime.invoke(args)?;
-        let failure = || BeadComposeError::GraphApplyFailed {
+        let failure = |cause: String| BeadComposeError::GraphApplyFailed {
             command: command.clone(),
             status: output.exit_status,
+            cause,
         };
         if output.exit_status != Some(0) {
-            return Err(failure());
+            return Err(failure(process_failure_cause(&output)));
         }
         if preview {
             return Ok(self.graph);
         }
-        let value: Value = serde_json::from_str(&output.stdout).map_err(|_error| failure())?;
-        let assigned: BTreeMap<String, BeadId> =
-            serde_json::from_value(value.get("ids").cloned().ok_or_else(failure)?)
-                .map_err(|_error| failure())?;
+        let value: Value = serde_json::from_str(&output.stdout)
+            .map_err(|error| failure(short_cause(&error.to_string())))?;
+        let assigned: BTreeMap<String, BeadId> = serde_json::from_value(
+            value
+                .get("ids")
+                .cloned()
+                .ok_or_else(|| failure("bd create --graph response is missing ids".to_owned()))?,
+        )
+        .map_err(|error| failure(short_cause(&error.to_string())))?;
         if assigned.len() != self.keys.len() || self.keys.keys().any(|k| !assigned.contains_key(k))
         {
-            return Err(failure());
+            return Err(failure(
+                "bd create --graph response ids do not match the planned steps".to_owned(),
+            ));
         }
         for (key, step) in &self.keys {
             let id = assigned[key].clone();
@@ -388,7 +424,9 @@ impl PendingCreate {
                     .get(step)
                     .is_some_and(|expected| *expected != id)
                 {
-                    return Err(failure());
+                    return Err(failure(
+                        "bd create --graph assigned an id different from the planned id".to_owned(),
+                    ));
                 }
                 self.graph.ids.insert(step.clone(), id);
             } else {

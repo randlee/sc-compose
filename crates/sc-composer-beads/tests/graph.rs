@@ -214,7 +214,10 @@ fn request_shape_and_authorization_fail_before_render_or_bd() {
                 w.req.bead_variables.insert("var".into(), "value".into());
             }
             3 => w.req.operation = BeadOperation::Render,
-            4 => w.req.operation = BeadOperation::Pour,
+            4 => {
+                w.req.operation = BeadOperation::Pour;
+                w.req.parent = None;
+            }
             5 | 6 => {
                 w.req.operation = if case == 5 {
                     BeadOperation::Render
@@ -233,6 +236,16 @@ fn request_shape_and_authorization_fail_before_render_or_bd() {
         let runner = FakeRunner::new([]);
         let err = execute_bead_request_with_runner(&w.req, &runner).expect_err("shape refused");
         assert_eq!(err.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
+        let expected_message = match case {
+            0 => "attach requires parent",
+            1 => "attach requires ref",
+            2 => "attach forbids bead_variables",
+            3 => "non-attach operations forbid parent",
+            4 => "non-attach operations forbid ref",
+            5 | 6 => "render and validate forbid relations",
+            _ => unreachable!(),
+        };
+        assert!(err.to_string().contains(expected_message), "{err}");
         assert!(runner.calls().is_empty());
         assert!(!w.req.rendered_formula.exists());
     }
@@ -244,6 +257,68 @@ fn request_shape_and_authorization_fail_before_render_or_bd() {
             .expect_err("authorization")
             .code(),
         "BEADS_POUR_AUTH_REQUIRED"
+    );
+}
+
+#[test]
+fn cook_parse_failure_keeps_the_parser_cause() {
+    let w = Workspace::new();
+    let runner = FakeRunner::new([ok("not-json")]);
+
+    let receipt = w.run(&runner);
+
+    failed(&receipt, "BEADS_COOK_FAILED", BeadStage::Validate);
+    assert!(
+        receipt
+            .stages
+            .last()
+            .unwrap()
+            .stderr_excerpt
+            .contains("expected ident"),
+        "{receipt:#?}"
+    );
+}
+
+#[test]
+fn graph_read_parse_failure_keeps_the_parser_cause() {
+    let w = Workspace::new();
+    let runner = FakeRunner::new([ok(COOKED), ok("not-json")]);
+
+    let receipt = w.run(&runner);
+
+    failed(
+        &receipt,
+        "BEADS_GRAPH_READ_FAILED",
+        BeadStage::PreviewAttach,
+    );
+    assert!(
+        receipt
+            .stages
+            .last()
+            .unwrap()
+            .stderr_excerpt
+            .contains("expected ident"),
+        "{receipt:#?}"
+    );
+}
+
+#[test]
+fn graph_apply_parse_failure_keeps_the_parser_cause() {
+    let mut w = Workspace::new();
+    w.req.operation = BeadOperation::Attach;
+    let runner = FakeRunner::new([ok(COOKED), parent(), ok("not-json")]);
+
+    let receipt = w.run(&runner);
+
+    failed(&receipt, "BEADS_GRAPH_APPLY_FAILED", BeadStage::Attach);
+    assert!(
+        receipt
+            .stages
+            .last()
+            .unwrap()
+            .stderr_excerpt
+            .contains("expected ident"),
+        "{receipt:#?}"
     );
 }
 #[test]

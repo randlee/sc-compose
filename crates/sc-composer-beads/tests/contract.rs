@@ -151,6 +151,7 @@ fn every_advertised_error_has_its_stable_code() {
         (
             BeadComposeError::CookFailed {
                 exit_status: Some(1),
+                cause: "invalid formula".to_owned(),
             },
             "BEADS_COOK_FAILED",
         ),
@@ -245,6 +246,7 @@ fn every_advertised_error_has_its_stable_code() {
             BeadComposeError::GraphReadFailed {
                 command: vec!["bd".into(), "show".into(), "proj-42".into()],
                 status: Some(1),
+                cause: "bad JSON".to_owned(),
             },
             "BEADS_GRAPH_READ_FAILED",
         ),
@@ -257,6 +259,7 @@ fn every_advertised_error_has_its_stable_code() {
                     "plan.json".into(),
                 ],
                 status: None,
+                cause: "missing ids".to_owned(),
             },
             "BEADS_GRAPH_APPLY_FAILED",
         ),

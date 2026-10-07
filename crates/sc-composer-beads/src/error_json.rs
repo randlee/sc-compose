@@ -58,9 +58,17 @@ impl Serialize for BeadComposeError {
                 json!({ "edges": edges }),
                 "For each missing edge, run bd dep add <from> <to> --type <type>, then retry.",
             )),
-            Self::GraphReadFailed { command, status }
-            | Self::GraphApplyFailed { command, status } => Some((
-                json!({ "command": command, "status": status }),
+            Self::GraphReadFailed {
+                command,
+                status,
+                cause,
+            }
+            | Self::GraphApplyFailed {
+                command,
+                status,
+                cause,
+            } => Some((
+                json!({ "command": command, "status": status, "cause": cause }),
                 "Fix the bd failure and retry; nothing was written.",
             )),
             _ => None,

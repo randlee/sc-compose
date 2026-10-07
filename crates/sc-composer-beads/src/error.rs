@@ -133,10 +133,12 @@ pub enum BeadComposeError {
         message: String,
     },
     /// `bd cook --dry-run` failed.
-    #[error("Beads formula validation failed")]
+    #[error("Beads formula validation failed: {cause}")]
     CookFailed {
         /// Exit status returned by `bd cook`, if it started.
         exit_status: Option<i32>,
+        /// Short diagnostic returned by `bd cook` or its output parser.
+        cause: String,
     },
     /// `bd where --json` failed or returned unusable output.
     #[error("active Beads registry resolution failed")]
@@ -241,21 +243,42 @@ pub enum BeadComposeError {
         edges: Vec<MissingEdge>,
     },
     /// `ReadFailed` condition from ADR-0023.
-    #[error("graph read failed ({status:?}): {command:?}; fix bd and retry, nothing was written")]
+    #[error(
+        "graph read failed ({status:?}): {cause}; {command:?}; fix bd and retry, nothing was written"
+    )]
     GraphReadFailed {
         /// Attempted bd argv.
         command: Vec<String>,
         /// Exit status, or None when killed by a signal.
         status: Option<i32>,
+        /// Short diagnostic for the process, parse, or response-shape failure.
+        cause: String,
     },
     /// `ApplyFailed` condition from ADR-0023.
-    #[error("graph apply failed ({status:?}): {command:?}; fix bd and retry, nothing was written")]
+    #[error(
+        "graph apply failed ({status:?}): {cause}; {command:?}; fix bd and retry, nothing was written"
+    )]
     GraphApplyFailed {
         /// Attempted bd argv.
         command: Vec<String>,
         /// Exit status, or None when killed by a signal.
         status: Option<i32>,
+        /// Short diagnostic for the process, parse, or response-shape failure.
+        cause: String,
     },
+}
+
+pub(crate) fn short_cause(message: &str) -> String {
+    let first_line = message
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .unwrap_or(message);
+    let cause = first_line.trim().chars().take(256).collect::<String>();
+    if cause.is_empty() {
+        "no diagnostic provided".to_owned()
+    } else {
+        cause
+    }
 }
 
 impl BeadComposeError {
