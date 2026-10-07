@@ -271,6 +271,7 @@ fn process_failure_cause(output: &ProcessOutput) -> String {
 impl GraphReader for Runtime<'_> {
     fn issues(&mut self, ids: &[BeadId]) -> Result<BTreeMap<BeadId, Value>, BeadComposeError> {
         let mut args = vec!["show".into()];
+        args.push("--".into());
         args.extend(ids.iter().map(ToString::to_string));
         args.push("--json".into());
         let output = self.invoke(args)?;
