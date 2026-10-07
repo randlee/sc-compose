@@ -113,6 +113,8 @@ pub enum DiagnosticCode {
     ErrJsonLegacyNonString,
     /// Rendered JSON failed the complete-body parser gate.
     ErrRenderJsonMalformed,
+    /// Rendered JSON exceeded the supported nesting limit.
+    ErrRenderJsonDepthLimit,
     /// A configuration or text file could not be read as valid text.
     ErrConfigRead,
     /// Configuration or YAML parsing failed.
@@ -247,6 +249,7 @@ impl DiagnosticCode {
             Self::ErrJsonEscapeModeNonJson => "ERR_JSON_ESCAPE_MODE_NON_JSON",
             Self::ErrJsonLegacyNonString => "ERR_JSON_LEGACY_NON_STRING",
             Self::ErrRenderJsonMalformed => "ERR_RENDER_JSON_MALFORMED",
+            Self::ErrRenderJsonDepthLimit => "ERR_RENDER_JSON_DEPTH_LIMIT",
             Self::ErrConfigRead => "ERR_CONFIG_READ",
             Self::ErrConfigParse => "ERR_CONFIG_PARSE",
             Self::ErrConfigVarfile => "ERR_CONFIG_VARFILE",
@@ -380,6 +383,7 @@ mod tests {
             (ErrJsonEscapeModeNonJson, "ERR_JSON_ESCAPE_MODE_NON_JSON"),
             (ErrJsonLegacyNonString, "ERR_JSON_LEGACY_NON_STRING"),
             (ErrRenderJsonMalformed, "ERR_RENDER_JSON_MALFORMED"),
+            (ErrRenderJsonDepthLimit, "ERR_RENDER_JSON_DEPTH_LIMIT"),
             (ErrConfigRead, "ERR_CONFIG_READ"),
             (ErrConfigParse, "ERR_CONFIG_PARSE"),
             (ErrConfigVarfile, "ERR_CONFIG_VARFILE"),
@@ -483,7 +487,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 83);
+        assert_eq!(codes.len(), 84);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(

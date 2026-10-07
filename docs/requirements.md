@@ -738,7 +738,8 @@ All other commands, including `template-init`, continue to use only `0`, `2`,
 and `3`.
 
 `render --append` failures exit `2`: `ERR_RENDER_JSON_MALFORMED` (output is
-not JSON), `ERR_RENDER_APPEND_NOT_OBJECT` (JSON but not one object),
+not JSON), `ERR_RENDER_JSON_DEPTH_LIMIT` (more than 127 nested JSON objects or
+arrays), `ERR_RENDER_APPEND_NOT_OBJECT` (JSON but not one object),
 `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` (non-empty destination not ending in
 `\n`) and `ERR_RENDER_WRITE` (lock or write failure). Its usage errors exit `3`.
 
