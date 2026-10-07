@@ -1,5 +1,6 @@
 //! Stable Beads composition failures.
 
+use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use thiserror::Error;
@@ -511,11 +512,35 @@ impl std::fmt::Display for GraphFormulaUnsupportedReason {
 /// Quote one argument for a shell-copyable recovery command.
 #[must_use]
 pub fn shell_quote(argument: &str) -> String {
-    if argument.chars().any(char::is_control) {
-        format!("$'{argument}'", argument = argument.escape_default())
-    } else {
-        format!("'{}'", argument.replace('\'', "'\"'\"'"))
+    if !argument.chars().any(needs_shell_escape) {
+        return format!("'{}'", argument.replace('\'', "'\"'\"'"));
     }
+    let mut quoted = String::from("$'");
+    for character in argument.chars() {
+        match character {
+            '\\' => quoted.push_str("\\\\"),
+            '\'' => quoted.push_str("\\'"),
+            character if needs_shell_escape(character) => {
+                let code = u32::from(character);
+                // String formatting is infallible.
+                let _ = if character.is_ascii() {
+                    write!(quoted, "\\x{code:02X}")
+                } else if code <= 0xFFFF {
+                    write!(quoted, "\\u{code:04X}")
+                } else {
+                    write!(quoted, "\\U{code:08X}")
+                };
+            }
+            character => quoted.push(character),
+        }
+    }
+    quoted.push('\'');
+    quoted
+}
+
+fn needs_shell_escape(character: char) -> bool {
+    character.is_control()
+        || matches!(character, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{200e}' | '\u{200f}')
 }
 
 fn missing_edge_commands(edges: &[MissingEdge]) -> String {
