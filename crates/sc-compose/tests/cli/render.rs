@@ -178,7 +178,7 @@ fn render_append_keeps_prior_records_and_json_types() {
 }
 
 #[test]
-fn render_append_rejects_non_json_and_conflicting_flags() {
+fn render_append_rejects_non_json_without_changing_destination() {
     let root = temp_root("append-invalid");
     write_file(&root.join("text.md.j2"), "not json");
     let destination = root.join("records.jsonl");
@@ -203,20 +203,90 @@ fn render_append_rejects_non_json_and_conflicting_flags() {
         fs::read_to_string(&destination).unwrap(),
         "{\"old\":true}\n"
     );
-    let conflicting = sc_compose()
+}
+
+#[test]
+fn render_append_rejects_output_conflict_without_changing_destination() {
+    let root = temp_root("append-output-conflict");
+    write_file(&root.join("record.json.j2"), "{\"ok\":true}");
+    let destination = root.join("records.jsonl");
+    let original = b"{\"old\":true}\n";
+    fs::write(&destination, original).unwrap();
+    let output_path = root.join("rendered.json");
+
+    let output = sc_compose()
         .args([
             "render",
-            "--file",
-            "text.md.j2",
+            "--mode",
+            "file",
             "--root",
             root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+            "--output",
+            output_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "--append with --output must be a usage error: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error:")
+            && stderr.contains("--append <APPEND>")
+            && stderr.contains("cannot be used with '--output <OUTPUT>'"),
+        "expected the --append/--output conflict diagnostic, got: {stderr}"
+    );
+    assert_eq!(fs::read(&destination).unwrap(), original);
+    assert!(
+        !output_path.exists(),
+        "conflicting --output must not create a file"
+    );
+}
+
+#[test]
+fn render_append_rejects_dry_run_conflict_without_changing_destination() {
+    let root = temp_root("append-dry-run-conflict");
+    write_file(&root.join("record.json.j2"), "{\"ok\":true}");
+    let destination = root.join("records.jsonl");
+    let original = b"{\"old\":true}\n";
+    fs::write(&destination, original).unwrap();
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
             "--append",
             destination.to_str().unwrap(),
             "--dry-run",
         ])
         .output()
         .unwrap();
-    assert_eq!(conflicting.status.code(), Some(3));
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "--append with --dry-run must be a usage error: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error:")
+            && stderr.contains("--append <APPEND>")
+            && stderr.contains("cannot be used with '--dry-run'"),
+        "expected the --append/--dry-run conflict diagnostic, got: {stderr}"
+    );
+    assert_eq!(fs::read(&destination).unwrap(), original);
 }
 
 #[test]
