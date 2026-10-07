@@ -10,6 +10,99 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 #[test]
+fn render_append_writes_compact_json_line() {
+    let root = temp_root("append-json-record");
+    write_file(
+        &root.join("record.json.j2"),
+        "{\"name\": {{ name }}, \"count\": {{ count }}}",
+    );
+    let destination = root.join("records.jsonl");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--var",
+            "name=\"Ada\"",
+            "--var",
+            "count=2",
+            "--append",
+            destination.to_str().unwrap(),
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(&destination).unwrap(),
+        "{\"count\":\"2\",\"name\":\"\\\"Ada\\\"\"}\n"
+    );
+    let payload: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(payload["payload"]["appended"], true);
+}
+
+#[test]
+fn render_append_rejects_non_object_without_changing_destination() {
+    let root = temp_root("append-non-object");
+    write_file(&root.join("record.json.j2"), "[1, 2]");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_RENDER_APPEND_NOT_OBJECT"));
+    assert_eq!(
+        fs::read_to_string(&destination).unwrap(),
+        "{\"old\":true}\n"
+    );
+}
+
+#[test]
+fn render_append_rejects_incomplete_destination_without_changing_it() {
+    let root = temp_root("append-incomplete");
+    write_file(&root.join("record.json.j2"), "{\"ok\":true}");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_RENDER_APPEND_NO_FINAL_NEWLINE"));
+    assert_eq!(fs::read_to_string(&destination).unwrap(), "{\"old\":true}");
+}
+
+#[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
     write_file(

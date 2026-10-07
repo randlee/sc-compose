@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::anyhow;
@@ -20,11 +20,13 @@ pub(super) fn emit_render_output(
     render_check: Option<sc_composer::RenderCheckReport>,
 ) -> Result<(), CommandError> {
     let rendered_text = checked_output.body();
-    let output_path = args.output.clone();
+    let output_path = args.output.clone().or_else(|| args.append.clone());
     let derived_path = derived_output_path(request, output_path.as_deref());
     let would_change = render_would_change(&derived_path, rendered_text);
     let bytes_written = if args.dry_run {
         None
+    } else if let Some(output) = args.append.as_ref() {
+        Some(append_json_record(output, rendered_text)?)
     } else if let Some(output) = output_path.as_ref() {
         let mut file = std::fs::File::create(output).map_err(|error| {
             CommandError::render_write(
@@ -86,6 +88,9 @@ pub(super) fn emit_render_output(
                 "bytes_written": bytes_written.unwrap_or_default(),
                 "template": to_forward_slash(resolved_path),
             });
+            if args.append.is_some() {
+                payload["appended"] = serde_json::Value::Bool(true);
+            }
             add_render_check(&mut payload, render_check);
             payload
         };
@@ -109,6 +114,62 @@ pub(super) fn emit_render_output(
     }
 
     Ok(())
+}
+
+fn append_json_record(path: &Path, rendered: &str) -> Result<usize, CommandError> {
+    let checked =
+        sc_composer::check_rendered_output(sc_composer::OutputFormat::Json, path, rendered)
+            .map_err(CommandError::render_check)?;
+    let value: serde_json::Value = serde_json::from_str(checked.body())
+        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+    if !value.is_object() {
+        return Err(CommandError::render_append(
+            anyhow!("--append requires the rendered output to be a JSON object"),
+            DiagnosticCode::ErrRenderAppendNotObject,
+        ));
+    }
+    let mut line = serde_json::to_string(&value)
+        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+    line.push('\n');
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(path)
+        .map_err(|error| {
+            CommandError::render_write(
+                anyhow!(error).context(format!("failed to open {}", path.display())),
+            )
+        })?;
+    file.lock().map_err(|error| {
+        CommandError::render_write(anyhow!(error).context("failed to lock append target"))
+    })?;
+    let original_len = file
+        .metadata()
+        .map_err(|error| CommandError::render_write(anyhow!(error)))?
+        .len();
+    if original_len > 0 {
+        file.seek(SeekFrom::End(-1))
+            .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+        let mut tail = [0];
+        file.read_exact(&mut tail)
+            .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+        if tail[0] != b'\n' {
+            return Err(CommandError::render_append(
+                anyhow!("append target must end with a newline"),
+                DiagnosticCode::ErrRenderAppendNoFinalNewline,
+            ));
+        }
+    }
+    file.seek(SeekFrom::End(0))
+        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+    if let Err(error) = file.write_all(line.as_bytes()).and_then(|()| file.flush()) {
+        let _ = file.set_len(original_len);
+        return Err(CommandError::render_write(
+            anyhow!(error).context("failed to append JSON record"),
+        ));
+    }
+    Ok(line.len())
 }
 
 fn add_render_check(

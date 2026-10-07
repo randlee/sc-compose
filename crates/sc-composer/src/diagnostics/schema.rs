@@ -99,6 +99,10 @@ pub enum DiagnosticCode {
     ErrRenderStdinDoubleRead,
     /// Output writing or materialization failed.
     ErrRenderWrite,
+    /// JSON Lines append requires one JSON object.
+    ErrRenderAppendNotObject,
+    /// JSON Lines append target has an incomplete final record.
+    ErrRenderAppendNoFinalNewline,
     /// A write was refused because the target was read-only.
     ErrConfigReadonly,
     /// A command or helper was invoked in an incompatible mode.
@@ -236,6 +240,8 @@ impl DiagnosticCode {
             Self::InfoValDefaultUsed => "INFO_VAL_DEFAULT_USED",
             Self::ErrRenderStdinDoubleRead => "ERR_RENDER_STDIN_DOUBLE_READ",
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
+            Self::ErrRenderAppendNotObject => "ERR_RENDER_APPEND_NOT_OBJECT",
+            Self::ErrRenderAppendNoFinalNewline => "ERR_RENDER_APPEND_NO_FINAL_NEWLINE",
             Self::ErrConfigReadonly => "ERR_CONFIG_READONLY",
             Self::ErrConfigMode => "ERR_CONFIG_MODE",
             Self::ErrJsonEscapeModeNonJson => "ERR_JSON_ESCAPE_MODE_NON_JSON",
