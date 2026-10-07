@@ -374,13 +374,18 @@ impl PendingCreate {
         let parent = path
             .parent()
             .and_then(|p| fs::canonicalize(p).ok())
-            .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.clone() })?;
+            .ok_or_else(|| BeadComposeError::OutputPathInvalid {
+                path: path.clone(),
+                rule: "output parent must exist and be accessible".into(),
+            })?;
         if !parent.starts_with(&runtime.normalized.working_directory) {
             return Err(BeadComposeError::OutputOutsideWorkingDirectory { path });
         }
         crate::render::validate_output_destination(&path)?;
         let bytes = serde_json::to_vec(&self.payload).expect("plan JSON serializes");
-        let plan_input = InputSnapshot::write(&path, &bytes)?;
+        let plan_input = InputSnapshot::write(&path, &bytes)
+            .map_err(|error| crate::snapshot::output_error(&path, error))?;
+        plan_input.publish_copy(&path)?;
         self.graph.plan_path = Some(path.clone());
         let mut args = vec![
             "create".into(),
@@ -397,9 +402,7 @@ impl PendingCreate {
             working_directory: runtime.normalized.working_directory.clone(),
         }
         .argv();
-        let attempted = runtime.invoke(args);
-        plan_input.publish(&path)?;
-        let output = attempted?;
+        let output = runtime.invoke(args)?;
         let failure = |cause: String| BeadComposeError::GraphApplyFailed {
             command: command.clone(),
             status: output.exit_status,

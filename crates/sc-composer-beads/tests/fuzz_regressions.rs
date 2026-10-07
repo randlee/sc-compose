@@ -1155,3 +1155,136 @@ fn fuzz_042_missing_rendered_formula_directory_is_typed() {
     );
     assert!(runner.calls().is_empty(), "{:#?}", runner.calls());
 }
+
+// FUZZ-050: an unusable public output must refuse before any graph transaction.
+#[test]
+fn fuzz_050_directory_outputs_refuse_attach_before_bd_create() {
+    for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+        for graph_plan in [true, false] {
+            let mut w = Workspace::new();
+            w.req.operation = operation;
+            let destination = if graph_plan {
+                w.req.rendered_formula.with_extension("toml.graph.json")
+            } else {
+                w.req.rendered_formula.clone()
+            };
+            fs::create_dir(&destination).expect("unusable output directory");
+            let runner = FakeRunner::new([
+                ok(COOKED),
+                parent(),
+                ok(if operation == BeadOperation::Attach {
+                    r#"{"ids":{"build":"proj-1.chain-build"}}"#
+                } else {
+                    "{}"
+                }),
+            ]);
+            let result = execute_bead_request_with_runner(&w.req, &runner);
+            let calls = runner.calls();
+            assert!(
+                !calls
+                    .iter()
+                    .any(|call| call.args.first().is_some_and(|arg| arg == "create")),
+                "{operation:?}: local publication failure must happen before bd create: {calls:#?}"
+            );
+            match result {
+                Ok(receipt) => {
+                    assert_eq!(
+                        receipt.outcome,
+                        BeadOutcome::Refused {
+                            code: "BEADS_OUTPUT_PATH_INVALID".into()
+                        },
+                        "{receipt:#?}"
+                    );
+                    assert!(receipt.graph.is_none());
+                    let diagnostic = &receipt.stages.last().expect("stage").stderr_excerpt;
+                    assert!(
+                        diagnostic.contains(destination.to_string_lossy().as_ref()),
+                        "{diagnostic}"
+                    );
+                }
+                Err(error) => {
+                    assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID", "{error}");
+                    assert!(
+                        matches!(&error,BeadComposeError::OutputPathInvalid{path,..} if path==&destination)
+                    );
+                }
+            }
+            assert!(
+                destination.is_dir(),
+                "must not replace the unusable destination"
+            );
+            assert!(
+                !fs::read_dir(&w.root).expect("directory").any(|entry| entry
+                    .expect("entry")
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(".sc-compose")),
+                "private input leak"
+            );
+        }
+    }
+}
+
+/// Makes further publication impossible after bd has consumed its own inputs.
+struct PublishedBeforeCreateRunner {
+    inner: FakeRunner,
+    formula: PathBuf,
+    plan: PathBuf,
+}
+
+impl ProcessRunner for PublishedBeforeCreateRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args[0] == "cook" {
+            assert_eq!(fs::read(&self.formula)?, fs::read(&spec.args[1])?);
+        }
+        if spec.args[0] == "create" {
+            let input = spec
+                .args
+                .iter()
+                .position(|arg| arg == "--graph")
+                .expect("graph")
+                + 1;
+            assert_eq!(fs::read(&self.plan)?, fs::read(&spec.args[input])?);
+            // Another owner can replace public paths after publication. This
+            // request must need no further local output writes after bd runs.
+            for path in [&self.formula, &self.plan] {
+                fs::remove_file(path)?;
+                fs::create_dir(path)?;
+            }
+        }
+        self.inner.run(spec)
+    }
+}
+
+#[test]
+fn fuzz_050_attach_publishes_all_outputs_before_create_and_never_after() {
+    for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+        let mut w = Workspace::new();
+        w.req.operation = operation;
+        let runner = PublishedBeforeCreateRunner {
+            inner: FakeRunner::new([
+                ok(COOKED),
+                parent(),
+                ok(if operation == BeadOperation::Attach {
+                    r#"{"ids":{"build":"proj-1.chain-build"}}"#
+                } else {
+                    "{}"
+                }),
+            ]),
+            formula: w.req.rendered_formula.clone(),
+            plan: w.req.rendered_formula.with_extension("toml.graph.json"),
+        };
+        let receipt = execute_bead_request_with_runner(&w.req, &runner).expect("request");
+        assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+        assert!(receipt.graph.is_some());
+        assert!(runner.formula.is_dir());
+        assert!(runner.plan.is_dir());
+        assert!(fs::read_dir(&w.root).expect("files").all(|entry| {
+            !entry
+                .expect("entry")
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".sc-compose-input-")
+        }));
+    }
+}
