@@ -1,0 +1,70 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-1 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0001&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 14, &quot;name&quot;: &quot;id_rule_ref&quot;, &quot;passed&quot;: 6}, {&quot;cases&quot;: 7, &quot;name&quot;: &quot;id_rule_parent&quot;, &quot;passed&quot;: 2}, {&quot;cases&quot;: 8, &quot;name&quot;: &quot;id_rule_step&quot;, &quot;passed&quot;: 8}, {&quot;cases&quot;: 18, &quot;name&quot;: &quot;scope&quot;, &quot;passed&quot;: 18}, {&quot;cases&quot;: 29, &quot;name&quot;: &quot;request_shape&quot;, &quot;passed&quot;: 29}, {&quot;cases&quot;: 10, &quot;name&quot;: &quot;relation_request&quot;, &quot;passed&quot;: 10}, {&quot;cases&quot;: 14, &quot;name&quot;: &quot;relations&quot;, &quot;passed&quot;: 14}, {&quot;cases&quot;: 18, &quot;name&quot;: &quot;relation_types&quot;, &quot;passed&quot;: 18}, {&quot;cases&quot;: 7, &quot;name&quot;: &quot;pour_mode&quot;, &quot;passed&quot;: 7}, {&quot;cases&quot;: 39, &quot;name&quot;: &quot;conflict (real bd)&quot;, &quot;passed&quot;: 39}, {&quot;cases&quot;: 15, &quot;name&quot;: &quot;ids_bd&quot;, &quot;passed&quot;: 15}, {&quot;cases&quot;: 42, &quot;name&quot;: &quot;paths&quot;, &quot;passed&quot;: 41}, {&quot;cases&quot;: 64, &quot;name&quot;: &quot;append&quot;, &quot;passed&quot;: 63}], &quot;cases_run&quot;: 285, &quot;correlation_id&quot;: &quot;boundary-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 15, &quot;finding_ids&quot;: [&quot;FUZZ-012&quot;, &quot;FUZZ-021&quot;, &quot;FUZZ-022&quot;, &quot;FUZZ-023&quot;, &quot;FUZZ-024&quot;, &quot;FUZZ-025&quot;, &quot;FUZZ-026&quot;, &quot;FUZZ-027&quot;], &quot;passed&quot;: 270, &quot;seed&quot;: 7023, &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;ADR-0023 negative contract (id, scope, relation, conflict rows), path confinement and symlinks, render --append failures, exit 3 vs exit 2&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="285 recorded checks (~250 sc-compose invocations) on bd v1.3.1 workspaces bnda..bndd. Every refusal left bd byte-identical (list + dep list snapshots). No timeouts, panics or hangs. 18 first-pass harness-expectation errors were rescored. Not testable on APFS: non-UTF-8 file names.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">ADR-0023 negative contract (id, scope, relation, conflict rows), path confinement and symlinks, render --append failures, exit 3 vs exit 2</th>
+        <td>285</td>
+        <td>270/285</td>
+        <td>
+          <span class="status status-error">FAIL: 1 confirmed bug(s)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">boundary-probe/id_rule_ref</th><td><code>id_rule_ref</code></td><td>6/14 passed</td></tr>
+        <tr><th scope="row">boundary-probe/id_rule_parent</th><td><code>id_rule_parent</code></td><td>2/7 passed</td></tr>
+        <tr><th scope="row">boundary-probe/id_rule_step</th><td><code>id_rule_step</code></td><td>8/8 passed</td></tr>
+        <tr><th scope="row">boundary-probe/scope</th><td><code>scope</code></td><td>18/18 passed</td></tr>
+        <tr><th scope="row">boundary-probe/request_shape</th><td><code>request_shape</code></td><td>29/29 passed</td></tr>
+        <tr><th scope="row">boundary-probe/relation_request</th><td><code>relation_request</code></td><td>10/10 passed</td></tr>
+        <tr><th scope="row">boundary-probe/relations</th><td><code>relations</code></td><td>14/14 passed</td></tr>
+        <tr><th scope="row">boundary-probe/relation_types</th><td><code>relation_types</code></td><td>18/18 passed</td></tr>
+        <tr><th scope="row">boundary-probe/pour_mode</th><td><code>pour_mode</code></td><td>7/7 passed</td></tr>
+        <tr><th scope="row">boundary-probe/conflict (real bd)</th><td><code>conflict (real bd)</code></td><td>39/39 passed</td></tr>
+        <tr><th scope="row">boundary-probe/ids_bd</th><td><code>ids_bd</code></td><td>15/15 passed</td></tr>
+        <tr><th scope="row">boundary-probe/paths</th><td><code>paths</code></td><td>41/42 passed</td></tr>
+        <tr><th scope="row">boundary-probe/append</th><td><code>append</code></td><td>63/64 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-012</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>wf/m.formula.toml.j2: formula = &quot;m&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A&quot;</code></dd>
+        <dt>Input</dt><dd><code>{&quot;operation&quot;:&quot;render&quot;,&quot;working_directory&quot;:&quot;&lt;ws&gt;&quot;,&quot;template&quot;:&quot;wf/m.formula.toml.j2&quot;,&quot;rendered_formula&quot;:&quot;&lt;ws&gt;/build/out.formula.toml&quot;,&quot;compose_variables&quot;:{},&quot;bead_variables&quot;:{}}  (process cwd != working_directory)</code></dd>
+        <dt>Expected</dt><dd>A relative template resolves against working_directory, so the render succeeds from any cwd (ADR-0021 line 207 &#x27;All paths resolve relative to working_directory&#x27;; help bead request table).</dd>
+        <dt>Observed</dt><dd>Exit 3 BEADS_TEMPLATE_PATH_INVALID &#x27;invalid template path: wf/m.formula.toml.j2&#x27;. Succeeds only when cwd == working_directory. origin/develop behaves the same (pre-existing). Reproduced 3/3 by the coordinator.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 paths paragraph; help bead request table; ADR-0023 Authorization and confinement</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed; the contract already states the rule.</dd>
+        <dt>Root cause</dt><dd>validate_request canonicalizes request.template (and normalize_output the rendered_formula) as given, so relative paths resolve against the process cwd.</dd>
+        <dt>Recommended fix</dt><dd>Join relative template/rendered_formula onto the canonical working_directory before canonicalizing and confining.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
