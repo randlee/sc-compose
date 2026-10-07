@@ -1547,3 +1547,122 @@ fn fuzz_012_relative_rendered_formula_is_rooted_at_working_directory() {
         assert!(receipt.rendered_formula.is_file());
     }
 }
+
+struct CookFailureSourceRunner {
+    inner: FakeRunner,
+    fail_cook: usize,
+    cooks: Mutex<usize>,
+}
+
+impl ProcessRunner for CookFailureSourceRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args[0] == "cook" {
+            let mut cooks = self.cooks.lock().expect("cooks");
+            *cooks += 1;
+            assert!(spec.args[1].contains(".sc-compose-input-"), "{spec:#?}");
+            assert!(PathBuf::from(&spec.args[1]).is_file(), "live private input");
+            if *cooks == self.fail_cook {
+                self.inner.calls.lock().expect("calls").push(spec.clone());
+                return Ok(ProcessOutput {
+                    stderr: format!("cannot cook source {}: invalid formula", spec.args[1]),
+                    ..out(Some(7), "")
+                });
+            }
+        }
+        self.inner.run(spec)
+    }
+}
+
+#[test]
+fn fuzz_055_real_registry_pour_cook_failure_receipt_names_public_source() {
+    for operation in [BeadOperation::PreviewPour, BeadOperation::Pour] {
+        let mut w = Workspace::new();
+        w.req.operation = operation;
+        w.req.parent = None;
+        w.req.ref_ = None;
+        let formulas = w.root.join(".beads/formulas");
+        fs::create_dir_all(&formulas).expect("registry formulas");
+        w.req.rendered_formula = formulas.join("sample.formula.toml");
+        let runner = CookFailureSourceRunner {
+            inner: FakeRunner::new([]),
+            fail_cook: 1,
+            cooks: Mutex::new(0),
+        };
+        assert_fuzz_055_cook_failure(&w, &runner, BeadStage::Validate, 1);
+    }
+}
+
+#[test]
+fn fuzz_055_real_graph_routes_cook_failure_receipt_names_public_source() {
+    for operation in [
+        BeadOperation::PreviewPour,
+        BeadOperation::Pour,
+        BeadOperation::PreviewAttach,
+        BeadOperation::Attach,
+    ] {
+        let mut w = Workspace::new();
+        w.req.operation = operation;
+        let by_path = matches!(operation, BeadOperation::PreviewPour | BeadOperation::Pour);
+        if by_path {
+            w.req.parent = None;
+            w.req.ref_ = None;
+        }
+        let registry = w.root.join(".beads");
+        fs::create_dir(&registry).expect("registry");
+        let runner = CookFailureSourceRunner {
+            inner: FakeRunner::new(if by_path {
+                vec![ok(COOKED), ok(&json!({"path":registry}).to_string())]
+            } else {
+                vec![]
+            }),
+            fail_cook: if by_path { 2 } else { 1 },
+            cooks: Mutex::new(0),
+        };
+        let stage = match operation {
+            BeadOperation::PreviewPour => BeadStage::PreviewPour,
+            BeadOperation::Pour => BeadStage::Pour,
+            _ => BeadStage::Validate,
+        };
+        assert_fuzz_055_cook_failure(&w, &runner, stage, if by_path { 2 } else { 1 });
+    }
+}
+
+fn assert_fuzz_055_cook_failure(
+    w: &Workspace,
+    runner: &CookFailureSourceRunner,
+    stage: BeadStage,
+    cook_count: usize,
+) {
+    let receipt = execute_bead_request_with_runner(&w.req, runner).expect("actual execute receipt");
+    failed(&receipt, "BEADS_COOK_FAILED", stage);
+    assert_eq!(receipt.rendered_formula, w.req.rendered_formula);
+    let evidence = serde_json::to_string(&receipt).expect("receipt JSON");
+    let source = w.req.rendered_formula.to_string_lossy();
+    assert!(evidence.contains(source.as_ref()), "{evidence}");
+    assert!(!evidence.contains(".sc-compose-input-"), "{evidence}");
+    let diagnostic = &receipt
+        .stages
+        .last()
+        .expect("failed cook stage")
+        .stderr_excerpt;
+    assert!(diagnostic.contains(source.as_ref()), "{diagnostic}");
+    assert!(diagnostic.contains("cannot cook source"), "{diagnostic}");
+    assert!(!diagnostic.contains(".sc-compose-input-"), "{diagnostic}");
+    let calls = runner.inner.calls();
+    assert_eq!(
+        calls.iter().filter(|call| call.args[0] == "cook").count(),
+        cook_count
+    );
+    for call in calls.iter().filter(|call| call.args[0] == "cook") {
+        assert!(call.args[1].contains(".sc-compose-input-"));
+        assert!(
+            !PathBuf::from(&call.args[1]).exists(),
+            "private input cleaned up"
+        );
+    }
+    assert!(
+        !calls
+            .iter()
+            .any(|call| matches!(call.args[0].as_str(), "create" | "mol"))
+    );
+}
