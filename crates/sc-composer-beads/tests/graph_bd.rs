@@ -19,6 +19,7 @@ static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const FORMULA: &str = "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build {{literal}}\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\nneeds = [\"build\"]\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\nneeds = [\"verify\"]\n";
 struct Workspace {
     root: PathBuf,
+    beads_dir: PathBuf,
     bd: PathBuf,
 }
 impl Drop for Workspace {
@@ -34,8 +35,10 @@ impl Workspace {
             SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(root.join("build")).expect("workspace");
+        let beads_dir = root.join(".beads");
         let ws = Self {
             root: fs::canonicalize(root).expect("canonical root"),
+            beads_dir,
             bd: binary.to_path_buf(),
         };
         ws.command(&[
@@ -55,7 +58,7 @@ impl Workspace {
             .args(args)
             .current_dir(&self.root)
             .env("BEADS_NO_DAEMON", "1")
-            .env("BEADS_DIR", self.root.join(".beads"))
+            .env("BEADS_DIR", &self.beads_dir)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
