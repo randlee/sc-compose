@@ -81,6 +81,15 @@ pub fn execute_bead_request_with_runner(
         .bd_executable
         .clone()
         .unwrap_or_else(|| PathBuf::from("bd"));
+    if crate::graph::is_attach(request.operation) {
+        return Ok(crate::graph::execute(
+            request,
+            runner,
+            &normalized,
+            bd,
+            stages,
+        ));
+    }
     let cook = CommandSpec {
         executable: bd.clone(),
         args: cook_args(&normalized.rendered_formula, request),
@@ -131,10 +140,28 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     {
         return Err(BeadComposeError::FormulaNameRequired);
     }
-    if request.operation == BeadOperation::Pour
-        && request.pour_authorization != Some(PourAuthorization::CreatePersistentBeads)
+    if matches!(
+        request.operation,
+        BeadOperation::Pour | BeadOperation::Attach
+    ) && request.pour_authorization != Some(PourAuthorization::CreatePersistentBeads)
     {
         return Err(BeadComposeError::PourAuthorizationRequired);
+    }
+    let attach = crate::graph::is_attach(request.operation);
+    let bad_shape = if attach {
+        request.parent.is_none() || request.ref_.is_none() || !request.bead_variables.is_empty()
+    } else {
+        request.parent.is_some()
+            || request.ref_.is_some()
+            || (matches!(
+                request.operation,
+                BeadOperation::Render | BeadOperation::Validate
+            ) && !request.relations.is_empty())
+    };
+    if bad_shape {
+        return Err(BeadComposeError::RequestDeserializationFailed {
+            message: "attach requires parent/ref and no bead_variables; other operations forbid parent/ref; render/validate forbid relations".into(),
+        });
     }
     for key in request.bead_variables.keys() {
         if !valid_bead_key(key) {
@@ -179,7 +206,10 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     }
     if matches!(
         request.operation,
-        BeadOperation::Render | BeadOperation::Validate
+        BeadOperation::Render
+            | BeadOperation::Validate
+            | BeadOperation::PreviewAttach
+            | BeadOperation::Attach
     ) && !rendered_formula.starts_with(&working_directory)
     {
         return Err(BeadComposeError::OutputOutsideWorkingDirectory {
@@ -345,7 +375,7 @@ fn render_receipt(started: Instant, outcome: BeadStageOutcome) -> BeadStageRecei
     }
 }
 
-fn process_receipt(
+pub(crate) fn process_receipt(
     stage: BeadStage,
     spec: &CommandSpec,
     output: &ProcessOutput,

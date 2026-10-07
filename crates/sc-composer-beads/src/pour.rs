@@ -56,6 +56,21 @@ pub(crate) fn execute_pour(
             &BeadComposeError::ActiveRegistryResolutionFailed { exit_status: None },
         ));
     };
+    if normalized.rendered_formula.parent() != Some(active_beads_dir.join("formulas").as_path()) {
+        if let Some(refusal) = refuse_outside_workspace(request, &normalized, &stages) {
+            return Ok(refusal);
+        }
+        return Ok(crate::graph::execute(
+            request,
+            runner,
+            &normalized,
+            bd,
+            stages,
+        ));
+    }
+    if !request.relations.is_empty() {
+        return Ok(refuse_registry_relations(request, normalized, stages));
+    }
     if let Err(error) = validate_active_registry_path(
         formula_name,
         &normalized.rendered_formula,
@@ -93,12 +108,14 @@ pub(crate) fn execute_pour(
             failed,
         ));
     }
-    Ok(receipt(
+    let mut result = receipt(
         request,
         normalized.rendered_formula,
         stages,
         BeadOutcome::Succeeded,
-    ))
+    );
+    result.pour_mode = Some(crate::BeadPourMode::Registry);
+    Ok(result)
 }
 
 fn pour_args(formula_name: &str, request: &BeadComposeRequest, preview: bool) -> Vec<String> {
@@ -142,6 +159,60 @@ fn validate_active_registry_path(
         });
     }
     Ok(())
+}
+
+fn refuse_registry_relations(
+    request: &BeadComposeRequest,
+    normalized: NormalizedRequest,
+    mut stages: Vec<BeadStageReceipt>,
+) -> BeadComposeReceipt {
+    let code = BeadComposeError::GraphRelationInvalid {
+        index: 0,
+        reason: crate::GraphRelationInvalidReason::RegistryPour,
+    }
+    .code()
+    .to_owned();
+    stages.push(crate::BeadStageReceipt {
+        stage: if request.operation == BeadOperation::PreviewPour {
+            BeadStage::PreviewPour
+        } else {
+            BeadStage::Pour
+        },
+        argv: Vec::new(),
+        exit_status: None,
+        elapsed_ms: 0,
+        stdout_excerpt: String::new(),
+        stderr_excerpt: "relations are unavailable for registry pour".into(),
+        outcome: crate::BeadStageOutcome::Failed { code: code.clone() },
+    });
+    let mut result = receipt(
+        request,
+        normalized.rendered_formula,
+        stages,
+        BeadOutcome::Refused { code },
+    );
+    result.pour_mode = Some(crate::BeadPourMode::Registry);
+    result
+}
+
+fn refuse_outside_workspace(
+    request: &BeadComposeRequest,
+    normalized: &NormalizedRequest,
+    stages: &[BeadStageReceipt],
+) -> Option<BeadComposeReceipt> {
+    (!normalized
+        .rendered_formula
+        .starts_with(&normalized.working_directory))
+    .then(|| {
+        failed_last_stage_receipt(
+            request,
+            normalized.rendered_formula.clone(),
+            stages.to_vec(),
+            &BeadComposeError::OutputOutsideWorkingDirectory {
+                path: normalized.rendered_formula.clone(),
+            },
+        )
+    })
 }
 
 #[cfg(test)]
@@ -241,22 +312,27 @@ mod tests {
     }
 
     #[test]
-    fn preview_rejects_an_output_outside_the_active_registry_before_pour() {
+    fn preview_uses_graph_mode_outside_the_active_registry() {
         let root = workspace();
         let active_beads_dir = root.join(".beads");
-        fs::create_dir_all(active_beads_dir.join("formulas")).expect("create active registry");
-        let runner = FakeRunner::with_outputs([success("{}"), where_output(&active_beads_dir)]);
-
-        let receipt =
-            execute_bead_request_with_runner(&request(&root, BeadOperation::PreviewPour), &runner)
-                .expect("receipt");
-        assert_eq!(
-            receipt.outcome,
-            BeadOutcome::Failed {
-                code: String::from("BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY")
-            }
-        );
-        assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
+        fs::create_dir_all(&active_beads_dir).expect("create active beads dir");
+        let runner = FakeRunner::with_outputs([
+            success("{}"),
+            where_output(&active_beads_dir),
+            success(
+                r#"{"formula":"example","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#,
+            ),
+            success("{}"),
+        ]);
+        let mut request = request(&root, BeadOperation::PreviewPour);
+        request.bead_variables.clear();
+        let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+        assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+        assert_eq!(receipt.pour_mode, Some(crate::BeadPourMode::Graph));
+        let calls = runner.calls.lock().expect("calls lock");
+        assert_eq!(&calls[3].args[..2], ["create", "--graph"]);
+        assert!(calls[3].args.contains(&"--dry-run".to_owned()));
+        drop(calls);
         fs::remove_dir_all(root).expect("cleanup");
     }
 }

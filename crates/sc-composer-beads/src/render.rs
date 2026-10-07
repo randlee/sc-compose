@@ -62,7 +62,7 @@ pub(crate) fn validate_output_destination(path: &Path) -> Result<(), BeadCompose
     }
 }
 
-fn atomic_write(path: &Path, contents: &[u8]) -> Result<(), BeadComposeError> {
+pub(crate) fn atomic_write(path: &Path, contents: &[u8]) -> Result<(), BeadComposeError> {
     validate_output_destination(path)?;
     let temporary = temporary_output_path(path)?;
     let result = (|| {
