@@ -8,8 +8,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyFloat, PyList, PyTuple};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
-    BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome, BeadStageReceipt,
-    PourAuthorization, execute_bead_request,
+    BeadComposeRequest, BeadOperation, BeadOutcome, BeadRelation, BeadStage, BeadStageOutcome,
+    BeadStageReceipt, PourAuthorization, execute_bead_request,
 };
 use serde_json::Value;
 
@@ -328,7 +328,7 @@ struct PyBeadStageReceipt {
 }
 
 #[pyclass(name = "BeadComposeReceipt", skip_from_py_object)]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct PyBeadComposeReceipt {
     #[pyo3(get)]
     schema: String,
@@ -340,6 +340,10 @@ struct PyBeadComposeReceipt {
     stages: Vec<PyBeadStageReceipt>,
     #[pyo3(get)]
     outcome: PyBeadOutcome,
+    #[pyo3(get)]
+    pour_mode: Option<String>,
+    #[pyo3(get)]
+    graph: Option<Py<PyAny>>,
 }
 
 fn stage_outcome(inner: &BeadStageOutcome) -> PyBeadStageOutcome {
@@ -396,6 +400,19 @@ impl From<BeadComposeReceipt> for PyBeadComposeReceipt {
             rendered_formula: inner.rendered_formula.display().to_string(),
             stages: inner.stages.iter().map(stage_receipt).collect(),
             outcome: outcome(&inner.outcome),
+            pour_mode: inner
+                .pour_mode
+                .map(|mode| format!("{mode:?}").to_lowercase()),
+            graph: Python::attach(|py| {
+                inner
+                    .graph
+                    .as_ref()
+                    .map(|graph| {
+                        json_to_py(py, &serde_json::to_value(graph).expect("graph serializes"))
+                    })
+                    .transpose()
+                    .expect("graph converts")
+            }),
         }
     }
 }
@@ -409,7 +426,7 @@ struct PyBeadComposeRequest {
 #[pymethods]
 impl PyBeadComposeRequest {
     #[new]
-    #[pyo3(signature = (working_directory, template, rendered_formula, compose_variables, *, operation="render", formula_name=None, bead_variables=None, bd_executable=None, pour_authorization=None, schema=BEADS_SCHEMA_V1))]
+    #[pyo3(signature = (working_directory, template, rendered_formula, compose_variables, *, operation="render", formula_name=None, bead_variables=None, bd_executable=None, pour_authorization=None, parent=None, r#ref=None, relations=None, schema=BEADS_SCHEMA_V1))]
     #[allow(
         clippy::too_many_arguments,
         reason = "The Python constructor mirrors the complete versioned Rust request contract."
@@ -425,6 +442,9 @@ impl PyBeadComposeRequest {
         bead_variables: Option<&Bound<'_, PyAny>>,
         bd_executable: Option<&Bound<'_, PyAny>>,
         pour_authorization: Option<&str>,
+        parent: Option<String>,
+        r#ref: Option<String>,
+        relations: Option<&Bound<'_, PyAny>>,
         schema: &str,
     ) -> PyResult<Self> {
         let compose_variables = py_to_json(py, compose_variables)?;
@@ -456,9 +476,23 @@ impl PyBeadComposeRequest {
                     .map(|value| coerce_path(py, value, "bd_executable"))
                     .transpose()?,
                 pour_authorization,
-                parent: None,
-                ref_: None,
-                relations: Vec::new(),
+                parent: parent
+                    .map(sc_composer_beads::BeadId::new)
+                    .transpose()
+                    .map_err(|error| request_error(py, error.to_string()))?,
+                ref_: r#ref
+                    .map(sc_composer_beads::GraphRef::new)
+                    .transpose()
+                    .map_err(|error| request_error(py, error.to_string()))?,
+                relations: relations
+                    .map(|value| {
+                        py_to_json(py, value).and_then(|value| {
+                            serde_json::from_value::<Vec<BeadRelation>>(value)
+                                .map_err(|error| request_error(py, error.to_string()))
+                        })
+                    })
+                    .transpose()?
+                    .unwrap_or_default(),
             },
         })
     }
