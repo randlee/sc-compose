@@ -119,6 +119,22 @@ fn refused(r: &BeadComposeReceipt, code: &str, stage: BeadStage) {
     );
     assert_eq!(r.stages.last().expect("stage").stage, stage);
 }
+fn refused_with_reason(r: &BeadComposeReceipt, code: &str, stage: BeadStage, reason: &str) {
+    refused(r, code, stage);
+    let evidence = &r.stages.last().expect("stage").stderr_excerpt;
+    assert!(
+        evidence.contains(&format!(": {reason};")),
+        "expected rejection reason `{reason}` in stage evidence: {evidence}"
+    );
+}
+fn refused_with_stage_text(r: &BeadComposeReceipt, code: &str, stage: BeadStage, text: &str) {
+    refused(r, code, stage);
+    assert_eq!(
+        r.stages.last().expect("stage").stderr_excerpt,
+        text,
+        "stage evidence"
+    );
+}
 fn failed(r: &BeadComposeReceipt, code: &str, stage: BeadStage) {
     assert_eq!(
         r.outcome,
@@ -284,23 +300,32 @@ fn parent_absence_is_distinct_from_read_failure() {
 }
 #[test]
 fn ownership_conflicts_refuse_without_a_plan_write() {
-    let w = Workspace::new();
-    let runner = FakeRunner::new([
-        ok(COOKED),
-        ok(r#"[{"id":"proj-1"},{"id":"proj-1.chain-build","metadata":{}}]"#),
-    ]);
-    refused(
-        &w.run(&runner),
-        "BEADS_GRAPH_CONFLICT",
-        BeadStage::PreviewAttach,
-    );
-    assert_read_only(&runner);
-    assert!(
-        !w.req
-            .rendered_formula
-            .with_extension("toml.graph.json")
-            .exists()
-    );
+    for (rows, reason) in [
+        (
+            r#"[{"id":"proj-1"},{"id":"proj-1.chain-build","metadata":{}}]"#,
+            "not_owned",
+        ),
+        (
+            r#"[{"id":"proj-1"},{"id":"proj-1.chain-build","metadata":{"sc_compose_graph":{}}}]"#,
+            "provenance_differs",
+        ),
+    ] {
+        let w = Workspace::new();
+        let runner = FakeRunner::new([ok(COOKED), ok(rows)]);
+        refused_with_reason(
+            &w.run(&runner),
+            "BEADS_GRAPH_CONFLICT",
+            BeadStage::PreviewAttach,
+            reason,
+        );
+        assert_read_only(&runner);
+        assert!(
+            !w.req
+                .rendered_formula
+                .with_extension("toml.graph.json")
+                .exists()
+        );
+    }
 }
 fn existing(w: &Workspace) -> String {
     let preview = FakeRunner::new([ok(COOKED), parent(), ok("{}")]);
@@ -416,35 +441,63 @@ fn read_and_apply_launch_errors_preserve_invoke_classification() {
 }
 #[test]
 fn invalid_relations_refuse_before_reading_beads() {
-    for relation in [
-        json!({"from":"step:absent","to":"step:build","type":"blocks"}),
-        json!({"from":"step:build","to":"step:build","type":"blocks"}),
-        json!({"from":"bead:proj-2","to":"bead:proj-3","type":"related"}),
-        json!({"from":"step:build","to":"bead:proj-1","type":"related"}),
+    for (relation, reason) in [
+        (
+            json!({"from":"step:absent","to":"step:build","type":"blocks"}),
+            "unknown_step",
+        ),
+        (
+            json!({"from":"step:build","to":"step:build","type":"blocks"}),
+            "self_edge",
+        ),
+        (
+            json!({"from":"bead:proj-2","to":"bead:proj-3","type":"related"}),
+            "no_step",
+        ),
+        (
+            json!({"from":"step:build","to":"bead:proj-1","type":"related"}),
+            "parent_pair",
+        ),
     ] {
         let mut w = Workspace::new();
         w.req.relations = serde_json::from_value(json!([relation])).expect("relation");
         let runner = FakeRunner::new([ok(COOKED)]);
-        refused(
+        refused_with_reason(
             &w.run(&runner),
             "BEADS_GRAPH_RELATION_INVALID",
             BeadStage::Validate,
+            reason,
         );
         assert_eq!(runner.calls().len(), 1);
     }
+    let mut w = Workspace::new();
+    w.req.relations = serde_json::from_value(json!([
+        {"from":"step:build","to":"bead:proj-2","type":"related"},
+        {"from":"step:build","to":"bead:proj-2","type":"related"}
+    ]))
+    .expect("duplicate relations");
+    let runner = FakeRunner::new([ok(COOKED)]);
+    refused_with_reason(
+        &w.run(&runner),
+        "BEADS_GRAPH_RELATION_INVALID",
+        BeadStage::Validate,
+        "duplicate",
+    );
+    assert_eq!(runner.calls().len(), 1);
     let mut w = Workspace::new();
     w.req.relations =
         serde_json::from_value(json!([{"from":"step:build","to":"bead:proj-2","type":"related"}]))
             .expect("relation");
     let runner = FakeRunner::new([ok(COOKED), parent()]);
-    refused(
+    refused_with_reason(
         &w.run(&runner),
         "BEADS_GRAPH_RELATION_INVALID",
         BeadStage::PreviewAttach,
+        "bead_not_found",
     );
 }
 #[test]
-fn each_captured_grammar_row_is_checked_at_validate() {
+fn each_captured_grammar_row_is_checked_at_validate_with_its_reason() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/beads/graph");
     let index: Value =
         serde_json::from_slice(&fs::read(root.join("captures.json")).expect("index"))
@@ -487,15 +540,27 @@ fn each_captured_grammar_row_is_checked_at_validate() {
         } else if accepted {
             assert_eq!(r.outcome, BeadOutcome::Succeeded, "{name}: {r:#?}");
         } else {
-            refused(
-                &r,
-                if matches!(name, "loop" | "expand") {
-                    "BEADS_GRAPH_ID_INVALID"
-                } else {
-                    "BEADS_GRAPH_FORMULA_UNSUPPORTED"
-                },
-                BeadStage::Validate,
-            );
+            if matches!(name, "loop" | "expand") {
+                refused(&r, "BEADS_GRAPH_ID_INVALID", BeadStage::Validate);
+            } else {
+                let reason = match name {
+                    "vars_declared" => "vars_declared",
+                    "template" | "compose" | "advice" | "pointcuts" | "other_type" => "composition",
+                    "unknown_top" | "unknown_step" => "unknown_key",
+                    "children" | "expand_vars" | "condition" | "gate" | "on_complete"
+                    | "waits_for" => "step_construct",
+                    "reserved_metadata" => "reserved_metadata",
+                    "label_comma" => "label_comma",
+                    "no_steps" => "step_graph",
+                    _ => unreachable!("unexpected successful capture: {name}"),
+                };
+                refused_with_reason(
+                    &r,
+                    "BEADS_GRAPH_FORMULA_UNSUPPORTED",
+                    BeadStage::Validate,
+                    reason,
+                );
+            }
             assert_read_only(&runner);
         }
     }
@@ -512,10 +577,11 @@ fn graph_pour_forbids_runtime_variables_and_registry_pour_forbids_relations() {
         .insert("runtime".into(), "value".into());
     let where_output = json!({"path":w.root.join(".beads")}).to_string();
     let runner = FakeRunner::new([ok("{}"), ok(&where_output), ok(COOKED)]);
-    refused(
+    refused_with_reason(
         &w.run(&runner),
         "BEADS_GRAPH_FORMULA_UNSUPPORTED",
         BeadStage::PreviewPour,
+        "bead_variables_set",
     );
     assert_read_only(&runner);
     w.req.bead_variables.clear();
@@ -524,10 +590,11 @@ fn graph_pour_forbids_runtime_variables_and_registry_pour_forbids_relations() {
         serde_json::from_value(json!([{"from":"step:build","to":"bead:proj-2","type":"related"}]))
             .expect("relation");
     let runner = FakeRunner::new([ok("{}"), ok(&where_output)]);
-    refused(
+    refused_with_stage_text(
         &w.run(&runner),
         "BEADS_GRAPH_RELATION_INVALID",
         BeadStage::PreviewPour,
+        "relations are unavailable for registry pour",
     );
     assert_read_only(&runner);
 }
