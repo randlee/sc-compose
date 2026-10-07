@@ -91,7 +91,22 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
         GraphRef::new(reference)?;
     }
     validate_endpoint_prefixes(&preflight.relations)?;
-    serde_json::from_str(input).map_err(|error| request_error(&error))
+    match serde_json::from_str(input) {
+        Ok(request) => Ok(request),
+        Err(error) => {
+            let mut value: Value =
+                serde_json::from_str(input).map_err(|_reparse| request_error(&error))?;
+            if value.get("operation").and_then(Value::as_str) == Some("render") {
+                value
+                    .as_object_mut()
+                    .expect("JSON object")
+                    .remove("formula_name");
+                // Report the original typed parse error, not the retry's.
+                return serde_json::from_value(value).map_err(|_retry| request_error(&error));
+            }
+            Err(request_error(&error))
+        }
+    }
 }
 
 fn validate_endpoint_prefixes(relations: &Value) -> Result<(), BeadComposeError> {
