@@ -31,7 +31,7 @@ pub(crate) fn execute(
     normalized: &NormalizedRequest,
     bd: PathBuf,
     stages: Vec<BeadStageReceipt>,
-) -> BeadComposeReceipt {
+) -> Result<BeadComposeReceipt, BeadComposeError> {
     let attach = is_attach(request.operation);
     let stage = match request.operation {
         BeadOperation::PreviewAttach => BeadStage::PreviewAttach,
@@ -50,6 +50,9 @@ pub(crate) fn execute(
     let (graph, outcome) = match result {
         Ok(graph) => (Some(graph), BeadOutcome::Succeeded),
         Err(error) => {
+            if is_phase_r_process_error(&error) {
+                return Err(error);
+            }
             runtime.record_error(&error);
             let code = error.code().to_owned();
             let failed = matches!(
@@ -57,9 +60,6 @@ pub(crate) fn execute(
                 BeadComposeError::GraphReadFailed { .. }
                     | BeadComposeError::GraphApplyFailed { .. }
                     | BeadComposeError::CookFailed { .. }
-                    | BeadComposeError::BdUnavailable { .. }
-                    | BeadComposeError::ProcessArgumentInvalid { .. }
-                    | BeadComposeError::ProcessOutputLimitExceeded { .. }
                     | BeadComposeError::RenderFailed { .. }
             );
             (
@@ -80,7 +80,16 @@ pub(crate) fn execute(
     );
     result.graph = graph;
     result.pour_mode = (!attach).then_some(BeadPourMode::Graph);
-    result
+    Ok(result)
+}
+
+fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
+    matches!(
+        error,
+        BeadComposeError::BdUnavailable { .. }
+            | BeadComposeError::ProcessArgumentInvalid { .. }
+            | BeadComposeError::ProcessOutputLimitExceeded { .. }
+    )
 }
 
 fn run(
@@ -246,7 +255,7 @@ impl GraphReader for Runtime<'_> {
         let mut args = vec!["show".into()];
         args.extend(ids.iter().map(ToString::to_string));
         args.push("--json".into());
-        let output = self.invoke(args).map_err(|_error| self.read_error(None))?;
+        let output = self.invoke(args)?;
         if all_missing(&output) {
             return Ok(BTreeMap::new());
         }
@@ -273,14 +282,12 @@ impl GraphReader for Runtime<'_> {
         &mut self,
         id: &BeadId,
     ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError> {
-        let output = self
-            .invoke(vec![
-                "dep".into(),
-                "list".into(),
-                id.to_string(),
-                "--json".into(),
-            ])
-            .map_err(|_error| self.read_error(None))?;
+        let output = self.invoke(vec![
+            "dep".into(),
+            "list".into(),
+            id.to_string(),
+            "--json".into(),
+        ])?;
         if output.exit_status != Some(0) {
             return Err(self.read_error(output.exit_status));
         }
@@ -352,12 +359,7 @@ impl PendingCreate {
             working_directory: runtime.normalized.working_directory.clone(),
         }
         .argv();
-        let output = runtime
-            .invoke(args)
-            .map_err(|_error| BeadComposeError::GraphApplyFailed {
-                command: command.clone(),
-                status: None,
-            })?;
+        let output = runtime.invoke(args)?;
         let failure = || BeadComposeError::GraphApplyFailed {
             command: command.clone(),
             status: output.exit_status,

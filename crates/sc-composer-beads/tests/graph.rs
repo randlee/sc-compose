@@ -79,6 +79,13 @@ impl FakeRunner {
     fn calls(&self) -> Vec<CommandSpec> {
         self.calls.lock().expect("calls").clone()
     }
+
+    fn with_results(outputs: impl IntoIterator<Item = io::Result<ProcessOutput>>) -> Self {
+        Self {
+            outputs: Mutex::new(outputs.into_iter().collect()),
+            calls: Mutex::new(Vec::new()),
+        }
+    }
 }
 impl ProcessRunner for FakeRunner {
     fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
@@ -351,6 +358,61 @@ fn apply_failure_is_failed_at_the_apply_stage() {
             .count(),
         1
     );
+}
+
+#[test]
+fn unavailable_bd_on_attach_returns_the_phase_r_error() {
+    let w = Workspace::new();
+    let runner =
+        FakeRunner::with_results([Err(io::Error::new(io::ErrorKind::NotFound, "bd not found"))]);
+
+    let error = execute_bead_request_with_runner(&w.req, &runner)
+        .expect_err("unavailable bd must be a typed error");
+
+    assert!(matches!(
+        error,
+        BeadComposeError::BdUnavailable { ref executable } if executable == &PathBuf::from("fake-bd")
+    ));
+    assert_eq!(runner.calls().len(), 1);
+}
+
+#[test]
+fn read_and_apply_launch_errors_preserve_invoke_classification() {
+    let w = Workspace::new();
+    let read_runner = FakeRunner::with_results([
+        Ok(ok(COOKED)),
+        Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "argument cannot be represented",
+        )),
+    ]);
+    let read_error = execute_bead_request_with_runner(&w.req, &read_runner)
+        .expect_err("read launch error must be a typed error");
+    assert!(matches!(
+        read_error,
+        BeadComposeError::ProcessArgumentInvalid { ref executable, ref message }
+            if executable == &PathBuf::from("fake-bd")
+                && message == "argument cannot be represented"
+    ));
+
+    let mut w = Workspace::new();
+    w.req.operation = BeadOperation::Attach;
+    let apply_runner = FakeRunner::with_results([
+        Ok(ok(COOKED)),
+        Ok(parent()),
+        Err(io::Error::other(
+            "sc-composer-beads process output limit exceeded",
+        )),
+    ]);
+    let apply_error = execute_bead_request_with_runner(&w.req, &apply_runner)
+        .expect_err("apply launch error must be a typed error");
+    assert!(matches!(
+        apply_error,
+        BeadComposeError::ProcessOutputLimitExceeded {
+            stage: BeadStage::Attach,
+            limit_bytes: sc_composer_beads::runner::PROCESS_OUTPUT_LIMIT_BYTES,
+        }
+    ));
 }
 #[test]
 fn invalid_relations_refuse_before_reading_beads() {
