@@ -72,6 +72,15 @@ impl InputSnapshot {
         fs::read(&self.path).map_err(render_error)
     }
 
+    /// Publish complete bytes without relinquishing the request-owned bd input.
+    pub(crate) fn publish_copy(&self, destination: &Path) -> Result<(), BeadComposeError> {
+        let contents = self
+            .read()
+            .map_err(|error| output_error(destination, error))?;
+        crate::render::atomic_write(destination, &contents)
+            .map_err(|error| output_error(destination, error))
+    }
+
     pub(crate) fn publish(&self, destination: &Path) -> Result<(), BeadComposeError> {
         crate::render::validate_output_destination(destination)?;
         crate::render::replace_output(&self.path, destination)
@@ -87,5 +96,15 @@ impl Drop for InputSnapshot {
 fn render_error(error: impl std::fmt::Display) -> BeadComposeError {
     BeadComposeError::RenderFailed {
         message: error.to_string(),
+    }
+}
+
+pub(crate) fn output_error(destination: &Path, error: BeadComposeError) -> BeadComposeError {
+    match error {
+        BeadComposeError::RenderFailed { message } => BeadComposeError::OutputPathInvalid {
+            path: destination.into(),
+            rule: format!("cannot publish output: {message}"),
+        },
+        other => other,
     }
 }

@@ -71,7 +71,13 @@ fn execute_with_runner_and_diagnostics(
     let mut stages = Vec::new();
     let render_started = Instant::now();
     let rendered = (|| {
-        let input = InputSnapshot::reserve(&normalized.rendered_formula)?;
+        let input = InputSnapshot::reserve(&normalized.rendered_formula).map_err(|error| {
+            if crate::graph::is_attach(request.operation) {
+                crate::snapshot::output_error(&normalized.rendered_formula, error)
+            } else {
+                error
+            }
+        })?;
         render_formula_in_root(
             &normalized.template,
             input.path(),
@@ -80,8 +86,9 @@ fn execute_with_runner_and_diagnostics(
         )?;
         // Phase R consumes its named registry path. Graph operations retain
         // the private input until bd has read it, even when routing by path.
-        if !crate::graph::is_attach(request.operation) && request.operation != BeadOperation::Render
-        {
+        if crate::graph::is_attach(request.operation) {
+            input.publish_copy(&normalized.rendered_formula)?;
+        } else if request.operation != BeadOperation::Render {
             crate::render::atomic_write(&normalized.rendered_formula, &input.read()?)?;
         }
         Ok::<_, BeadComposeError>(input)
@@ -121,7 +128,9 @@ fn execute_with_runner_and_diagnostics(
         stages,
         diagnostics,
     );
-    formula_input.publish(&destination)?;
+    if !crate::graph::is_attach(request.operation) {
+        formula_input.publish(&destination)?;
+    }
     result
 }
 
@@ -705,6 +714,47 @@ pub(crate) mod tests {
             parent: None,
             ref_: None,
             relations: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn attach_output_refusal_retains_exact_path_in_typed_diagnostic() {
+        for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+            let root = fs::canonicalize(workspace()).unwrap();
+            let mut request = request(&root, operation);
+            request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+            request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+            request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+            request.bead_variables.clear();
+            fs::write(&request.template, "formula = \"example\"\n").unwrap();
+            let mut path = request.rendered_formula.as_os_str().to_os_string();
+            path.push(".graph.json");
+            let path = PathBuf::from(path);
+            fs::create_dir(&path).unwrap();
+            let runner = FakeRunner::with_outputs([
+                success(
+                    r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#,
+                ),
+                success(r#"[{"id":"proj-1"}]"#),
+            ]);
+            let mut diagnostics = Vec::new();
+            let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+                assert!(matches!(error, BeadComposeError::OutputPathInvalid { path: actual, .. } if actual == &path));
+                diagnostics.push(serde_json::to_value(error).unwrap());
+            }).unwrap();
+            assert_eq!(diagnostics.len(), 1);
+            assert_eq!(
+                diagnostics[0]["details"]["value"],
+                path.to_string_lossy().as_ref()
+            );
+            assert_eq!(
+                receipt.outcome,
+                BeadOutcome::Refused {
+                    code: "BEADS_OUTPUT_PATH_INVALID".into()
+                }
+            );
+            assert!(receipt.graph.is_none());
+            fs::remove_dir_all(root).unwrap();
         }
     }
 

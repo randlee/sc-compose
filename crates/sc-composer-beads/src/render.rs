@@ -76,9 +76,16 @@ pub(crate) fn validate_output_destination(path: &Path) -> Result<(), BeadCompose
         Ok(metadata) if metadata.file_type().is_symlink() => {
             Err(BeadComposeError::OutputPathSymlink { path: path.into() })
         }
-        Ok(_) => Ok(()),
+        Ok(metadata) if metadata.is_file() => Ok(()),
+        Ok(_) => Err(BeadComposeError::OutputPathInvalid {
+            path: path.into(),
+            rule: "destination must be a regular file or a nonexistent path".into(),
+        }),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(_error) => Err(BeadComposeError::TemplatePathInvalid { path: path.into() }),
+        Err(error) => Err(BeadComposeError::OutputPathInvalid {
+            path: path.into(),
+            rule: format!("cannot inspect output destination: {error}"),
+        }),
     }
 }
 
