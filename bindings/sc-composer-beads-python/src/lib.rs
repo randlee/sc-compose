@@ -627,10 +627,39 @@ fn pour(
     execute_with_operation(py, &request, Some(BeadOperation::Pour))
 }
 
+#[pyfunction]
+fn preview_attach(
+    py: Python<'_>,
+    request: PyRef<'_, PyBeadComposeRequest>,
+) -> PyResult<PyBeadComposeReceipt> {
+    execute_with_operation(py, &request, Some(BeadOperation::PreviewAttach))
+}
+#[pyfunction]
+fn attach(
+    py: Python<'_>,
+    request: PyRef<'_, PyBeadComposeRequest>,
+) -> PyResult<PyBeadComposeReceipt> {
+    execute_with_operation(py, &request, Some(BeadOperation::Attach))
+}
+
 #[pymodule]
 #[pyo3(name = "_native")]
 fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("BEADS_SCHEMA_V1", BEADS_SCHEMA_V1)?;
+    for code in [
+        "BEADS_GRAPH_PARENT_NOT_FOUND",
+        "BEADS_GRAPH_ID_INVALID",
+        "BEADS_GRAPH_SCOPE_MISMATCH",
+        "BEADS_GRAPH_FORMULA_UNSUPPORTED",
+        "BEADS_GRAPH_RELATION_INVALID",
+        "BEADS_GRAPH_CONFLICT",
+        "BEADS_GRAPH_EDGE_CONFLICT",
+        "BEADS_GRAPH_EDGE_MISSING",
+        "BEADS_GRAPH_READ_FAILED",
+        "BEADS_GRAPH_APPLY_FAILED",
+    ] {
+        module.add(code, code)?;
+    }
     module.add_class::<PyBeadComposeError>()?;
     module.add_class::<PyBeadOperation>()?;
     module.add_class::<PyPourAuthorization>()?;
@@ -645,6 +674,8 @@ fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(validate, module)?)?;
     module.add_function(wrap_pyfunction!(preview_pour, module)?)?;
     module.add_function(wrap_pyfunction!(pour, module)?)?;
+    module.add_function(wrap_pyfunction!(preview_attach, module)?)?;
+    module.add_function(wrap_pyfunction!(attach, module)?)?;
     Ok(())
 }
 
