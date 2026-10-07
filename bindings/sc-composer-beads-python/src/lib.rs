@@ -26,17 +26,25 @@ struct PyBeadComposeError {
     stage: Option<String>,
     #[pyo3(get)]
     message: String,
+    #[pyo3(get)]
+    details: Option<BTreeMap<String, String>>,
 }
 
 #[pymethods]
 impl PyBeadComposeError {
     #[new]
-    #[pyo3(signature = (code, message, stage=None))]
-    fn new(code: String, message: String, stage: Option<String>) -> Self {
+    #[pyo3(signature = (code, message, stage=None, details=None))]
+    fn new(
+        code: String,
+        message: String,
+        stage: Option<String>,
+        details: Option<BTreeMap<String, String>>,
+    ) -> Self {
         Self {
             code,
             stage,
             message,
+            details,
         }
     }
 
@@ -79,7 +87,8 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
     match error_kind {
         RustBeadComposeError::RenderFailed { .. } => BeadStage::Render.as_str(),
         RustBeadComposeError::ProcessOutputLimitExceeded { stage, .. } => stage.as_str(),
-        RustBeadComposeError::CookFailed { .. }
+        RustBeadComposeError::GraphIdInvalid { .. }
+        | RustBeadComposeError::CookFailed { .. }
         | RustBeadComposeError::BdUnavailable { .. }
         | RustBeadComposeError::ProcessArgumentInvalid { .. } => BeadStage::Validate.as_str(),
         RustBeadComposeError::ActiveRegistryResolutionFailed { .. }
@@ -92,7 +101,6 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
         // Graph-stage failures are returned in receipts, not through this
         // request-error conversion. Preserve their code if directly supplied.
         RustBeadComposeError::GraphParentNotFound { .. }
-        | RustBeadComposeError::GraphIdInvalid { .. }
         | RustBeadComposeError::GraphScopeMismatch { .. }
         | RustBeadComposeError::GraphFormulaUnsupported { .. }
         | RustBeadComposeError::GraphRelationInvalid { .. }
@@ -122,6 +130,21 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
 }
 
 fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyErr {
+    if let RustBeadComposeError::GraphIdInvalid { field, value } = error_kind {
+        let details = BTreeMap::from([
+            ("field".to_owned(), field.as_str().to_owned()),
+            ("value".to_owned(), value.clone()),
+        ]);
+        return PyErr::from_type(
+            py.get_type::<PyBeadComposeError>(),
+            (
+                error_kind.code(),
+                error_kind.to_string(),
+                rust_error_stage(error_kind),
+                details,
+            ),
+        );
+    }
     error(
         py,
         error_kind.code(),
@@ -492,7 +515,7 @@ impl PyBeadComposeRequest {
                 ref_: r#ref
                     .map(sc_composer_beads::GraphRef::new)
                     .transpose()
-                    .map_err(|error| request_error(py, error.to_string()))?,
+                    .map_err(|error| rust_error_to_pyerr(py, &error))?,
                 relations: relations
                     .map(|value| {
                         py_to_json(py, value).and_then(|value| {

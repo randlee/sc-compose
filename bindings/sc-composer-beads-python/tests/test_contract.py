@@ -468,8 +468,13 @@ def test_attach_request_rejects_invalid_parent_and_ref(
             ref=reference,
         )
 
-    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
-    assert raised.value.stage == "request"
+    if parent == "invalid parent":
+        assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+        assert raised.value.stage == "request"
+    else:
+        assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
+        assert raised.value.stage == "validate"
+        assert raised.value.details == {"field": "ref", "value": reference}
 
 
 @pytest.mark.parametrize(
