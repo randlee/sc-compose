@@ -1430,3 +1430,34 @@ fn fuzz_021_refused_parse_preserves_native_details_and_legacy_consumers() {
         }
     }
 }
+
+// FUZZ-049: parser fallback preserves typed errors for malformed fields and duplicate keys.
+#[test]
+fn fuzz_049_request_fallback_preserves_typed_errors() {
+    for operation in ["render", "validate", "preview_pour", "pour"] {
+        for name in [serde_json::json!(5), serde_json::json!({"bad": true})] {
+            let request = serde_json::json!({"schema":BEADS_SCHEMA_V1,"operation":operation,"working_directory":"/work","template":"f.formula.toml.j2","rendered_formula":"/work/f.formula.toml","formula_name":name,"compose_variables":{},"bead_variables":{}});
+            let error = parse_request(&request.to_string())
+                .expect_err("non-string formula_name must remain a typed parse error");
+            assert_eq!(error.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
+            assert!(error.to_string().contains("formula_name"), "{error}");
+        }
+
+        for duplicate in [
+            format!(
+                r#"{{"schema":"{BEADS_SCHEMA_V1}","operation":"{operation}","working_directory":"/work","template":"a","template":"b","rendered_formula":"/work/f.formula.toml","formula_name":"re g0","compose_variables":{{}},"bead_variables":{{}}}}"#
+            ),
+            format!(
+                r#"{{"schema":"{BEADS_SCHEMA_V1}","operation":"{operation}","working_directory":"/work","formula_name":"re g0","template":"a","template":"b","rendered_formula":"/work/f.formula.toml","compose_variables":{{}},"bead_variables":{{}}}}"#
+            ),
+        ] {
+            let error = parse_request(&duplicate)
+                .expect_err("duplicate top-level template must remain a typed parse error");
+            assert_eq!(error.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
+            assert!(
+                error.to_string().contains("duplicate field `template`"),
+                "{error}"
+            );
+        }
+    }
+}
