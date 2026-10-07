@@ -37,8 +37,10 @@ Two facts shape the answer:
    <plan.json>` creates a set of beads and their edges in one storage
    transaction. A plan node may carry an explicit `id`, a `parent_id` naming
    an existing bead, `metadata`, and edges to existing beads by id; an
-   explicit id that already exists refuses the whole plan; `--dry-run`
-   validates the plan and writes nothing. (Beads source v1.3.1:
+   explicit id collision can cause bd to refuse the whole plan; `--dry-run`
+   validates the plan and writes nothing. Concurrent applies are not
+   serialized by sc-compose; see Conflict rules below for their outcome.
+   (Beads source v1.3.1:
    `cmd/bd/graph_apply.go`; exercised against bd 1.3.1 during planning: an
    attach under an existing epic, a re-run refused with nothing written, and a
    `molecule` root that `bd mol show` reports as a molecule.)
@@ -472,10 +474,12 @@ nothing written; it is never read as "absent".
 | an existing edge between two planned endpoints with the same type | `existing`, untouched |
 | a planned edge between two existing beads, absent in bd | `GraphEdgeMissing`, listing every such edge with its `bd dep add` command |
 
-A race in which another writer creates a planned id between the plan stage and
-the apply makes bd refuse the whole plan (explicit id exists):
-`GraphApplyFailed` with nothing written; a re-run then classifies that bead by
-the rules above.
+sc-compose does not serialize concurrent attaches. If another writer creates
+a planned id between the plan stage and apply, bd and Dolt decide the outcome:
+bd may refuse a plan whose explicit id now exists, or accept an identical one.
+The final Beads state is the state bd committed. Under a race, the receipt's
+`created` / `existing` classification is not guaranteed; a re-run classifies
+every planned bead from the committed state according to the rules above.
 
 ### Relation validation
 Decided in the validate stage from the request and bd's parse, before any `bd
