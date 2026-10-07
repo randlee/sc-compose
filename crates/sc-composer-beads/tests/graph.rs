@@ -179,7 +179,7 @@ fn attach_preview_and_apply_have_only_the_authorized_argv() {
         );
         assert_eq!(
             calls[1].args,
-            ["show", "proj-1", "proj-1.chain-build", "--json"]
+            ["show", "--json", "--", "proj-1", "proj-1.chain-build"]
         );
         let mut expected = vec!["create".into(), "--graph".into(), calls[2].args[2].clone()];
         if preview {
@@ -477,7 +477,7 @@ fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
         assert_eq!(w.plan(), before);
         assert_eq!(
             runner.calls()[2].args,
-            ["dep", "list", "proj-1.chain-build", "--json"]
+            ["dep", "list", "--json", "--", "proj-1.chain-build"]
         );
     }
 }
