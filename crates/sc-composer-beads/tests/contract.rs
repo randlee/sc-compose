@@ -829,6 +829,8 @@ fn graph_edge_types_validate_strings_without_changing_wire_format() {
 
     let step = BeadEndpoint::Step(StepId::new("build").expect("valid step"));
     let bead = BeadEndpoint::Bead(BeadId::new("proj-42").expect("valid bead"));
+    assert_eq!(step.to_string(), "step:build");
+    assert_eq!(bead.to_string(), "bead:proj-42");
     assert_eq!(String::from(step), "step:build");
     assert_eq!(String::from(bead), "bead:proj-42");
     assert_eq!(
@@ -838,6 +840,33 @@ fn graph_edge_types_validate_strings_without_changing_wire_format() {
     assert_eq!(
         GraphEndpoint::Bead(BeadId::new("proj-42").unwrap()).to_string(),
         "proj-42"
+    );
+}
+
+#[test]
+fn graph_identifier_types_borrow_as_str() {
+    use sc_composer_beads::{BeadId, FormulaName, GraphRef, Sha256Digest, StepId};
+
+    let digest = format!("sha256:{}", "a".repeat(64));
+    assert_eq!(
+        AsRef::<str>::as_ref(&FormulaName::new("formula").unwrap()),
+        "formula"
+    );
+    assert_eq!(
+        AsRef::<str>::as_ref(&BeadId::new("proj-42").unwrap()),
+        "proj-42"
+    );
+    assert_eq!(
+        AsRef::<str>::as_ref(&GraphRef::new("ref-1").unwrap()),
+        "ref-1"
+    );
+    assert_eq!(
+        AsRef::<str>::as_ref(&StepId::new("build_1").unwrap()),
+        "build_1"
+    );
+    assert_eq!(
+        AsRef::<str>::as_ref(&Sha256Digest::new(digest.clone()).unwrap()),
+        digest
     );
 }
 

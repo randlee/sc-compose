@@ -320,6 +320,12 @@ macro_rules! graph_string {
             }
         }
 
+        impl AsRef<str> for $name {
+            fn as_ref(&self) -> &str {
+                self.as_str()
+            }
+        }
+
         impl TryFrom<String> for $name {
             type Error = BeadComposeError;
             fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -483,6 +489,15 @@ impl From<BeadEndpoint> for String {
     }
 }
 
+impl std::fmt::Display for BeadEndpoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bead(id) => write_endpoint(f, "bead:", id.as_ref()),
+            Self::Step(id) => write_endpoint(f, "step:", id.as_ref()),
+        }
+    }
+}
+
 /// A directed relation requested in addition to formula dependencies.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BeadRelation {
@@ -571,7 +586,14 @@ impl GraphEndpoint {
 }
 
 fn encode_endpoint(prefix: &str, id: &str) -> String {
-    format!("{prefix}{id}")
+    let mut encoded = String::new();
+    write_endpoint(&mut encoded, prefix, id).expect("writing to a String cannot fail");
+    encoded
+}
+
+fn write_endpoint(output: &mut impl std::fmt::Write, prefix: &str, id: &str) -> std::fmt::Result {
+    output.write_str(prefix)?;
+    output.write_str(id)
 }
 
 impl std::fmt::Display for GraphEndpoint {
