@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
-use crate::contract::{BeadId, BeadStage, MissingEdge};
+use crate::contract::{BeadId, BeadStage, GraphDependencyType, MissingEdge};
 use serde::{Deserialize, Serialize};
 
 /// Stable errors returned before or during Beads composition.
@@ -220,9 +220,9 @@ pub enum BeadComposeError {
         /// Dependency bead.
         to: BeadId,
         /// Existing edge type.
-        existing: String,
+        existing: GraphDependencyType,
         /// Requested edge type.
-        requested: String,
+        requested: GraphDependencyType,
     },
     /// `EdgeMissing` condition from ADR-0023.
     #[error("graph edges missing; repair then retry: {}", missing_edge_commands(.edges))]

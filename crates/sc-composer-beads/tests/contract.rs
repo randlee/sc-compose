@@ -220,8 +220,8 @@ fn every_advertised_error_has_its_stable_code() {
             BeadComposeError::GraphEdgeConflict {
                 from: bead("proj-42"),
                 to: bead("proj-3"),
-                existing: "related".into(),
-                requested: "blocks".into(),
+                existing: sc_composer_beads::BeadDependencyType::Related.into(),
+                requested: sc_composer_beads::BeadDependencyType::Blocks.into(),
             },
             "BEADS_GRAPH_EDGE_CONFLICT",
         ),
@@ -230,7 +230,7 @@ fn every_advertised_error_has_its_stable_code() {
                 edges: vec![MissingEdge {
                     from: bead("proj-42"),
                     to: bead("proj-3"),
-                    kind: "blocks".into(),
+                    kind: sc_composer_beads::BeadDependencyType::Blocks.into(),
                 }],
             },
             "BEADS_GRAPH_EDGE_MISSING",
@@ -473,12 +473,12 @@ fn missing_edge_error_lists_each_repair_in_plan_order() {
             MissingEdge {
                 from: bead("proj-42"),
                 to: bead("proj-3"),
-                kind: "blocks".into(),
+                kind: sc_composer_beads::BeadDependencyType::Blocks.into(),
             },
             MissingEdge {
                 from: bead("proj-9"),
                 to: bead("proj-42"),
-                kind: "validates".into(),
+                kind: sc_composer_beads::BeadDependencyType::Validates.into(),
             },
         ],
     };
@@ -602,5 +602,48 @@ fn graph_without_missing_nodes_omits_plan_path() {
     assert_eq!(
         serde_json::to_value(&graph).expect("serialize")["plan_path"],
         "plan.json"
+    );
+}
+
+#[test]
+fn graph_edge_types_validate_strings_without_changing_wire_format() {
+    use sc_composer_beads::{DependencyName, GraphDependencyType, GraphEndpoint};
+    use serde_json::json;
+    for endpoint in ["proj-42", "step:build", "_root"] {
+        round_trip::<GraphEndpoint>(json!(endpoint));
+    }
+    for kind in ["blocks", "parent-child", "custom-audit_1"] {
+        round_trip::<GraphDependencyType>(json!(kind));
+        round_trip::<MissingEdge>(json!({"from":"proj-42","to":"proj-3","type":kind}));
+    }
+    for endpoint in ["", "two ids", "step:", "step:bad-step", "step:a.b"] {
+        serde_json::from_value::<GraphEndpoint>(json!(endpoint)).expect_err("invalid endpoint");
+    }
+    for kind in [
+        "",
+        "blocks;echo",
+        "blocks --force",
+        "$(echo)",
+        "--force",
+        "related\nclose",
+    ] {
+        serde_json::from_value::<GraphDependencyType>(json!(kind))
+            .expect_err("invalid dependency token");
+        DependencyName::new(kind).expect_err("cannot bypass validation in Rust");
+        serde_json::from_value::<MissingEdge>(json!({"from":"proj-42","to":"proj-3","type":kind}))
+            .expect_err("repair command kind must be validated");
+    }
+    let custom = GraphDependencyType::try_from("custom-audit_1".to_owned()).expect("custom kind");
+    let error = BeadComposeError::GraphEdgeMissing {
+        edges: vec![MissingEdge {
+            from: bead("proj-42"),
+            to: bead("proj-3"),
+            kind: custom,
+        }],
+    };
+    assert!(
+        error
+            .to_string()
+            .ends_with("bd dep add proj-42 proj-3 --type custom-audit_1")
     );
 }
