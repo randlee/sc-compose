@@ -5,6 +5,7 @@
 )]
 use crate::support::*;
 use serde_json::Value;
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -419,7 +420,40 @@ fn render_append_keeps_destination_unchanged_for_missing_variables() {
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
-    assert_eq!(fs::read_to_string(destination).unwrap(), "{\"old\":true}\n");
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_VAL_MISSING_REQUIRED"));
+    assert_eq!(fs::read(destination).unwrap(), b"{\"old\":true}\n");
+}
+
+#[test]
+fn render_append_keeps_destination_unchanged_for_invalid_var_file() {
+    let root = temp_root("append-invalid-var-file");
+    write_file(&root.join("record.json.j2"), "{\"name\": {{ name }}}");
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, "[\"not\", \"an object\"]\n");
+    let destination = root.join("records.jsonl");
+    let original = b"{\"old\":true}\n";
+    fs::write(&destination, original).unwrap();
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--var-file",
+            vars_file.to_str().unwrap(),
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_CONFIG_VARFILE"));
+    assert_eq!(fs::read(destination).unwrap(), original);
 }
 
 #[test]
@@ -508,8 +542,11 @@ fn render_append_serializes_sixteen_concurrent_processes() {
                 .unwrap(),
         );
     }
-    for mut child in children {
-        assert!(child.wait().unwrap().success());
+    for (index, mut child) in children.into_iter().enumerate() {
+        assert!(
+            child.wait().unwrap().success(),
+            "append process {index} failed"
+        );
     }
     let records: Vec<Value> = fs::read_to_string(destination)
         .unwrap()
@@ -517,6 +554,16 @@ fn render_append_serializes_sixteen_concurrent_processes() {
         .map(|line| serde_json::from_str(line).unwrap())
         .collect();
     assert_eq!(records.len(), 16);
+    let ids: BTreeSet<String> = records
+        .iter()
+        .map(|record| {
+            record["id"]
+                .as_str()
+                .expect("id must be a string")
+                .to_owned()
+        })
+        .collect();
+    assert_eq!(ids, (0..16).map(|id| id.to_string()).collect());
 }
 
 #[test]
