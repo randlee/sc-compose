@@ -421,7 +421,9 @@ impl PendingCreate {
             ));
         }
         for (key, step) in &self.keys {
-            let id = assigned[key].clone();
+            let id = assigned.get(key).cloned().ok_or_else(|| {
+                failure("bd create --graph response is missing a planned key".to_owned())
+            })?;
             if let Some(step) = step {
                 if self
                     .graph
@@ -438,11 +440,11 @@ impl PendingCreate {
                 self.graph.parent = Some(id);
             }
         }
-        self.mark_created();
+        self.mark_created()?;
         Ok(self.graph)
     }
 
-    fn mark_created(&mut self) {
+    fn mark_created(&mut self) -> Result<(), BeadComposeError> {
         for node in &mut self.graph.nodes {
             if node.action == BeadNodeAction::Create {
                 node.action = BeadNodeAction::Created;
@@ -457,8 +459,24 @@ impl PendingCreate {
         let endpoints: Vec<_> = self
             .endpoints
             .iter()
-            .map(|(from, to)| (from.resolve(&self.graph), to.resolve(&self.graph)))
-            .collect();
+            .map(|(from, to)| {
+                let from = from.resolve(&self.graph).ok_or_else(|| {
+                    BeadComposeError::GraphApplyFailed {
+                        command: vec!["resolve created graph edge source".into()],
+                        status: None,
+                        cause: "planned edge source did not resolve".into(),
+                    }
+                })?;
+                let to =
+                    to.resolve(&self.graph)
+                        .ok_or_else(|| BeadComposeError::GraphApplyFailed {
+                            command: vec!["resolve created graph edge destination".into()],
+                            status: None,
+                            cause: "planned edge destination did not resolve".into(),
+                        })?;
+                Ok((from, to))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         for (edge, (from, to)) in self.graph.edges.iter_mut().zip(endpoints) {
             edge.from = from;
             edge.to = to;
@@ -466,5 +484,6 @@ impl PendingCreate {
                 edge.action = BeadEdgeAction::Added;
             }
         }
+        Ok(())
     }
 }
