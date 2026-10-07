@@ -17,6 +17,9 @@ static TEMPORARY_OUTPUT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 /// Beads' ordinary `{{ runtime_var }}` expressions remain literal because
 /// only `{{{ compose_value }}}` is interpreted by `sc-composer`.
 ///
+/// Includes are confined to the template's parent directory. Beads requests use
+/// their working directory as the confinement root instead.
+///
 /// # Errors
 ///
 /// Returns [`BeadComposeError::RenderFailed`] when the input cannot be read,
@@ -27,16 +30,33 @@ pub fn render_formula(
     rendered_formula: &Path,
     compose_variables: &Map<String, serde_json::Value>,
 ) -> Result<(), BeadComposeError> {
-    let template_text =
-        fs::read_to_string(template).map_err(|error| BeadComposeError::RenderFailed {
-            message: error.to_string(),
-        })?;
+    let root = template
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    render_formula_in_root(template, rendered_formula, compose_variables, root)
+}
+
+/// Render with includes confined to the request's working directory.
+pub(crate) fn render_formula_in_root(
+    template: &Path,
+    rendered_formula: &Path,
+    compose_variables: &Map<String, serde_json::Value>,
+    working_directory: &Path,
+) -> Result<(), BeadComposeError> {
+    let root =
+        sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
+    let expanded =
+        sc_composer::expand_includes(template, &root, &sc_composer::ComposePolicy::default())
+            .map_err(|error| BeadComposeError::RenderFailed {
+                message: error.to_string(),
+            })?;
     let rendered =
         sc_composer::Renderer::with_delimiters_and_escape_mode("{{{", "}}}", escape_mode(template))
             .and_then(|renderer| {
                 renderer.render_named(
                     &template.to_string_lossy(),
-                    &template_text,
+                    &expanded.text,
                     compose_variables,
                 )
             })
@@ -151,7 +171,7 @@ mod tests {
 
     use serde_json::{Map, json};
 
-    use super::render_formula;
+    use super::{render_formula, render_formula_in_root};
 
     #[test]
     fn json_formula_templates_escape_literal_quoted_values_once() {
@@ -249,6 +269,66 @@ mod tests {
             "formula rendering failed: template rendering failed"
         );
 
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn includes_use_working_root_and_recursive_relative_lookup_before_rendering() {
+        let root = temporary_directory();
+        fs::create_dir_all(root.join("templates/parts")).expect("parts directory");
+        fs::create_dir_all(root.join("shared")).expect("shared directory");
+        let template = root.join("templates/main.formula.toml.j2");
+        fs::write(&template, "@<parts/one.toml.j2>\n").expect("main template");
+        fs::write(
+            root.join("templates/parts/one.toml.j2"),
+            "@<two.toml.j2>\n@<shared/root.toml.j2>\n",
+        )
+        .expect("first include");
+        fs::write(
+            root.join("templates/parts/two.toml.j2"),
+            "title = \"{{{ title }}}\"\nruntime = \"{{ bead_var }}\"\n",
+        )
+        .expect("relative include");
+        fs::write(root.join("shared/root.toml.j2"), "root = true\n")
+            .expect("root fallback include");
+        let output = root.join("out.formula.toml");
+        render_formula_in_root(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("title"), json!("Included"))]),
+            &root,
+        )
+        .expect("expand and render");
+        assert_eq!(
+            fs::read_to_string(output).expect("output"),
+            "title = \"Included\"\nruntime = \"{{ bead_var }}\"\nroot = true"
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn failed_include_expansion_preserves_existing_output() {
+        let root = temporary_directory();
+        let template = root.join("main.formula.toml.j2");
+        let output = root.join("out.formula.toml");
+        fs::write(&output, "previous formula").expect("existing output");
+        for (text, expected) in [
+            ("@<main.formula.toml.j2>\n", "include cycle"),
+            (
+                "@<../outside-missing.toml.j2>\n",
+                "escapes confinement root",
+            ),
+            ("@<missing.toml.j2>\n", "include file not found"),
+        ] {
+            fs::write(&template, text).expect("template");
+            let error = render_formula_in_root(&template, &output, &Map::new(), &root)
+                .expect_err("invalid include");
+            assert!(error.to_string().contains(expected), "{error}");
+            assert_eq!(
+                fs::read_to_string(&output).expect("output"),
+                "previous formula"
+            );
+        }
         fs::remove_dir_all(root).expect("cleanup");
     }
 
