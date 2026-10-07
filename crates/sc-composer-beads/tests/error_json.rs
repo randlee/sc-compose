@@ -148,3 +148,24 @@ fn request_read_errors_preserve_native_sources_and_recovery() {
         assert_eq!(source.kind(), kind);
     }
 }
+
+#[cfg(unix)]
+#[test]
+fn output_path_invalid_serializes_non_utf8_path_lossily() {
+    use std::os::unix::ffi::OsStringExt;
+    let path = std::path::PathBuf::from(std::ffi::OsString::from_vec(
+        b"out-\xff.formula.toml".to_vec(),
+    ));
+    let error = Error::OutputPathInvalid {
+        path,
+        rule: "parent must exist".into(),
+    };
+    let document = serde_json::to_value(&error).expect("lossy envelope");
+    assert_eq!(document["code"], "BEADS_OUTPUT_PATH_INVALID");
+    assert!(
+        document["details"]["value"]
+            .as_str()
+            .unwrap()
+            .contains("out-")
+    );
+}
