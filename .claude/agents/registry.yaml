@@ -172,3 +172,17 @@ qa_routes:
     coordinator: sc-adversarial-fuzz-coordinator
     probe: sc-adversarial-fuzz-probe
     report_schema: adversarial-fuzzing/v1
+roles:
+  lead: team-lead
+  dev-sanity: comp-sanity
+  quality-mgr: quality-mgr
+bead_prefix: comp
+worktree_base: ../sc-compose-worktrees
+test_command: just test
+lint_command: just lint
+integration_branch_pattern: integrate/phase-{phase}
+plans_dir: docs
+requirements_globs: [docs/requirements.md]
+adr_globs: [docs/architecture.md, docs/adrs/*.md]
+policy_path: .claude/project/quality-policy.md
+reviewers_round1: [req-qa, arch-qa, rust-qa-agent, rust-best-practices-agent, rust-service-hardening-agent]
