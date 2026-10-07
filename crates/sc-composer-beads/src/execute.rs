@@ -179,7 +179,13 @@ fn execute_rendered_request(
         args: cook_args(cook_input, request),
         working_directory: normalized.working_directory.clone(),
     };
-    if let Some(failed) = run_stage(runner, StageFailure::Cook, &cook, &mut stages)? {
+    let cook_result = run_stage(runner, StageFailure::Cook, &cook, &mut stages)?;
+    present_snapshot_paths(
+        &mut stages,
+        formula_input.path(),
+        &normalized.rendered_formula,
+    );
+    if let Some(failed) = cook_result {
         return Ok(receipt(
             request,
             normalized.rendered_formula,
@@ -495,6 +501,24 @@ pub(crate) fn run_stage_with_output(
             BeadStageOutcome::Failed { code: code.clone() },
         ));
         Ok(Err(BeadOutcome::Failed { code }))
+    }
+}
+
+fn present_snapshot_paths(stages: &mut [BeadStageReceipt], snapshot: &Path, source: &Path) {
+    let snapshot = snapshot.to_string_lossy();
+    let source = source.to_string_lossy().into_owned();
+    for stage in stages {
+        for argument in &mut stage.argv {
+            if argument == snapshot.as_ref() {
+                argument.clone_from(&source);
+            }
+        }
+        stage.stderr_excerpt = stage
+            .stderr_excerpt
+            .replace(snapshot.as_ref(), source.as_ref());
+        stage.stdout_excerpt = stage
+            .stdout_excerpt
+            .replace(snapshot.as_ref(), source.as_ref());
     }
 }
 
