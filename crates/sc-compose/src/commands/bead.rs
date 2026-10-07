@@ -293,6 +293,41 @@ mod tests {
         }
     }
     #[test]
+    fn missing_edge_recovery_commands_escape_controls_and_bidi_for_bash() {
+        let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}";
+        let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
+        let receipt: BeadComposeReceipt = serde_json::from_value(json!({
+            "schema": "sc-compose/beads/v1",
+            "operation": "attach",
+            "rendered_formula": "release.formula.toml",
+            "outcome": {"refused": {"code": "BEADS_GRAPH_EDGE_MISSING"}},
+            "missing_edges": [{"from":from, "to":to, "type":"blocks"}],
+            "stages": []
+        }))
+        .expect("receipt with unusual IDs");
+        let commands: Vec<_> = missing_edge_recovery_commands(&receipt).collect();
+        assert_eq!(commands.len(), 1);
+        let command = &commands[0];
+        assert!(!command.chars().any(char::is_control), "{command:?}");
+        assert!(
+            !command.chars().any(|c| matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{200e}' | '\u{200f}')),
+            "{command:?}"
+        );
+        let arguments = command
+            .strip_prefix("bd dep add ")
+            .unwrap()
+            .strip_suffix(" --type 'blocks'")
+            .unwrap();
+        let output = std::process::Command::new("bash")
+            .args(["-c", &format!("printf '%s\\0' {arguments}")])
+            .env("LC_ALL", "C.UTF-8")
+            .output()
+            .expect("isolated Bash printf");
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(output.stdout, format!("{from}\0{to}\0").into_bytes());
+    }
+
+    #[test]
     fn human_errors_preserve_library_recovery_details_and_causes() {
         let errors = [
             BeadComposeError::GraphEdgeMissing {

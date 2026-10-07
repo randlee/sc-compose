@@ -354,10 +354,36 @@ const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 // FUZZ-040: recovery command arguments cannot execute shell syntax or emit controls.
 #[test]
 fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
-    assert_eq!(
-        sc_composer_beads::error::shell_quote("spc-$(id)58;\u{7}"),
-        "$'spc-$(id)58;\\u{7}'"
+    let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}";
+    let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
+    let error = sc_composer_beads::BeadComposeError::GraphEdgeMissing {
+        edges: vec![sc_composer_beads::MissingEdge {
+            from: sc_composer_beads::BeadId::new(from).unwrap(),
+            to: sc_composer_beads::BeadId::new(to).unwrap(),
+            kind: sc_composer_beads::GraphDependencyType::try_from("blocks".to_owned()).unwrap(),
+        }],
+    };
+    let message = error.to_string(); // Drives missing_edge_commands, not just shell_quote.
+    assert!(!message.chars().any(char::is_control), "{message:?}");
+    assert!(
+        !message.chars().any(|c| matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{200e}' | '\u{200f}')),
+        "{message:?}"
     );
+    let command = message
+        .strip_prefix("graph edges missing; repair then retry: ")
+        .unwrap();
+    let arguments = command
+        .strip_prefix("bd dep add ")
+        .unwrap()
+        .strip_suffix(" --type 'blocks'")
+        .unwrap();
+    let output = std::process::Command::new("bash")
+        .args(["-c", &format!("printf '%s\\0' {arguments}")])
+        .env("LC_ALL", "C.UTF-8")
+        .output()
+        .expect("isolated Bash printf");
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(output.stdout, format!("{from}\0{to}\0").into_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
 }
 
