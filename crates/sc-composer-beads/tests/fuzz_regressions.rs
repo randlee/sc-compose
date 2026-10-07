@@ -475,6 +475,34 @@ fn fuzz_020_apply_failure_cause_is_bds_error_text() {
     );
 }
 
+// FUZZ-041: a relation from the attach parent to itself is a self edge.
+#[test]
+fn fuzz_041_parent_self_relation_reports_self_edge() {
+    let mut w = Workspace::new();
+    let parent = BeadId::new("proj-1").expect("parent");
+    w.req.relations.push(BeadRelation {
+        from: BeadEndpoint::Bead(parent.clone()),
+        to: BeadEndpoint::Bead(parent),
+        kind: BeadDependencyType::Blocks,
+    });
+    let receipt = w.run(&FakeRunner::new([ok(COOKED)]));
+
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_RELATION_INVALID".into()
+        },
+        "{receipt:#?}"
+    );
+    assert_eq!(
+        receipt.stages.last().expect("stage").stage,
+        BeadStage::Validate
+    );
+    let diagnostic = &receipt.stages.last().expect("stage").stderr_excerpt;
+    assert!(diagnostic.contains("self_edge"), "{diagnostic}");
+    assert!(!diagnostic.contains("parent_pair"), "{diagnostic}");
+}
+
 #[cfg(unix)]
 #[test]
 fn graph_capture_overflow_reports_the_actual_stream_limit() {
