@@ -252,7 +252,7 @@ pub struct BeadStageReceipt {
     pub elapsed_ms: u64,
     /// Bounded standard-output evidence.
     pub stdout_excerpt: String,
-    /// Bounded standard-error evidence.
+    /// Bounded standard-error excerpt or diagnostic text for a failed stage.
     pub stderr_excerpt: String,
     /// Final stage classification.
     pub outcome: BeadStageOutcome,

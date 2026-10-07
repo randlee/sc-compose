@@ -163,7 +163,11 @@ fn print_human_receipt(receipt: &BeadComposeReceipt) {
             BeadStageOutcome::Skipped => "skipped".to_owned(),
             BeadStageOutcome::Failed { code } => format!("failed ({code})"),
         };
-        println!("stage {:?}: {state}", stage.stage);
+        if stage.stderr_excerpt.is_empty() {
+            println!("stage {:?}: {state}", stage.stage);
+        } else {
+            println!("stage {:?}: {state}: {}", stage.stage, stage.stderr_excerpt);
+        }
     }
     for command in missing_edge_recovery_commands(receipt) {
         println!("{command}");

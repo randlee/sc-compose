@@ -56,6 +56,7 @@ pub fn execute_bead_request_with_runner(
             BeadStageOutcome::Failed {
                 code: error.code().to_owned(),
             },
+            excerpt(&error.to_string()),
         ));
         return Ok(receipt(
             request,
@@ -66,7 +67,11 @@ pub fn execute_bead_request_with_runner(
             },
         ));
     }
-    stages.push(render_receipt(render_started, BeadStageOutcome::Succeeded));
+    stages.push(render_receipt(
+        render_started,
+        BeadStageOutcome::Succeeded,
+        String::new(),
+    ));
 
     if request.operation == BeadOperation::Render {
         return Ok(receipt(
@@ -398,14 +403,18 @@ pub(crate) fn receipt(
     }
 }
 
-fn render_receipt(started: Instant, outcome: BeadStageOutcome) -> BeadStageReceipt {
+fn render_receipt(
+    started: Instant,
+    outcome: BeadStageOutcome,
+    stderr_excerpt: String,
+) -> BeadStageReceipt {
     BeadStageReceipt {
         stage: BeadStage::Render,
         argv: Vec::new(),
         exit_status: None,
         elapsed_ms: elapsed_ms(started.elapsed()),
         stdout_excerpt: String::new(),
-        stderr_excerpt: String::new(),
+        stderr_excerpt,
         outcome,
     }
 }
