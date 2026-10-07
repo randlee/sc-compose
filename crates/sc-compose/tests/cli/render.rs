@@ -187,6 +187,71 @@ fn render_append_rejects_non_json_and_conflicting_flags() {
 }
 
 #[test]
+fn render_append_keeps_destination_unchanged_for_missing_variables() {
+    let root = temp_root("append-missing-variable");
+    write_file(
+        &root.join("record.json.j2"),
+        "---\nvariables:\n  name:\n    required: true\n---\n{\"name\": {{ name }}}",
+    );
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--strict",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert_eq!(fs::read_to_string(destination).unwrap(), "{\"old\":true}\n");
+}
+
+#[test]
+fn render_append_serializes_sixteen_concurrent_processes() {
+    let root = temp_root("append-concurrent");
+    write_file(&root.join("record.json.j2"), "{\"id\": {{ id }}}");
+    let destination = root.join("records.jsonl");
+    let mut children = Vec::new();
+    for id in 0..16 {
+        children.push(
+            Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+                .args([
+                    "render",
+                    "--mode",
+                    "file",
+                    "--root",
+                    root.to_str().unwrap(),
+                    "--file",
+                    "record.json.j2",
+                    "--var",
+                    &format!("id={id}"),
+                    "--append",
+                    destination.to_str().unwrap(),
+                ])
+                .spawn()
+                .unwrap(),
+        );
+    }
+    for mut child in children {
+        assert!(child.wait().unwrap().success());
+    }
+    let records: Vec<Value> = fs::read_to_string(destination)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(records.len(), 16);
+}
+
+#[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
     write_file(
