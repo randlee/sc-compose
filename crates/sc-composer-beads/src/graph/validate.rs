@@ -2,7 +2,7 @@
 
 use crate::contract::{
     BeadComposeRequest, BeadEndpoint, BeadGraphMode, BeadGraphProvenance, BeadId, BeadRelation,
-    GraphRef, PROVENANCE_KEY, Sha256Digest, StepId,
+    GraphEndpoint, GraphRef, PROVENANCE_KEY, Sha256Digest, StepId,
 };
 use crate::error::{
     BeadComposeError, GraphFormulaUnsupportedReason as Unsupported, GraphIdField,
@@ -223,7 +223,10 @@ fn validate_relations(
             if !ids.contains(dep) {
                 return Err(unsupported(Unsupported::StepGraph));
             }
-            pairs.insert((format!("step:{}", step.id), format!("step:{dep}")));
+            pairs.insert((
+                GraphEndpoint::Step(step.id.clone()).encoded(),
+                GraphEndpoint::Step(dep.clone()).encoded(),
+            ));
         }
     }
     for (index, relation) in req.relations.iter().enumerate() {
