@@ -7,6 +7,22 @@ use thiserror::Error;
 use crate::contract::{BeadId, BeadStage, GraphDependencyType, MissingEdge};
 use serde::{Deserialize, Serialize};
 
+fn graph_id_rule(field: &str) -> &'static str {
+    match field {
+        "bead" => "bead ids are non-empty without whitespace",
+        "ref" => "ref is [A-Za-z0-9_-]{1,32}",
+        "step" => "step is [A-Za-z0-9_]{1,64}; hyphens are forbidden",
+        "digest" => "digest is sha256: plus exactly 64 lowercase hex digits",
+        "formula" => {
+            "formula contains ASCII letters, digits, underscores, dots and hyphens; no leading dot/hyphen or consecutive dots"
+        }
+        "dependency_type" => {
+            "dependency_type starts with an ASCII letter followed by ASCII letters, digits, underscores or hyphens"
+        }
+        _ => "use a valid identifier for the named field",
+    }
+}
+
 /// Stable errors returned before or during Beads composition.
 ///
 /// Serializes as `code` and `message`, with additive `details` and `recovery`
@@ -178,7 +194,8 @@ pub enum BeadComposeError {
     },
     /// `IdInvalid` condition from ADR-0023.
     #[error(
-        "invalid graph {field} `{value}`; follow ADR-0023: bead ids are non-empty without whitespace, ref is [A-Za-z0-9_-]{{1,32}}, step is [A-Za-z0-9_]{{1,64}}, digest is sha256: plus 64 lowercase hex digits"
+        "invalid graph {field} `{value}`; follow ADR-0023: {rule}",
+        rule = graph_id_rule(.field)
     )]
     GraphIdInvalid {
         /// Invalid identifier field.

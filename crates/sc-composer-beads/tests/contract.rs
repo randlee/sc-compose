@@ -6,8 +6,8 @@ use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDependencyType, BeadEdgeAction,
     BeadEndpoint, BeadGraph, BeadGraphMode, BeadGraphProvenance, BeadId, BeadNodeAction,
     BeadOperation, BeadOutcome, BeadPourMode, BeadRelation, BeadStage, BeadStageOutcome,
-    GraphConflictReason, GraphFormulaUnsupportedReason, GraphRef, GraphRelationInvalidReason,
-    MissingEdge, PROVENANCE_KEY, Sha256Digest, StepId, parse_request,
+    DependencyName, FormulaName, GraphConflictReason, GraphFormulaUnsupportedReason, GraphRef,
+    GraphRelationInvalidReason, MissingEdge, PROVENANCE_KEY, Sha256Digest, StepId, parse_request,
 };
 
 #[test]
@@ -479,6 +479,56 @@ fn identifier_validation_rejects_bad_values_at_rust_and_json_boundaries() {
     for endpoint in ["step:", "step:bad-id", "bead:", "other:proj-42", "proj-42"] {
         serde_json::from_value::<BeadEndpoint>(json!(endpoint))
             .expect_err("invalid contract value");
+    }
+}
+
+#[test]
+fn invalid_identifier_messages_name_only_the_failing_fields_rule() {
+    let cases = [
+        (
+            "bead",
+            "a b",
+            BeadId::new("a b").expect_err("invalid bead"),
+            "bead ids are non-empty without whitespace",
+        ),
+        (
+            "ref",
+            ".",
+            GraphRef::new(".").expect_err("invalid ref"),
+            "ref is [A-Za-z0-9_-]{1,32}",
+        ),
+        (
+            "step",
+            "a-b",
+            StepId::new("a-b").expect_err("invalid step"),
+            "step is [A-Za-z0-9_]{1,64}; hyphens are forbidden",
+        ),
+        (
+            "digest",
+            "bad",
+            Sha256Digest::new("bad").expect_err("invalid digest"),
+            "digest is sha256: plus exactly 64 lowercase hex digits",
+        ),
+        (
+            "formula",
+            "../bad",
+            FormulaName::new("../bad").expect_err("invalid formula"),
+            "formula contains ASCII letters, digits, underscores, dots and hyphens; no leading dot/hyphen or consecutive dots",
+        ),
+        (
+            "dependency_type",
+            "1bad",
+            DependencyName::new("1bad").expect_err("invalid dependency type"),
+            "dependency_type starts with an ASCII letter followed by ASCII letters, digits, underscores or hyphens",
+        ),
+    ];
+    for (field, value, error, rule) in cases {
+        let expected = format!("invalid graph {field} `{value}`; follow ADR-0023: {rule}");
+        assert_eq!(error.to_string(), expected);
+        assert_eq!(
+            serde_json::to_value(&error).expect("error JSON")["message"],
+            expected
+        );
     }
 }
 
