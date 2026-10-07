@@ -211,7 +211,9 @@ fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::
             BeadStageOutcome::Skipped => "skipped".to_owned(),
             BeadStageOutcome::Failed { code } => format!("failed ({code})"),
         };
-        if stage.stderr_excerpt.is_empty() {
+        if !matches!(stage.outcome, BeadStageOutcome::Failed { .. })
+            || stage.stderr_excerpt.is_empty()
+        {
             println!("stage {:?}: {state}", stage.stage);
         } else {
             println!("stage {:?}: {state}: {}", stage.stage, stage.stderr_excerpt);
