@@ -426,3 +426,26 @@ fn fuzz_017_nested_raw_values_append_as_one_line_without_changing_lexemes() {
     assert_eq!(envelope["payload"]["bytes_written"], appended.len());
     assert_eq!(envelope["payload"]["appended"], true);
 }
+
+// FUZZ-017 round 3: JSON number grammar is not limited by floating-point range.
+#[test]
+fn fuzz_017_append_preserves_large_exponent_lexemes() {
+    let root = temp_root("fuzz-017-large-exponent");
+    write_file(
+        &root.join("rec.json.j2"),
+        r#"{"n":1e400,"tiny":-1.2300e-4000}"#,
+    );
+    let destination = root.join("log.jsonl");
+    let output = sc_compose()
+        .args(["render", "--file", "rec.json.j2", "--root"])
+        .arg(&root)
+        .arg("--append")
+        .arg(&destination)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        std::fs::read_to_string(destination).unwrap(),
+        "{\"n\":1e400,\"tiny\":-1.2300e-4000}\n"
+    );
+}

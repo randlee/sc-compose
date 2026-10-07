@@ -126,17 +126,9 @@ fn append_json_record(
         rendered,
     )
     .map_err(CommandError::render_check)?;
-    let value: serde_json::Value = serde_json::from_str(checked.body()).map_err(|error| {
-        CommandError::render_append(
-            anyhow!(error).context(format!(
-                "failed to parse checked JSON from template {}",
-                template_path.display()
-            )),
-            DiagnosticCode::ErrRenderJsonMalformed,
-            Vec::new(),
-        )
-    })?;
-    if !value.is_object() {
+    // The body already passed JSON syntax validation. Inspect only its root
+    // token, avoiding a numeric conversion that would reject valid exponents.
+    if !checked.body().trim_start().starts_with('{') {
         return Err(CommandError::render_append(
             anyhow!("--append requires the rendered output to be a JSON object"),
             DiagnosticCode::ErrRenderAppendNotObject,
