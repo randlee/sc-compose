@@ -276,7 +276,11 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     if !template.starts_with(&working_directory) {
         return Err(BeadComposeError::TemplateOutsideWorkingDirectory { path: template });
     }
-    let rendered_formula = normalize_output(&request.rendered_formula)?;
+    let rendered_formula = normalize_output(&if request.rendered_formula.is_absolute() {
+        request.rendered_formula.clone()
+    } else {
+        working_directory.join(&request.rendered_formula)
+    })?;
     validate_utf8_path(&rendered_formula)?;
     if let Some(executable) = &request.bd_executable {
         validate_utf8_path(executable)?;
@@ -1187,6 +1191,22 @@ pub(crate) mod tests {
 
         assert!(matches!(error, BeadComposeError::PathNotUtf8 { .. }));
         assert!(runner.calls.lock().expect("calls lock").is_empty());
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+    #[test]
+    fn fuzz_012_relative_rendered_formula_is_under_working_directory() {
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula = PathBuf::from("nested/output.formula.toml");
+        fs::create_dir_all(root.join("nested")).expect("output directory");
+        let receipt = execute_bead_request_with_runner(&request, &FakeRunner::default())
+            .expect("render receipt");
+        assert!(
+            receipt
+                .rendered_formula
+                .ends_with("nested/output.formula.toml")
+        );
+        assert!(receipt.rendered_formula.is_file());
         fs::remove_dir_all(root).expect("cleanup");
     }
 }
