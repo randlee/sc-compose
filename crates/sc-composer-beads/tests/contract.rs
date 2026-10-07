@@ -678,7 +678,7 @@ fn missing_edge_error_lists_each_repair_in_plan_order() {
     };
     assert_eq!(
         error.to_string(),
-        "graph edges missing; repair then retry: bd dep add proj-42 proj-3 --type blocks; bd dep add proj-9 proj-42 --type validates"
+        "graph edges missing; repair then retry: bd dep add 'proj-42' 'proj-3' --type 'blocks'; bd dep add 'proj-9' 'proj-42' --type 'validates'"
     );
 }
 
@@ -863,7 +863,7 @@ fn graph_edge_types_validate_strings_without_changing_wire_format() {
     assert!(
         error
             .to_string()
-            .ends_with("bd dep add proj-42 proj-3 --type custom-audit_1")
+            .ends_with("bd dep add 'proj-42' 'proj-3' --type 'custom-audit_1'")
     );
 
     let step = BeadEndpoint::Step(StepId::new("build").expect("valid step"));

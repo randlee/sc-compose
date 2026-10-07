@@ -349,6 +349,16 @@ fn scalable_attach_roundtrip(count: usize, apply: bool) {
 
 const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 
+// FUZZ-040: recovery command arguments cannot execute shell syntax or emit controls.
+#[test]
+fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
+    assert_eq!(
+        sc_composer_beads::error::shell_quote("spc-$(id)58;\u{7}"),
+        "$'spc-$(id)58;\\u{7}'"
+    );
+    assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
+}
+
 fn option_id_argument_errors(calls: &[CommandSpec], ids: &[&str]) -> Vec<String> {
     let mut checked = 0;
     let mut errors = Vec::new();

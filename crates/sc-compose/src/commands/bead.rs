@@ -2,6 +2,7 @@
 
 use std::fs;
 
+use sc_composer_beads::error::shell_quote;
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadNodeAction, BeadOperation,
     BeadOutcome, BeadPourMode, BeadStageOutcome, execute_bead_request, parse_request,
@@ -209,10 +210,14 @@ fn outcome_summary(outcome: &BeadOutcome) -> &str {
 fn missing_edge_recovery_commands(
     receipt: &BeadComposeReceipt,
 ) -> impl Iterator<Item = String> + '_ {
-    receipt
-        .missing_edges
-        .iter()
-        .map(|edge| format!("bd dep add {} {} --type {}", edge.from, edge.to, edge.kind))
+    receipt.missing_edges.iter().map(|edge| {
+        format!(
+            "bd dep add {} {} --type {}",
+            shell_quote(edge.from.as_str()),
+            shell_quote(edge.to.as_str()),
+            shell_quote(&edge.kind.to_string())
+        )
+    })
 }
 
 #[cfg(test)]
@@ -243,8 +248,8 @@ mod tests {
         });
         let mut receipt: BeadComposeReceipt = serde_json::from_value(wire).expect("receipt");
         let expected = [
-            "bd dep add proj-1.release-verify proj-1.release-build --type blocks",
-            "bd dep add proj-1.release-publish proj-1.release-verify --type validates",
+            "bd dep add 'proj-1.release-verify' 'proj-1.release-build' --type 'blocks'",
+            "bd dep add 'proj-1.release-publish' 'proj-1.release-verify' --type 'validates'",
         ];
         for stderr in [
             "",
