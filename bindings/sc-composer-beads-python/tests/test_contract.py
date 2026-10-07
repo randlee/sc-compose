@@ -76,6 +76,10 @@ def test_import_surface_exposes_versioned_beads_contract() -> None:
     assert beads.BEADS_SCHEMA_V1 == "sc-compose/beads/v1"
     assert beads.BeadOperation.VALIDATE == "validate"
     assert beads.PourAuthorization.CREATE_PERSISTENT_BEADS == "CreatePersistentBeads"
+    assert beads.BeadOperation.PREVIEW_ATTACH == "preview_attach"
+    assert beads.BeadOperation.ATTACH == "attach"
+    assert beads.BEADS_GRAPH_CONFLICT == "BEADS_GRAPH_CONFLICT"
+    assert beads.BEADS_GRAPH_APPLY_FAILED == "BEADS_GRAPH_APPLY_FAILED"
 
 
 def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
