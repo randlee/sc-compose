@@ -6,8 +6,9 @@ use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDependencyType, BeadEdgeAction,
     BeadEndpoint, BeadGraph, BeadGraphMode, BeadGraphProvenance, BeadId, BeadNodeAction,
     BeadOperation, BeadOutcome, BeadPourMode, BeadRelation, BeadStage, BeadStageOutcome,
-    DependencyName, FormulaName, GraphConflictReason, GraphFormulaUnsupportedReason, GraphRef,
-    GraphRelationInvalidReason, MissingEdge, PROVENANCE_KEY, Sha256Digest, StepId, parse_request,
+    DependencyName, FormulaName, GraphConflictReason, GraphFormulaUnsupportedReason, GraphIdField,
+    GraphRef, GraphRelationInvalidReason, MissingEdge, PROVENANCE_KEY, Sha256Digest, StepId,
+    parse_request,
 };
 
 #[test]
@@ -260,14 +261,14 @@ fn every_advertised_error_has_its_stable_code() {
         ),
         (
             BeadComposeError::GraphIdInvalid {
-                field: "step".into(),
+                field: GraphIdField::Step,
                 value: "bad-id".into(),
             },
             "BEADS_GRAPH_ID_INVALID",
         ),
         (
             BeadComposeError::GraphScopeMismatch {
-                field: "ref".into(),
+                field: GraphIdField::Ref,
                 value: "other".into(),
             },
             "BEADS_GRAPH_SCOPE_MISMATCH",
@@ -486,37 +487,37 @@ fn identifier_validation_rejects_bad_values_at_rust_and_json_boundaries() {
 fn invalid_identifier_messages_name_only_the_failing_fields_rule() {
     let cases = [
         (
-            "bead",
+            GraphIdField::Bead,
             "a b",
             BeadId::new("a b").expect_err("invalid bead"),
             "bead ids are non-empty without whitespace",
         ),
         (
-            "ref",
+            GraphIdField::Ref,
             ".",
             GraphRef::new(".").expect_err("invalid ref"),
             "ref is [A-Za-z0-9_-]{1,32}",
         ),
         (
-            "step",
+            GraphIdField::Step,
             "a-b",
             StepId::new("a-b").expect_err("invalid step"),
             "step is [A-Za-z0-9_]{1,64}; hyphens are forbidden",
         ),
         (
-            "digest",
+            GraphIdField::Digest,
             "bad",
             Sha256Digest::new("bad").expect_err("invalid digest"),
             "digest is sha256: plus exactly 64 lowercase hex digits",
         ),
         (
-            "formula",
+            GraphIdField::Formula,
             "../bad",
             FormulaName::new("../bad").expect_err("invalid formula"),
             "formula contains ASCII letters, digits, underscores, dots and hyphens; no leading dot/hyphen or consecutive dots",
         ),
         (
-            "dependency_type",
+            GraphIdField::DependencyType,
             "1bad",
             DependencyName::new("1bad").expect_err("invalid dependency type"),
             "dependency_type starts with an ASCII letter followed by ASCII letters, digits, underscores or hyphens",
@@ -524,6 +525,13 @@ fn invalid_identifier_messages_name_only_the_failing_fields_rule() {
     ];
     for (field, value, error, rule) in cases {
         let expected = format!("invalid graph {field} `{value}`; follow ADR-0023: {rule}");
+        assert!(
+            matches!(&error, BeadComposeError::GraphIdInvalid { field: actual, .. } if *actual == field)
+        );
+        assert_eq!(
+            serde_json::to_value(&error).expect("error JSON")["details"]["field"],
+            field.as_str()
+        );
         assert_eq!(error.to_string(), expected);
         assert_eq!(
             serde_json::to_value(&error).expect("error JSON")["message"],
@@ -545,6 +553,50 @@ fn digests_use_the_composer_hash_contract() {
     assert_eq!(lf, hash(b"line one\r\nline two\r"));
     let digest = Sha256Digest::new(format!("sha256:{}", lf.template())).expect("canonical digest");
     assert_eq!(digest.as_str(), format!("sha256:{}", lf.template()));
+}
+
+#[test]
+fn graph_identifier_field_vocabulary_is_closed_and_preserves_wire_strings() {
+    for (field, name) in [
+        (GraphIdField::Bead, "bead"),
+        (GraphIdField::Ref, "ref"),
+        (GraphIdField::Step, "step"),
+        (GraphIdField::Digest, "digest"),
+        (GraphIdField::Formula, "formula"),
+        (GraphIdField::DependencyType, "dependency_type"),
+        (GraphIdField::Parent, "parent"),
+    ] {
+        assert_eq!(field.to_string(), name);
+        assert_eq!(field.as_str(), name);
+        assert_eq!(
+            serde_json::to_value(field).expect("field serializes"),
+            serde_json::json!(name)
+        );
+        assert_eq!(
+            serde_json::from_value::<GraphIdField>(serde_json::json!(name)).expect("known field"),
+            field
+        );
+    }
+    for invalid in ["unknown", "dependency-type", "Ref", ""] {
+        serde_json::from_value::<GraphIdField>(serde_json::json!(invalid))
+            .expect_err("unknown field");
+    }
+    for field in [GraphIdField::Parent, GraphIdField::Ref] {
+        let error = BeadComposeError::GraphScopeMismatch {
+            field,
+            value: "other".into(),
+        };
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "graph scope {field} disagrees with `other`; make compose_variables agree with the top-level parent/ref"
+            )
+        );
+        assert_eq!(
+            serde_json::to_value(&error).expect("error JSON")["details"]["field"],
+            field.as_str()
+        );
+    }
 }
 
 #[test]

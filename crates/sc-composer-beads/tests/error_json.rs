@@ -1,6 +1,6 @@
 use sc_composer_beads::{
     BeadComposeError as Error, BeadId, GraphConflictReason, GraphDependencyType,
-    GraphFormulaUnsupportedReason, GraphRelationInvalidReason, MissingEdge,
+    GraphFormulaUnsupportedReason, GraphIdField, GraphRelationInvalidReason, MissingEdge,
 };
 use serde_json::json;
 
@@ -19,14 +19,14 @@ fn graph_errors_preserve_typed_details_and_recovery() {
         ),
         (
             Error::GraphIdInvalid {
-                field: "ref".into(),
+                field: GraphIdField::Ref,
                 value: "bad ref".into(),
             },
             json!({"field":"ref","value":"bad ref"}),
         ),
         (
             Error::GraphScopeMismatch {
-                field: "parent".into(),
+                field: GraphIdField::Parent,
                 value: "other".into(),
             },
             json!({"field":"parent","value":"other"}),

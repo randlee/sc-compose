@@ -7,19 +7,61 @@ use thiserror::Error;
 use crate::contract::{BeadId, BeadStage, GraphDependencyType, MissingEdge};
 use serde::{Deserialize, Serialize};
 
-fn graph_id_rule(field: &str) -> &'static str {
+/// Closed wire vocabulary for graph identifier and scope fields (ADR-0023).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GraphIdField {
+    /// A bead identifier.
+    Bead,
+    /// An attachment reference.
+    Ref,
+    /// A formula step identifier.
+    Step,
+    /// A content digest.
+    Digest,
+    /// A formula name.
+    Formula,
+    /// A dependency type token.
+    DependencyType,
+    /// The top-level attachment parent.
+    Parent,
+}
+
+impl GraphIdField {
+    /// Return the field's stable serde wire name.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Bead => "bead",
+            Self::Ref => "ref",
+            Self::Step => "step",
+            Self::Digest => "digest",
+            Self::Formula => "formula",
+            Self::DependencyType => "dependency_type",
+            Self::Parent => "parent",
+        }
+    }
+}
+
+impl std::fmt::Display for GraphIdField {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+fn graph_id_rule(field: GraphIdField) -> &'static str {
     match field {
-        "bead" => "bead ids are non-empty without whitespace",
-        "ref" => "ref is [A-Za-z0-9_-]{1,32}",
-        "step" => "step is [A-Za-z0-9_]{1,64}; hyphens are forbidden",
-        "digest" => "digest is sha256: plus exactly 64 lowercase hex digits",
-        "formula" => {
+        GraphIdField::Bead => "bead ids are non-empty without whitespace",
+        GraphIdField::Ref => "ref is [A-Za-z0-9_-]{1,32}",
+        GraphIdField::Step => "step is [A-Za-z0-9_]{1,64}; hyphens are forbidden",
+        GraphIdField::Digest => "digest is sha256: plus exactly 64 lowercase hex digits",
+        GraphIdField::Formula => {
             "formula contains ASCII letters, digits, underscores, dots and hyphens; no leading dot/hyphen or consecutive dots"
         }
-        "dependency_type" => {
+        GraphIdField::DependencyType => {
             "dependency_type starts with an ASCII letter followed by ASCII letters, digits, underscores or hyphens"
         }
-        _ => "use a valid identifier for the named field",
+        GraphIdField::Parent => "use a valid identifier for the named field",
     }
 }
 
@@ -195,11 +237,11 @@ pub enum BeadComposeError {
     /// `IdInvalid` condition from ADR-0023.
     #[error(
         "invalid graph {field} `{value}`; follow ADR-0023: {rule}",
-        rule = graph_id_rule(.field)
+        rule = graph_id_rule(*.field)
     )]
     GraphIdInvalid {
         /// Invalid identifier field.
-        field: String,
+        field: GraphIdField,
         /// Rejected value.
         value: String,
     },
@@ -209,7 +251,7 @@ pub enum BeadComposeError {
     )]
     GraphScopeMismatch {
         /// Mismatched scope field.
-        field: String,
+        field: GraphIdField,
         /// Conflicting value.
         value: String,
     },
