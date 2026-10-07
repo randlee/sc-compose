@@ -1,0 +1,5525 @@
+2026-09-06 19:30:57 [debug    ] duplication_token_cache        hits=1003 misses=0
+{
+  "kpis": {
+    "hotspot_health": 5.21,
+    "average_health": 8.32,
+    "worst_performer_path": ".github/scripts/release_artifacts.py",
+    "worst_performer_score": 1.9,
+    "file_count": 1017,
+    "maintainability_average": 9.09,
+    "maintainability_hotspot": 7.45,
+    "performance_average": 9.77,
+    "performance_hotspot": 9.24
+  },
+  "metrics": [
+    {
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "score": 4.44,
+      "max_ccn": 7,
+      "max_nesting": 4,
+      "nloc": 714,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 30.27
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/xml_model.rs",
+      "score": 4.44,
+      "max_ccn": 13,
+      "max_nesting": 4,
+      "nloc": 227,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "score": 4.5,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 9,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "score": 4.65,
+      "max_ccn": 16,
+      "max_nesting": 2,
+      "nloc": 936,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 20.69
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/yaml.rs",
+      "score": 4.7,
+      "max_ccn": 21,
+      "max_nesting": 6,
+      "nloc": 706,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 48.81
+    },
+    {
+      "file_path": "crates/sc-composer/src/discovery.rs",
+      "score": 4.71,
+      "max_ccn": 9,
+      "max_nesting": 4,
+      "nloc": 271,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 3.91
+    },
+    {
+      "file_path": "crates/sc-composer-beads/src/runner.rs",
+      "score": 4.75,
+      "max_ccn": 9,
+      "max_nesting": 3,
+      "nloc": 406,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 3.67
+    },
+    {
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "score": 4.77,
+      "max_ccn": 8,
+      "max_nesting": 3,
+      "nloc": 1102,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 29.22
+    },
+    {
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "score": 4.78,
+      "max_ccn": 8,
+      "max_nesting": 2,
+      "nloc": 690,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 39.29
+    },
+    {
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "score": 4.93,
+      "max_ccn": 13,
+      "max_nesting": 3,
+      "nloc": 221,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 15.95
+    },
+    {
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "score": 5.05,
+      "max_ccn": 7,
+      "max_nesting": 3,
+      "nloc": 1079,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 16.38
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/toml.rs",
+      "score": 5.32,
+      "max_ccn": 18,
+      "max_nesting": 4,
+      "nloc": 509,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 49.9
+    },
+    {
+      "file_path": "crates/sc-composer/src/types.rs",
+      "score": 5.5,
+      "max_ccn": 9,
+      "max_nesting": 3,
+      "nloc": 575,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 21.36
+    },
+    {
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "score": 5.54,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 502,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 48.61
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/xml.rs",
+      "score": 5.78,
+      "max_ccn": 6,
+      "max_nesting": 3,
+      "nloc": 296,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 9.62
+    },
+    {
+      "file_path": "crates/sc-composer/src/include.rs",
+      "score": 5.9,
+      "max_ccn": 4,
+      "max_nesting": 2,
+      "nloc": 958,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 70.91
+    },
+    {
+      "file_path": "crates/sc-composer-beads/src/error.rs",
+      "score": 5.98,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 135,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/error.rs",
+      "score": 6.15,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 260,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 30.97
+    },
+    {
+      "file_path": "crates/sc-composer/src/lib.rs",
+      "score": 6.15,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 230,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 21.26
+    },
+    {
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "score": 6.24,
+      "max_ccn": 11,
+      "max_nesting": 4,
+      "nloc": 529,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 43.67
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/json.rs",
+      "score": 6.26,
+      "max_ccn": 15,
+      "max_nesting": 4,
+      "nloc": 541,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 60.36
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/xml_evidence.rs",
+      "score": 6.5,
+      "max_ccn": 9,
+      "max_nesting": 5,
+      "nloc": 149,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 8.0
+    },
+    {
+      "file_path": "crates/sc-composer/src/frontmatter/parser.rs",
+      "score": 6.5,
+      "max_ccn": 8,
+      "max_nesting": 3,
+      "nloc": 166,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer-beads/src/render.rs",
+      "score": 6.5,
+      "max_ccn": 3,
+      "max_nesting": 1,
+      "nloc": 211,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "score": 6.51,
+      "max_ccn": 4,
+      "max_nesting": 2,
+      "nloc": 442,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 10.42
+    },
+    {
+      "file_path": "crates/sc-composer/src/diagnostics/schema.rs",
+      "score": 6.58,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 381,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 35.86
+    },
+    {
+      "file_path": "crates/sc-composer/src/directive_inspection.rs",
+      "score": 6.59,
+      "max_ccn": 10,
+      "max_nesting": 5,
+      "nloc": 238,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "score": 6.62,
+      "max_ccn": 7,
+      "max_nesting": 3,
+      "nloc": 1370,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 15.4
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/yaml_limits.rs",
+      "score": 6.64,
+      "max_ccn": 20,
+      "max_nesting": 5,
+      "nloc": 87,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/raw_text.rs",
+      "score": 6.89,
+      "max_ccn": 13,
+      "max_nesting": 5,
+      "nloc": 228,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 2.28
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "score": 6.96,
+      "max_ccn": 10,
+      "max_nesting": 4,
+      "nloc": 317,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 14.55
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/xml_prefix.rs",
+      "score": 7.22,
+      "max_ccn": 12,
+      "max_nesting": 3,
+      "nloc": 79,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "score": 7.44,
+      "max_ccn": 5,
+      "max_nesting": 2,
+      "nloc": 378,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 41.58
+    },
+    {
+      "file_path": "crates/sc-composer-beads/tests/contract.rs",
+      "score": 7.54,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 202,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/render_check.rs",
+      "score": 7.71,
+      "max_ccn": 4,
+      "max_nesting": 2,
+      "nloc": 428,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 16.35
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/tests.rs",
+      "score": 7.8,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 432,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 10.88
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/json_limits.rs",
+      "score": 7.92,
+      "max_ccn": 11,
+      "max_nesting": 4,
+      "nloc": 68,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/validate.rs",
+      "score": 8.2,
+      "max_ccn": 4,
+      "max_nesting": 1,
+      "nloc": 170,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 51.27
+    },
+    {
+      "file_path": "crates/sc-composer-beads/tests/runner_process_tree.rs",
+      "score": 8.2,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 70,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 15.49
+    },
+    {
+      "file_path": "crates/sc-composer/src/discovery/identifiers.rs",
+      "score": 8.35,
+      "max_ccn": 9,
+      "max_nesting": 3,
+      "nloc": 131,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 15.27
+    },
+    {
+      "file_path": "crates/sc-composer/src/frontmatter_init.rs",
+      "score": 8.45,
+      "max_ccn": 6,
+      "max_nesting": 2,
+      "nloc": 175,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 21.43
+    },
+    {
+      "file_path": "crates/sc-composer/src/observer.rs",
+      "score": 8.45,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 191,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 48.35
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/error.rs",
+      "score": 8.5,
+      "max_ccn": 4,
+      "max_nesting": 3,
+      "nloc": 243,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 33.94
+    },
+    {
+      "file_path": "crates/sc-composer/src/frontmatter/normalizer.rs",
+      "score": 8.5,
+      "max_ccn": 10,
+      "max_nesting": 2,
+      "nloc": 118,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/validation/mod.rs",
+      "score": 8.7,
+      "max_ccn": 3,
+      "max_nesting": 1,
+      "nloc": 621,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 37.48
+    },
+    {
+      "file_path": "crates/sc-composer/src/frontmatter/model.rs",
+      "score": 8.8,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 113,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 6.67
+    },
+    {
+      "file_path": "crates/sc-composer/src/include/expansion.rs",
+      "score": 8.9,
+      "max_ccn": 7,
+      "max_nesting": 3,
+      "nloc": 282,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/frontmatter/mod.rs",
+      "score": 8.95,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 188,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 30.69
+    },
+    {
+      "file_path": "crates/sc-composer/src/validation/state.rs",
+      "score": 9.03,
+      "max_ccn": 7,
+      "max_nesting": 3,
+      "nloc": 479,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 12.32
+    },
+    {
+      "file_path": "crates/sc-composer/src/error/config.rs",
+      "score": 9.05,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 63,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 100.0
+    },
+    {
+      "file_path": "crates/sc-composer/src/error/include.rs",
+      "score": 9.05,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 62,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 100.0
+    },
+    {
+      "file_path": "crates/sc-composer/src/error/resolve.rs",
+      "score": 9.05,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 62,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 100.0
+    },
+    {
+      "file_path": "crates/sc-composer/src/error/validation.rs",
+      "score": 9.05,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 108,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 56.3
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/mod.rs",
+      "score": 9.05,
+      "max_ccn": 8,
+      "max_nesting": 2,
+      "nloc": 378,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 40.43
+    },
+    {
+      "file_path": "crates/sc-composer/src/path_utils.rs",
+      "score": 9.3,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 8,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/xml_reject.rs",
+      "score": 9.35,
+      "max_ccn": 5,
+      "max_nesting": 1,
+      "nloc": 86,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 41.38
+    },
+    {
+      "file_path": "crates/sc-composer-beads/src/lib.rs",
+      "score": 9.35,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 17,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 26.92
+    },
+    {
+      "file_path": "crates/sc-composer/src/include/path.rs",
+      "score": 9.55,
+      "max_ccn": 5,
+      "max_nesting": 3,
+      "nloc": 77,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer-beads/src/contract.rs",
+      "score": 9.55,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 129,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 12.63
+    },
+    {
+      "file_path": "crates/sc-composer/src/diagnostics/filesystem.rs",
+      "score": 9.65,
+      "max_ccn": 3,
+      "max_nesting": 1,
+      "nloc": 103,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 28.16
+    },
+    {
+      "file_path": "crates/sc-composer/src/template_ext.rs",
+      "score": 9.7,
+      "max_ccn": 3,
+      "max_nesting": 1,
+      "nloc": 50,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/template_scanner.rs",
+      "score": 9.7,
+      "max_ccn": 8,
+      "max_nesting": 3,
+      "nloc": 52,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/input_limits.rs",
+      "score": 9.7,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 16,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/raw.rs",
+      "score": 9.7,
+      "max_ccn": 8,
+      "max_nesting": 2,
+      "nloc": 242,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 3.57
+    },
+    {
+      "file_path": "crates/sc-composer/src/extract/xml_serialize.rs",
+      "score": 9.7,
+      "max_ccn": 5,
+      "max_nesting": 3,
+      "nloc": 40,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/include/directive.rs",
+      "score": 9.7,
+      "max_ccn": 8,
+      "max_nesting": 1,
+      "nloc": 77,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/discovery/scope.rs",
+      "score": 9.85,
+      "max_ccn": 4,
+      "max_nesting": 1,
+      "nloc": 69,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 10.14
+    },
+    {
+      "file_path": "crates/sc-composer/Cargo.toml",
+      "score": 10.0,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 26,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/path_containment.rs",
+      "score": 10.0,
+      "max_ccn": 6,
+      "max_nesting": 3,
+      "nloc": 96,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/diagnostics/envelope.rs",
+      "score": 10.0,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 72,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/diagnostics/record.rs",
+      "score": 10.0,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 75,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/discovery/scanner.rs",
+      "score": 10.0,
+      "max_ccn": 6,
+      "max_nesting": 2,
+      "nloc": 88,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/error/display.rs",
+      "score": 10.0,
+      "max_ccn": 4,
+      "max_nesting": 2,
+      "nloc": 49,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/error/recovery.rs",
+      "score": 10.0,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 36,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/error/render.rs",
+      "score": 10.0,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 45,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer/src/include/fingerprint.rs",
+      "score": 10.0,
+      "max_ccn": 3,
+      "max_nesting": 1,
+      "nloc": 105,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer-beads/Cargo.toml",
+      "score": 10.0,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 31,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer-beads/README.md",
+      "score": 10.0,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 8,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
+      "file_path": "crates/sc-composer-beads/tests/runner.rs",
+      "score": 10.0,
+      "max_ccn": 1,
+      "max_nesting": 0,
+      "nloc": 24,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    }
+  ],
+  "findings": [
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": "CapturingObserver",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "CapturingObserver",
+        "lcom4": 5,
+        "method_count": 5,
+        "field_count": 5
+      },
+      "reason": "CapturingObserver has low cohesion (LCOM4=5): its 5 methods split into 5 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": "render_all_with_observer",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 61,
+        "ccn": 8
+      },
+      "reason": "render_all_with_observer is 61 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": "render_all_with_observer",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 6
+      },
+      "reason": "render_all_with_observer takes 6 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 39.29,
+        "clone_pair_count": 122,
+        "worst_clone_lines": 31,
+        "worst_clone_partner": "crates/sc-composer/src/validate.rs",
+        "worst_clone_co_change": 10
+      },
+      "reason": "39% of file duplicated; worst clone shares 31 lines with crates/sc-composer/src/validate.rs (co-changed 10x)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": null,
+      "health_impact": 1.062,
+      "details": {
+        "change_entropy": 5.9939,
+        "change_entropy_pct": 96.0,
+        "commit_count_90d": 8
+      },
+      "reason": "changes are scattered across noisy commits (top 4% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": null,
+      "health_impact": 1.266,
+      "details": {
+        "scatter": 25,
+        "commit_count_90d": 8
+      },
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": null,
+      "health_impact": 1.172,
+      "details": {
+        "prior_defect_count": 13,
+        "window_days": 180
+      },
+      "reason": "13 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_9f25629ff66207426d8b"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_1f27102639d2a811db29"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "untested_hotspot",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 2.0,
+      "details": {
+        "line_coverage_pct": null,
+        "branch_coverage_pct": null,
+        "dependents_count": 37,
+        "commit_count_90d": 6,
+        "has_test_file": false,
+        "reached_by_tests": false
+      },
+      "reason": "Hotspot with no paired test file and no coverage data \u2014 37 dependents"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 1.003,
+      "details": {
+        "relative_churn": 56.33,
+        "churn_percentile": 85.8,
+        "lines_added_90d": 94,
+        "lines_deleted_90d": 413,
+        "commit_count_90d": 6,
+        "nloc": 9
+      },
+      "reason": "90-day churn rewrote 56.3x the file's size (507 lines over 9 NLOC, top 14% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.758,
+      "details": {
+        "change_entropy": 5.0281,
+        "change_entropy_pct": 93.8,
+        "commit_count_90d": 6
+      },
+      "reason": "changes are scattered across noisy commits (top 6.2% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.903,
+      "details": {
+        "scatter": 25,
+        "commit_count_90d": 6
+      },
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.836,
+      "details": {
+        "prior_defect_count": 8,
+        "window_days": 180
+      },
+      "reason": "8 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/directive_inspection.rs",
+      "function_name": "scan_directives",
+      "health_impact": 1.608,
+      "details": {
+        "max_nesting": 5,
+        "ccn": 10,
+        "cognitive": 28
+      },
+      "reason": "scan_directives nests 5 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/directive_inspection.rs",
+      "function_name": "block_tag",
+      "health_impact": 0.75,
+      "details": {
+        "ccn": 10,
+        "cognitive": 12,
+        "nloc": 22
+      },
+      "reason": "block_tag has cyclomatic complexity 10"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/directive_inspection.rs",
+      "function_name": "scan_directives",
+      "health_impact": 0.75,
+      "details": {
+        "ccn": 10,
+        "cognitive": 28,
+        "nloc": 47
+      },
+      "reason": "scan_directives has cyclomatic complexity 10"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/directive_inspection.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/discovery.rs",
+      "function_name": "discover_tokens_with_delimiters",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 9,
+        "cognitive": 16
+      },
+      "reason": "discover_tokens_with_delimiters nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/discovery.rs",
+      "function_name": "discover_tokens_with_delimiters",
+      "health_impact": 0.847,
+      "details": {
+        "ccn": 9,
+        "cognitive": 16,
+        "nloc": 29
+      },
+      "reason": "discover_tokens_with_delimiters has cyclomatic complexity 9"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/discovery.rs",
+      "function_name": "discover_tokens_with_delimiters",
+      "health_impact": 0.827,
+      "details": {
+        "modification_count": 4,
+        "repo_p80": 2,
+        "ccn": 9,
+        "max_nesting": 4
+      },
+      "reason": "discover_tokens_with_delimiters has been modified across 4 commits (repo p80=2) and carries CCN=9 / nesting=4"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/discovery.rs",
+      "function_name": null,
+      "health_impact": 0.856,
+      "details": {
+        "relative_churn": 2.93,
+        "churn_percentile": 95.1,
+        "lines_added_90d": 422,
+        "lines_deleted_90d": 371,
+        "commit_count_90d": 6,
+        "nloc": 271
+      },
+      "reason": "90-day churn rewrote 2.9x the file's size (793 lines over 271 NLOC, top 4.9% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/discovery.rs",
+      "function_name": null,
+      "health_impact": 0.628,
+      "details": {
+        "change_entropy": 2.3346,
+        "change_entropy_pct": 82.2,
+        "commit_count_90d": 6
+      },
+      "reason": "changes are scattered across noisy commits (top 18% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/discovery.rs",
+      "function_name": null,
+      "health_impact": 1.189,
+      "details": {
+        "prior_defect_count": 4,
+        "window_days": 180
+      },
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/error.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 30.97,
+        "clone_pair_count": 8,
+        "worst_clone_lines": 26,
+        "worst_clone_partner": "crates/sc-composer/src/error.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "31% of file duplicated; worst clone shares 26 lines with crates/sc-composer/src/error.rs"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/error.rs",
+      "function_name": null,
+      "health_impact": 0.709,
+      "details": {
+        "change_entropy": 2.4285,
+        "change_entropy_pct": 83.3,
+        "commit_count_90d": 3
+      },
+      "reason": "changes are scattered across noisy commits (top 17% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/error.rs",
+      "function_name": null,
+      "health_impact": 1.449,
+      "details": {
+        "scatter": 24,
+        "commit_count_90d": 3
+      },
+      "reason": "co-changes with 24 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/error.rs",
+      "function_name": null,
+      "health_impact": 1.342,
+      "details": {
+        "prior_defect_count": 5,
+        "window_days": 180
+      },
+      "reason": "5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/frontmatter_init.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 21.43,
+        "clone_pair_count": 16,
+        "worst_clone_lines": 24,
+        "worst_clone_partner": "crates/sc-composer/src/init_workspace.rs",
+        "worst_clone_co_change": 4
+      },
+      "reason": "21% of file duplicated; worst clone shares 24 lines with crates/sc-composer/src/init_workspace.rs (co-changed 4x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/frontmatter_init.rs",
+      "function_name": null,
+      "health_impact": 1.2,
+      "details": {
+        "prior_defect_count": 3,
+        "window_days": 180
+      },
+      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/frontmatter_init.rs",
+      "function_name": "frontmatter_init",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_1f6209f76dc8e2010f6e"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/frontmatter_init.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_2926bb8db4173e0529e5"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/frontmatter_init.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_735c80e6245e13bd0f5d"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 70.91,
+        "clone_pair_count": 149,
+        "worst_clone_lines": 16,
+        "worst_clone_partner": "crates/sc-composer/src/resolver.rs",
+        "worst_clone_co_change": 8
+      },
+      "reason": "71% of file duplicated; worst clone shares 16 lines with crates/sc-composer/src/resolver.rs (co-changed 8x)"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": null,
+      "health_impact": 0.199,
+      "details": {
+        "relative_churn": 1.39,
+        "churn_percentile": 98.3,
+        "lines_added_90d": 961,
+        "lines_deleted_90d": 372,
+        "commit_count_90d": 13,
+        "nloc": 958
+      },
+      "reason": "90-day churn rewrote 1.4x the file's size (1333 lines over 958 NLOC, top 1.7% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": null,
+      "health_impact": 1.002,
+      "details": {
+        "change_entropy": 5.1873,
+        "change_entropy_pct": 94.2,
+        "commit_count_90d": 13
+      },
+      "reason": "changes are scattered across noisy commits (top 5.8% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": null,
+      "health_impact": 1.194,
+      "details": {
+        "scatter": 25,
+        "commit_count_90d": 13
+      },
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": null,
+      "health_impact": 1.105,
+      "details": {
+        "prior_defect_count": 10,
+        "window_days": 180
+      },
+      "reason": "10 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": "deep_include_chain_above_safe_ceiling_returns_include_depth_error",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-composer/src/include.rs::tests::deep_include_chain_above_safe_ceiling_returns_include_depth_error",
+          "crates/sc-composer/src/include.rs::tests::write_file"
+        ],
+        "resolution_basis": "call-site",
+        "reliable_entry_reachability": false,
+        "opportunity_id": "perf2_126172ddde97425b3555"
+      },
+      "reason": "a filesystem call is reached once per loop iteration through deep_include_chain_above_safe_ceiling_returns_include_depth_error -> write_file (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": "write_linear_chain",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-composer/src/include.rs::tests::write_linear_chain",
+          "crates/sc-composer/src/include.rs::tests::write_file"
+        ],
+        "resolution_basis": "call-site",
+        "reliable_entry_reachability": false,
+        "opportunity_id": "perf2_5882c11a7ecfc4dcd8bc"
+      },
+      "reason": "a filesystem call is reached once per loop iteration through write_linear_chain -> write_file (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": "new",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_72360cfac187ff781f0c"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_a106216d3c719bfbbb6d"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include.rs",
+      "function_name": "write_linear_chain",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_90891e3aec792b40b9bc"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": "init_workspace",
+      "health_impact": 0.847,
+      "details": {
+        "ccn": 13,
+        "cognitive": 19,
+        "nloc": 88
+      },
+      "reason": "init_workspace has cyclomatic complexity 13"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": "init_workspace",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 88,
+        "ccn": 13
+      },
+      "reason": "init_workspace is 88 lines long"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 15.95,
+        "clone_pair_count": 27,
+        "worst_clone_lines": 20,
+        "worst_clone_partner": "crates/sc-composer/src/composer.rs",
+        "worst_clone_co_change": 5
+      },
+      "reason": "16% of file duplicated; worst clone shares 20 lines with crates/sc-composer/src/composer.rs (co-changed 5x)"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": "init_workspace",
+      "health_impact": 1.265,
+      "details": {
+        "modification_count": 4,
+        "repo_p80": 2,
+        "ccn": 13,
+        "max_nesting": 3
+      },
+      "reason": "init_workspace has been modified across 4 commits (repo p80=2) and carries CCN=13 / nesting=3"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": null,
+      "health_impact": 1.963,
+      "details": {
+        "scatter": 25,
+        "commit_count_90d": 3
+      },
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": null,
+      "health_impact": 0.273,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": "scan_templates_recursive",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-composer/src/init_workspace.rs::scan_templates_recursive",
+          "crates/sc-composer/src/init_workspace.rs::scan_templates_recursive"
+        ],
+        "resolution_basis": "call-site",
+        "reliable_entry_reachability": false,
+        "opportunity_id": "perf2_3f2b4a22414dfef50e78"
+      },
+      "reason": "a filesystem call is reached once per loop iteration through scan_templates_recursive -> scan_templates_recursive (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": "init_workspace",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_8597d29f5b652eee2000"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_3bef71ee91011ab2bf38"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_6f09d7a88ef6a7b4a6ab"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/lib.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 21.26,
+        "clone_pair_count": 14,
+        "worst_clone_lines": 8,
+        "worst_clone_partner": "bindings/python/src/types/results.rs",
+        "worst_clone_co_change": 5
+      },
+      "reason": "21% of file duplicated; worst clone shares 8 lines with bindings/python/src/types/results.rs (co-changed 5x)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/lib.rs",
+      "function_name": null,
+      "health_impact": 1.062,
+      "details": {
+        "change_entropy": 10.7201,
+        "change_entropy_pct": 98.5,
+        "commit_count_90d": 16
+      },
+      "reason": "changes are scattered across noisy commits (top 1.5% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/lib.rs",
+      "function_name": null,
+      "health_impact": 1.266,
+      "details": {
+        "scatter": 25,
+        "commit_count_90d": 16
+      },
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/lib.rs",
+      "function_name": null,
+      "health_impact": 1.172,
+      "details": {
+        "prior_defect_count": 12,
+        "window_days": 180
+      },
+      "reason": "12 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/observer.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 48.35,
+        "clone_pair_count": 6,
+        "worst_clone_lines": 22,
+        "worst_clone_partner": "crates/sc-composer/src/observer.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "48% of file duplicated; worst clone shares 22 lines with crates/sc-composer/src/observer.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/observer.rs",
+      "function_name": null,
+      "health_impact": 1.2,
+      "details": {
+        "prior_defect_count": 4,
+        "window_days": 180
+      },
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/path_utils.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/render_check.rs",
+      "function_name": "RenderCheckMeta",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "RenderCheckMeta",
+        "lcom4": 5,
+        "method_count": 6,
+        "field_count": 0
+      },
+      "reason": "RenderCheckMeta has low cohesion (LCOM4=5): its 6 methods split into 5 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/render_check.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 16.35,
+        "clone_pair_count": 3,
+        "worst_clone_lines": 30,
+        "worst_clone_partner": "crates/sc-composer/src/render_check.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "16% of file duplicated; worst clone shares 30 lines with crates/sc-composer/src/render_check.rs"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/render_check.rs",
+      "function_name": null,
+      "health_impact": 0.84,
+      "details": {
+        "relative_churn": 1.6,
+        "churn_percentile": 94.8,
+        "lines_added_90d": 620,
+        "lines_deleted_90d": 66,
+        "commit_count_90d": 6,
+        "nloc": 428
+      },
+      "reason": "90-day churn rewrote 1.6x the file's size (686 lines over 428 NLOC, top 5.2% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/render_check.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": "Renderer",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "Renderer",
+        "lcom4": 9,
+        "method_count": 10,
+        "field_count": 1
+      },
+      "reason": "Renderer has low cohesion (LCOM4=9): its 10 methods split into 9 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 16.38,
+        "clone_pair_count": 10,
+        "worst_clone_lines": 8,
+        "worst_clone_partner": "crates/sc-compose/tests/cli/render.rs",
+        "worst_clone_co_change": 6
+      },
+      "reason": "16% of file duplicated; worst clone shares 8 lines with crates/sc-compose/tests/cli/render.rs (co-changed 6x)"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": "auto_escape_callback",
+      "health_impact": 0.545,
+      "details": {
+        "modification_count": 5,
+        "repo_p80": 2,
+        "ccn": 7,
+        "max_nesting": 3
+      },
+      "reason": "auto_escape_callback has been modified across 5 commits (repo p80=2) and carries CCN=7 / nesting=3"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 0.141,
+      "details": {
+        "relative_churn": 1.23,
+        "churn_percentile": 98.8,
+        "lines_added_90d": 1168,
+        "lines_deleted_90d": 160,
+        "commit_count_90d": 24,
+        "nloc": 1079
+      },
+      "reason": "90-day churn rewrote 1.2x the file's size (1328 lines over 1079 NLOC, top 1.2% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 1.183,
+      "details": {
+        "change_entropy": 10.4197,
+        "change_entropy_pct": 98.2,
+        "commit_count_90d": 24
+      },
+      "reason": "changes are scattered across noisy commits (top 1.8% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 0.846,
+      "details": {
+        "scatter": 25,
+        "commit_count_90d": 24
+      },
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 0.784,
+      "details": {
+        "prior_defect_count": 20,
+        "window_days": 180
+      },
+      "reason": "20 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": "resolve_profile_impl",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 7,
+        "cognitive": 14
+      },
+      "reason": "resolve_profile_impl nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": "canonicalize_with_roots",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 60,
+        "ccn": 5
+      },
+      "reason": "canonicalize_with_roots is 60 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": "resolve_profile_impl",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "resolve_profile_impl takes 5 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 30.27,
+        "clone_pair_count": 111,
+        "worst_clone_lines": 16,
+        "worst_clone_partner": "crates/sc-composer/src/include.rs",
+        "worst_clone_co_change": 8
+      },
+      "reason": "30% of file duplicated; worst clone shares 16 lines with crates/sc-composer/src/include.rs (co-changed 8x)"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": "canonicalize_with_roots",
+      "health_impact": 0.609,
+      "details": {
+        "modification_count": 4,
+        "repo_p80": 2,
+        "ccn": 5,
+        "max_nesting": 3
+      },
+      "reason": "canonicalize_with_roots has been modified across 4 commits (repo p80=2) and carries CCN=5 / nesting=3"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": "resolve_profile_with_observer",
+      "health_impact": 0.609,
+      "details": {
+        "modification_count": 5,
+        "repo_p80": 2,
+        "ccn": 4,
+        "max_nesting": 3
+      },
+      "reason": "resolve_profile_with_observer has been modified across 5 commits (repo p80=2) and carries CCN=4 / nesting=3"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": null,
+      "health_impact": 0.462,
+      "details": {
+        "change_entropy": 2.9055,
+        "change_entropy_pct": 86.9,
+        "commit_count_90d": 6
+      },
+      "reason": "changes are scattered across noisy commits (top 13% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": null,
+      "health_impact": 0.945,
+      "details": {
+        "scatter": 21,
+        "commit_count_90d": 6
+      },
+      "reason": "co-changes with 21 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": null,
+      "health_impact": 0.875,
+      "details": {
+        "prior_defect_count": 4,
+        "window_days": 180
+      },
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": "resolve_profile_impl",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": false,
+        "opportunity_id": "perf2_4d709c7f7153cec39c05"
+      },
+      "reason": "a filesystem call runs once per loop iteration (N+1 / IO-in-loop)"
+    },
+    {
+      "biomarker_type": "nested_loop_with_io",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": "resolve_profile_impl",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_03350ba930565d388c46"
+      },
+      "reason": "a filesystem call runs inside a nested loop (O(n\u00b7m) round-trips); batch the inner query or restructure the loops"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_52450692765354f97a8c"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/resolver.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_e20ddc3eea384fff34b4"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/template_ext.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/template_scanner.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/types.rs",
+      "function_name": "input_value_from_yaml",
+      "health_impact": 0.847,
+      "details": {
+        "ccn": 9,
+        "cognitive": 18,
+        "nloc": 44
+      },
+      "reason": "input_value_from_yaml has cyclomatic complexity 9"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/types.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 21.36,
+        "clone_pair_count": 6,
+        "worst_clone_lines": 36,
+        "worst_clone_partner": "crates/sc-composer/src/types.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "21% of file duplicated; worst clone shares 36 lines with crates/sc-composer/src/types.rs"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/types.rs",
+      "function_name": "input_value_from_yaml",
+      "health_impact": 0.662,
+      "details": {
+        "modification_count": 4,
+        "repo_p80": 2,
+        "ccn": 9,
+        "max_nesting": 3
+      },
+      "reason": "input_value_from_yaml has been modified across 4 commits (repo p80=2) and carries CCN=9 / nesting=3"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/types.rs",
+      "function_name": null,
+      "health_impact": 0.861,
+      "details": {
+        "change_entropy": 4.1447,
+        "change_entropy_pct": 91.6,
+        "commit_count_90d": 5
+      },
+      "reason": "changes are scattered across noisy commits (top 8.4% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/types.rs",
+      "function_name": null,
+      "health_impact": 1.027,
+      "details": {
+        "scatter": 25,
+        "commit_count_90d": 5
+      },
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/types.rs",
+      "function_name": null,
+      "health_impact": 0.951,
+      "details": {
+        "prior_defect_count": 7,
+        "window_days": 180
+      },
+      "reason": "7 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/types.rs",
+      "function_name": "new",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_db578f40ec5604ae9ef7"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validate.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 51.27,
+        "clone_pair_count": 41,
+        "worst_clone_lines": 31,
+        "worst_clone_partner": "crates/sc-composer/src/composer.rs",
+        "worst_clone_co_change": 10
+      },
+      "reason": "51% of file duplicated; worst clone shares 31 lines with crates/sc-composer/src/composer.rs (co-changed 10x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validate.rs",
+      "function_name": null,
+      "health_impact": 1.2,
+      "details": {
+        "prior_defect_count": 4,
+        "window_days": 180
+      },
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 41.58,
+        "clone_pair_count": 139,
+        "worst_clone_lines": 10,
+        "worst_clone_partner": "crates/sc-compose/src/commands/template_init.rs",
+        "worst_clone_co_change": 3
+      },
+      "reason": "42% of file duplicated; worst clone shares 10 lines with crates/sc-compose/src/commands/template_init.rs (co-changed 3x)"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "function_name": null,
+      "health_impact": 1.26,
+      "details": {
+        "scatter": 10,
+        "commit_count_90d": 4
+      },
+      "reason": "co-changes with 10 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_5475b85aa0f1aa8b383d"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_c7975890aaf0d79ea2d5"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/diagnostics/filesystem.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 28.16,
+        "clone_pair_count": 1,
+        "worst_clone_lines": 22,
+        "worst_clone_partner": "crates/sc-composer/src/diagnostics/filesystem.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "28% of file duplicated; worst clone shares 22 lines with crates/sc-composer/src/diagnostics/filesystem.rs"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/diagnostics/schema.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 35.86,
+        "clone_pair_count": 7,
+        "worst_clone_lines": 170,
+        "worst_clone_partner": "crates/sc-composer/src/lib.rs",
+        "worst_clone_co_change": 3
+      },
+      "reason": "36% of file duplicated; worst clone shares 170 lines with crates/sc-composer/src/lib.rs (co-changed 3x)"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/diagnostics/schema.rs",
+      "function_name": null,
+      "health_impact": 0.36,
+      "details": {
+        "relative_churn": 1.3,
+        "churn_percentile": 85.0,
+        "lines_added_90d": 490,
+        "lines_deleted_90d": 6,
+        "commit_count_90d": 8,
+        "nloc": 381
+      },
+      "reason": "90-day churn rewrote 1.3x the file's size (496 lines over 381 NLOC, top 15% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/diagnostics/schema.rs",
+      "function_name": null,
+      "health_impact": 2.16,
+      "details": {
+        "scatter": 22,
+        "commit_count_90d": 8
+      },
+      "reason": "co-changes with 22 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/diagnostics/schema.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/discovery/identifiers.rs",
+      "function_name": "mask_filter_names",
+      "health_impact": 0.75,
+      "details": {
+        "ccn": 9,
+        "cognitive": 12,
+        "nloc": 25
+      },
+      "reason": "mask_filter_names has cyclomatic complexity 9"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/discovery/identifiers.rs",
+      "function_name": "collect_identifiers",
+      "health_impact": 0.75,
+      "details": {
+        "ccn": 9,
+        "cognitive": 11,
+        "nloc": 27
+      },
+      "reason": "collect_identifiers has cyclomatic complexity 9"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/discovery/identifiers.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 15.27,
+        "clone_pair_count": 1,
+        "worst_clone_lines": 20,
+        "worst_clone_partner": "prototype/multipass/discover.py",
+        "worst_clone_co_change": 0
+      },
+      "reason": "15% of file duplicated; worst clone shares 20 lines with prototype/multipass/discover.py"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/discovery/scope.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 10.14,
+        "clone_pair_count": 1,
+        "worst_clone_lines": 8,
+        "worst_clone_partner": "crates/sc-composer-beads/src/execute.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "10% of file duplicated; worst clone shares 8 lines with crates/sc-composer-beads/src/execute.rs"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/error/config.rs",
+      "function_name": "ConfigError",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "ConfigError",
+        "lcom4": 6,
+        "method_count": 7,
+        "field_count": 1
+      },
+      "reason": "ConfigError has low cohesion (LCOM4=6): its 7 methods split into 6 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/error/config.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 100.0,
+        "clone_pair_count": 6,
+        "worst_clone_lines": 57,
+        "worst_clone_partner": "crates/sc-composer/src/error/include.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "100% of file duplicated; worst clone shares 57 lines with crates/sc-composer/src/error/include.rs"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/error/include.rs",
+      "function_name": "IncludeError",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "IncludeError",
+        "lcom4": 6,
+        "method_count": 6,
+        "field_count": 1
+      },
+      "reason": "IncludeError has low cohesion (LCOM4=6): its 6 methods split into 6 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/error/include.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 100.0,
+        "clone_pair_count": 4,
+        "worst_clone_lines": 79,
+        "worst_clone_partner": "crates/sc-composer/src/error/resolve.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "100% of file duplicated; worst clone shares 79 lines with crates/sc-composer/src/error/resolve.rs"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/error/resolve.rs",
+      "function_name": "ResolveError",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "ResolveError",
+        "lcom4": 6,
+        "method_count": 6,
+        "field_count": 1
+      },
+      "reason": "ResolveError has low cohesion (LCOM4=6): its 6 methods split into 6 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/error/resolve.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 100.0,
+        "clone_pair_count": 4,
+        "worst_clone_lines": 79,
+        "worst_clone_partner": "crates/sc-composer/src/error/include.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "100% of file duplicated; worst clone shares 79 lines with crates/sc-composer/src/error/include.rs"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/error/validation.rs",
+      "function_name": "ValidationError",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "ValidationError",
+        "lcom4": 9,
+        "method_count": 10,
+        "field_count": 0
+      },
+      "reason": "ValidationError has low cohesion (LCOM4=9): its 10 methods split into 9 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/error/validation.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 56.3,
+        "clone_pair_count": 4,
+        "worst_clone_lines": 52,
+        "worst_clone_partner": "crates/sc-composer/src/error/config.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "56% of file duplicated; worst clone shares 52 lines with crates/sc-composer/src/error/config.rs"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/extract/error.rs",
+      "function_name": "ExtractError",
+      "health_impact": 1.0,
+      "details": {
+        "class_name": "ExtractError",
+        "lcom4": 15,
+        "method_count": 16,
+        "field_count": 0
+      },
+      "reason": "ExtractError has low cohesion (LCOM4=15): its 16 methods split into 15 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/error.rs",
+      "function_name": "format_error_with_source",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "format_error_with_source takes 5 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/error.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 33.94,
+        "clone_pair_count": 2,
+        "worst_clone_lines": 33,
+        "worst_clone_partner": "crates/sc-composer/src/extract/error.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "34% of file duplicated; worst clone shares 33 lines with crates/sc-composer/src/extract/error.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/input_limits.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/json.rs",
+      "function_name": "match_json",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 15,
+        "cognitive": 37
+      },
+      "reason": "match_json nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/json.rs",
+      "function_name": "match_json",
+      "health_impact": 0.879,
+      "details": {
+        "ccn": 15,
+        "cognitive": 37,
+        "nloc": 102
+      },
+      "reason": "match_json has cyclomatic complexity 15"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/json.rs",
+      "function_name": "match_json",
+      "health_impact": 0.53,
+      "details": {
+        "nloc": 102,
+        "ccn": 15
+      },
+      "reason": "match_json is 102 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/json.rs",
+      "function_name": "match_json",
+      "health_impact": 0.091,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "match_json takes 5 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/json.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 60.36,
+        "clone_pair_count": 42,
+        "worst_clone_lines": 11,
+        "worst_clone_partner": "crates/sc-composer/src/extract/xml.rs",
+        "worst_clone_co_change": 4
+      },
+      "reason": "60% of file duplicated; worst clone shares 11 lines with crates/sc-composer/src/extract/xml.rs (co-changed 4x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/json.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/json_limits.rs",
+      "function_name": "validate_parse_depth",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 11,
+        "cognitive": 26
+      },
+      "reason": "validate_parse_depth nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/json_limits.rs",
+      "function_name": "validate_parse_depth",
+      "health_impact": 0.847,
+      "details": {
+        "ccn": 11,
+        "cognitive": 26,
+        "nloc": 31
+      },
+      "reason": "validate_parse_depth has cyclomatic complexity 11"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/json_limits.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/mod.rs",
+      "function_name": "new",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "new takes 5 parameters"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/mod.rs",
+      "function_name": "new_with_ambiguity_code",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "new_with_ambiguity_code takes 5 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/mod.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 40.43,
+        "clone_pair_count": 7,
+        "worst_clone_lines": 99,
+        "worst_clone_partner": "crates/sc-composer/src/extract/mod.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "40% of file duplicated; worst clone shares 99 lines with crates/sc-composer/src/extract/mod.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/mod.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/raw.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/raw_text.rs",
+      "function_name": "match_raw_text",
+      "health_impact": 1.608,
+      "details": {
+        "max_nesting": 5,
+        "ccn": 13,
+        "cognitive": 33
+      },
+      "reason": "match_raw_text nests 5 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/raw_text.rs",
+      "function_name": "match_raw_text",
+      "health_impact": 0.495,
+      "details": {
+        "ccn": 13,
+        "cognitive": 33,
+        "nloc": 95
+      },
+      "reason": "match_raw_text has cyclomatic complexity 13"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/raw_text.rs",
+      "function_name": "parse_raw_text_segments",
+      "health_impact": 0.495,
+      "details": {
+        "ccn": 9,
+        "cognitive": 12,
+        "nloc": 58
+      },
+      "reason": "parse_raw_text_segments has cyclomatic complexity 9"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/raw_text.rs",
+      "function_name": "match_raw_text",
+      "health_impact": 0.511,
+      "details": {
+        "nloc": 95,
+        "ccn": 13
+      },
+      "reason": "match_raw_text is 95 lines long"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/tests.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 10.88,
+        "clone_pair_count": 6,
+        "worst_clone_lines": 23,
+        "worst_clone_partner": "crates/sc-composer/tests/extract_integration.rs",
+        "worst_clone_co_change": 3
+      },
+      "reason": "11% of file duplicated; worst clone shares 23 lines with crates/sc-composer/tests/extract_integration.rs (co-changed 3x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/tests.rs",
+      "function_name": null,
+      "health_impact": 1.2,
+      "details": {
+        "prior_defect_count": 3,
+        "window_days": 180
+      },
+      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/tests.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "assertion_lines": [
+          91,
+          114
+        ],
+        "partner_file": "crates/sc-composer/tests/extract_integration.rs"
+      },
+      "reason": "assertion block at lines 91-114 is duplicated in crates/sc-composer/tests/extract_integration.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/tests.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "assertion_lines": [
+          312,
+          320
+        ],
+        "partner_file": "crates/sc-composer/tests/extract_integration.rs"
+      },
+      "reason": "assertion block at lines 312-320 is duplicated in crates/sc-composer/tests/extract_integration.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/tests.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "assertion_lines": [
+          331,
+          332
+        ],
+        "partner_file": "crates/sc-composer/tests/extract_integration.rs"
+      },
+      "reason": "assertion block at lines 331-332 is duplicated in crates/sc-composer/tests/extract_integration.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/tests.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "assertion_lines": [
+          361,
+          362
+        ],
+        "partner_file": "crates/sc-composer/tests/extract_integration.rs"
+      },
+      "reason": "assertion block at lines 361-362 is duplicated in crates/sc-composer/tests/extract_integration.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/tests.rs",
+      "function_name": null,
+      "health_impact": 0.1,
+      "details": {
+        "assertion_lines": [
+          384,
+          396
+        ],
+        "partner_file": "crates/sc-composer/tests/extract_integration.rs"
+      },
+      "reason": "assertion block at lines 384-396 is duplicated in crates/sc-composer/tests/extract_integration.rs"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/tests.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/toml.rs",
+      "function_name": "validate_parse_depth",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 18,
+        "cognitive": 41
+      },
+      "reason": "validate_parse_depth nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/toml.rs",
+      "function_name": "match_toml",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 12,
+        "cognitive": 29
+      },
+      "reason": "match_toml nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/toml.rs",
+      "function_name": "validate_parse_depth",
+      "health_impact": 0.815,
+      "details": {
+        "ccn": 18,
+        "cognitive": 41,
+        "nloc": 57
+      },
+      "reason": "validate_parse_depth has cyclomatic complexity 18"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/toml.rs",
+      "function_name": "match_toml",
+      "health_impact": 0.475,
+      "details": {
+        "ccn": 12,
+        "cognitive": 29,
+        "nloc": 65
+      },
+      "reason": "match_toml has cyclomatic complexity 12"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/toml.rs",
+      "function_name": "match_toml",
+      "health_impact": 0.21,
+      "details": {
+        "nloc": 65,
+        "ccn": 12
+      },
+      "reason": "match_toml is 65 lines long"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/toml.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 49.9,
+        "clone_pair_count": 35,
+        "worst_clone_lines": 9,
+        "worst_clone_partner": "crates/sc-composer/tests/extract_integration.rs",
+        "worst_clone_co_change": 3
+      },
+      "reason": "50% of file duplicated; worst clone shares 9 lines with crates/sc-composer/tests/extract_integration.rs (co-changed 3x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/toml.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml.rs",
+      "function_name": "extract_xml",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 82,
+        "ccn": 6
+      },
+      "reason": "extract_xml is 82 lines long"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 9.62,
+        "clone_pair_count": 10,
+        "worst_clone_lines": 11,
+        "worst_clone_partner": "crates/sc-composer/src/extract/json.rs",
+        "worst_clone_co_change": 4
+      },
+      "reason": "10% of file duplicated; worst clone shares 11 lines with crates/sc-composer/src/extract/json.rs (co-changed 4x)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml.rs",
+      "function_name": null,
+      "health_impact": 0.709,
+      "details": {
+        "change_entropy": 2.6,
+        "change_entropy_pct": 84.0,
+        "commit_count_90d": 3
+      },
+      "reason": "changes are scattered across noisy commits (top 16% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/xml.rs",
+      "function_name": null,
+      "health_impact": 1.449,
+      "details": {
+        "scatter": 25,
+        "commit_count_90d": 3
+      },
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/extract/xml.rs",
+      "function_name": null,
+      "health_impact": 1.342,
+      "details": {
+        "prior_defect_count": 4,
+        "window_days": 180
+      },
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/xml_evidence.rs",
+      "function_name": "path_exists",
+      "health_impact": 1.25,
+      "details": {
+        "max_nesting": 5,
+        "ccn": 8,
+        "cognitive": 25
+      },
+      "reason": "path_exists nests 5 levels deep"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/xml_evidence.rs",
+      "function_name": "collect_template_occurrences",
+      "health_impact": 1.25,
+      "details": {
+        "max_nesting": 5,
+        "ccn": 9,
+        "cognitive": 24
+      },
+      "reason": "collect_template_occurrences nests 5 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_evidence.rs",
+      "function_name": "collect_template_occurrences",
+      "health_impact": 0.847,
+      "details": {
+        "ccn": 9,
+        "cognitive": 24,
+        "nloc": 45
+      },
+      "reason": "collect_template_occurrences has cyclomatic complexity 9"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_evidence.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 8.0,
+        "clone_pair_count": 1,
+        "worst_clone_lines": 15,
+        "worst_clone_partner": "crates/sc-composer/src/extract/xml_match.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "8% of file duplicated; worst clone shares 15 lines with crates/sc-composer/src/extract/xml_match.rs"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": "match_children",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 10,
+        "cognitive": 15
+      },
+      "reason": "match_children nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": "match_children",
+      "health_impact": 0.504,
+      "details": {
+        "ccn": 10,
+        "cognitive": 15,
+        "nloc": 63
+      },
+      "reason": "match_children has cyclomatic complexity 10"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": "match_children",
+      "health_impact": 0.223,
+      "details": {
+        "nloc": 63,
+        "ccn": 10
+      },
+      "reason": "match_children is 63 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": "match_value",
+      "health_impact": 0.089,
+      "details": {
+        "param_count": 6
+      },
+      "reason": "match_value takes 6 parameters"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": "match_full_content",
+      "health_impact": 0.089,
+      "details": {
+        "param_count": 6
+      },
+      "reason": "match_full_content takes 6 parameters"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": "match_child_sequence",
+      "health_impact": 0.208,
+      "details": {
+        "param_count": 7
+      },
+      "reason": "match_child_sequence takes 7 parameters"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": "match_children",
+      "health_impact": 0.089,
+      "details": {
+        "param_count": 6
+      },
+      "reason": "match_children takes 6 parameters"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": "match_attributes",
+      "health_impact": 0.089,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "match_attributes takes 5 parameters"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": "match_element",
+      "health_impact": 0.208,
+      "details": {
+        "param_count": 7
+      },
+      "reason": "match_element takes 7 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 14.55,
+        "clone_pair_count": 3,
+        "worst_clone_lines": 15,
+        "worst_clone_partner": "crates/sc-composer/src/extract/xml_evidence.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "15% of file duplicated; worst clone shares 15 lines with crates/sc-composer/src/extract/xml_evidence.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_match.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_model.rs",
+      "function_name": "parse_xml",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 13,
+        "cognitive": 35
+      },
+      "reason": "parse_xml nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_model.rs",
+      "function_name": "parse_xml",
+      "health_impact": 0.738,
+      "details": {
+        "ccn": 13,
+        "cognitive": 35,
+        "nloc": 93
+      },
+      "reason": "parse_xml has cyclomatic complexity 13"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_model.rs",
+      "function_name": "parse_xml",
+      "health_impact": 0.762,
+      "details": {
+        "nloc": 93,
+        "ccn": 13
+      },
+      "reason": "parse_xml is 93 lines long"
+    },
+    {
+      "biomarker_type": "untested_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/xml_model.rs",
+      "function_name": null,
+      "health_impact": 1.56,
+      "details": {
+        "line_coverage_pct": null,
+        "branch_coverage_pct": null,
+        "dependents_count": 4,
+        "commit_count_90d": 4,
+        "has_test_file": false,
+        "reached_by_tests": false
+      },
+      "reason": "Hotspot with no paired test file and no coverage data \u2014 4 dependents"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_model.rs",
+      "function_name": null,
+      "health_impact": 1.26,
+      "details": {
+        "scatter": 8,
+        "commit_count_90d": 4
+      },
+      "reason": "co-changes with 8 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_model.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_prefix.rs",
+      "function_name": "normalize_rendered",
+      "health_impact": 0.847,
+      "details": {
+        "ccn": 12,
+        "cognitive": 18,
+        "nloc": 69
+      },
+      "reason": "normalize_rendered has cyclomatic complexity 12"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_prefix.rs",
+      "function_name": "normalize_rendered",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 69,
+        "ccn": 12
+      },
+      "reason": "normalize_rendered is 69 lines long"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_prefix.rs",
+      "function_name": null,
+      "health_impact": 1.26,
+      "details": {
+        "scatter": 8,
+        "commit_count_90d": 3
+      },
+      "reason": "co-changes with 8 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_prefix.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/xml_reject.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 41.38,
+        "clone_pair_count": 2,
+        "worst_clone_lines": 12,
+        "worst_clone_partner": "crates/sc-composer/src/extract/xml_reject.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "41% of file duplicated; worst clone shares 12 lines with crates/sc-composer/src/extract/xml_reject.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_reject.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/xml_serialize.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/yaml.rs",
+      "function_name": "contains_yaml_features",
+      "health_impact": 1.579,
+      "details": {
+        "max_nesting": 6,
+        "ccn": 21,
+        "cognitive": 74
+      },
+      "reason": "contains_yaml_features nests 6 levels deep"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/yaml.rs",
+      "function_name": "match_yaml",
+      "health_impact": 0.921,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 16,
+        "cognitive": 39
+      },
+      "reason": "match_yaml nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/yaml.rs",
+      "function_name": "contains_yaml_features",
+      "health_impact": 0.576,
+      "details": {
+        "ccn": 21,
+        "cognitive": 74,
+        "nloc": 54
+      },
+      "reason": "contains_yaml_features has cyclomatic complexity 21"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/yaml.rs",
+      "function_name": "match_yaml",
+      "health_impact": 0.576,
+      "details": {
+        "ccn": 16,
+        "cognitive": 39,
+        "nloc": 103
+      },
+      "reason": "match_yaml has cyclomatic complexity 16"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/yaml.rs",
+      "function_name": "match_yaml",
+      "health_impact": 0.347,
+      "details": {
+        "nloc": 103,
+        "ccn": 16
+      },
+      "reason": "match_yaml is 103 lines long"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/yaml.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 48.81,
+        "clone_pair_count": 34,
+        "worst_clone_lines": 9,
+        "worst_clone_partner": "crates/sc-composer/tests/extract_integration.rs",
+        "worst_clone_co_change": 5
+      },
+      "reason": "49% of file duplicated; worst clone shares 9 lines with crates/sc-composer/tests/extract_integration.rs (co-changed 5x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/extract/yaml.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/yaml_limits.rs",
+      "function_name": "validate_parse_depth",
+      "health_impact": 1.608,
+      "details": {
+        "max_nesting": 5,
+        "ccn": 20,
+        "cognitive": 51
+      },
+      "reason": "validate_parse_depth nests 5 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/extract/yaml_limits.rs",
+      "function_name": "validate_parse_depth",
+      "health_impact": 1.452,
+      "details": {
+        "ccn": 20,
+        "cognitive": 51,
+        "nloc": 54
+      },
+      "reason": "validate_parse_depth has cyclomatic complexity 20"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/extract/yaml_limits.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/frontmatter/mod.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 30.69,
+        "clone_pair_count": 3,
+        "worst_clone_lines": 18,
+        "worst_clone_partner": "crates/sc-composer/tests/integration.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "31% of file duplicated; worst clone shares 18 lines with crates/sc-composer/tests/integration.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/frontmatter/mod.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/frontmatter/model.rs",
+      "function_name": "ParsedTemplate",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "ParsedTemplate",
+        "lcom4": 4,
+        "method_count": 5,
+        "field_count": 0
+      },
+      "reason": "ParsedTemplate has low cohesion (LCOM4=4): its 5 methods split into 4 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/frontmatter/model.rs",
+      "function_name": "Frontmatter",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "Frontmatter",
+        "lcom4": 8,
+        "method_count": 8,
+        "field_count": 0
+      },
+      "reason": "Frontmatter has low cohesion (LCOM4=8): its 8 methods split into 8 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/frontmatter/normalizer.rs",
+      "function_name": "normalize_frontmatter",
+      "health_impact": 0.738,
+      "details": {
+        "ccn": 10,
+        "cognitive": 10,
+        "nloc": 93
+      },
+      "reason": "normalize_frontmatter has cyclomatic complexity 10"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/frontmatter/normalizer.rs",
+      "function_name": "normalize_frontmatter",
+      "health_impact": 0.762,
+      "details": {
+        "nloc": 93,
+        "ccn": 10
+      },
+      "reason": "normalize_frontmatter is 93 lines long"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/frontmatter/parser.rs",
+      "function_name": "split_frontmatter",
+      "health_impact": 0.735,
+      "details": {
+        "modification_count": 3,
+        "repo_p80": 2,
+        "ccn": 8,
+        "max_nesting": 3
+      },
+      "reason": "split_frontmatter has been modified across 3 commits (repo p80=2) and carries CCN=8 / nesting=3"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/frontmatter/parser.rs",
+      "function_name": null,
+      "health_impact": 0.956,
+      "details": {
+        "change_entropy": 2.6335,
+        "change_entropy_pct": 85.1,
+        "commit_count_90d": 7
+      },
+      "reason": "changes are scattered across noisy commits (top 15% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/frontmatter/parser.rs",
+      "function_name": null,
+      "health_impact": 1.809,
+      "details": {
+        "prior_defect_count": 5,
+        "window_days": 180
+      },
+      "reason": "5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include/directive.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include/expansion.rs",
+      "function_name": "read_and_hash_source",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 6
+      },
+      "reason": "read_and_hash_source takes 6 parameters"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/include/expansion.rs",
+      "function_name": "expand_file",
+      "health_impact": 0.35,
+      "details": {
+        "param_count": 7
+      },
+      "reason": "expand_file takes 7 parameters"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include/expansion.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include/expansion.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include/expansion.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/include/expansion.rs",
+      "function_name": "expand_body",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-composer/src/include/expansion.rs::ExpansionContext::expand_body",
+          "crates/sc-composer/src/include/expansion.rs::ExpansionContext::expand_candidate",
+          "crates/sc-composer/src/include/expansion.rs::expand_file",
+          "crates/sc-composer/src/include/expansion.rs::read_and_hash_source"
+        ],
+        "resolution_basis": "call-site",
+        "reliable_entry_reachability": false,
+        "opportunity_id": "perf2_c2b04290476e0f6e69f7"
+      },
+      "reason": "a filesystem call is reached once per loop iteration through expand_body -> expand_candidate -> expand_file -> read_and_hash_source (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include/path.rs",
+      "function_name": "resolve_include_path",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "resolve_include_path takes 5 parameters"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/include/path.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": "json_mode_diagnostics",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 69,
+        "ccn": 8
+      },
+      "reason": "json_mode_diagnostics is 69 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": "push_extra_input_diagnostics",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "push_extra_input_diagnostics takes 5 parameters"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": "push_unbound_variable_diagnostics",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "push_unbound_variable_diagnostics takes 5 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 29.22,
+        "clone_pair_count": 34,
+        "worst_clone_lines": 20,
+        "worst_clone_partner": "crates/sc-composer/src/composer.rs",
+        "worst_clone_co_change": 6
+      },
+      "reason": "29% of file duplicated; worst clone shares 20 lines with crates/sc-composer/src/composer.rs (co-changed 6x)"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": "quoted_json_placeholder_expressions",
+      "health_impact": 0.556,
+      "details": {
+        "modification_count": 5,
+        "repo_p80": 2,
+        "ccn": 5,
+        "max_nesting": 3
+      },
+      "reason": "quoted_json_placeholder_expressions has been modified across 5 commits (repo p80=2) and carries CCN=5 / nesting=3"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": "json_mode_diagnostics",
+      "health_impact": 0.556,
+      "details": {
+        "modification_count": 4,
+        "repo_p80": 2,
+        "ccn": 8,
+        "max_nesting": 3
+      },
+      "reason": "json_mode_diagnostics has been modified across 4 commits (repo p80=2) and carries CCN=8 / nesting=3"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.724,
+      "details": {
+        "change_entropy": 4.9744,
+        "change_entropy_pct": 93.5,
+        "commit_count_90d": 14
+      },
+      "reason": "changes are scattered across noisy commits (top 6.5% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.863,
+      "details": {
+        "scatter": 25,
+        "commit_count_90d": 14
+      },
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.799,
+      "details": {
+        "prior_defect_count": 8,
+        "window_days": 180
+      },
+      "reason": "8 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "panic_macro"
+      },
+      "reason": "panic!/unreachable!/todo!/unimplemented! aborts the process unconditionally"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "panic_macro"
+      },
+      "reason": "panic!/unreachable!/todo!/unimplemented! aborts the process unconditionally"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "panic_macro"
+      },
+      "reason": "panic!/unreachable!/todo!/unimplemented! aborts the process unconditionally"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": "fuzz_001_validation_matches_checked_format_detection_for_json_path_variants",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-composer/src/validation/diagnostics.rs::tests::fuzz_001_validation_matches_checked_format_detection_for_json_path_variants",
+          "crates/sc-composer/src/validation/diagnostics.rs::tests::write_file"
+        ],
+        "resolution_basis": "call-site",
+        "reliable_entry_reachability": false,
+        "opportunity_id": "perf2_466e74fdbae4adacc883"
+      },
+      "reason": "a filesystem call is reached once per loop iteration through fuzz_001_validation_matches_checked_format_detection_for_json_path_variants -> write_file (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_fce4bd0166ec727ab195"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/diagnostics.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_fd96e7bf424931900fdb"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validation/mod.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 37.48,
+        "clone_pair_count": 43,
+        "worst_clone_lines": 37,
+        "worst_clone_partner": "crates/sc-composer/src/validation/diagnostics.rs",
+        "worst_clone_co_change": 3
+      },
+      "reason": "37% of file duplicated; worst clone shares 37 lines with crates/sc-composer/src/validation/diagnostics.rs (co-changed 3x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/validation/mod.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/mod.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_84b46e65b28b9ffc9e38"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/mod.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_e5d01ba2230c57885e86"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": "validate_required_value",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 6,
+        "cognitive": 14
+      },
+      "reason": "validate_required_value nests 4 levels deep"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": "required_variable_location",
+      "health_impact": 0.847,
+      "details": {
+        "ccn": 11,
+        "cognitive": 16,
+        "nloc": 36
+      },
+      "reason": "required_variable_location has cyclomatic complexity 11"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": "required_path_diagnostics",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 71,
+        "ccn": 8
+      },
+      "reason": "required_path_diagnostics is 71 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": "required_path_diagnostic",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 6
+      },
+      "reason": "required_path_diagnostic takes 6 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 43.67,
+        "clone_pair_count": 49,
+        "worst_clone_lines": 20,
+        "worst_clone_partner": "crates/sc-composer/src/validation/diagnostics.rs",
+        "worst_clone_co_change": 4
+      },
+      "reason": "44% of file duplicated; worst clone shares 20 lines with crates/sc-composer/src/validation/diagnostics.rs (co-changed 4x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": "non_bare_for_iterables_do_not_trigger_array_shape_check",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-composer/src/validation/required_paths.rs::tests::non_bare_for_iterables_do_not_trigger_array_shape_check",
+          "crates/sc-composer/src/validation/required_paths.rs::tests::temp_root"
+        ],
+        "resolution_basis": "call-site",
+        "reliable_entry_reachability": false,
+        "opportunity_id": "perf2_477aebf609385525a85f"
+      },
+      "reason": "a filesystem call is reached once per loop iteration through non_bare_for_iterables_do_not_trigger_array_shape_check -> temp_root (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": "non_bare_for_iterables_do_not_trigger_array_shape_check",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-composer/src/validation/required_paths.rs::tests::non_bare_for_iterables_do_not_trigger_array_shape_check",
+          "crates/sc-composer/src/validation/required_paths.rs::tests::write_file"
+        ],
+        "resolution_basis": "call-site",
+        "reliable_entry_reachability": false,
+        "opportunity_id": "perf2_2d0e0599a281e4a729bc"
+      },
+      "reason": "a filesystem call is reached once per loop iteration through non_bare_for_iterables_do_not_trigger_array_shape_check -> write_file (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_bb572775f4d719cca08f"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/required_paths.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_9d4b0aa084e7a3d4be1e"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/state.rs",
+      "function_name": "populate_pass_validation_maps",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 62,
+        "ccn": 4
+      },
+      "reason": "populate_pass_validation_maps is 62 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/state.rs",
+      "function_name": "merge_frontmatter",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "merge_frontmatter takes 5 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/state.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 12.32,
+        "clone_pair_count": 4,
+        "worst_clone_lines": 15,
+        "worst_clone_partner": "crates/sc-compose/src/commands/compose_render.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "12% of file duplicated; worst clone shares 15 lines with crates/sc-compose/src/commands/compose_render.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation/state.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": "cross_format_corpus_preserves_equivalent_contracts",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 65,
+        "ccn": 7
+      },
+      "reason": "cross_format_corpus_preserves_equivalent_contracts is 65 lines long"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 15.4,
+        "clone_pair_count": 15,
+        "worst_clone_lines": 9,
+        "worst_clone_partner": "crates/sc-composer/src/extract/yaml.rs",
+        "worst_clone_co_change": 5
+      },
+      "reason": "15% of file duplicated; worst clone shares 9 lines with crates/sc-composer/src/extract/yaml.rs (co-changed 5x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 2.0,
+      "details": {
+        "prior_defect_count": 6,
+        "window_days": 180
+      },
+      "reason": "6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.062,
+      "details": {
+        "assertion_lines": [
+          57,
+          66
+        ],
+        "partner_file": "crates/sc-composer/src/extract/tests.rs"
+      },
+      "reason": "assertion block at lines 57-66 is duplicated in crates/sc-composer/src/extract/tests.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.062,
+      "details": {
+        "assertion_lines": [
+          134,
+          135
+        ],
+        "partner_file": "crates/sc-composer/src/extract/tests.rs"
+      },
+      "reason": "assertion block at lines 134-135 is duplicated in crates/sc-composer/src/extract/tests.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.062,
+      "details": {
+        "assertion_lines": [
+          146,
+          154
+        ],
+        "partner_file": "crates/sc-composer/src/extract/tests.rs"
+      },
+      "reason": "assertion block at lines 146-154 is duplicated in crates/sc-composer/src/extract/tests.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.062,
+      "details": {
+        "assertion_lines": [
+          165,
+          166
+        ],
+        "partner_file": "crates/sc-composer/src/extract/tests.rs"
+      },
+      "reason": "assertion block at lines 165-166 is duplicated in crates/sc-composer/src/extract/tests.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.062,
+      "details": {
+        "assertion_lines": [
+          402,
+          408
+        ],
+        "partner_file": "crates/sc-composer/src/extract/tests.rs"
+      },
+      "reason": "assertion block at lines 402-408 is duplicated in crates/sc-composer/src/extract/tests.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.062,
+      "details": {
+        "assertion_lines": [
+          669,
+          674
+        ],
+        "partner_file": "crates/sc-composer/src/extract/toml.rs"
+      },
+      "reason": "assertion block at lines 669-674 is duplicated in crates/sc-composer/src/extract/toml.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.062,
+      "details": {
+        "assertion_lines": [
+          342,
+          346
+        ],
+        "partner_file": "crates/sc-composer/tests/extract_integration.rs"
+      },
+      "reason": "assertion block at lines 342-346 is duplicated in crates/sc-composer/tests/extract_integration.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.062,
+      "details": {
+        "assertion_lines": [
+          357,
+          361
+        ],
+        "partner_file": "crates/sc-composer/tests/extract_integration.rs"
+      },
+      "reason": "assertion block at lines 357-361 is duplicated in crates/sc-composer/tests/extract_integration.rs"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/extract_integration.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": "CapturingObserver",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "CapturingObserver",
+        "lcom4": 7,
+        "method_count": 7,
+        "field_count": 6
+      },
+      "reason": "CapturingObserver has low cohesion (LCOM4=7): its 7 methods split into 7 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "high",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.6,
+      "details": {
+        "duplication_pct": 48.61,
+        "clone_pair_count": 103,
+        "worst_clone_lines": 24,
+        "worst_clone_partner": "crates/sc-composer/src/composer.rs",
+        "worst_clone_co_change": 5
+      },
+      "reason": "49% of file duplicated; worst clone shares 24 lines with crates/sc-composer/src/composer.rs (co-changed 5x)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 1.057,
+      "details": {
+        "change_entropy": 2.1424,
+        "change_entropy_pct": 80.0,
+        "commit_count_90d": 5
+      },
+      "reason": "changes are scattered across noisy commits (top 20% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "high",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 1.2,
+      "details": {
+        "prior_defect_count": 4,
+        "window_days": 180
+      },
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.167,
+      "details": {
+        "assertion_lines": [
+          550,
+          552
+        ],
+        "partner_file": "crates/sc-compose/src/commands/template_init.rs"
+      },
+      "reason": "assertion block at lines 550-552 is duplicated in crates/sc-compose/src/commands/template_init.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.167,
+      "details": {
+        "assertion_lines": [
+          290,
+          306
+        ],
+        "partner_file": "crates/sc-composer/src/composer.rs"
+      },
+      "reason": "assertion block at lines 290-306 is duplicated in crates/sc-composer/src/composer.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.167,
+      "details": {
+        "assertion_lines": [
+          240,
+          243
+        ],
+        "partner_file": "crates/sc-composer/src/frontmatter/mod.rs"
+      },
+      "reason": "assertion block at lines 240-243 is duplicated in crates/sc-composer/src/frontmatter/mod.rs"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.125,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.125,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.125,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.125,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_804b28de6db6229f351e"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_c42de5273f552d677576"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/contract.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 12.63,
+        "clone_pair_count": 2,
+        "worst_clone_lines": 15,
+        "worst_clone_partner": "crates/sc-composer/src/extract/mod.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "13% of file duplicated; worst clone shares 15 lines with crates/sc-composer/src/extract/mod.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/contract.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "untested_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer-beads/src/error.rs",
+      "function_name": null,
+      "health_impact": 1.56,
+      "details": {
+        "line_coverage_pct": null,
+        "branch_coverage_pct": null,
+        "dependents_count": 4,
+        "commit_count_90d": 5,
+        "has_test_file": false,
+        "reached_by_tests": false
+      },
+      "reason": "Hotspot with no paired test file and no coverage data \u2014 4 dependents"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/error.rs",
+      "function_name": null,
+      "health_impact": 1.26,
+      "details": {
+        "scatter": 11,
+        "commit_count_90d": 5
+      },
+      "reason": "co-changes with 11 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "high",
+      "file_path": "crates/sc-composer-beads/src/error.rs",
+      "function_name": null,
+      "health_impact": 1.2,
+      "details": {
+        "prior_defect_count": 3,
+        "window_days": 180
+      },
+      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "high",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "validate_request",
+      "health_impact": 0.487,
+      "details": {
+        "ccn": 16,
+        "cognitive": 17,
+        "nloc": 75
+      },
+      "reason": "validate_request has cyclomatic complexity 16"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "execute_bead_request_with_runner",
+      "health_impact": 0.284,
+      "details": {
+        "ccn": 10,
+        "cognitive": 9,
+        "nloc": 143
+      },
+      "reason": "execute_bead_request_with_runner has cyclomatic complexity 10"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "validate_request",
+      "health_impact": 0.126,
+      "details": {
+        "nloc": 75,
+        "ccn": 16
+      },
+      "reason": "validate_request is 75 lines long"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "high",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "execute_bead_request_with_runner",
+      "health_impact": 0.503,
+      "details": {
+        "nloc": 143,
+        "ccn": 10
+      },
+      "reason": "execute_bead_request_with_runner is 143 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "run_stage_with_output",
+      "health_impact": 0.05,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "run_stage_with_output takes 5 parameters"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "run_stage",
+      "health_impact": 0.05,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "run_stage takes 5 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 20.69,
+        "clone_pair_count": 15,
+        "worst_clone_lines": 10,
+        "worst_clone_partner": "crates/sc-composer-beads/tests/bd_integration.rs",
+        "worst_clone_co_change": 3
+      },
+      "reason": "21% of file duplicated; worst clone shares 10 lines with crates/sc-composer-beads/tests/bd_integration.rs (co-changed 3x)"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "validate_request",
+      "health_impact": 0.708,
+      "details": {
+        "modification_count": 4,
+        "repo_p80": 2,
+        "ccn": 16,
+        "max_nesting": 2
+      },
+      "reason": "validate_request has been modified across 4 commits (repo p80=2) and carries CCN=16 / nesting=2"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "execute_bead_request_with_runner",
+      "health_impact": 0.413,
+      "details": {
+        "modification_count": 2,
+        "repo_p80": 2,
+        "ccn": 10,
+        "max_nesting": 1
+      },
+      "reason": "execute_bead_request_with_runner has been modified across 2 commits (repo p80=2) and carries CCN=10 / nesting=1"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": null,
+      "health_impact": 0.183,
+      "details": {
+        "relative_churn": 1.21,
+        "churn_percentile": 97.1,
+        "lines_added_90d": 1084,
+        "lines_deleted_90d": 46,
+        "commit_count_90d": 7,
+        "nloc": 936
+      },
+      "reason": "90-day churn rewrote 1.2x the file's size (1130 lines over 936 NLOC, top 2.9% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": null,
+      "health_impact": 0.538,
+      "details": {
+        "change_entropy": 2.5025,
+        "change_entropy_pct": 83.6,
+        "commit_count_90d": 7
+      },
+      "reason": "changes are scattered across noisy commits (top 16% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": null,
+      "health_impact": 0.641,
+      "details": {
+        "scatter": 14,
+        "commit_count_90d": 7
+      },
+      "reason": "co-changes with 14 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": null,
+      "health_impact": 1.017,
+      "details": {
+        "prior_defect_count": 3,
+        "window_days": 180
+      },
+      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "execute_bead_request_with_runner",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_fe62ccde46cdec6e8a66"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "workspace",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_f9632dc21355fbbc725c"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/execute.rs",
+      "function_name": "request",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_832eb71a296f9b30a640"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/lib.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 26.92,
+        "clone_pair_count": 1,
+        "worst_clone_lines": 9,
+        "worst_clone_partner": "crates/sc-composer/src/lib.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "27% of file duplicated; worst clone shares 9 lines with crates/sc-composer/src/lib.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/lib.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/render.rs",
+      "function_name": null,
+      "health_impact": 0.57,
+      "details": {
+        "relative_churn": 1.91,
+        "churn_percentile": 89.3,
+        "lines_added_90d": 335,
+        "lines_deleted_90d": 68,
+        "commit_count_90d": 7,
+        "nloc": 211
+      },
+      "reason": "90-day churn rewrote 1.9x the file's size (403 lines over 211 NLOC, top 11% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/render.rs",
+      "function_name": null,
+      "health_impact": 0.717,
+      "details": {
+        "change_entropy": 2.7661,
+        "change_entropy_pct": 85.8,
+        "commit_count_90d": 7
+      },
+      "reason": "changes are scattered across noisy commits (top 14% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/render.rs",
+      "function_name": null,
+      "health_impact": 0.855,
+      "details": {
+        "scatter": 11,
+        "commit_count_90d": 7
+      },
+      "reason": "co-changes with 11 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer-beads/src/render.rs",
+      "function_name": null,
+      "health_impact": 1.357,
+      "details": {
+        "prior_defect_count": 4,
+        "window_days": 180
+      },
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/render.rs",
+      "function_name": "render_formula",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_10167865afc24e4eaa06"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/render.rs",
+      "function_name": "temporary_directory",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "opportunity_id": "perf2_aa487b4645fc756cca51"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer-beads/src/runner.rs",
+      "function_name": "CaptureTracker",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "CaptureTracker",
+        "lcom4": 3,
+        "method_count": 5,
+        "field_count": 3
+      },
+      "reason": "CaptureTracker has low cohesion (LCOM4=3): its 5 methods split into 3 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/runner.rs",
+      "function_name": "observe",
+      "health_impact": 0.847,
+      "details": {
+        "ccn": 9,
+        "cognitive": 15,
+        "nloc": 20
+      },
+      "reason": "observe has cyclomatic complexity 9"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "high",
+      "file_path": "crates/sc-composer-beads/src/runner.rs",
+      "function_name": null,
+      "health_impact": 0.875,
+      "details": {
+        "relative_churn": 3.11,
+        "churn_percentile": 98.6,
+        "lines_added_90d": 881,
+        "lines_deleted_90d": 381,
+        "commit_count_90d": 11,
+        "nloc": 406
+      },
+      "reason": "90-day churn rewrote 3.1x the file's size (1262 lines over 406 NLOC, top 1.4% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/runner.rs",
+      "function_name": null,
+      "health_impact": 0.643,
+      "details": {
+        "change_entropy": 3.1731,
+        "change_entropy_pct": 88.0,
+        "commit_count_90d": 11
+      },
+      "reason": "changes are scattered across noisy commits (top 12% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/src/runner.rs",
+      "function_name": null,
+      "health_impact": 0.766,
+      "details": {
+        "scatter": 11,
+        "commit_count_90d": 11
+      },
+      "reason": "co-changes with 11 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer-beads/src/runner.rs",
+      "function_name": null,
+      "health_impact": 1.216,
+      "details": {
+        "prior_defect_count": 5,
+        "window_days": 180
+      },
+      "reason": "5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/runner.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/src/runner.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": "pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas",
+      "health_impact": 0.375,
+      "details": {
+        "nloc": 63,
+        "ccn": 3
+      },
+      "reason": "pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas is 63 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": "request",
+      "health_impact": 0.15,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "request takes 5 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 10.42,
+        "clone_pair_count": 4,
+        "worst_clone_lines": 10,
+        "worst_clone_partner": "crates/sc-composer-beads/src/execute.rs",
+        "worst_clone_co_change": 3
+      },
+      "reason": "10% of file duplicated; worst clone shares 10 lines with crates/sc-composer-beads/src/execute.rs (co-changed 3x)"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.36,
+      "details": {
+        "relative_churn": 1.28,
+        "churn_percentile": 93.9,
+        "lines_added_90d": 526,
+        "lines_deleted_90d": 39,
+        "commit_count_90d": 11,
+        "nloc": 442
+      },
+      "reason": "90-day churn rewrote 1.3x the file's size (565 lines over 442 NLOC, top 6.1% among repository files eligible for churn ranking)"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 1.057,
+      "details": {
+        "change_entropy": 2.3954,
+        "change_entropy_pct": 82.5,
+        "commit_count_90d": 11
+      },
+      "reason": "changes are scattered across noisy commits (top 17% among files eligible for change-entropy ranking); a strong history-based fault predictor"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "panic_macro"
+      },
+      "reason": "panic!/unreachable!/todo!/unimplemented! aborts the process unconditionally"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": null,
+      "health_impact": 0.019,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": "pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": false,
+        "opportunity_id": "perf2_ca7d13a946ca60665b6a"
+      },
+      "reason": "a filesystem call runs once per loop iteration (N+1 / IO-in-loop)"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": "pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-composer-beads/tests/bd_integration.rs::pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas",
+          "crates/sc-composer-beads/tests/bd_integration.rs::copy_fixture"
+        ],
+        "resolution_basis": "call-site",
+        "reliable_entry_reachability": false,
+        "opportunity_id": "perf2_c10a91cc481cca776173"
+      },
+      "reason": "a filesystem call is reached once per loop iteration through pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas -> copy_fixture (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/tests/bd_integration.rs",
+      "function_name": "pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-composer-beads/tests/bd_integration.rs::pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas",
+          "crates/sc-composer-beads/src/execute.rs::execute_bead_request",
+          "crates/sc-composer-beads/src/execute.rs::execute_bead_request_with_runner"
+        ],
+        "resolution_basis": "call-site",
+        "reliable_entry_reachability": false,
+        "opportunity_id": "perf2_3e62115e0afb7882392a"
+      },
+      "reason": "a filesystem call is reached once per loop iteration through pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas -> execute_bead_request -> execute_bead_request_with_runner (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "medium",
+      "file_path": "crates/sc-composer-beads/tests/contract.rs",
+      "function_name": null,
+      "health_impact": 1.26,
+      "details": {
+        "scatter": 8,
+        "commit_count_90d": 4
+      },
+      "reason": "co-changes with 8 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "high",
+      "file_path": "crates/sc-composer-beads/tests/contract.rs",
+      "function_name": null,
+      "health_impact": 1.2,
+      "details": {
+        "prior_defect_count": 3,
+        "window_days": 180
+      },
+      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/runner_process_tree.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 15.49,
+        "clone_pair_count": 2,
+        "worst_clone_lines": 11,
+        "worst_clone_partner": "crates/sc-composer-beads/tests/bd_integration.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "15% of file duplicated; worst clone shares 11 lines with crates/sc-composer-beads/tests/bd_integration.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "high",
+      "file_path": "crates/sc-composer-beads/tests/runner_process_tree.rs",
+      "function_name": null,
+      "health_impact": 1.2,
+      "details": {
+        "prior_defect_count": 3,
+        "window_days": 180
+      },
+      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/runner_process_tree.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/runner_process_tree.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer-beads/tests/runner_process_tree.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    }
+  ]
+}
