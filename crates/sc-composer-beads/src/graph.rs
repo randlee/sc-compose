@@ -401,23 +401,14 @@ impl PendingCreate {
                     .or_else(|| self.graph.parent.clone());
             }
         }
-        for edge in &mut self.graph.edges {
-            for endpoint in [&mut edge.from, &mut edge.to] {
-                if let Some(step) = endpoint.strip_prefix("step:") {
-                    if let Ok(step) = crate::StepId::new(step)
-                        && let Some(id) = self.graph.ids.get(&step)
-                    {
-                        *endpoint = id.to_string();
-                    }
-                } else if *endpoint == "_root" {
-                    *endpoint = self
-                        .graph
-                        .parent
-                        .as_ref()
-                        .expect("created root")
-                        .to_string();
-                }
-            }
+        let endpoints: Vec<_> = self
+            .endpoints
+            .iter()
+            .map(|(from, to)| (from.resolve(&self.graph), to.resolve(&self.graph)))
+            .collect();
+        for (edge, (from, to)) in self.graph.edges.iter_mut().zip(endpoints) {
+            edge.from = from;
+            edge.to = to;
             if edge.action == BeadEdgeAction::Add {
                 edge.action = BeadEdgeAction::Added;
             }

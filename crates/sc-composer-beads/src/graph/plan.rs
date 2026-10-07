@@ -23,6 +23,23 @@ pub(super) struct PendingCreate {
     pub(super) graph: BeadGraph,
     pub(super) payload: Value,
     pub(super) keys: BTreeMap<String, Option<StepId>>,
+    pub(super) endpoints: Vec<(PlannedEndpoint, PlannedEndpoint)>,
+}
+
+/// Keep identities until apply returns ids; receipt strings are only presentation.
+pub(super) enum PlannedEndpoint {
+    Named(BeadEndpoint),
+    Root,
+}
+
+impl PlannedEndpoint {
+    pub(super) fn resolve(&self, graph: &BeadGraph) -> String {
+        match self {
+            Self::Named(BeadEndpoint::Bead(id)) => id.to_string(),
+            Self::Named(BeadEndpoint::Step(step)) => graph.ids[step].to_string(),
+            Self::Root => graph.parent.as_ref().expect("created root").to_string(),
+        }
+    }
 }
 
 struct Endpoint {
@@ -109,7 +126,7 @@ pub(super) fn plan(
     }
     let missing = check_ownership(v, &ids, &found)?;
     let mut pending = create_nodes(v, &ids, &missing, attach);
-    let edges = plan_edges(v, &ids, &missing, attach, reader, &mut pending.graph)?;
+    let edges = plan_edges(v, &ids, &missing, attach, reader, &mut pending)?;
     pending.payload["edges"] = json!(edges);
     if pending.keys.is_empty() {
         Ok(GraphPlan::Noop(pending.graph))
@@ -216,6 +233,7 @@ fn create_nodes(
     PendingCreate {
         graph,
         payload: json!({"nodes": nodes}),
+        endpoints: Vec::new(),
         keys,
     }
 }
@@ -226,16 +244,20 @@ fn plan_edges(
     missing: &BTreeSet<StepId>,
     attach: bool,
     reader: &mut impl GraphReader,
-    graph: &mut BeadGraph,
+    pending: &mut PendingCreate,
 ) -> Result<Vec<Value>, BeadComposeError> {
     let (planned_edges, existing_edges) = read_edges(v, ids, missing, attach, reader)?;
     let mut absent = Vec::new();
     let mut edges = Vec::new();
     for (from, to, kind) in planned_edges {
+        pending.endpoints.push((
+            PlannedEndpoint::Named(from.clone()),
+            PlannedEndpoint::Named(to.clone()),
+        ));
         let from = endpoint(&from, ids, missing, attach);
         let to = endpoint(&to, ids, missing, attach);
         let existing = check_edge(&from, &to, &kind, &existing_edges, &mut absent)?;
-        graph.edges.push(BeadGraphEdge {
+        pending.graph.edges.push(BeadGraphEdge {
             from: from.display.clone(),
             to: to.display.clone(),
             kind: kind.clone(),
@@ -263,6 +285,12 @@ fn plan_edges(
     }
     // Parent edges are supplied by parent_id/parent_key, never duplicated in the plan.
     for step in &v.steps {
+        pending.endpoints.push((
+            PlannedEndpoint::Named(BeadEndpoint::Step(step.id.clone())),
+            v.parent.as_ref().map_or(PlannedEndpoint::Root, |id| {
+                PlannedEndpoint::Named(BeadEndpoint::Bead(id.clone()))
+            }),
+        ));
         let from = endpoint(&BeadEndpoint::Step(step.id.clone()), ids, missing, attach);
         let to = Endpoint {
             display: v
@@ -273,7 +301,7 @@ fn plan_edges(
             id: v.parent.clone(),
         };
         let existing = check_edge(&from, &to, "parent-child", &existing_edges, &mut absent)?;
-        graph.edges.push(BeadGraphEdge {
+        pending.graph.edges.push(BeadGraphEdge {
             from: from.display,
             to: to.display,
             kind: "parent-child".into(),

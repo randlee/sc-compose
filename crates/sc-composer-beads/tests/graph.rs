@@ -489,3 +489,70 @@ fn graph_plan_symlink_is_refused_without_touching_target() {
         assert_read_only(&runner);
     }
 }
+
+#[test]
+fn applied_pour_keeps_external_ids_distinct_from_step_and_root_names() {
+    let mut w = Workspace::new();
+    w.req.operation = BeadOperation::Pour;
+    w.req.parent = None;
+    w.req.ref_ = None;
+    w.req.relations = serde_json::from_value(json!([
+        {"from":"step:build","to":"bead:_root","type":"related"},
+        {"from":"bead:step:build","to":"step:build","type":"validates"}
+    ]))
+    .expect("relations");
+    let registry = w.root.join(".beads");
+    fs::create_dir(&registry).expect("registry");
+    let runner = FakeRunner::new([
+        ok("{}"),
+        ok(&json!({"path":registry}).to_string()),
+        ok(COOKED),
+        ok(r#"[{"id":"_root"},{"id":"step:build"}]"#),
+        ok("[]"),
+        ok(r#"{"ids":{"_root":"proj-root","step:build":"proj-child"}}"#),
+    ]);
+    let receipt = w.run(&runner);
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+    let graph = receipt.graph.expect("graph");
+    assert_eq!(
+        (&*graph.edges[0].from, &*graph.edges[0].to),
+        ("proj-child", "_root")
+    );
+    assert_eq!(
+        (&*graph.edges[1].from, &*graph.edges[1].to),
+        ("step:build", "proj-child")
+    );
+    assert_eq!(
+        (&*graph.edges[2].from, &*graph.edges[2].to),
+        ("proj-child", "proj-root")
+    );
+    assert_eq!(runner.calls().len(), 6);
+}
+
+#[test]
+fn provenance_normalizes_newlines_and_relation_order() {
+    let mut w = Workspace::new();
+    w.req.relations = serde_json::from_value(json!([
+        {"from":"step:build","to":"bead:proj-a","type":"related"},
+        {"from":"step:build","to":"bead:proj-b","type":"validates"}
+    ]))
+    .expect("relations");
+    let mut provenance = Vec::new();
+    for newline in ["\n", "\r\n", "\r"] {
+        fs::write(
+            &w.req.template,
+            format!("formula = \"sample\"{newline}version = 1{newline}"),
+        )
+        .expect("template");
+        w.req.relations.reverse();
+        let runner = FakeRunner::new([
+            ok(COOKED),
+            ok(r#"[{"id":"proj-1"},{"id":"proj-a"},{"id":"proj-b"}]"#),
+            ok("{}"),
+        ]);
+        assert_eq!(w.run(&runner).outcome, BeadOutcome::Succeeded);
+        provenance.push(w.plan()["nodes"][0]["metadata"][PROVENANCE_KEY].clone());
+    }
+    assert_eq!(provenance[0], provenance[1]);
+    assert_eq!(provenance[0], provenance[2]);
+}

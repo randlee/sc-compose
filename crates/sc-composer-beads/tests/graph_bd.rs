@@ -371,3 +371,44 @@ fn inherited_steps_attach_and_bd_loop_is_refused() {
         w.refuse(&r, "BEADS_GRAPH_ID_INVALID");
     });
 }
+
+#[test]
+fn refusals_preserve_beads_and_edges() {
+    with_workspace(|w| {
+        let parent = w.parent();
+        let mut r = w.request(BeadOperation::Attach, Some(parent.clone()));
+        r.parent = Some(BeadId::new("graph-missing").expect("id"));
+        w.refuse(&r, "BEADS_GRAPH_PARENT_NOT_FOUND");
+        r.parent = Some(parent);
+        r.relations = serde_json::from_value(json!([
+            {"from":"step:build","to":"step:build","type":"blocks"}
+        ]))
+        .expect("relation");
+        w.refuse(&r, "BEADS_GRAPH_RELATION_INVALID");
+        r.relations.clear();
+        fs::write(
+            &r.template,
+            FORMULA.replace(
+                "version = 1",
+                "version = 1\n[vars.release]\ndefault = \"v1\"",
+            ),
+        )
+        .expect("unsupported formula");
+        w.refuse(&r, "BEADS_GRAPH_FORMULA_UNSUPPORTED");
+        fs::write(&r.template, FORMULA).expect("restore formula");
+        let graph = w.success(&r).graph.expect("graph");
+        let build = graph.ids[&sc_composer_beads::StepId::new("build").expect("step")].as_str();
+        let verify = graph.ids[&sc_composer_beads::StepId::new("verify").expect("step")].as_str();
+        w.command(&["dep", "remove", verify, build]);
+        w.refuse(&r, "BEADS_GRAPH_EDGE_MISSING");
+        w.command(&["dep", "add", verify, build, "--type", "related"]);
+        w.refuse(&r, "BEADS_GRAPH_EDGE_CONFLICT");
+        w.command(&[
+            "update",
+            build,
+            "--metadata",
+            r#"{"sc_compose_graph":null}"#,
+        ]);
+        w.refuse(&r, "BEADS_GRAPH_CONFLICT");
+    });
+}
