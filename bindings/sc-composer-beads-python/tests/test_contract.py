@@ -79,18 +79,51 @@ def test_import_surface_exposes_versioned_beads_contract() -> None:
     assert beads.PourAuthorization.CREATE_PERSISTENT_BEADS == "CreatePersistentBeads"
     assert beads.BeadOperation.PREVIEW_ATTACH == "preview_attach"
     assert beads.BeadOperation.ATTACH == "attach"
-    assert beads.BEADS_GRAPH_CONFLICT == "BEADS_GRAPH_CONFLICT"
-    assert beads.BEADS_GRAPH_APPLY_FAILED == "BEADS_GRAPH_APPLY_FAILED"
+    assert {
+        "BEADS_GRAPH_PARENT_NOT_FOUND": beads.BEADS_GRAPH_PARENT_NOT_FOUND,
+        "BEADS_GRAPH_ID_INVALID": beads.BEADS_GRAPH_ID_INVALID,
+        "BEADS_GRAPH_SCOPE_MISMATCH": beads.BEADS_GRAPH_SCOPE_MISMATCH,
+        "BEADS_GRAPH_FORMULA_UNSUPPORTED": beads.BEADS_GRAPH_FORMULA_UNSUPPORTED,
+        "BEADS_GRAPH_RELATION_INVALID": beads.BEADS_GRAPH_RELATION_INVALID,
+        "BEADS_GRAPH_CONFLICT": beads.BEADS_GRAPH_CONFLICT,
+        "BEADS_GRAPH_EDGE_CONFLICT": beads.BEADS_GRAPH_EDGE_CONFLICT,
+        "BEADS_GRAPH_EDGE_MISSING": beads.BEADS_GRAPH_EDGE_MISSING,
+        "BEADS_GRAPH_READ_FAILED": beads.BEADS_GRAPH_READ_FAILED,
+        "BEADS_GRAPH_APPLY_FAILED": beads.BEADS_GRAPH_APPLY_FAILED,
+    } == {
+        "BEADS_GRAPH_PARENT_NOT_FOUND": "BEADS_GRAPH_PARENT_NOT_FOUND",
+        "BEADS_GRAPH_ID_INVALID": "BEADS_GRAPH_ID_INVALID",
+        "BEADS_GRAPH_SCOPE_MISMATCH": "BEADS_GRAPH_SCOPE_MISMATCH",
+        "BEADS_GRAPH_FORMULA_UNSUPPORTED": "BEADS_GRAPH_FORMULA_UNSUPPORTED",
+        "BEADS_GRAPH_RELATION_INVALID": "BEADS_GRAPH_RELATION_INVALID",
+        "BEADS_GRAPH_CONFLICT": "BEADS_GRAPH_CONFLICT",
+        "BEADS_GRAPH_EDGE_CONFLICT": "BEADS_GRAPH_EDGE_CONFLICT",
+        "BEADS_GRAPH_EDGE_MISSING": "BEADS_GRAPH_EDGE_MISSING",
+        "BEADS_GRAPH_READ_FAILED": "BEADS_GRAPH_READ_FAILED",
+        "BEADS_GRAPH_APPLY_FAILED": "BEADS_GRAPH_APPLY_FAILED",
+    }
 
 
-def test_graph_receipt_fixtures_remain_json_contracts() -> None:
-    for name in ("receipt-graph-pour.json", "receipt-registry.json", "receipt-conflict.json", "receipt-edge-missing.json"):
-        fixture = json.loads((GRAPH_FIXTURE_ROOT / name).read_text(encoding="utf-8"))
-        receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+@pytest.mark.parametrize(
+    ("name", "pour_mode", "outcome_code"),
+    [
+        ("receipt-graph-pour.json", "graph", None),
+        ("receipt-registry.json", "registry", None),
+        ("receipt-conflict.json", "graph", beads.BEADS_GRAPH_CONFLICT),
+        ("receipt-edge-missing.json", "graph", beads.BEADS_GRAPH_EDGE_MISSING),
+    ],
+)
+def test_graph_receipt_fixtures_remain_json_contracts(
+    name: str, pour_mode: str, outcome_code: str | None
+) -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / name).read_text(encoding="utf-8"))
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
 
-        assert receipt.to_json() == fixture
-        assert receipt.pour_mode == fixture.get("pour_mode")
-        assert receipt.graph == fixture.get("graph")
+    assert receipt.to_json() == fixture
+    assert receipt.pour_mode == pour_mode
+    assert receipt.graph == fixture.get("graph")
+    if outcome_code is not None:
+        assert receipt.outcome.code == outcome_code
 
 
 def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
