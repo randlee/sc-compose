@@ -415,3 +415,8 @@ Request-file read failures use `BEADS_REQUEST_READ_FAILED` (exit 3), with JSON
 recovery guidance. Check the request path, read permissions, and UTF-8 encoding.
 A readable file containing malformed JSON retains
 `BEADS_REQUEST_DESERIALIZATION_FAILED`.
+
+Malformed request shapes (unknown operation, wrong field type, or missing required
+field) and missing persistent-operation authorization are reported before invalid
+identifier grammar. They retain usage exit 3; an invalid identifier in an otherwise
+well-formed, authorized request retains its typed error and exit 2.
