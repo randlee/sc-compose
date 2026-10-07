@@ -1,7 +1,7 @@
 {"sprint": "t-1"}
 {"sprint": "t-2", "depends_on": ["t-1"]}
-{"sprint": "t-6", "depends_on": ["t-1"]}
 {"sprint": "t-3", "depends_on": ["t-1"]}
 {"sprint": "t-5", "depends_on": ["t-1"]}
-{"sprint": "t-4", "depends_on": ["t-2", "t-6", "t-3"]}
-{"sprint": "t-20", "depends_on": ["t-1"]}
+{"sprint": "t-4", "depends_on": ["t-2", "t-3"]}
+{"sprint": "t-20"}
+{"sprint": "t-7", "depends_on": ["t-4", "t-5", "t-20"]}
