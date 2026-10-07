@@ -42,8 +42,8 @@ in either of two places:
   value filled in. This is how `attach` and graph-mode `pour` work: `bd`
   receives the finished formula and runs none of its own substitution.
 - **In Beads' formula language.** Beads `vars`, `{{ name }}` placeholders,
-  `loop`, `expand`, `condition` and `gate` are evaluated by `bd` at pour time.
-  They are available only through registry pour (below).
+  `extends`, `loop`, `expand`, `condition` and `gate` are evaluated by `bd`.
+  Use registry pour (below) for formulas written this way.
 
 In a bead template, sc-compose values use triple braces, `{{{ value }}}`, and
 blocks use ordinary `{% ... %}`. Double-brace `{{ name }}` text is never
@@ -82,7 +82,7 @@ literal text by `attach` and graph-mode `pour`.
 | `bd_executable` | no | Path to `bd`; default `bd` on `PATH`. |
 | `pour_authorization` | for `pour` and `attach` | Exactly `CreatePersistentBeads`. |
 | `parent` | for attach ops only | Id of the existing bead to attach under. |
-| `ref` | for attach ops only | Name of this attachment, `[A-Za-z0-9_]{1,32}` (no `-` or `.`). |
+| `ref` | for attach ops only | Name of this attachment, `[A-Za-z0-9_-]{1,32}` (no `.`; `-` is allowed, for example `qa1-f1-r1`). |
 | `relations` | no | Extra edges; attach operations and graph pour only. See "Linking to existing beads". |
 
 ## render and validate
@@ -105,7 +105,8 @@ Where the rendered formula lives decides how it is poured, and the receipt's
 - **Graph pour** (`pour_mode: "graph"`): the rendered formula is anywhere else
   inside `working_directory`, for example `build/`. sc-compose reads it through
   `bd cook <path> --json`, writes a graph plan beside it
-  (`<rendered_formula>.graph.json`), and creates a new root bead of type
+  (`<rendered_formula>.graph.json`, only when there is something to create),
+  and creates a new root bead of type
   `molecule` plus one child per step, with all edges, in a single `bd create
   --graph` transaction. The root shows up in `bd mol show` like any poured
   molecule. Each `pour` creates a new workflow with new ids.
@@ -123,6 +124,9 @@ sc-compose bead pour         --request pour.json --json   # create
 `proj-42.release-verify` and `proj-42.release-publish`, each a direct child of
 `proj-42`, with `blocks` edges from each step to the steps it `needs`.
 
+A `ref` may contain `-` and a step id may not, so the last `-` always separates
+them: ref `qa1-f1-r1` and step `fix` give `<parent>.qa1-f1-r1-fix`.
+
 ```shell
 sc-compose bead preview-attach --request attach.json --json   # what would be created
 sc-compose bead attach         --request attach.json --json   # create
@@ -133,7 +137,8 @@ Attach is safe to repeat:
 - **Re-run:** every bead it created carries provenance metadata
   (`sc_compose_graph`: formula, revision, inputs, parent, ref, step). A bead
   whose provenance matches is reported `existing` and left alone. Running the
-  same request again writes nothing and succeeds.
+  same request again writes nothing (no `bd` write and no plan file) and
+  succeeds.
 - **Work in progress is never touched:** status, notes, assignee, claims and
   every other field of an existing bead are never compared or written.
   sc-compose never updates, closes, reopens or deletes a bead.
@@ -145,6 +150,16 @@ Attach is safe to repeat:
   not created by this attachment, the whole request is refused with
   `BEADS_GRAPH_CONFLICT` before anything is written. To attach a new version
   alongside, use a new `ref`.
+- **A removed edge is reported, not ignored:** if an edge between two beads
+  this attachment created was removed since (for example with `bd dep
+  remove`), a re-run is refused with `BEADS_GRAPH_EDGE_MISSING`, whose message
+  gives the `bd dep add <from> <to> --type <type>` command that restores each
+  one. sc-compose cannot add it itself: `bd create --graph` only creates
+  beads.
+- **A failed read is never "absent":** sc-compose treats a bead as missing
+  only when `bd show` says it was not found. Any other `bd` failure while
+  reading (a server or permission error, unreadable output) fails the request
+  with `BEADS_GRAPH_READ_FAILED` and nothing is written.
 - **Scope must agree:** if `compose_variables` also carries `parent` or `ref`
   (for example to print them in step text), the values must equal the
   top-level fields, else `BEADS_GRAPH_SCOPE_MISMATCH`.
@@ -155,14 +170,30 @@ interrupted loop is simply run again.
 
 ## What a formula may contain for attach and graph pour
 
+sc-compose reads the formula through `bd cook <path> --json`, Beads' own
+parser, and creates exactly the steps in that parse.
+
 Steps are flat. Allowed step keys: `id`, `title`, `description`, `notes`,
 `type`, `priority`, `labels`, `metadata`, `assignee`, `needs`, `depends_on`.
-Step ids match `[A-Za-z0-9_-]{1,64}`. The formula may not declare `vars`, and a
-step may not use `children`, `expand`, `loop`, `condition`, `gate`,
-`waits_for` or `on_complete`; formula-level `extends`, `compose`, `advice` and
-`pointcuts` are refused too. Each of these is refused with
-`BEADS_GRAPH_FORMULA_UNSUPPORTED` and a reason, never silently ignored. Write
-the same structure with template loops and conditionals, or use registry pour.
+Step ids match `[A-Za-z0-9_]{1,64}`: letters, digits and `_`, no `-` or `.`.
+The formula may not declare `vars`; a step may not use `children`,
+`condition`, `gate`, `waits_for`, `on_complete` or `expand_vars`; and
+formula-level `template`, `compose`, `advice` and `pointcuts` are refused
+too. Each is refused with `BEADS_GRAPH_FORMULA_UNSUPPORTED` and a reason,
+never silently ignored.
+
+Three Beads constructs are resolved by `bd` while it parses, so sc-compose
+only sees what they produce:
+
+| In the formula | What happens |
+|---|---|
+| `extends` | `bd` merges the base formula's steps, found in its own formula search paths. The merged steps are created like any others, and the revision changes when the base changes. A base `bd` cannot find fails with `BEADS_COOK_FAILED`. |
+| `loop` | `bd` expands it into steps named `<step>.iter<n>.<id>`. The `.` makes them invalid step ids, so the request is always refused with `BEADS_GRAPH_ID_INVALID`. |
+| `expand` | `bd` replaces the step with the expansion formula's steps. Ids containing `.` or `-` (the usual `<step>.<id>` pattern) are refused with `BEADS_GRAPH_ID_INVALID`; a missing expansion formula fails with `BEADS_COOK_FAILED`. |
+
+Do not rely on these in attach or graph pour. Write the structure with
+template loops, conditionals and includes, where `preview-attach` and
+`preview-pour` show exactly what will be created, or use registry pour.
 
 ## Recipes
 
@@ -176,15 +207,15 @@ version = 1
 type = "workflow"
 {% for i in range(1, count + 1) %}
 [[steps]]
-id = "item-{{{ i }}}"
+id = "item_{{{ i }}}"
 title = "Process item {{{ i }}} of {{{ count }}}"
-{% if i > 1 %}needs = ["item-{{{ i - 1 }}}"]
+{% if i > 1 %}needs = ["item_{{{ i - 1 }}}"]
 {% endif %}
 {% endfor %}
 ```
 
 Attached under `proj-42` with `ref: "batch"`, this creates
-`proj-42.batch-item-1` ... `proj-42.batch-item-10`, each blocked by the one
+`proj-42.batch-item_1` ... `proj-42.batch-item_10`, each blocked by the one
 before it.
 
 ### One review chain per item in a list
@@ -197,19 +228,19 @@ version = 1
 type = "workflow"
 {% for c in components %}
 [[steps]]
-id = "{{{ c }}}-review"
+id = "{{{ c }}}_review"
 title = "Review {{{ c }}}"
 
 [[steps]]
-id = "{{{ c }}}-fix"
+id = "{{{ c }}}_fix"
 title = "Address {{{ c }}} review findings"
-needs = ["{{{ c }}}-review"]
+needs = ["{{{ c }}}_review"]
 {% endfor %}
 
 [[steps]]
 id = "signoff"
 title = "Sign off"
-needs = [{% for c in components %}"{{{ c }}}-fix"{% if not loop.last %}, {% endif %}{% endfor %}]
+needs = [{% for c in components %}"{{{ c }}}_fix"{% if not loop.last %}, {% endif %}{% endfor %}]
 ```
 
 ### Optional steps
@@ -250,7 +281,8 @@ bead and `ref: "chain"`. Each sprint gets `<sprint>.chain-dev`,
 
 `from` depends on `to`: the first entry makes `publish` wait for `proj-17`. An
 edge from an existing bead adds a dependency only and changes nothing else
-about that bead. `type` is any Beads dependency type except `parent-child`:
+about that bead. `type` is any Beads dependency type except `parent-child`,
+which is reserved for the hierarchy:
 `blocks`, `conditional-blocks`, `waits-for`, `related`, `discovered-from`,
 `replies-to`, `relates-to`, `duplicates`, `supersedes`, `authored-by`,
 `assigned-to`, `approved-by`, `attests`, `tracks`, `until`, `caused-by`,
@@ -283,9 +315,8 @@ attach add a `graph` block:
 ```
 
 Node actions are `create` (preview) / `created` (applied) / `existing`. Edge
-actions are `add` / `added` / `existing` / `missing`; `missing` means an edge
-between two existing beads was removed by someone since, and sc-compose leaves
-it removed. `ids` maps every step to its bead id so a planner can dispatch the
+actions are `add` / `added` / `existing`. `plan_path` is present only when the
+request had beads to create. `ids` maps every step to its bead id so a planner can dispatch the
 work without querying `bd` again.
 
 ## Codes
@@ -300,7 +331,10 @@ A pour only knows whether it is a registry or graph pour after locating the
 registry, so two pour mistakes are refused receipts (exit `2`) instead:
 `bead_variables` set on a graph pour (`BEADS_GRAPH_FORMULA_UNSUPPORTED`,
 reason `bead_variables_set`) and `relations` on a registry pour
-(`BEADS_GRAPH_RELATION_INVALID`, reason `registry_pour`).
+(`BEADS_GRAPH_RELATION_INVALID`, reason `registry_pour`). In a graph pour,
+`validate` still runs `bd cook --dry-run` as before (the mode is not known
+yet); the graph checks above run at the start of the `preview_pour` / `pour`
+stage, after `resolve_active_registry` has selected graph mode.
 
 Refused or failed receipts (exit `2`):
 
@@ -313,6 +347,8 @@ Refused or failed receipts (exit `2`):
 | `BEADS_GRAPH_RELATION_INVALID` | a relation is malformed or names a missing bead | fix the relation |
 | `BEADS_GRAPH_CONFLICT` | a bead at a planned id is not this attachment's | inspect it; use a new `ref` |
 | `BEADS_GRAPH_EDGE_CONFLICT` | an edge exists with another type | inspect it, or change the relation |
+| `BEADS_GRAPH_EDGE_MISSING` | an edge between two existing beads of this attachment was removed | run the `bd dep add` command the message gives for each edge, then re-run |
+| `BEADS_GRAPH_READ_FAILED` | `bd show` or `bd dep list` failed for a reason other than "not found"; nothing was written | fix the cause shown in the stage output and re-run |
 | `BEADS_GRAPH_APPLY_FAILED` | `bd create --graph` failed; nothing was written | fix the cause shown in the stage output and re-run |
 
 Earlier codes are unchanged, for example `BEADS_RENDER_FAILED`,

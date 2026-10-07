@@ -1435,16 +1435,20 @@ and `bd` argv are unchanged.
   `preview-pour` shall write nothing to Beads.
 - **FR-23.4 Attach (#613).** New operations `preview-attach` and `attach` shall
   create the steps as direct children of an existing `parent`, with ids
-  `<parent>.<ref>-<step>` and `sc_compose_graph` provenance metadata on each
+  `<parent>.<ref>-<step>` (a `ref` may contain `-`, a step id may not, so the
+  last `-` separates them) and `sc_compose_graph` provenance metadata on each
   created bead. `preview-attach` writes nothing to Beads; `attach` requires
   `CreatePersistentBeads`, like `pour`.
 - **FR-23.5 Safe repetition (#613).** Re-running an attach request whose beads
-  all exist with matching provenance shall issue no write and succeed. Status,
+  all exist with matching provenance shall write nothing (no `bd` write and no
+  plan file) and succeed. Status,
   notes, assignee, claims and other fields of existing beads are never compared
   or written; sc-compose never updates, closes, reopens or deletes a bead. A
   changed formula revision, changed relations, a bead without matching
-  provenance at a planned id, or a conflicting edge shall refuse the whole
-  request before any write.
+  provenance at a planned id, a conflicting edge, or a planned edge between two
+  existing beads that is absent in `bd` shall refuse the whole request before
+  any write. A bead counts as absent only on `bd`'s not-found response; any
+  other read failure fails the request.
 - **FR-23.6 Atomic apply (#613).** Everything one request creates is written
   by a single `bd create --graph` call, so an interrupted request leaves all or
   none of its missing beads and edges; a re-run creates what is missing.
@@ -1452,22 +1456,30 @@ and `bd` argv are unchanged.
   `relations[]` adds edges of any well-known `bd` dependency type except
   `parent-child`, between steps and existing beads, in either direction; an
   edge from an existing bead changes nothing else about it.
-- **FR-23.8 Formula subset.** Graph operations accept flat steps with the
-  keys listed in ADR-0023 "Formula grammar". Every other construct is refused
-  as `BEADS_GRAPH_FORMULA_UNSUPPORTED`, never ignored.
+- **FR-23.8 Formula subset.** Graph operations read the formula through `bd
+  cook <path> --json` and accept flat steps with the keys listed in ADR-0023
+  "Formula grammar". Every construct that remains in that parse is refused as
+  `BEADS_GRAPH_FORMULA_UNSUPPORTED`, never ignored. `extends`, `loop` and
+  `expand` are resolved by `bd` while it parses; their output is held to the
+  same rules (a `loop` always yields `.` in step ids and is refused as
+  `BEADS_GRAPH_ID_INVALID`), and the revision covers it.
 - **FR-23.9 Receipt.** Graph receipts carry `graph`: mode, parent, ref,
-  formula, revision, `plan_path`, `ids` (step -> bead id) and every node and
-  edge with its action (`create`/`created`/`existing`;
-  `add`/`added`/`existing`/`missing`).
+  formula, revision, `plan_path` (present only when there were beads to
+  create), `ids` (step -> bead id) and every node and edge with its action
+  (`create`/`created`/`existing`; `add`/`added`/`existing`).
 - **FR-23.10 Codes.** `BEADS_GRAPH_PARENT_NOT_FOUND`, `BEADS_GRAPH_ID_INVALID`,
   `BEADS_GRAPH_SCOPE_MISMATCH`, `BEADS_GRAPH_FORMULA_UNSUPPORTED`,
   `BEADS_GRAPH_RELATION_INVALID`, `BEADS_GRAPH_CONFLICT`,
-  `BEADS_GRAPH_EDGE_CONFLICT` and `BEADS_GRAPH_APPLY_FAILED`, each a refused or
+  `BEADS_GRAPH_EDGE_CONFLICT`, `BEADS_GRAPH_EDGE_MISSING` (the message gives
+  the `bd dep add` command for each missing edge), `BEADS_GRAPH_READ_FAILED`
+  and `BEADS_GRAPH_APPLY_FAILED`, each a refused or
   failed receipt (exit `2`, FR-7b). Request-shape problems, including
   non-empty `bead_variables` on an attach operation, are request errors (exit
   `3`). A pour learns its mode only after resolving the registry, so
   `bead_variables` on a graph-mode pour and `relations` on a registry-mode
-  pour are refused receipts (exit `2`).
+  pour are refused receipts (exit `2`). A pour runs `resolve_active_registry`
+  in both modes; in graph mode its formula checks run in the `preview_pour` /
+  `pour` stage (ADR-0023 "Stages").
 - **FR-23.11 bd support.** Production `bd` v1.3.1 is supported; every command
   used exists there. No Beads fork, version probe or persisted proto is used.
 

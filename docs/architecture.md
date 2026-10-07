@@ -181,10 +181,12 @@ The graph engine:
 2. computes the planned nodes (attach ids `<parent>.<ref>-<step>`, provenance
    under `sc_compose_graph`) and edges (`needs` -> `blocks`, `relations[]`);
 3. reads existing state with `bd show` / `bd dep list` and classifies each node
-   and edge (`existing`, to create, conflict), refusing before any write;
-4. writes the missing part as one bd graph plan beside the rendered formula and
-   applies it with a single `bd create --graph` transaction (`--dry-run` for
-   previews).
+   and edge (`existing`, to create, conflict, missing edge), refusing before
+   any write; only `bd`'s not-found response means absent, and any other read
+   failure is `BEADS_GRAPH_READ_FAILED`;
+4. when something is missing, writes it as one bd graph plan beside the
+   rendered formula and applies it with a single `bd create --graph`
+   transaction (`--dry-run` for previews); a no-op writes nothing.
 
 It issues no other mutating `bd` command and never passes `--var` for graph
 operations: structure and values come from the sc-compose template.

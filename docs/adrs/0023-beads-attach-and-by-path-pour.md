@@ -65,10 +65,13 @@ forked Beads.
      pour` gives its roots) with the steps as its children;
    - **attach mode** (new `preview-attach` / `attach`, #613): the steps as
      children of an existing `parent`, with stable ids.
-4. **Flat formulas.** Steps are flat. Inheritance, composition, advice,
-   expansion, loops, conditions, gates and nested children are refused, never
-   ignored; their sc-compose equivalents are template loops, conditionals and
-   includes.
+4. **Flat formulas.** The engine creates exactly the steps in bd's parse of
+   the formula. Constructs that remain in that parse (variables, composition,
+   advice, conditions, gates, nested children) are refused, never ignored.
+   `extends`, `loop` and `expand` are resolved by bd while it parses, before
+   sc-compose sees the formula; what they produce is held to the same rules
+   (see "Formula grammar"). The sc-compose equivalents are template loops,
+   conditionals and includes.
 5. **Identity and safe repetition (attach).** Ids are `<parent>.<ref>-<step>`.
    Every created bead carries provenance metadata. A bead whose provenance
    matches is left untouched; anything else refuses the whole request before
@@ -77,7 +80,8 @@ forked Beads.
    --graph` transaction, so a request leaves either all of its missing beads
    and edges or none of them.
 7. **Edges.** `needs` / `depends_on` become `blocks`; `relations[]` adds edges
-   of any well-known bd dependency type between steps and existing beads.
+   of any well-known bd dependency type except `parent-child` (reserved for the
+   hierarchy) between steps and existing beads.
 8. **No new dependency, no fork.** `sc-composer-beads` keeps its dependency set
    (CLAUDE.md Boundary Rule 11): it parses bd's JSON output with `serde_json`
    and never parses TOML; it hashes only through the `sc_composer::
@@ -160,7 +164,7 @@ before any write. A new attachment uses a new `ref`. A `parent` or `ref` in
 ### UC-7: Link to beads that already exist (#613 gap 1)
 
 `relations[]` adds edges between a step and an existing bead, in either
-direction, of any well-known bd dependency type:
+direction, of any well-known bd dependency type except `parent-child`:
 
 ```json
 "relations":[
@@ -184,16 +188,17 @@ version = 1
 type = "workflow"
 {% for i in range(1, count + 1) %}
 [[steps]]
-id = "item-{{{ i }}}"
+id = "item_{{{ i }}}"
 title = "Process item {{{ i }}} of {{{ count }}}"
-{% if i > 1 %}needs = ["item-{{{ i - 1 }}}"]
+{% if i > 1 %}needs = ["item_{{{ i - 1 }}}"]
 {% endif %}
 {% endfor %}
 ```
 
 Rendered with `count: 10`, this is a flat formula of ten steps. Attached under
-`proj-42` with `ref: "batch"`, it creates `proj-42.batch-item-1` ...
-`proj-42.batch-item-10` in one transaction. The same pattern loops over a list
+`proj-42` with `ref: "batch"`, it creates `proj-42.batch-item_1` ...
+`proj-42.batch-item_10` in one transaction. (Step ids use `_`, never `-`: see
+"Id rule".) The same pattern loops over a list
 from a var file (`items: [api, cli, docs]` -> one review chain per item), and
 conditionals include or skip steps; Beads' own `loop` / `expand` are not
 needed.
@@ -209,8 +214,6 @@ simply re-run.
 
 Every graph receipt maps each step id to its bead id (`graph.ids`), so a
 planner can validate and dispatch the created work without re-querying bd.
-The bd graph plan sc-compose wrote is kept next to the rendered formula
-(`graph.plan_path`) for audit.
 
 ## Contract
 
@@ -220,8 +223,8 @@ pub const PROVENANCE_KEY: &str = "sc_compose_graph";
 
 // validating newtypes; each is #[serde(try_from = "String", into = "String")], so the JSON is a plain string
 pub struct BeadId(String);        // an existing or planned bead id (non-empty, no whitespace)
-pub struct GraphRef(String);      // ^[A-Za-z0-9_]{1,32}$
-pub struct StepId(String);        // ^[A-Za-z0-9_-]{1,64}$
+pub struct GraphRef(String);      // ^[A-Za-z0-9_-]{1,32}$  (may contain '-')
+pub struct StepId(String);        // ^[A-Za-z0-9_]{1,64}$   (never '-')
 pub struct Sha256Digest(String);  // "sha256:" + 64 lowercase hex
 
 // existing enums gain variants (serde: snake_case, as today)
@@ -258,7 +261,7 @@ pub struct BeadGraph {
     #[serde(rename = "ref")] pub ref_: Option<GraphRef>,  // attach only
     pub formula: String,                           // formula_name
     pub revision: Sha256Digest,                    // see Revision
-    pub plan_path: PathBuf,                        // the bd graph plan written for this request
+    pub plan_path: Option<PathBuf>,                // the bd graph plan, when this request had beads to create
     pub ids: BTreeMap<StepId, BeadId>,             // step id -> bead id (pour preview: empty, ids are assigned by bd)
     pub nodes: Vec<BeadGraphNode>,
     pub edges: Vec<BeadGraphEdge>,
@@ -266,7 +269,8 @@ pub struct BeadGraph {
 pub struct BeadGraphNode { pub step: Option<StepId> /* None = pour root */, pub id: Option<BeadId>, pub action: BeadNodeAction }
 pub struct BeadGraphEdge { pub from: String, pub to: String /* bead id, or "step:<id>" before bd assigns ids */, #[serde(rename = "type")] pub kind: String, pub action: BeadEdgeAction }
 #[serde(rename_all = "snake_case")] pub enum BeadNodeAction { Create, Created, Existing }
-#[serde(rename_all = "snake_case")] pub enum BeadEdgeAction { Add, Added, Existing, Missing }
+#[serde(rename_all = "snake_case")] pub enum BeadEdgeAction { Add, Added, Existing }
+pub struct MissingEdge { pub from: BeadId, pub to: BeadId, #[serde(rename = "type")] pub kind: String }
 
 // bead metadata[PROVENANCE_KEY] on every bead the graph engine creates
 pub struct BeadGraphProvenance {
@@ -281,10 +285,9 @@ pub struct BeadGraphProvenance {
 }
 ```
 
-`BeadEdgeAction::Missing` is reported only on a re-run, for a planned edge
-between two beads that both already exist when that edge is absent in bd
-(someone removed it). sc-compose leaves it absent: it never re-adds an edge
-between beads it is not creating in this request.
+A planned edge between two beads that both already exist, absent in bd
+(someone removed it), is refused as `GraphEdgeMissing`: bd cannot apply a plan
+that adds only edges, and reporting success would leave the graph incomplete.
 
 ### Errors (`BeadComposeError`, additive)
 | Variant | Code | Outcome / exit | Recovery |
@@ -296,10 +299,14 @@ between beads it is not creating in this request.
 | `GraphRelationInvalid { index, reason }` | `BEADS_GRAPH_RELATION_INVALID` | refused / 2 (validate or plan) | correct the relation |
 | `GraphConflict { id, reason }` | `BEADS_GRAPH_CONFLICT` | refused / 2 (plan) | inspect the named bead (sc-compose never edits it) or use a new `ref` |
 | `GraphEdgeConflict { from, to, existing, requested }` | `BEADS_GRAPH_EDGE_CONFLICT` | refused / 2 (plan) | inspect the existing edge, or change the relation |
+| `GraphEdgeMissing { edges }` | `BEADS_GRAPH_EDGE_MISSING` | refused / 2 (plan) | run the `bd dep add` command the message gives for each edge, then re-run |
+| `GraphReadFailed { command, status }` | `BEADS_GRAPH_READ_FAILED` | failed / 2 (plan) | fix the bd failure and re-run; nothing was written |
 | `GraphApplyFailed { command, status }` | `BEADS_GRAPH_APPLY_FAILED` | failed / 2 (pour or attach) | fix the bd failure and re-run; nothing was written |
 
 Field types: `command` is the bd argv as `Vec<String>`; `status` is
-`Option<i32>` (None when bd was killed by a signal). Each `reason` is a closed
+`Option<i32>` (None when bd was killed by a signal); `edges` is a non-empty
+`Vec<MissingEdge>` in plan order, and the message lists, for each, the exact
+command `bd dep add <from> <to> --type <type>`. Each `reason` is a closed
 `snake_case` enum per variant (`GraphConflictReason`,
 `GraphRelationInvalidReason`, `GraphFormulaUnsupportedReason`) whose values are
 exactly the rows of the Conflict rules, Relation validation and Formula
@@ -313,8 +320,9 @@ attach op (`RequestDeserializationFailed`); and the existing Phase R request
 codes. Everything in the table is a receipt (Rust `Ok`, Python receipt, CLI
 exit 2).
 
-A pour learns its mode only after resolving the active registry, so its two
-mode-dependent misuses are refused receipts, before any write: non-empty
+A pour learns its mode only after resolving the active registry (see
+"Stages"), so its two mode-dependent misuses are refused receipts, before any
+write: non-empty
 `bead_variables` in graph mode is `GraphFormulaUnsupported`
 (`bead_variables_set`), and non-empty `relations` in registry mode is
 `GraphRelationInvalid` (`registry_pour`).
@@ -341,21 +349,26 @@ rendered formula inside `working_directory` uses the graph engine in pour mode
 to exist. A rendered formula outside `working_directory` is refused as before.
 
 ### Id rule
-`ref` matches `^[A-Za-z0-9_]{1,32}$` (no `-`, no `.`) and every step id matches
-`^[A-Za-z0-9_-]{1,64}$` (no `.`: bd's hierarchy separator), else
-`GraphIdInvalid`. In attach mode the bead id is `<parent>.<ref>-<step>`;
-because `ref` has no `-`, the first `-` after `<parent>.` separates ref from
-step, so distinct (ref, step) pairs under one parent always give distinct
-ids. The ids start with the parent's prefix, which bd's explicit-id prefix
-check accepts; sc-compose never passes `--force`. In pour mode bd assigns
-every id and the receipt reports them.
+`ref` matches `^[A-Za-z0-9_-]{1,32}$` (no `.`; `-` allowed) and every step id
+matches `^[A-Za-z0-9_]{1,64}$` (no `.`: bd's hierarchy separator; no `-`), else
+`GraphIdInvalid`. In attach mode the bead id is `<parent>.<ref>-<step>`.
+Because a step id has no `-`, the LAST `-` after `<parent>.` separates ref
+from step, so distinct (ref, step) pairs under one parent always give distinct
+ids, and a ref such as `qa1-f1-r1` (a finding group, round 1) works unchanged:
+`<sprint>.qa1-f1-r1-fix`. The ids start with the parent's prefix, which bd's
+explicit-id prefix check accepts; sc-compose never passes `--force`. In pour
+mode bd assigns every id and the receipt reports them; step ids follow the
+same rule.
 
 ### Revision
-The sha256 of the newline-normalized UTF-8 text of the rendered formula:
-`sc_composer::calculate_hash` (ADR-0018 re-export; strict UTF-8, CRLF/CR
-normalized to LF), written `sha256:<hex>`. Line-ending-only differences are
-the same revision. A rendered formula that is not valid UTF-8 is
-`GraphFormulaUnsupported` (`not_utf8`).
+The sha256 of bd's parse of the formula, so it covers whatever bd resolved
+while parsing (an `extends` base, `loop` and `expand` output) as well as the
+rendered text: the `bd cook <path> --json` output with the top-level `source`
+(an absolute path) and `schema_version` (bd's envelope) removed, serialized as
+canonical JSON (sorted keys, compact), hashed with `sc_composer::
+calculate_hash` (ADR-0018 re-export) and written `sha256:<hex>`. Line-ending
+and formatting differences that bd's parse does not keep are the same
+revision; a changed `extends` base is a different revision.
 
 ### Inputs
 `inputs` is `sha256:<hex>` of the canonical JSON (sorted keys, compact) of
@@ -367,21 +380,34 @@ relations meets beads whose provenance differs and is refused as
 
 ### Formula grammar
 The formula is read from bd's own parse, `bd cook <path> --json` (compile
-mode: no `--var`, no `--persist`, no `--mode`; bd v1.3.1 prints the parsed and
-resolved formula as JSON and writes nothing), and deserialized with
-`serde_json` into a crate-private struct mirroring bd v1.3.1's `Formula` /
-`Step` JSON. TOML and JSON formulas are handled alike. A non-zero `bd cook`
-exit fails the validate stage with the existing bd-command failure code.
+mode: no `--var`, no `--persist`, no `--mode`, no `--search-path`; bd v1.3.1
+prints the parsed and resolved formula as JSON and writes nothing), and
+deserialized with `serde_json` into a crate-private struct mirroring bd
+v1.3.1's `Formula` / `Step` JSON. TOML and JSON formulas are handled alike. A
+non-zero `bd cook` exit is the existing `BEADS_COOK_FAILED`.
 
-| Formula content | Result (`GraphFormulaUnsupported` reason) |
+bd resolves three constructs while it parses, so they never reach sc-compose
+as constructs; the engine sees only their output (verified against bd 1.3.1
+during planning):
+
+| Construct in the rendered formula | What `bd cook` does | Result |
+|---|---|---|
+| `extends = [...]` | merges the base formula's steps, found in bd's own formula search paths; the key is gone from the parse | the merged steps are checked like any other; the revision covers them. Base not found: `BEADS_COOK_FAILED` |
+| step `loop` | replaces the step with its body, once per iteration, with ids `<step>.iter<n>.<body id>` | always refused: `GraphIdInvalid` (`field: "step"`), because the ids contain `.` |
+| step `expand` | replaces the step with the expansion formula's `template` steps, ids from that template (conventionally `<step>.<id>`) | ids containing `.` or `-`: `GraphIdInvalid`; otherwise checked like any other step. Expansion formula missing or not `type = "expansion"`: `BEADS_COOK_FAILED` |
+
+Do not rely on these in a graph formula: write the structure in the sc-compose
+template, where a preview shows it. Everything else is checked on the parse:
+
+| Formula content (in bd's parse) | Result (`GraphFormulaUnsupported` reason) |
 |---|---|
 | allowed top-level keys: `formula`, `description`, `version`, `type` = `workflow`, `steps`, informational `source` / `phase` / `pour` / `intent`, and bd's output envelope key `schema_version` | accepted |
 | non-empty `vars` | `vars_declared` (resolve values in the template) |
 | non-empty request `bead_variables` on a graph-mode pour | `bead_variables_set` |
-| non-empty `extends`, `template`, `compose`, `advice` or `pointcuts`; another `type` | `composition` |
+| non-empty `template`, `compose`, `advice` or `pointcuts`; another `type` | `composition` (bd keeps these keys in its parse; `advice` is refused even though bd has already applied it) |
 | unknown top-level key | `unknown_key` |
 | allowed step keys: `id`, `title`, `description`, `notes`, `type`, `priority`, `labels`, `metadata`, `assignee`, `needs`, `depends_on` | accepted |
-| non-empty `children`, `expand`, `expand_vars`, `condition`, `gate`, `loop`, `on_complete` or `waits_for` | `step_construct` (use template loops, conditionals and includes) |
+| non-empty `children`, `expand_vars`, `condition`, `gate`, `on_complete` or `waits_for` | `step_construct` (use template loops, conditionals and includes) |
 | unknown step key | `unknown_key` |
 | step `metadata` containing `PROVENANCE_KEY` | `reserved_metadata` |
 | a label containing a comma | `label_comma` |
@@ -392,10 +418,12 @@ Step fields map to bd graph-plan node fields of the same name; `type` and
 left in rendered text stays as written, because no bd substitution runs.
 
 ### Graph plan
-The engine writes one bd graph plan (bd v1.3.1 `GraphApplyPlan` JSON) to
+When the request has at least one bead to create, the engine writes one bd
+graph plan (bd v1.3.1 `GraphApplyPlan` JSON) to
 `<rendered_formula>.graph.json` beside the rendered formula, in preview and
-apply alike, and reports it as `graph.plan_path`. It contains only what is
-missing:
+apply alike, and reports it as `graph.plan_path`. It is the file bd reads;
+sc-compose does not delete it. When nothing is missing, no plan file is
+written and `plan_path` is absent. The plan contains only what is missing:
 
 - **Attach mode:** one node per missing step, with `key` = step id, explicit
   `id` = `<parent>.<ref>-<step>`, `parent_id` = `parent`, the step's fields,
@@ -414,12 +442,18 @@ create --graph <plan> --json`. bd validates the whole plan (types, priority,
 ids, cycles, blocking paths through the hierarchy) before writing and applies
 it in one transaction, returning `{"ids": {key: id}}`. A failure of either
 command is `GraphApplyFailed`; bd has written nothing. When every planned node
-already exists with matching provenance, no plan is applied and no bd write is
+and edge already exists with matching provenance, no file and no bd write is
 issued.
 
 ### Conflict rules (plan stage, before any write)
-The plan stage reads the parent and each planned id with `bd show --json`, and
-the edges of each existing planned bead with `bd dep list --json`.
+The plan stage reads the parent, each planned id and each `bead:` relation
+endpoint with one `bd show <id>... --json`, and the edges of each existing
+planned bead with `bd dep list <id> --json`. A bead is absent only on bd's
+not-found response: the id is missing from a list that `bd show` returned with
+exit 0, or `bd show` exits 1 with JSON `error` equal to `no issues found
+matching the provided IDs` (every id absent). Any other failure of a read
+(another exit, unparseable output, a killed process) is `GraphReadFailed` with
+nothing written; it is never read as "absent".
 
 | Case | Result (`GraphConflict` reason, or other code) |
 |---|---|
@@ -429,7 +463,7 @@ the edges of each existing planned bead with `bd dep list --json`.
 | a bead at a planned id whose provenance differs (formula, revision, inputs, parent, ref or step) | `provenance_differs` |
 | an existing edge between two planned endpoints with another type | `GraphEdgeConflict` |
 | an existing edge between two planned endpoints with the same type | `existing`, untouched |
-| a planned edge between two existing beads, absent in bd | `missing`, left absent |
+| a planned edge between two existing beads, absent in bd | `GraphEdgeMissing`, listing every such edge with its `bd dep add` command |
 
 A race in which another writer creates a planned id between the plan stage and
 the apply makes bd refuse the whole plan (explicit id exists):
@@ -452,14 +486,19 @@ show`; existence of `bead:` endpoints is checked in the plan stage.
 | non-empty `relations` on a registry-mode pour | `GraphRelationInvalid` (`registry_pour`) |
 
 ### Stages
-| Operation | Stages |
-|---|---|
-| preview-pour / pour, registry | render, validate, resolve_active_registry, preview_pour / pour (unchanged) |
-| preview-pour / pour, graph | render, validate, preview_pour / pour |
-| preview-attach / attach | render, validate, preview_attach / attach |
+| Operation | Stages | bd commands, in order |
+|---|---|---|
+| preview-pour / pour, registry | render, validate, resolve_active_registry, preview_pour / pour (unchanged) | unchanged from ADR-0021 |
+| preview-pour / pour, graph | render, validate, resolve_active_registry, preview_pour / pour | validate: `bd cook <path> --dry-run` (unchanged; the mode is not known yet); resolve_active_registry: `bd where --json`, which selects graph mode; preview_pour / pour: `bd cook <path> --json`, `bd show` (only for `bead:` relation endpoints), then `bd create --graph <plan> --dry-run --json` / `bd create --graph <plan> --json` |
+| preview-attach / attach | render, validate, preview_attach / attach | validate: `bd cook <path> --json`; preview_attach / attach: `bd show`, `bd dep list`, then `bd create --graph <plan> --dry-run --json` / `bd create --graph <plan> --json` (none when nothing is missing) |
 
-The plan-stage reads run inside the `preview_*` / `pour` / `attach` stage.
-Exit codes follow the existing policy: 0 succeeded, 2 refused or failed
+A pour reaches `resolve_active_registry` in both modes; the receipt reports
+that stage as succeeded and `pour_mode` says which mode it selected. In a
+graph-mode pour, the formula checks this ADR places in the validate stage
+(Formula grammar, Id rule, Relation validation, `bead_variables_set`,
+`registry_pour`) run at the start of `preview_pour` / `pour` and fail that
+stage. The plan-stage reads run inside the `preview_*` / `pour` / `attach`
+stage. Exit codes follow the existing policy: 0 succeeded, 2 refused or failed
 receipt, 3 request or usage error.
 
 ### Write rule
@@ -502,8 +541,9 @@ created.
   in the sc-compose template language, and Beads' substitution and expansion
   engine is not on the path.
 - Beads-native formula features (`loop`, `expand`, `gate`, `vars`) remain
-  available through registry pour; the graph engine refuses them rather than
-  half-supporting them.
+  available through registry pour. The graph engine refuses the ones that
+  survive bd's parse, and documents exactly what happens to the ones bd
+  resolves while parsing (`extends`, `loop`, `expand`).
 - Beads created by other tools carry no provenance under `PROVENANCE_KEY`, so
   attach refuses them as `not_owned` rather than adopting them.
 
