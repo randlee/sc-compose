@@ -22,7 +22,7 @@ use serde::Serialize;
 
 use crate::cli::{Cli, command_wants_json, parse_cli_from, raw_args_want_json};
 pub(crate) use crate::command_error::CommandError;
-use sc_observability::Logger;
+use sc_observability::v2::Logger;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

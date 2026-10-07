@@ -8,10 +8,11 @@ use sc_composer::{
     CompositionObserver, IncludeOutcomeEvent, ObservationEvent, ObservationSink,
     RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
+use sc_observability::v2::Logger;
 use sc_observability::{
-    ActionName, Diagnostic, ErrorCode, Level, LogEvent, Logger, LoggingHealthReport,
+    ActionName, Diagnostic, ErrorCode, Level, LogEvent, LoggingHealthReport,
     OBSERVATION_ENVELOPE_VERSION, OutcomeLabel, ProcessIdentity, Remediation, SchemaVersion,
-    ServiceName, Stopped, TargetCategory, Timestamp,
+    ServiceName, TargetCategory, Timestamp,
 };
 use sc_observability_types::{
     DiagnosticSummary, LoggingHealthState, QueryHealthReport, QueryHealthState,
@@ -61,7 +62,7 @@ pub(crate) struct CliObserver {
 
 enum LoggerOrStopped {
     Running(Logger),
-    Stopped(Logger<Stopped>),
+    Stopped(Logger),
 }
 
 impl CliObserver {
@@ -74,8 +75,9 @@ impl CliObserver {
 
     pub fn health(&self) -> LoggingHealthReport {
         match self.logger.as_ref() {
-            Some(LoggerOrStopped::Running(logger)) => logger.health(),
-            Some(LoggerOrStopped::Stopped(logger)) => logger.health(),
+            Some(LoggerOrStopped::Running(logger) | LoggerOrStopped::Stopped(logger)) => {
+                logger.health()
+            }
             None => unavailable_health_report("cli observer logger state unavailable"),
         }
     }
@@ -91,8 +93,10 @@ impl CliObserver {
                 return;
             }
         };
-        let logger = running.shutdown();
-        self.logger = Some(LoggerOrStopped::Stopped(logger));
+        // Shutdown failures are recorded in logger health; command completion
+        // remains infallible and retains the logger for health inspection.
+        let _ = running.shutdown();
+        self.logger = Some(LoggerOrStopped::Stopped(running));
     }
 
     fn emit_record(&self, record: LogRecord) {
@@ -579,13 +583,13 @@ mod tests {
     use std::sync::Arc;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    use sc_observability::v2::{LogSink, LogSinkError, Logger};
     use sc_observability::{
-        Level, LogEvent, LogSink, Logger, LoggerConfig, ProcessIdentity, SinkHealth,
-        SinkHealthState, SinkRegistration, Timestamp, error_codes,
+        Level, LogEvent, LoggerConfig, ProcessIdentity, SinkHealth, SinkHealthState,
+        SinkRegistration, Timestamp, error_codes,
     };
     use sc_observability_types::{
-        ErrorContext, LogSinkError, LoggingHealthState, QueryHealthState, Remediation, SinkName,
-        WriterState,
+        ErrorContext, LoggingHealthState, QueryHealthState, Remediation, SinkName, WriterState,
     };
     use serde_json::Map;
 
@@ -605,7 +609,7 @@ mod tests {
         let mut config = LoggerConfig::default_for(service_name(), root.clone());
         config.enable_console_sink = false;
         let logger = match Logger::builder(config) {
-            Ok(builder) => builder.build(),
+            Ok(builder) => builder.build().expect("logger build"),
             Err(error) => panic!("logger builder: {error}"),
         };
         if let Err(error) = logger.log(sample_log_event("preflight log")) {
@@ -674,7 +678,7 @@ mod tests {
         let mut config = LoggerConfig::default_for(service_name(), root);
         config.enable_console_sink = false;
         let logger = match Logger::builder(config) {
-            Ok(builder) => builder.build(),
+            Ok(builder) => builder.build().expect("logger build"),
             Err(error) => panic!("logger builder: {error}"),
         };
         let mut observer = CliObserver::new(logger);
@@ -700,7 +704,7 @@ mod tests {
         let mut config = LoggerConfig::default_for(service_name(), root.clone());
         config.enable_console_sink = false;
         let logger = match Logger::builder(config) {
-            Ok(builder) => builder.build(),
+            Ok(builder) => builder.build().expect("logger build"),
             Err(error) => panic!("logger builder: {error}"),
         };
         let mut observer = CliObserver::new(logger);
@@ -725,7 +729,7 @@ mod tests {
         let mut config = LoggerConfig::default_for(service_name(), root);
         config.enable_console_sink = false;
         let logger = match Logger::builder(config) {
-            Ok(builder) => builder.build(),
+            Ok(builder) => builder.build().expect("logger build"),
             Err(error) => panic!("logger builder: {error}"),
         };
         if let Err(error) = logger.try_log(sample_log_event("preflight try-log")) {
@@ -760,7 +764,7 @@ mod tests {
         let mut config = LoggerConfig::default_for(service_name(), root);
         config.enable_console_sink = false;
         let logger = match Logger::builder(config) {
-            Ok(builder) => builder.build(),
+            Ok(builder) => builder.build().expect("logger build"),
             Err(error) => panic!("logger builder: {error}"),
         };
         let mut observer = CliObserver::new(logger);
@@ -797,7 +801,7 @@ mod tests {
         let mut config = LoggerConfig::default_for(service_name(), root.clone());
         config.enable_console_sink = false;
         let logger = match Logger::builder(config) {
-            Ok(builder) => builder.build(),
+            Ok(builder) => builder.build().expect("logger build"),
             Err(error) => panic!("logger builder: {error}"),
         };
         let mut observer = CliObserver::new(logger);
@@ -868,7 +872,7 @@ mod tests {
         let mut config = LoggerConfig::default_for(service_name(), root);
         config.enable_console_sink = false;
         let logger = match Logger::builder(config) {
-            Ok(builder) => builder.build(),
+            Ok(builder) => builder.build().expect("logger build"),
             Err(error) => panic!("logger builder: {error}"),
         };
         let mut observer = CliObserver::new(logger);
@@ -921,11 +925,13 @@ mod tests {
 
         impl LogSink for WriteFailSink {
             fn write(&self, _event: &sc_observability::LogEvent) -> Result<(), LogSinkError> {
-                Err(LogSinkError(Box::new(ErrorContext::new(
-                    error_codes::LOGGER_SINK_WRITE_FAILED,
-                    "test sink write failed",
-                    Remediation::not_recoverable("test sink intentionally fails writes"),
-                ))))
+                Err(LogSinkError::Write {
+                    context: Box::new(ErrorContext::new(
+                        error_codes::LOGGER_SINK_WRITE_FAILED,
+                        "test sink write failed",
+                        Remediation::not_recoverable("test sink intentionally fails writes"),
+                    )),
+                })
             }
 
             fn health(&self) -> SinkHealth {
@@ -947,8 +953,8 @@ mod tests {
             Ok(builder) => builder,
             Err(error) => panic!("logger builder: {error}"),
         };
-        builder.register_sink(SinkRegistration::new(Arc::new(WriteFailSink)));
-        let logger = builder.build();
+        builder.register_sink(SinkRegistration::typed(Arc::new(WriteFailSink)));
+        let logger = builder.build().expect("logger build");
         let mut observer = CliObserver::new(logger);
 
         observer.on_command_start(&CommandStartEvent {
@@ -972,11 +978,13 @@ mod tests {
             }
 
             fn flush(&self) -> Result<(), LogSinkError> {
-                Err(LogSinkError(Box::new(ErrorContext::new(
-                    error_codes::LOGGER_FLUSH_FAILED,
-                    "test sink flush failed",
-                    Remediation::not_recoverable("test sink intentionally fails flush"),
-                ))))
+                Err(LogSinkError::Flush {
+                    context: Box::new(ErrorContext::new(
+                        error_codes::LOGGER_FLUSH_FAILED,
+                        "test sink flush failed",
+                        Remediation::not_recoverable("test sink intentionally fails flush"),
+                    )),
+                })
             }
 
             fn health(&self) -> SinkHealth {
@@ -998,8 +1006,8 @@ mod tests {
             Ok(builder) => builder,
             Err(error) => panic!("logger builder: {error}"),
         };
-        builder.register_sink(SinkRegistration::new(Arc::new(FlushFailSink)));
-        let mut observer = CliObserver::new(builder.build());
+        builder.register_sink(SinkRegistration::typed(Arc::new(FlushFailSink)));
+        let mut observer = CliObserver::new(builder.build().expect("logger build"));
 
         observer.shutdown();
 
