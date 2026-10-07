@@ -89,16 +89,7 @@ pub fn execute_bead_request_with_runner(
         args: cook_args(&normalized.rendered_formula, request),
         working_directory: normalized.working_directory.clone(),
     };
-    if let Some(failed) = run_stage(
-        runner,
-        BeadStage::Validate,
-        &cook,
-        BeadComposeError::CookFailed {
-            exit_status: None,
-            cause: String::new(),
-        },
-        &mut stages,
-    )? {
+    if let Some(failed) = run_stage(runner, StageFailure::Cook, &cook, &mut stages)? {
         return Ok(receipt(
             request,
             normalized.rendered_formula,
@@ -291,14 +282,47 @@ pub(crate) fn append_variables(args: &mut Vec<String>, request: &BeadComposeRequ
     }
 }
 
+/// Closed mapping for process stages that return status-bearing failures.
+#[derive(Clone, Copy)]
+pub(crate) enum StageFailure {
+    Cook,
+    ResolveActiveRegistry,
+    PreviewPour,
+    Pour,
+}
+
+impl StageFailure {
+    fn stage(self) -> BeadStage {
+        match self {
+            Self::Cook => BeadStage::Validate,
+            Self::ResolveActiveRegistry => BeadStage::ResolveActiveRegistry,
+            Self::PreviewPour => BeadStage::PreviewPour,
+            Self::Pour => BeadStage::Pour,
+        }
+    }
+
+    fn error(self, exit_status: Option<i32>, diagnostic: &str) -> BeadComposeError {
+        match self {
+            Self::Cook => BeadComposeError::CookFailed {
+                exit_status,
+                cause: short_cause(diagnostic),
+            },
+            Self::ResolveActiveRegistry => {
+                BeadComposeError::ActiveRegistryResolutionFailed { exit_status }
+            }
+            Self::PreviewPour => BeadComposeError::PreviewPourFailed { exit_status },
+            Self::Pour => BeadComposeError::PourFailed { exit_status },
+        }
+    }
+}
+
 pub(crate) fn run_stage(
     runner: &dyn ProcessRunner,
-    stage: BeadStage,
+    failure: StageFailure,
     spec: &CommandSpec,
-    template_error: BeadComposeError,
     stages: &mut Vec<BeadStageReceipt>,
 ) -> Result<Option<BeadOutcome>, BeadComposeError> {
-    match run_stage_with_output(runner, stage, spec, template_error, stages)? {
+    match run_stage_with_output(runner, failure, spec, stages)? {
         Ok(_) => Ok(None),
         Err(outcome) => Ok(Some(outcome)),
     }
@@ -306,11 +330,11 @@ pub(crate) fn run_stage(
 
 pub(crate) fn run_stage_with_output(
     runner: &dyn ProcessRunner,
-    stage: BeadStage,
+    failure: StageFailure,
     spec: &CommandSpec,
-    template_error: BeadComposeError,
     stages: &mut Vec<BeadStageReceipt>,
 ) -> Result<Result<ProcessOutput, BeadOutcome>, BeadComposeError> {
+    let stage = failure.stage();
     let output = runner.run(spec).map_err(|error| {
         if is_process_output_limit_error(&error) {
             BeadComposeError::ProcessOutputLimitExceeded {
@@ -328,50 +352,31 @@ pub(crate) fn run_stage_with_output(
             }
         }
     })?;
-    let successful = output.exit_status == Some(0);
-    let diagnostic = if output.stderr.trim().is_empty() {
-        &output.stdout
-    } else {
-        &output.stderr
-    };
-    let code = error_with_status(template_error, output.exit_status, diagnostic)
-        .code()
-        .to_owned();
-    stages.push(process_receipt(
-        stage,
-        spec,
-        &output,
-        if successful {
-            BeadStageOutcome::Succeeded
-        } else {
-            BeadStageOutcome::Failed { code: code.clone() }
-        },
-    ));
-    if successful {
+    if output.exit_status == Some(0) {
+        stages.push(process_receipt(
+            stage,
+            spec,
+            &output,
+            BeadStageOutcome::Succeeded,
+        ));
         Ok(Ok(output))
     } else {
+        let diagnostic = if output.stderr.trim().is_empty() {
+            &output.stdout
+        } else {
+            &output.stderr
+        };
+        let code = failure
+            .error(output.exit_status, diagnostic)
+            .code()
+            .to_owned();
+        stages.push(process_receipt(
+            stage,
+            spec,
+            &output,
+            BeadStageOutcome::Failed { code: code.clone() },
+        ));
         Ok(Err(BeadOutcome::Failed { code }))
-    }
-}
-
-fn error_with_status(
-    error: BeadComposeError,
-    exit_status: Option<i32>,
-    cause: &str,
-) -> BeadComposeError {
-    match error {
-        BeadComposeError::CookFailed { .. } => BeadComposeError::CookFailed {
-            exit_status,
-            cause: short_cause(cause),
-        },
-        BeadComposeError::ActiveRegistryResolutionFailed { .. } => {
-            BeadComposeError::ActiveRegistryResolutionFailed { exit_status }
-        }
-        BeadComposeError::PreviewPourFailed { .. } => {
-            BeadComposeError::PreviewPourFailed { exit_status }
-        }
-        BeadComposeError::PourFailed { .. } => BeadComposeError::PourFailed { exit_status },
-        other => other,
     }
 }
 
@@ -699,6 +704,80 @@ pub(crate) mod tests {
             }
         ));
         fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn registry_process_failures_preserve_stage_codes_status_and_evidence() {
+        for (operation, stage, code, successful_stages) in [
+            (
+                BeadOperation::Validate,
+                crate::BeadStage::Validate,
+                "BEADS_COOK_FAILED",
+                0,
+            ),
+            (
+                BeadOperation::PreviewPour,
+                crate::BeadStage::ResolveActiveRegistry,
+                "BEADS_WHERE_FAILED",
+                1,
+            ),
+            (
+                BeadOperation::PreviewPour,
+                crate::BeadStage::PreviewPour,
+                "BEADS_PREVIEW_POUR_FAILED",
+                2,
+            ),
+            (
+                BeadOperation::Pour,
+                crate::BeadStage::Pour,
+                "BEADS_POUR_FAILED",
+                2,
+            ),
+        ] {
+            for status in [Some(7), None] {
+                let root = workspace();
+                let beads_dir = root.join(".beads");
+                let registry = beads_dir.join("formulas");
+                fs::create_dir_all(&registry).expect("registry");
+                let mut request = request(&root, operation);
+                request.rendered_formula = registry.join("example.formula.toml");
+                request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+                let mut outputs = Vec::new();
+                if successful_stages > 0 {
+                    outputs.push(success("{}"));
+                }
+                if successful_stages > 1 {
+                    outputs.push(where_output(&beads_dir));
+                }
+                let mut failed_output = failure();
+                failed_output.exit_status = status;
+                failed_output.stdout = "partial output".into();
+                outputs.push(failed_output);
+                let runner = FakeRunner::with_outputs(outputs);
+
+                let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+                assert_eq!(receipt.outcome, BeadOutcome::Failed { code: code.into() });
+                assert_eq!(receipt.stages.len(), successful_stages + 2);
+                let failed_stage = receipt.stages.last().expect("failed stage");
+                assert_eq!(failed_stage.stage, stage);
+                assert_eq!(
+                    failed_stage.outcome,
+                    crate::BeadStageOutcome::Failed { code: code.into() }
+                );
+                assert_eq!(failed_stage.exit_status, status);
+                assert_eq!(failed_stage.stdout_excerpt, "partial output");
+                assert_eq!(failed_stage.stderr_excerpt, "invalid formula");
+                assert_eq!(failed_stage.elapsed_ms, 2);
+                let calls = runner.calls.lock().expect("calls");
+                assert_eq!(calls.len(), successful_stages + 1);
+                assert_eq!(
+                    failed_stage.argv,
+                    calls.last().expect("attempted command").argv()
+                );
+                drop(calls);
+                fs::remove_dir_all(root).expect("cleanup");
+            }
+        }
     }
 
     #[test]
