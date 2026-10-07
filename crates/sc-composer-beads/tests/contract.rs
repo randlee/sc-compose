@@ -3,8 +3,11 @@
 use std::path::PathBuf;
 
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeError, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome,
-    parse_request,
+    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDependencyType, BeadEdgeAction,
+    BeadEndpoint, BeadGraph, BeadGraphMode, BeadGraphProvenance, BeadId, BeadNodeAction,
+    BeadOperation, BeadOutcome, BeadPourMode, BeadRelation, BeadStage, BeadStageOutcome,
+    GraphConflictReason, GraphFormulaUnsupportedReason, GraphRef, GraphRelationInvalidReason,
+    MissingEdge, PROVENANCE_KEY, Sha256Digest, StepId, parse_request,
 };
 
 #[test]
@@ -173,6 +176,84 @@ fn every_advertised_error_has_its_stable_code() {
             },
             "BEADS_POUR_FAILED",
         ),
+        (
+            BeadComposeError::GraphParentNotFound {
+                parent: bead("proj-42"),
+            },
+            "BEADS_GRAPH_PARENT_NOT_FOUND",
+        ),
+        (
+            BeadComposeError::GraphIdInvalid {
+                field: "step".into(),
+                value: "bad-id".into(),
+            },
+            "BEADS_GRAPH_ID_INVALID",
+        ),
+        (
+            BeadComposeError::GraphScopeMismatch {
+                field: "ref".into(),
+                value: "other".into(),
+            },
+            "BEADS_GRAPH_SCOPE_MISMATCH",
+        ),
+        (
+            BeadComposeError::GraphFormulaUnsupported {
+                reason: GraphFormulaUnsupportedReason::VarsDeclared,
+            },
+            "BEADS_GRAPH_FORMULA_UNSUPPORTED",
+        ),
+        (
+            BeadComposeError::GraphRelationInvalid {
+                index: 0,
+                reason: GraphRelationInvalidReason::SelfEdge,
+            },
+            "BEADS_GRAPH_RELATION_INVALID",
+        ),
+        (
+            BeadComposeError::GraphConflict {
+                id: bead("proj-42.release-build"),
+                reason: GraphConflictReason::NotOwned,
+            },
+            "BEADS_GRAPH_CONFLICT",
+        ),
+        (
+            BeadComposeError::GraphEdgeConflict {
+                from: bead("proj-42"),
+                to: bead("proj-3"),
+                existing: "related".into(),
+                requested: "blocks".into(),
+            },
+            "BEADS_GRAPH_EDGE_CONFLICT",
+        ),
+        (
+            BeadComposeError::GraphEdgeMissing {
+                edges: vec![MissingEdge {
+                    from: bead("proj-42"),
+                    to: bead("proj-3"),
+                    kind: "blocks".into(),
+                }],
+            },
+            "BEADS_GRAPH_EDGE_MISSING",
+        ),
+        (
+            BeadComposeError::GraphReadFailed {
+                command: vec!["bd".into(), "show".into(), "proj-42".into()],
+                status: Some(1),
+            },
+            "BEADS_GRAPH_READ_FAILED",
+        ),
+        (
+            BeadComposeError::GraphApplyFailed {
+                command: vec![
+                    "bd".into(),
+                    "create".into(),
+                    "--graph".into(),
+                    "plan.json".into(),
+                ],
+                status: None,
+            },
+            "BEADS_GRAPH_APPLY_FAILED",
+        ),
     ];
 
     for (error, expected_code) in examples {
@@ -208,4 +289,208 @@ fn duplicate_bead_variables_are_rejected_with_a_stable_contract_error() {
 fn malformed_request_json_has_a_stable_contract_error() {
     let error = parse_request("{").expect_err("malformed request JSON must be rejected");
     assert_eq!(error.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
+}
+
+fn bead(id: &str) -> BeadId {
+    BeadId::new(id).expect("bead id")
+}
+
+fn round_trip<T>(wire: serde_json::Value) -> T
+where
+    T: serde::de::DeserializeOwned + serde::Serialize,
+{
+    let value: T = serde_json::from_value(wire.clone()).expect("parse normative shape");
+    assert_eq!(serde_json::to_value(&value).expect("serialize"), wire);
+    value
+}
+
+#[test]
+fn graph_contract_serializes_adr_0023_shapes() {
+    use serde_json::json;
+    round_trip::<BeadId>(json!("proj-42"));
+    round_trip::<GraphRef>(json!("qa1-f1-r1"));
+    round_trip::<StepId>(json!("build_1"));
+    let digest = format!("sha256:{}", "a".repeat(64));
+    round_trip::<Sha256Digest>(json!(digest));
+    round_trip::<BeadEndpoint>(json!("step:build_1"));
+    round_trip::<BeadEndpoint>(json!("bead:proj-42"));
+    round_trip::<BeadRelation>(json!({"from":"step:build_1","to":"bead:proj-42","type":"blocks"}));
+    round_trip::<BeadGraph>(json!({
+        "mode":"attach", "parent":"proj-42", "ref":"qa1-f1-r1",
+        "formula":"release", "revision":digest,
+        "plan_path":"release.formula.toml.graph.json",
+        "ids":{"build_1":"proj-42.qa1-f1-r1-build_1"},
+        "nodes":[{"step":"build_1","id":"proj-42.qa1-f1-r1-build_1","action":"existing"}],
+        "edges":[{"from":"proj-42.qa1-f1-r1-build_1","to":"proj-3","type":"blocks","action":"existing"}]
+    }));
+    round_trip::<MissingEdge>(json!({"from":"proj-42","to":"proj-3","type":"blocks"}));
+    round_trip::<BeadGraphProvenance>(json!({
+        "v":1,"mode":"attach","formula":"release","revision":digest,"inputs":digest,
+        "parent":"proj-42","ref":"qa1-f1-r1","step":"build_1"
+    }));
+    assert_eq!(PROVENANCE_KEY, "sc_compose_graph");
+    for mode in ["registry", "graph"] {
+        round_trip::<BeadPourMode>(json!(mode));
+    }
+    for mode in ["pour", "attach"] {
+        round_trip::<BeadGraphMode>(json!(mode));
+    }
+    for action in ["create", "created", "existing"] {
+        round_trip::<BeadNodeAction>(json!(action));
+    }
+    for action in ["add", "added", "existing"] {
+        round_trip::<BeadEdgeAction>(json!(action));
+    }
+    for kind in [
+        "blocks",
+        "conditional-blocks",
+        "waits-for",
+        "related",
+        "discovered-from",
+        "replies-to",
+        "relates-to",
+        "duplicates",
+        "supersedes",
+        "authored-by",
+        "assigned-to",
+        "approved-by",
+        "attests",
+        "tracks",
+        "until",
+        "caused-by",
+        "validates",
+        "delegated-from",
+    ] {
+        round_trip::<BeadDependencyType>(json!(kind));
+    }
+    assert!(serde_json::from_value::<BeadDependencyType>(json!("parent-child")).is_err());
+    assert!(serde_json::from_value::<BeadDependencyType>(json!("invented")).is_err());
+}
+
+#[test]
+fn identifier_validation_rejects_bad_values_at_rust_and_json_boundaries() {
+    use serde_json::json;
+    for value in ["", "a b", "a\nb", "a\tb", "a\u{2003}b"] {
+        assert!(BeadId::new(value).is_err());
+        assert!(serde_json::from_value::<BeadId>(json!(value)).is_err());
+    }
+    for value in ["", ".", "é", "a b", &"a".repeat(33)] {
+        let error = GraphRef::new(value).expect_err("invalid ref");
+        assert!(error.to_string().contains("ref"));
+        assert!(error.to_string().contains("ADR-0023"));
+        assert!(serde_json::from_value::<GraphRef>(json!(value)).is_err());
+    }
+    for value in ["", "a-b", "a.b", "é", &"a".repeat(65)] {
+        assert!(StepId::new(value).is_err());
+        assert!(serde_json::from_value::<StepId>(json!(value)).is_err());
+    }
+    assert!(GraphRef::new("a".repeat(32)).is_ok());
+    assert!(StepId::new("a".repeat(64)).is_ok());
+    for value in [
+        "a".repeat(64),
+        format!("sha256:{}", "A".repeat(64)),
+        format!("sha256:{}", "g".repeat(64)),
+        format!("sha256:{}", "a".repeat(63)),
+    ] {
+        assert!(Sha256Digest::new(&value).is_err());
+        assert!(serde_json::from_value::<Sha256Digest>(json!(value)).is_err());
+    }
+    for endpoint in ["step:", "step:bad-id", "bead:", "other:proj-42", "proj-42"] {
+        assert!(serde_json::from_value::<BeadEndpoint>(json!(endpoint)).is_err());
+    }
+}
+
+#[test]
+fn digests_use_the_composer_hash_contract() {
+    use sc_composer::{HashInput, calculate_hash};
+    let hash = |bytes| {
+        calculate_hash(HashInput::TextFileBytes {
+            utf8_file_bytes: bytes,
+        })
+        .expect("UTF-8 hash")
+    };
+    let lf = hash(b"line one\nline two\n");
+    assert_eq!(lf, hash(b"line one\r\nline two\r"));
+    let digest = Sha256Digest::new(format!("sha256:{}", lf.template())).expect("canonical digest");
+    assert_eq!(digest.as_str(), format!("sha256:{}", lf.template()));
+}
+
+#[test]
+fn graph_reason_vocabulary_is_closed_and_prints_the_wire_value() {
+    use serde_json::json;
+    for value in ["not_owned", "provenance_differs"] {
+        assert_eq!(
+            round_trip::<GraphConflictReason>(json!(value)).to_string(),
+            value
+        );
+    }
+    for value in [
+        "unknown_step",
+        "self_edge",
+        "no_step",
+        "duplicate",
+        "parent_pair",
+        "bead_not_found",
+        "registry_pour",
+    ] {
+        assert_eq!(
+            round_trip::<GraphRelationInvalidReason>(json!(value)).to_string(),
+            value
+        );
+    }
+    for value in [
+        "not_utf8",
+        "vars_declared",
+        "bead_variables_set",
+        "composition",
+        "unknown_key",
+        "step_construct",
+        "reserved_metadata",
+        "label_comma",
+        "step_graph",
+    ] {
+        assert_eq!(
+            round_trip::<GraphFormulaUnsupportedReason>(json!(value)).to_string(),
+            value
+        );
+    }
+    assert!(serde_json::from_value::<GraphConflictReason>(json!("unknown")).is_err());
+    assert!(serde_json::from_value::<GraphRelationInvalidReason>(json!("unknown")).is_err());
+    assert!(serde_json::from_value::<GraphFormulaUnsupportedReason>(json!("unknown")).is_err());
+}
+
+#[test]
+fn missing_edge_error_lists_each_repair_in_plan_order() {
+    let error = BeadComposeError::GraphEdgeMissing {
+        edges: vec![
+            MissingEdge {
+                from: bead("proj-42"),
+                to: bead("proj-3"),
+                kind: "blocks".into(),
+            },
+            MissingEdge {
+                from: bead("proj-9"),
+                to: bead("proj-42"),
+                kind: "validates".into(),
+            },
+        ],
+    };
+    assert_eq!(
+        error.to_string(),
+        "graph edges missing; repair then retry: bd dep add proj-42 proj-3 --type blocks; bd dep add proj-9 proj-42 --type validates"
+    );
+}
+
+#[test]
+fn phase_r_request_defaults_and_receipt_bytes_are_unchanged() {
+    let request = include_str!("fixtures/beads/request.json");
+    let request = parse_request(request).expect("Phase R request");
+    assert!(request.parent.is_none());
+    assert!(request.ref_.is_none());
+    assert!(request.relations.is_empty());
+    let old = r#"{"schema":"sc-compose/beads/v1","operation":"render","rendered_formula":"sample.formula.toml","stages":[],"outcome":"succeeded"}"#;
+    let receipt: BeadComposeReceipt = serde_json::from_str(old).expect("Phase R receipt");
+    assert!(receipt.pour_mode.is_none());
+    assert!(receipt.graph.is_none());
+    assert_eq!(serde_json::to_string(&receipt).expect("serialize"), old);
 }

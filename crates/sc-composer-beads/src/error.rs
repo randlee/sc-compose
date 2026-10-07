@@ -4,7 +4,8 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
-use crate::contract::BeadStage;
+use crate::contract::{BeadId, BeadStage, MissingEdge};
+use serde::{Deserialize, Serialize};
 
 /// Stable errors returned before or during Beads composition.
 #[derive(Debug, Error)]
@@ -157,6 +158,94 @@ pub enum BeadComposeError {
         /// Exit status returned by persistent `bd mol pour`, if it started.
         exit_status: Option<i32>,
     },
+    /// ParentNotFound condition from ADR-0023.
+    #[error("graph parent `{parent}` does not exist; create it or name an existing bead")]
+    GraphParentNotFound {
+        /// Missing parent.
+        parent: BeadId,
+    },
+    /// IdInvalid condition from ADR-0023.
+    #[error(
+        "invalid graph {field} `{value}`; follow ADR-0023: bead ids are non-empty without whitespace, ref is [A-Za-z0-9_-]{{1,32}}, step is [A-Za-z0-9_]{{1,64}}, digest is sha256: plus 64 lowercase hex digits"
+    )]
+    GraphIdInvalid {
+        /// Invalid identifier field.
+        field: String,
+        /// Rejected value.
+        value: String,
+    },
+    /// ScopeMismatch condition from ADR-0023.
+    #[error(
+        "graph scope {field} disagrees with `{value}`; make compose_variables agree with the top-level parent/ref"
+    )]
+    GraphScopeMismatch {
+        /// Mismatched scope field.
+        field: String,
+        /// Conflicting value.
+        value: String,
+    },
+    /// FormulaUnsupported condition from ADR-0023.
+    #[error(
+        "unsupported graph formula: {reason}; express the construct in the template or use registry pour"
+    )]
+    GraphFormulaUnsupported {
+        /// Unsupported construct.
+        reason: GraphFormulaUnsupportedReason,
+    },
+    /// RelationInvalid condition from ADR-0023.
+    #[error("invalid graph relation {index}: {reason}; correct the relation")]
+    GraphRelationInvalid {
+        /// Zero-based relation index.
+        index: usize,
+        /// Relation rejection reason.
+        reason: GraphRelationInvalidReason,
+    },
+    /// Conflict condition from ADR-0023.
+    #[error(
+        "graph bead `{id}` conflicts: {reason}; inspect it or use a new ref (existing beads are never edited)"
+    )]
+    GraphConflict {
+        /// Conflicting planned bead.
+        id: BeadId,
+        /// Ownership conflict reason.
+        reason: GraphConflictReason,
+    },
+    /// EdgeConflict condition from ADR-0023.
+    #[error(
+        "graph edge {from} -> {to} has type `{existing}`, requested `{requested}`; inspect the edge or change the relation"
+    )]
+    GraphEdgeConflict {
+        /// Dependent bead.
+        from: BeadId,
+        /// Dependency bead.
+        to: BeadId,
+        /// Existing edge type.
+        existing: String,
+        /// Requested edge type.
+        requested: String,
+    },
+    /// EdgeMissing condition from ADR-0023.
+    #[error("graph edges missing; repair then retry: {}", missing_edge_commands(.edges))]
+    GraphEdgeMissing {
+        /// Non-empty missing edges in plan order; repair each before retrying.
+        edges: Vec<MissingEdge>,
+    },
+    /// ReadFailed condition from ADR-0023.
+    #[error("graph read failed ({status:?}): {command:?}; fix bd and retry, nothing was written")]
+    GraphReadFailed {
+        /// Attempted bd argv.
+        command: Vec<String>,
+        /// Exit status, or None when killed by a signal.
+        status: Option<i32>,
+    },
+    /// ApplyFailed condition from ADR-0023.
+    #[error("graph apply failed ({status:?}): {command:?}; fix bd and retry, nothing was written")]
+    GraphApplyFailed {
+        /// Attempted bd argv.
+        command: Vec<String>,
+        /// Exit status, or None when killed by a signal.
+        status: Option<i32>,
+    },
 }
 
 impl BeadComposeError {
@@ -189,6 +278,120 @@ impl BeadComposeError {
             Self::FormulaRegistryAmbiguous { .. } => "BEADS_FORMULA_REGISTRY_AMBIGUOUS",
             Self::PreviewPourFailed { .. } => "BEADS_PREVIEW_POUR_FAILED",
             Self::PourFailed { .. } => "BEADS_POUR_FAILED",
+            Self::GraphParentNotFound { .. } => "BEADS_GRAPH_PARENT_NOT_FOUND",
+            Self::GraphIdInvalid { .. } => "BEADS_GRAPH_ID_INVALID",
+            Self::GraphScopeMismatch { .. } => "BEADS_GRAPH_SCOPE_MISMATCH",
+            Self::GraphFormulaUnsupported { .. } => "BEADS_GRAPH_FORMULA_UNSUPPORTED",
+            Self::GraphRelationInvalid { .. } => "BEADS_GRAPH_RELATION_INVALID",
+            Self::GraphConflict { .. } => "BEADS_GRAPH_CONFLICT",
+            Self::GraphEdgeConflict { .. } => "BEADS_GRAPH_EDGE_CONFLICT",
+            Self::GraphEdgeMissing { .. } => "BEADS_GRAPH_EDGE_MISSING",
+            Self::GraphReadFailed { .. } => "BEADS_GRAPH_READ_FAILED",
+            Self::GraphApplyFailed { .. } => "BEADS_GRAPH_APPLY_FAILED",
         }
     }
+}
+
+/// Closed wire vocabulary for GraphConflictReason (ADR-0023).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+#[serde(rename_all = "snake_case")]
+pub enum GraphConflictReason {
+    /// The `not_owned` refusal reason.
+    NotOwned,
+    /// The `provenance_differs` refusal reason.
+    ProvenanceDiffers,
+}
+
+impl std::fmt::Display for GraphConflictReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::NotOwned => "not_owned",
+            Self::ProvenanceDiffers => "provenance_differs",
+        })
+    }
+}
+
+/// Closed wire vocabulary for GraphRelationInvalidReason (ADR-0023).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+#[serde(rename_all = "snake_case")]
+pub enum GraphRelationInvalidReason {
+    /// The `unknown_step` refusal reason.
+    UnknownStep,
+    /// The `self_edge` refusal reason.
+    SelfEdge,
+    /// The `no_step` refusal reason.
+    NoStep,
+    /// The `duplicate` refusal reason.
+    Duplicate,
+    /// The `parent_pair` refusal reason.
+    ParentPair,
+    /// The `bead_not_found` refusal reason.
+    BeadNotFound,
+    /// The `registry_pour` refusal reason.
+    RegistryPour,
+}
+
+impl std::fmt::Display for GraphRelationInvalidReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::UnknownStep => "unknown_step",
+            Self::SelfEdge => "self_edge",
+            Self::NoStep => "no_step",
+            Self::Duplicate => "duplicate",
+            Self::ParentPair => "parent_pair",
+            Self::BeadNotFound => "bead_not_found",
+            Self::RegistryPour => "registry_pour",
+        })
+    }
+}
+
+/// Closed wire vocabulary for GraphFormulaUnsupportedReason (ADR-0023).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+#[serde(rename_all = "snake_case")]
+pub enum GraphFormulaUnsupportedReason {
+    /// The `not_utf8` refusal reason.
+    NotUtf8,
+    /// The `vars_declared` refusal reason.
+    VarsDeclared,
+    /// The `bead_variables_set` refusal reason.
+    BeadVariablesSet,
+    /// The `composition` refusal reason.
+    Composition,
+    /// The `unknown_key` refusal reason.
+    UnknownKey,
+    /// The `step_construct` refusal reason.
+    StepConstruct,
+    /// The `reserved_metadata` refusal reason.
+    ReservedMetadata,
+    /// The `label_comma` refusal reason.
+    LabelComma,
+    /// The `step_graph` refusal reason.
+    StepGraph,
+}
+
+impl std::fmt::Display for GraphFormulaUnsupportedReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::NotUtf8 => "not_utf8",
+            Self::VarsDeclared => "vars_declared",
+            Self::BeadVariablesSet => "bead_variables_set",
+            Self::Composition => "composition",
+            Self::UnknownKey => "unknown_key",
+            Self::StepConstruct => "step_construct",
+            Self::ReservedMetadata => "reserved_metadata",
+            Self::LabelComma => "label_comma",
+            Self::StepGraph => "step_graph",
+        })
+    }
+}
+
+fn missing_edge_commands(edges: &[MissingEdge]) -> String {
+    edges
+        .iter()
+        .map(|edge| format!("bd dep add {} {} --type {}", edge.from, edge.to, edge.kind))
+        .collect::<Vec<_>>()
+        .join("; ")
 }

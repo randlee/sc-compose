@@ -79,7 +79,19 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
         | RustBeadComposeError::FormulaRegistryAmbiguous { .. } => "resolve_active_registry",
         RustBeadComposeError::PreviewPourFailed { .. } => "preview_pour",
         RustBeadComposeError::PourFailed { .. } => "pour",
-        RustBeadComposeError::RequestDeserializationFailed { .. }
+        // Graph-stage failures are returned in receipts, not through this
+        // request-error conversion. Preserve their code if directly supplied.
+        RustBeadComposeError::GraphParentNotFound { .. }
+        | RustBeadComposeError::GraphIdInvalid { .. }
+        | RustBeadComposeError::GraphScopeMismatch { .. }
+        | RustBeadComposeError::GraphFormulaUnsupported { .. }
+        | RustBeadComposeError::GraphRelationInvalid { .. }
+        | RustBeadComposeError::GraphConflict { .. }
+        | RustBeadComposeError::GraphEdgeConflict { .. }
+        | RustBeadComposeError::GraphEdgeMissing { .. }
+        | RustBeadComposeError::GraphReadFailed { .. }
+        | RustBeadComposeError::GraphApplyFailed { .. }
+        | RustBeadComposeError::RequestDeserializationFailed { .. }
         | RustBeadComposeError::UnknownSchema { .. }
         | RustBeadComposeError::FormulaPathNotFile { .. }
         | RustBeadComposeError::FormulaExtensionUnsupported { .. }
@@ -430,6 +442,9 @@ impl PyBeadComposeRequest {
                     .map(|value| coerce_path(py, value, "bd_executable"))
                     .transpose()?,
                 pour_authorization,
+                parent: None,
+                ref_: None,
+                relations: Vec::new(),
             },
         })
     }
@@ -640,6 +655,9 @@ mod tests {
             bead_variables: BTreeMap::new(),
             bd_executable: None,
             pour_authorization: None,
+            parent: None,
+            ref_: None,
+            relations: Vec::new(),
         };
 
         let rust_receipt = execute_bead_request(&request).expect("direct Rust render must succeed");

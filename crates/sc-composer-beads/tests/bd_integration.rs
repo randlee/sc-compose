@@ -440,6 +440,9 @@ fn request(
         bead_variables: BTreeMap::from([(String::from("release_name"), String::from("1.5.0"))]),
         bd_executable: Some(bd.into()),
         pour_authorization: None,
+        parent: None,
+        ref_: None,
+        relations: Vec::new(),
     }
 }
 
