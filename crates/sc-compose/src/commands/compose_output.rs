@@ -20,14 +20,14 @@ pub(super) fn emit_render_output(
     render_check: Option<sc_composer::RenderCheckReport>,
 ) -> Result<(), CommandError> {
     let rendered_text = checked_output.body();
-    let output_path = args.output.clone().or_else(|| args.append.clone());
-    let derived_path = derived_output_path(request, output_path.as_deref());
+    let output_path: Option<&Path> = args.output.as_deref().or(args.append.as_deref());
+    let derived_path = derived_output_path(request, output_path);
     let would_change = render_would_change(&derived_path, rendered_text);
     let bytes_written = if args.dry_run {
         None
     } else if let Some(output) = args.append.as_ref() {
         Some(append_json_record(output, resolved_path, rendered_text)?)
-    } else if let Some(output) = output_path.as_ref() {
+    } else if let Some(output) = output_path {
         let mut file = std::fs::File::create(output).map_err(|error| {
             CommandError::render_write(
                 anyhow!(error).context(format!("failed to write {}", output.display())),
@@ -83,8 +83,7 @@ pub(super) fn emit_render_output(
         } else {
             let mut payload = serde_json::json!({
                 "output_path": output_path
-                    .as_ref()
-                    .map_or_else(|| "stdout".to_owned(), |path| to_forward_slash(path)),
+                    .map_or_else(|| "stdout".to_owned(), to_forward_slash),
                 "bytes_written": bytes_written.unwrap_or_default(),
                 "template": to_forward_slash(resolved_path),
             });
