@@ -4,7 +4,6 @@ use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use thiserror::Error;
-use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 
 use crate::contract::{BeadId, BeadStage, GraphDependencyType, MissingEdge};
 use serde::{Deserialize, Serialize};
@@ -538,7 +537,15 @@ pub fn shell_quote(argument: &str) -> String {
 fn needs_shell_escape(character: char) -> bool {
     character.is_control()
         || matches!(character, '\u{2028}' | '\u{2029}')
-        || character.general_category() == GeneralCategory::Format
+        || is_format_character(character)
+}
+
+fn is_format_character(character: char) -> bool {
+    matches!(u32::from(character),
+        0x00AD | 0x0600..=0x0605 | 0x061C | 0x06DD | 0x070F | 0x0890..=0x0891 | 0x08E2
+        | 0x180E | 0x200B..=0x200F | 0x202A..=0x202E | 0x2060..=0x2064 | 0x2066..=0x206F
+        | 0xFEFF | 0xFFF9..=0xFFFB | 0x110BD | 0x110CD | 0x13430..=0x1343F
+        | 0x1BCA0..=0x1BCA3 | 0x1D173..=0x1D17A | 0xE0001 | 0xE0020..=0xE007F)
 }
 
 /// Render terminal control and formatting characters as visible Unicode escapes.
