@@ -1507,13 +1507,43 @@ fn fuzz_042_parent_file_and_relative_output_are_typed() {
     );
 
     let mut w = Workspace::new();
-    w.req.rendered_formula = PathBuf::from("missing.formula.toml");
+    w.req.rendered_formula = PathBuf::from("missing-dir/out.formula.toml");
     let error = execute_bead_request_with_runner(&w.req, &FakeRunner::new([]))
         .expect_err("relative output with no parent must be rejected");
     assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID");
     assert!(!error.to_string().contains("``"), "{error}");
     assert!(
-        error.to_string().contains("missing.formula.toml"),
+        error.to_string().contains("missing-dir/out.formula.toml"),
         "{error}"
     );
+}
+// FUZZ-012: relative rendered outputs are rooted at working_directory for Phase R operations.
+#[test]
+fn fuzz_012_relative_rendered_formula_is_rooted_at_working_directory() {
+    for operation in [BeadOperation::Render, BeadOperation::PreviewPour] {
+        let mut w = Workspace::new();
+        w.req.operation = operation;
+        w.req.parent = None;
+        w.req.ref_ = None;
+        w.req.rendered_formula = PathBuf::from("nested/out.formula.toml");
+        fs::create_dir_all(w.root.join("nested")).expect("output directory");
+        let runner = if operation == BeadOperation::PreviewPour {
+            FakeRunner::new([
+                ok(COOKED),
+                ok(&format!(
+                    r#"{{"path":"{}"}}"#,
+                    w.root.join(".beads").display()
+                )),
+                ok(""),
+            ])
+        } else {
+            FakeRunner::new([])
+        };
+        let receipt = w.run(&runner);
+        assert_eq!(
+            receipt.rendered_formula,
+            w.root.join("nested/out.formula.toml")
+        );
+        assert!(receipt.rendered_formula.is_file());
+    }
 }
