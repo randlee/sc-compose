@@ -54,6 +54,11 @@ class BeadStageReceipt:
 
 
 class BeadComposeReceipt:
+    @classmethod
+    def from_json(cls, receipt_json: str) -> BeadComposeReceipt: ...
+
+    def to_json(self) -> Any: ...
+
     schema: str
     operation: str
     rendered_formula: str

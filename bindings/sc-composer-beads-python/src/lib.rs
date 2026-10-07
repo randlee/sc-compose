@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyFloat, PyList, PyTuple};
+use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
     BeadComposeRequest, BeadOperation, BeadOutcome, BeadRelation, BeadStage, BeadStageOutcome,
@@ -330,6 +330,7 @@ struct PyBeadStageReceipt {
 #[pyclass(name = "BeadComposeReceipt", skip_from_py_object)]
 #[derive(Debug)]
 struct PyBeadComposeReceipt {
+    wire: String,
     #[pyo3(get)]
     schema: String,
     #[pyo3(get)]
@@ -344,6 +345,24 @@ struct PyBeadComposeReceipt {
     pour_mode: Option<String>,
     #[pyo3(get)]
     graph: Option<Py<PyAny>>,
+}
+
+#[pymethods]
+impl PyBeadComposeReceipt {
+    /// Decode a versioned Rust receipt into the Python receipt surface.
+    #[classmethod]
+    fn from_json(class: &Bound<'_, PyType>, receipt_json: &str) -> PyResult<Self> {
+        serde_json::from_str::<BeadComposeReceipt>(receipt_json)
+            .map(Self::from)
+            .map_err(|error| request_error(class.py(), error.to_string()))
+    }
+
+    /// Return the canonical Rust receipt JSON as Python JSON data.
+    fn to_json(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let value = serde_json::from_str(&self.wire)
+            .map_err(|error| request_error(py, error.to_string()))?;
+        json_to_py(py, &value)
+    }
 }
 
 fn stage_outcome(inner: &BeadStageOutcome) -> PyBeadStageOutcome {
@@ -394,7 +413,9 @@ fn outcome(inner: &BeadOutcome) -> PyBeadOutcome {
 
 impl From<BeadComposeReceipt> for PyBeadComposeReceipt {
     fn from(inner: BeadComposeReceipt) -> Self {
+        let wire = serde_json::to_string(&inner).expect("receipt serializes");
         Self {
+            wire,
             schema: inner.schema,
             operation: operation_name(inner.operation).to_owned(),
             rendered_formula: inner.rendered_formula.display().to_string(),

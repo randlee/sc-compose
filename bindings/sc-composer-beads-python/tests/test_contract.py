@@ -14,6 +14,7 @@ import sc_composer_beads as beads
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_ROOT = REPOSITORY_ROOT / "crates" / "sc-composer-beads" / "tests" / "fixtures" / "beads"
+GRAPH_FIXTURE_ROOT = FIXTURE_ROOT / "graph"
 
 
 def _write_fake_bd(root: Path) -> tuple[Path, Path]:
@@ -80,6 +81,14 @@ def test_import_surface_exposes_versioned_beads_contract() -> None:
     assert beads.BeadOperation.ATTACH == "attach"
     assert beads.BEADS_GRAPH_CONFLICT == "BEADS_GRAPH_CONFLICT"
     assert beads.BEADS_GRAPH_APPLY_FAILED == "BEADS_GRAPH_APPLY_FAILED"
+
+
+def test_graph_receipt_fixtures_remain_json_contracts() -> None:
+    for name in ("receipt-graph-pour.json", "receipt-registry.json", "receipt-conflict.json", "receipt-edge-missing.json"):
+        fixture = json.loads((GRAPH_FIXTURE_ROOT / name).read_text(encoding="utf-8"))
+        receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+
+        assert receipt.to_json() == fixture
 
 
 def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
