@@ -22,6 +22,49 @@ fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::pat
     request
 }
 
+// FUZZ-039: human graph refusals retain the typed diagnostic recorded in the receipt.
+#[test]
+fn fuzz_039_human_preview_attach_prints_parent_refusal_reason() {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE") else {
+        return;
+    };
+    let root = temp_root("fuzz-039-human-graph-refusal");
+    let beads_dir = root.join(".beads");
+    let initialized = std::process::Command::new(bd)
+        .args([
+            "init",
+            "--non-interactive",
+            "--quiet",
+            "--skip-agents",
+            "--skip-hooks",
+        ])
+        .current_dir(&root)
+        .env("BEADS_DIR", &beads_dir)
+        .output()
+        .unwrap();
+    assert!(initialized.status.success(), "{initialized:?}");
+    write_file(
+        &root.join("m.formula.toml.j2"),
+        "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
+    );
+    let request = root.join("request.json");
+    write_file(&request, &serde_json::json!({"schema":"sc-compose/beads/v1","operation":"preview_attach","working_directory":root,"template":"m.formula.toml.j2","rendered_formula":root.join("out.formula.toml"),"compose_variables":{},"bead_variables":{},"parent":"nosuch","ref":"r"}).to_string());
+    let output = sc_compose()
+        .args(["bead", "preview-attach", "--request"])
+        .arg(&request)
+        .current_dir(&root)
+        .env("BEADS_DIR", &beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let human = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        human.contains("parent bead `nosuch` was not found"),
+        "{human}"
+    );
+}
+
 // FUZZ-012: a relative template resolves against working_directory.
 #[test]
 fn fuzz_012_bead_request_template_is_relative_to_working_directory() {
