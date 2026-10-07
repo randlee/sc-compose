@@ -170,6 +170,11 @@ fn run_examples_command(
     args: &crate::cli::ExamplesArgs,
     observer: &mut CliObserver,
 ) -> Result<i32, CommandError> {
+    if args.render.append.is_some() {
+        return Err(CommandError::usage(anyhow::anyhow!(
+            "--append is only supported by sc-compose render"
+        )));
+    }
     match &args.command {
         Some(ExamplesSubcommand::List(list_args)) => {
             observe_command(observer, "examples", list_args.json, |_observer| {
@@ -186,6 +191,11 @@ fn run_templates_command(
     args: &crate::cli::TemplatesArgs,
     observer: &mut CliObserver,
 ) -> Result<i32, CommandError> {
+    if args.render.append.is_some() {
+        return Err(CommandError::usage(anyhow::anyhow!(
+            "--append is only supported by sc-compose render"
+        )));
+    }
     match &args.command {
         Some(TemplatesSubcommand::List(list_args)) => {
             observe_command(observer, "templates", list_args.json, |_observer| {
