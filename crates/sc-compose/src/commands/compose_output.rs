@@ -26,7 +26,7 @@ pub(super) fn emit_render_output(
     let bytes_written = if args.dry_run {
         None
     } else if let Some(output) = args.append.as_ref() {
-        Some(append_json_record(output, rendered_text)?)
+        Some(append_json_record(output, resolved_path, rendered_text)?)
     } else if let Some(output) = output_path.as_ref() {
         let mut file = std::fs::File::create(output).map_err(|error| {
             CommandError::render_write(
@@ -116,12 +116,27 @@ pub(super) fn emit_render_output(
     Ok(())
 }
 
-fn append_json_record(path: &Path, rendered: &str) -> Result<usize, CommandError> {
-    let checked =
-        sc_composer::check_rendered_output(sc_composer::OutputFormat::Json, path, rendered)
-            .map_err(CommandError::render_check)?;
-    let value: serde_json::Value = serde_json::from_str(checked.body())
-        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+fn append_json_record(
+    path: &Path,
+    template_path: &Path,
+    rendered: &str,
+) -> Result<usize, CommandError> {
+    let checked = sc_composer::check_rendered_output(
+        sc_composer::OutputFormat::Json,
+        template_path,
+        rendered,
+    )
+    .map_err(CommandError::render_check)?;
+    let value: serde_json::Value = serde_json::from_str(checked.body()).map_err(|error| {
+        CommandError::render_append(
+            anyhow!(error).context(format!(
+                "failed to parse checked JSON from template {}",
+                template_path.display()
+            )),
+            DiagnosticCode::ErrRenderJsonMalformed,
+            Vec::new(),
+        )
+    })?;
     if !value.is_object() {
         return Err(CommandError::render_append(
             anyhow!("--append requires the rendered output to be a JSON object"),
@@ -150,7 +165,12 @@ fn append_json_record(path: &Path, rendered: &str) -> Result<usize, CommandError
     })?;
     let original_len = file
         .metadata()
-        .map_err(|error| CommandError::render_write(anyhow!(error)))?
+        .map_err(|error| {
+            CommandError::render_write(anyhow!(error).context(format!(
+                "failed to inspect append target {}",
+                path.display()
+            )))
+        })?
         .len();
     if original_len > 0 {
         file.seek(SeekFrom::End(-1))

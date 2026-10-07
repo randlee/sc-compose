@@ -78,6 +78,8 @@ In order, `render --append`:
 2. requires the result to be exactly one JSON object
    (`ERR_RENDER_JSON_MALFORMED` if it is not JSON,
    `ERR_RENDER_APPEND_NOT_OBJECT` if it is an array, string or number);
+   because the object is parsed and re-serialized, its key order may differ
+   from the rendered source order;
 3. writes it as one compact UTF-8 line (embedded newlines stay escaped)
    followed by `\n`;
 4. opens the file for append (creating it if needed) and holds an exclusive

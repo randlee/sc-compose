@@ -164,6 +164,13 @@ fn render_json_append_malformed_json_reports_failure_code() {
     assert_envelope(&value);
     assert_first_code(&value, "ERR_RENDER_JSON_MALFORMED");
     assert_eq!(
+        value["diagnostics"][0]["path"],
+        fs::canonicalize(root.join("record.json.j2"))
+            .unwrap()
+            .to_string_lossy()
+            .as_ref()
+    );
+    assert_eq!(
         fs::read_to_string(destination).unwrap(),
         "{\"existing\":true}\n"
     );
