@@ -452,7 +452,8 @@ def test_attach_request_fields_reach_the_rust_graph_plan(tmp_path: Path) -> None
 
 @pytest.mark.parametrize(
     ("parent", "reference"),
-    [("invalid parent", "release_1"), ("proj-100", "invalid.ref")],
+    [(parent, "release_1") for parent in ["", " ", "invalid parent", "bad\tparent", "bad\nparent", "bad\rparent"]]
+    + [("proj-100", "invalid.ref")],
 )
 def test_attach_request_rejects_invalid_parent_and_ref(
     tmp_path: Path, parent: str, reference: str
@@ -468,13 +469,14 @@ def test_attach_request_rejects_invalid_parent_and_ref(
             ref=reference,
         )
 
-    if parent == "invalid parent":
-        assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
-        assert raised.value.stage == "request"
+    assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
+    assert raised.value.stage == "validate"
+    if parent != "proj-100":
+        assert raised.value.details == {"field": "bead", "value": parent}
+        assert "bead ids are non-empty without whitespace" in str(raised.value)
     else:
-        assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
-        assert raised.value.stage == "validate"
         assert raised.value.details == {"field": "ref", "value": reference}
+
 
 
 @pytest.mark.parametrize(

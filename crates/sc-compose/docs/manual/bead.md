@@ -365,7 +365,7 @@ Refused or failed receipts (exit `2`):
 | Code | Meaning | What to do |
 |---|---|---|
 | `BEADS_GRAPH_PARENT_NOT_FOUND` | `parent` does not exist | create it or name an existing bead |
-| `BEADS_GRAPH_ID_INVALID` | bad `ref` or step id | fix the name |
+| `BEADS_GRAPH_ID_INVALID` | invalid parent/bead id, `ref`, or step id; request parsing preserves the typed field and value | fix the identifier according to the rule in the message |
 | `BEADS_GRAPH_SCOPE_MISMATCH` | `compose_variables` disagrees with `parent`/`ref` | make them equal, or drop them |
 | `BEADS_GRAPH_FORMULA_UNSUPPORTED` | the formula uses a construct graph mode does not take | express it in the template, or use registry pour |
 | `BEADS_GRAPH_RELATION_INVALID` | a relation is malformed or names a missing bead | fix the relation |

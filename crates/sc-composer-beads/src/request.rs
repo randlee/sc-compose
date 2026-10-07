@@ -7,7 +7,7 @@ use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
 use crate::{
-    BeadComposeError, BeadComposeRequest, BeadRelation, GraphRef, PourAuthorization, StepId,
+    BeadComposeError, BeadComposeRequest, BeadId, BeadRelation, GraphRef, PourAuthorization, StepId,
 };
 
 #[derive(Default)]
@@ -52,6 +52,8 @@ impl<'de> Deserialize<'de> for BeadVariables {
 struct RequestPreflight {
     #[serde(default)]
     operation: Value,
+    #[serde(default)]
+    parent: Value,
     #[serde(default, rename = "ref")]
     reference: Value,
     #[serde(default)]
@@ -82,6 +84,9 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
             .as_str()
             .ok_or(BeadComposeError::PourAuthorizationInvalid)?;
         PourAuthorization::try_from(token)?;
+    }
+    if let Some(parent) = preflight.parent.as_str() {
+        BeadId::new(parent)?;
     }
     if matches!(
         preflight.operation.as_str(),
@@ -116,7 +121,9 @@ fn validate_endpoint_prefixes(relations: &Value) -> Result<(), BeadComposeError>
                 if let Some(value) = relation.get(field).and_then(Value::as_str) {
                     if let Some(step) = value.strip_prefix("step:") {
                         StepId::new(step)?;
-                    } else if !value.starts_with("bead:") {
+                    } else if let Some(bead) = value.strip_prefix("bead:") {
+                        BeadId::new(bead)?;
+                    } else {
                         return Err(BeadComposeError::RelationEndpointInvalid {
                             value: value.to_owned(),
                         });
