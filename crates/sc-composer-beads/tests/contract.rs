@@ -153,6 +153,13 @@ fn every_advertised_error_has_its_stable_code() {
             "BEADS_TEMPLATE_PATH_INVALID",
         ),
         (
+            BeadComposeError::OutputPathInvalid {
+                path: path.clone(),
+                rule: "parent directory must exist".into(),
+            },
+            "BEADS_OUTPUT_PATH_INVALID",
+        ),
+        (
             BeadComposeError::TemplateOutsideWorkingDirectory { path: path.clone() },
             "BEADS_TEMPLATE_OUTSIDE_WORKING_DIR",
         ),

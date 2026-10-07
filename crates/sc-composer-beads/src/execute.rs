@@ -290,12 +290,27 @@ fn validate_utf8_path(path: &Path) -> Result<(), BeadComposeError> {
 fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
     let parent = path
         .parent()
-        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
-    let parent = fs::canonicalize(parent)
-        .map_err(|_error| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+        .ok_or_else(|| BeadComposeError::OutputPathInvalid {
+            path: path.into(),
+            rule: String::from("an existing parent directory and file name are required"),
+        })?;
+    let parent = fs::canonicalize(parent).map_err(|error| {
+        let rule = if error.kind() == std::io::ErrorKind::NotFound {
+            format!("parent directory `{}` must exist", parent.display())
+        } else {
+            String::from("parent directory must be resolvable")
+        };
+        BeadComposeError::OutputPathInvalid {
+            path: path.into(),
+            rule,
+        }
+    })?;
     let name = path
         .file_name()
-        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+        .ok_or_else(|| BeadComposeError::OutputPathInvalid {
+            path: path.into(),
+            rule: String::from("path must include a file name"),
+        })?;
     Ok(parent.join(name))
 }
 

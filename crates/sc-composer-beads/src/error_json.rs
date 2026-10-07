@@ -25,6 +25,10 @@ impl Serialize for BeadComposeError {
                 json!({ "path": path, "kind": format!("{:?}", source.kind()) }),
                 "Check that the request path names an existing UTF-8 JSON file and that you have permission to read it.",
             )),
+            Self::OutputPathInvalid { path, rule } => Some((
+                json!({ "field": "rendered_formula", "value": path, "rule": rule }),
+                "Choose a rendered_formula path whose parent directory exists inside working_directory.",
+            )),
             Self::GraphParentNotFound { parent } => Some((
                 json!({ "parent": parent }),
                 "Create the parent or name an existing bead.",

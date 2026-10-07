@@ -116,6 +116,7 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
         | RustBeadComposeError::FormulaPathNotFile { .. }
         | RustBeadComposeError::FormulaExtensionUnsupported { .. }
         | RustBeadComposeError::TemplatePathInvalid { .. }
+        | RustBeadComposeError::OutputPathInvalid { .. }
         | RustBeadComposeError::TemplateOutsideWorkingDirectory { .. }
         | RustBeadComposeError::OutputOutsideWorkingDirectory { .. }
         | RustBeadComposeError::OutputPathSymlink { .. }
@@ -130,6 +131,22 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
 }
 
 fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyErr {
+    if let RustBeadComposeError::OutputPathInvalid { path, rule } = error_kind {
+        let details = BTreeMap::from([
+            ("field".to_owned(), "rendered_formula".to_owned()),
+            ("value".to_owned(), path.to_string_lossy().into_owned()),
+            ("rule".to_owned(), rule.clone()),
+        ]);
+        return PyErr::from_type(
+            py.get_type::<PyBeadComposeError>(),
+            (
+                error_kind.code(),
+                error_kind.to_string(),
+                rust_error_stage(error_kind),
+                details,
+            ),
+        );
+    }
     if let RustBeadComposeError::GraphIdInvalid { field, value } = error_kind {
         let details = BTreeMap::from([
             ("field".to_owned(), field.as_str().to_owned()),

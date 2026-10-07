@@ -74,6 +74,7 @@ fn print_bead_error(
         | BeadComposeError::FormulaPathNotFile { .. }
         | BeadComposeError::FormulaExtensionUnsupported { .. }
         | BeadComposeError::TemplatePathInvalid { .. }
+        | BeadComposeError::OutputPathInvalid { .. }
         | BeadComposeError::TemplateOutsideWorkingDirectory { .. }
         | BeadComposeError::OutputOutsideWorkingDirectory { .. }
         | BeadComposeError::OutputPathSymlink { .. }
