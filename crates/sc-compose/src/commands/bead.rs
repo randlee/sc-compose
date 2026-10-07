@@ -18,7 +18,11 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         BeadSubcommand::Render(args) => (&args.request, BeadOperation::Render, args.json),
         BeadSubcommand::Validate(args) => (&args.request, BeadOperation::Validate, args.json),
         BeadSubcommand::PreviewPour(args) => (&args.request, BeadOperation::PreviewPour, args.json),
+        BeadSubcommand::PreviewAttach(args) => {
+            (&args.request, BeadOperation::PreviewAttach, args.json)
+        }
         BeadSubcommand::Pour(args) => (&args.request, BeadOperation::Pour, args.json),
+        BeadSubcommand::Attach(args) => (&args.request, BeadOperation::Attach, args.json),
     };
     let input = match fs::read_to_string(request_path) {
         Ok(input) => input,

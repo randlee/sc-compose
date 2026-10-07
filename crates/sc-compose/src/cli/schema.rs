@@ -74,8 +74,12 @@ pub(crate) enum BeadSubcommand {
     Validate(BeadRequestArgs),
     #[command(about = "Render, validate, and preview a Beads formula pour")]
     PreviewPour(BeadRequestArgs),
+    #[command(about = "Render, validate, and preview Beads graph attachment")]
+    PreviewAttach(BeadRequestArgs),
     #[command(about = "Render, validate, and persist an authorized Beads formula pour")]
     Pour(BeadRequestArgs),
+    #[command(about = "Render, validate, and persist authorized Beads graph attachment")]
+    Attach(BeadRequestArgs),
 }
 
 #[derive(Debug, Clone, Args)]
