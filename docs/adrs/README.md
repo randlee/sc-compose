@@ -22,4 +22,4 @@
 - [ADR-0020: Generated Go Binding Strategy](0020-generated-go-binding-strategy.md)
 - [ADR-0021: Beads Formula Composition Host-Neutral Integration](0021-beads-formula-composition-integration.md)
 - [ADR-0022: Go Native Module Peer Package Ownership and Release Validation](0022-go-native-module-peer-package.md): Accepted (2026-08-30)
-- [ADR-0023: Beads Attach and By-Path Pour](0023-beads-attach-and-by-path-pour.md): Proposed (2026-10-06)
+- [ADR-0023: Beads Attach and By-Path Pour](0023-beads-attach-and-by-path-pour.md): Accepted (2026-10-06)

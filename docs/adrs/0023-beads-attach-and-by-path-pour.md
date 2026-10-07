@@ -2,9 +2,10 @@
 
 ## Status
 
-Proposed (2026-10-06, phase t planning). Extends
+Accepted (2026-10-06, user approval on plan PR #619; proposed the same day in
+phase t planning). Extends
 [ADR-0021](0021-beads-formula-composition-integration.md); nothing in ADR-0021
-is withdrawn. Implementation starts only after this ADR is accepted.
+is withdrawn.
 
 ## Context
 
