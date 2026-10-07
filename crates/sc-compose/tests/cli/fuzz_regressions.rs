@@ -312,3 +312,58 @@ fn fuzz_043_json_depth_limit_is_typed_and_append_preserves_output() {
         assert_eq!(std::fs::read(&destination).unwrap(), previous);
     }
 }
+
+// FUZZ-017 round 2: nested raw values must still produce exactly one physical JSONL line.
+#[test]
+fn fuzz_017_nested_raw_values_append_as_one_line_without_changing_lexemes() {
+    let root = temp_root("fuzz-017-nested-one-line-record");
+    let template = r#"{
+  "nested": {
+    "array": [
+      12345678901234567890123,
+      { "decimal": 0.10000000000000000001, "exponent": -1.2300E+04 },
+      [ 4.20e-03, "spaces stay  here", "escaped\nline\tand\rreturn", "quote: \" then \\" ]
+    ],
+    "escaped": "\u0061\/b",
+    "after": { "value": true }
+  }
+}"#;
+    write_file(
+        &root.join("nested.json.j2"),
+        &template.replace('\n', "\r\n").replace("    ", "\t"),
+    );
+    let destination = root.join("records.jsonl");
+    let existing = "{\"existing\":true}\n";
+    write_file(&destination, existing);
+    let output = sc_compose()
+        .args(["render", "--file", "nested.json.j2", "--root"])
+        .arg(&root)
+        .arg("--append")
+        .arg(&destination)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let contents = std::fs::read_to_string(&destination).unwrap();
+    assert!(contents.starts_with(existing), "existing records changed");
+    let appended = &contents[existing.len()..];
+    assert_eq!(
+        appended.bytes().filter(|byte| *byte == b'\n').count(),
+        1,
+        "nested whitespace leaked into JSONL: {appended}"
+    );
+    assert!(appended.ends_with('\n'));
+    let expected = concat!(
+        r#"{"nested":{"array":[12345678901234567890123,{"decimal":0.10000000000000000001,"exponent":-1.2300E+04},"#,
+        r#"[4.20e-03,"spaces stay  here","escaped\nline\tand\rreturn","quote: \" then \\"]],"#,
+        r#""escaped":"\u0061\/b","after":{"value":true}}}"#,
+        "\n"
+    );
+    assert_eq!(
+        appended, expected,
+        "numeric or escaped-string lexemes changed"
+    );
+    let envelope = parse_stdout(&output);
+    assert_eq!(envelope["payload"]["bytes_written"], appended.len());
+    assert_eq!(envelope["payload"]["appended"], true);
+}
