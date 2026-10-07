@@ -8,8 +8,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
-    BeadComposeRequest, BeadOperation, BeadOutcome, BeadRelation, BeadStage, BeadStageOutcome,
-    BeadStageReceipt, PourAuthorization, execute_bead_request,
+    BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome, BeadStageReceipt,
+    PourAuthorization, execute_bead_request,
 };
 use serde_json::Value;
 
@@ -88,6 +88,7 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
         | RustBeadComposeError::GraphEdgeMissing { .. }
         | RustBeadComposeError::GraphReadFailed { .. }
         | RustBeadComposeError::GraphApplyFailed { .. }
+        | RustBeadComposeError::RelationEndpointInvalid { .. }
         | RustBeadComposeError::RequestDeserializationFailed { .. }
         | RustBeadComposeError::UnknownSchema { .. }
         | RustBeadComposeError::FormulaPathNotFile { .. }
@@ -502,8 +503,8 @@ impl PyBeadComposeRequest {
                 relations: relations
                     .map(|value| {
                         py_to_json(py, value).and_then(|value| {
-                            serde_json::from_value::<Vec<BeadRelation>>(value)
-                                .map_err(|error| request_error(py, error.to_string()))
+                            sc_composer_beads::parse_relations(value)
+                                .map_err(|error| rust_error_to_pyerr(py, &error))
                         })
                     })
                     .transpose()?

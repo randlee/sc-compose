@@ -52,6 +52,12 @@ fn every_advertised_error_has_its_stable_code() {
             "BEADS_REQUEST_DESERIALIZATION_FAILED",
         ),
         (
+            BeadComposeError::RelationEndpointInvalid {
+                value: "build".into(),
+            },
+            "BEADS_RELATION_ENDPOINT_INVALID",
+        ),
+        (
             BeadComposeError::UnknownSchema {
                 actual: "v0".to_owned(),
             },
@@ -740,4 +746,60 @@ fn invalid_authorization_emits_the_stable_code_from_real_parsing() {
         sc_composer_beads::PourAuthorization::try_from("invalid"),
         Err(BeadComposeError::PourAuthorizationInvalid)
     ));
+}
+
+#[test]
+fn duplicate_keys_retain_exact_decoded_text_without_parsing_diagnostics() {
+    let mut request: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/beads/request.json")).unwrap();
+    request["bead_variables"] = serde_json::Value::Null;
+    for key in [
+        "release at line 17 column 9",
+        "quote\"newline\n",
+        "control\u{1f}",
+        "é",
+    ] {
+        let encoded = serde_json::to_string(key).unwrap();
+        let input = request.to_string().replace(
+            "\"bead_variables\":null",
+            &format!("\"bead_variables\":{{{encoded}:\"one\",{encoded}:\"two\"}}"),
+        );
+        assert!(matches!(parse_request(&input),
+            Err(BeadComposeError::BeadVariableKeyDuplicate { key: actual }) if actual == key));
+        serde_json::from_str::<sc_composer_beads::BeadComposeRequest>(&input)
+            .expect_err("direct serde rejects duplicates too");
+    }
+    let input = request.to_string().replace(
+        "\"bead_variables\":null",
+        r#""bead_variables":{"a":"one","\u0061":"two"}"#,
+    );
+    assert!(matches!(parse_request(&input),
+        Err(BeadComposeError::BeadVariableKeyDuplicate { key }) if key == "a"));
+    assert_eq!(
+        parse_request(&(input + " trailing")).unwrap_err().code(),
+        "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    );
+}
+
+#[test]
+fn malformed_endpoint_prefixes_have_a_stable_request_code() {
+    use sc_composer_beads::{BeadEndpoint, parse_relations};
+    use serde_json::json;
+    let mut request: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/beads/request.json")).unwrap();
+    for endpoint in ["", "build", "other:build", "Step:build"] {
+        let direct = BeadEndpoint::try_from(endpoint.to_owned()).unwrap_err();
+        assert_eq!(direct.code(), "BEADS_RELATION_ENDPOINT_INVALID");
+        for field in ["from", "to"] {
+            let mut relations = json!([{"from":"step:build","to":"bead:parent","type":"blocks"}]);
+            relations[0][field] = json!(endpoint);
+            assert_eq!(
+                parse_relations(relations.clone()).unwrap_err().code(),
+                direct.code()
+            );
+            request["relations"] = relations;
+            assert!(matches!(parse_request(&request.to_string()),
+                Err(BeadComposeError::RelationEndpointInvalid { value }) if value == endpoint));
+        }
+    }
 }

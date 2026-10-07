@@ -217,14 +217,15 @@ def test_compose_variables_reject_non_string_object_keys(tmp_path: Path) -> None
 
 
 @pytest.mark.parametrize(
-    "relation",
+    "relation, expected_code",
     [
-        {"from": "root", "to": "", "type": "blocks"},
-        {"from": "root", "to": "child", "type": "unknown"},
+        ({"from": "root", "to": "bead:parent", "type": "blocks"}, "BEADS_RELATION_ENDPOINT_INVALID"),
+        ({"from": "step:build", "to": "", "type": "blocks"}, "BEADS_RELATION_ENDPOINT_INVALID"),
+        ({"from": "step:build", "to": "bead:child", "type": "unknown"}, "BEADS_REQUEST_DESERIALIZATION_FAILED"),
     ],
 )
 def test_relations_reject_malformed_endpoints_and_unknown_types(
-    tmp_path: Path, relation: dict[str, str]
+    tmp_path: Path, relation: dict[str, str], expected_code: str
 ) -> None:
     executable, _trace = _write_fake_bd(tmp_path)
 
@@ -238,7 +239,7 @@ def test_relations_reject_malformed_endpoints_and_unknown_types(
             bd_executable=executable,
         )
 
-    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.code == expected_code
     assert raised.value.stage == "request"
 
 

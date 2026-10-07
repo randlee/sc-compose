@@ -15,6 +15,7 @@ mod graph;
 mod pour;
 /// Fixed-delimiter formula rendering.
 pub mod render;
+mod request;
 /// Injectable direct-process runner abstraction.
 pub mod runner;
 
@@ -25,7 +26,7 @@ pub use contract::{
     BeadId, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadRelation, BeadStage,
     BeadStageOutcome, BeadStageReceipt, DependencyName, FormulaName, GraphDependencyType,
     GraphEndpoint, GraphRef, MissingEdge, PROVENANCE_KEY, PourAuthorization, Sha256Digest, StepId,
-    parse_request,
+    parse_relations, parse_request,
 };
 #[doc(inline)]
 pub use error::{

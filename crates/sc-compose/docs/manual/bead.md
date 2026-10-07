@@ -324,7 +324,9 @@ work without querying `bd` again.
 Request errors (exit `3`, no receipt stages): a malformed request,
 `BEADS_REQUEST_DESERIALIZATION_FAILED` (including `parent`/`ref` missing on an
 attach operation or present on another, `bead_variables` set for an attach
-operation, `relations` on `render` or `validate`), `BEADS_UNKNOWN_SCHEMA`, path
+operation, `relations` on `render` or `validate`),
+`BEADS_RELATION_ENDPOINT_INVALID` (a relation endpoint lacks its `step:` or
+`bead:` prefix; correct that endpoint), `BEADS_UNKNOWN_SCHEMA`, path
 and authorization errors such as `BEADS_POUR_AUTH_REQUIRED`.
 
 A pour only knows whether it is a registry or graph pour after locating the
