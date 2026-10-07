@@ -1,0 +1,15 @@
+{
+  "formula": "reserved_metadata",
+  "description": "Graph parser contract",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}",
+      "metadata": {
+        "sc_compose_graph": {}
+      }
+    }
+  ]
+}

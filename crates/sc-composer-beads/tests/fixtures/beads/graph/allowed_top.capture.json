@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"allowed_top\",\n  \"intent\": \"fixture\",\n  \"phase\": \"liquid\",\n  \"pour\": true,\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/allowed_top.formula.json\",\n  \"steps\": [\n    {\n      \"id\": \"build\",\n      \"title\": \"Build {{literal}}\"\n    }\n  ],\n  \"type\": \"workflow\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

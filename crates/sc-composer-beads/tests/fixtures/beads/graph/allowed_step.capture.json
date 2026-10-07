@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"allowed_step\",\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/allowed_step.formula.json\",\n  \"steps\": [\n    {\n      \"assignee\": \"tester\",\n      \"description\": \"Describe\",\n      \"id\": \"build\",\n      \"labels\": [\n        \"test\"\n      ],\n      \"metadata\": {\n        \"nested\": {\n          \"key\": \"value\"\n        }\n      },\n      \"notes\": \"Notes\",\n      \"priority\": 2,\n      \"title\": \"Build {{literal}}\",\n      \"type\": \"task\"\n    }\n  ],\n  \"type\": \"workflow\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

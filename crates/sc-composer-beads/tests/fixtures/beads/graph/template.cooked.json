@@ -1,0 +1,20 @@
+{
+  "description": "Graph parser contract",
+  "formula": "template",
+  "schema_version": 1,
+  "source": "<workspace>/template.formula.json",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "template": [
+    {
+      "id": "extra",
+      "title": "Extra"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

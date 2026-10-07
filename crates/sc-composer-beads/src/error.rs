@@ -158,13 +158,13 @@ pub enum BeadComposeError {
         /// Exit status returned by persistent `bd mol pour`, if it started.
         exit_status: Option<i32>,
     },
-    /// ParentNotFound condition from ADR-0023.
+    /// `ParentNotFound` condition from ADR-0023.
     #[error("graph parent `{parent}` does not exist; create it or name an existing bead")]
     GraphParentNotFound {
         /// Missing parent.
         parent: BeadId,
     },
-    /// IdInvalid condition from ADR-0023.
+    /// `IdInvalid` condition from ADR-0023.
     #[error(
         "invalid graph {field} `{value}`; follow ADR-0023: bead ids are non-empty without whitespace, ref is [A-Za-z0-9_-]{{1,32}}, step is [A-Za-z0-9_]{{1,64}}, digest is sha256: plus 64 lowercase hex digits"
     )]
@@ -174,7 +174,7 @@ pub enum BeadComposeError {
         /// Rejected value.
         value: String,
     },
-    /// ScopeMismatch condition from ADR-0023.
+    /// `ScopeMismatch` condition from ADR-0023.
     #[error(
         "graph scope {field} disagrees with `{value}`; make compose_variables agree with the top-level parent/ref"
     )]
@@ -184,7 +184,7 @@ pub enum BeadComposeError {
         /// Conflicting value.
         value: String,
     },
-    /// FormulaUnsupported condition from ADR-0023.
+    /// `FormulaUnsupported` condition from ADR-0023.
     #[error(
         "unsupported graph formula: {reason}; express the construct in the template or use registry pour"
     )]
@@ -192,7 +192,7 @@ pub enum BeadComposeError {
         /// Unsupported construct.
         reason: GraphFormulaUnsupportedReason,
     },
-    /// RelationInvalid condition from ADR-0023.
+    /// `RelationInvalid` condition from ADR-0023.
     #[error("invalid graph relation {index}: {reason}; correct the relation")]
     GraphRelationInvalid {
         /// Zero-based relation index.
@@ -200,7 +200,7 @@ pub enum BeadComposeError {
         /// Relation rejection reason.
         reason: GraphRelationInvalidReason,
     },
-    /// Conflict condition from ADR-0023.
+    /// `Conflict` condition from ADR-0023.
     #[error(
         "graph bead `{id}` conflicts: {reason}; inspect it or use a new ref (existing beads are never edited)"
     )]
@@ -210,7 +210,7 @@ pub enum BeadComposeError {
         /// Ownership conflict reason.
         reason: GraphConflictReason,
     },
-    /// EdgeConflict condition from ADR-0023.
+    /// `EdgeConflict` condition from ADR-0023.
     #[error(
         "graph edge {from} -> {to} has type `{existing}`, requested `{requested}`; inspect the edge or change the relation"
     )]
@@ -224,13 +224,13 @@ pub enum BeadComposeError {
         /// Requested edge type.
         requested: String,
     },
-    /// EdgeMissing condition from ADR-0023.
+    /// `EdgeMissing` condition from ADR-0023.
     #[error("graph edges missing; repair then retry: {}", missing_edge_commands(.edges))]
     GraphEdgeMissing {
         /// Non-empty missing edges in plan order; repair each before retrying.
         edges: Vec<MissingEdge>,
     },
-    /// ReadFailed condition from ADR-0023.
+    /// `ReadFailed` condition from ADR-0023.
     #[error("graph read failed ({status:?}): {command:?}; fix bd and retry, nothing was written")]
     GraphReadFailed {
         /// Attempted bd argv.
@@ -238,7 +238,7 @@ pub enum BeadComposeError {
         /// Exit status, or None when killed by a signal.
         status: Option<i32>,
     },
-    /// ApplyFailed condition from ADR-0023.
+    /// `ApplyFailed` condition from ADR-0023.
     #[error("graph apply failed ({status:?}): {command:?}; fix bd and retry, nothing was written")]
     GraphApplyFailed {
         /// Attempted bd argv.
@@ -292,7 +292,7 @@ impl BeadComposeError {
     }
 }
 
-/// Closed wire vocabulary for GraphConflictReason (ADR-0023).
+/// Closed wire vocabulary for `GraphConflictReason` (ADR-0023).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 #[serde(rename_all = "snake_case")]
@@ -312,7 +312,7 @@ impl std::fmt::Display for GraphConflictReason {
     }
 }
 
-/// Closed wire vocabulary for GraphRelationInvalidReason (ADR-0023).
+/// Closed wire vocabulary for `GraphRelationInvalidReason` (ADR-0023).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 #[serde(rename_all = "snake_case")]
@@ -347,7 +347,7 @@ impl std::fmt::Display for GraphRelationInvalidReason {
     }
 }
 
-/// Closed wire vocabulary for GraphFormulaUnsupportedReason (ADR-0023).
+/// Closed wire vocabulary for `GraphFormulaUnsupportedReason` (ADR-0023).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 #[serde(rename_all = "snake_case")]

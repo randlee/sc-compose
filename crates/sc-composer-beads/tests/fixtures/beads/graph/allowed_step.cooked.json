@@ -1,0 +1,27 @@
+{
+  "description": "Graph parser contract",
+  "formula": "allowed_step",
+  "schema_version": 1,
+  "source": "<workspace>/allowed_step.formula.json",
+  "steps": [
+    {
+      "assignee": "tester",
+      "description": "Describe",
+      "id": "build",
+      "labels": [
+        "test"
+      ],
+      "metadata": {
+        "nested": {
+          "key": "value"
+        }
+      },
+      "notes": "Notes",
+      "priority": 2,
+      "title": "Build {{literal}}",
+      "type": "task"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

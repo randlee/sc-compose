@@ -338,41 +338,41 @@ pub enum BeadGraphMode {
 #[non_exhaustive]
 #[serde(rename_all = "kebab-case")]
 pub enum BeadDependencyType {
-    /// The Blocks dependency type.
+    /// The `Blocks` dependency type.
     Blocks,
-    /// The ConditionalBlocks dependency type.
+    /// The `ConditionalBlocks` dependency type.
     ConditionalBlocks,
-    /// The WaitsFor dependency type.
+    /// The `WaitsFor` dependency type.
     WaitsFor,
-    /// The Related dependency type.
+    /// The `Related` dependency type.
     Related,
-    /// The DiscoveredFrom dependency type.
+    /// The `DiscoveredFrom` dependency type.
     DiscoveredFrom,
-    /// The RepliesTo dependency type.
+    /// The `RepliesTo` dependency type.
     RepliesTo,
-    /// The RelatesTo dependency type.
+    /// The `RelatesTo` dependency type.
     RelatesTo,
-    /// The Duplicates dependency type.
+    /// The `Duplicates` dependency type.
     Duplicates,
-    /// The Supersedes dependency type.
+    /// The `Supersedes` dependency type.
     Supersedes,
-    /// The AuthoredBy dependency type.
+    /// The `AuthoredBy` dependency type.
     AuthoredBy,
-    /// The AssignedTo dependency type.
+    /// The `AssignedTo` dependency type.
     AssignedTo,
-    /// The ApprovedBy dependency type.
+    /// The `ApprovedBy` dependency type.
     ApprovedBy,
-    /// The Attests dependency type.
+    /// The `Attests` dependency type.
     Attests,
-    /// The Tracks dependency type.
+    /// The `Tracks` dependency type.
     Tracks,
-    /// The Until dependency type.
+    /// The `Until` dependency type.
     Until,
-    /// The CausedBy dependency type.
+    /// The `CausedBy` dependency type.
     CausedBy,
-    /// The Validates dependency type.
+    /// The `Validates` dependency type.
     Validates,
-    /// The DelegatedFrom dependency type.
+    /// The `DelegatedFrom` dependency type.
     DelegatedFrom,
 }
 

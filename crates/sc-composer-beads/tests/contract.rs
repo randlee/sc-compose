@@ -299,8 +299,9 @@ fn round_trip<T>(wire: serde_json::Value) -> T
 where
     T: serde::de::DeserializeOwned + serde::Serialize,
 {
-    let value: T = serde_json::from_value(wire.clone()).expect("parse normative shape");
-    assert_eq!(serde_json::to_value(&value).expect("serialize"), wire);
+    let expected = wire.clone();
+    let value: T = serde_json::from_value(wire).expect("parse normative shape");
+    assert_eq!(serde_json::to_value(&value).expect("serialize"), expected);
     value
 }
 
@@ -363,40 +364,43 @@ fn graph_contract_serializes_adr_0023_shapes() {
     ] {
         round_trip::<BeadDependencyType>(json!(kind));
     }
-    assert!(serde_json::from_value::<BeadDependencyType>(json!("parent-child")).is_err());
-    assert!(serde_json::from_value::<BeadDependencyType>(json!("invented")).is_err());
+    serde_json::from_value::<BeadDependencyType>(json!("parent-child"))
+        .expect_err("invalid contract value");
+    serde_json::from_value::<BeadDependencyType>(json!("invented"))
+        .expect_err("invalid contract value");
 }
 
 #[test]
 fn identifier_validation_rejects_bad_values_at_rust_and_json_boundaries() {
     use serde_json::json;
     for value in ["", "a b", "a\nb", "a\tb", "a\u{2003}b"] {
-        assert!(BeadId::new(value).is_err());
-        assert!(serde_json::from_value::<BeadId>(json!(value)).is_err());
+        BeadId::new(value).expect_err("invalid contract value");
+        serde_json::from_value::<BeadId>(json!(value)).expect_err("invalid contract value");
     }
     for value in ["", ".", "é", "a b", &"a".repeat(33)] {
         let error = GraphRef::new(value).expect_err("invalid ref");
         assert!(error.to_string().contains("ref"));
         assert!(error.to_string().contains("ADR-0023"));
-        assert!(serde_json::from_value::<GraphRef>(json!(value)).is_err());
+        serde_json::from_value::<GraphRef>(json!(value)).expect_err("invalid contract value");
     }
     for value in ["", "a-b", "a.b", "é", &"a".repeat(65)] {
-        assert!(StepId::new(value).is_err());
-        assert!(serde_json::from_value::<StepId>(json!(value)).is_err());
+        StepId::new(value).expect_err("invalid contract value");
+        serde_json::from_value::<StepId>(json!(value)).expect_err("invalid contract value");
     }
-    assert!(GraphRef::new("a".repeat(32)).is_ok());
-    assert!(StepId::new("a".repeat(64)).is_ok());
+    GraphRef::new("a".repeat(32)).expect("valid boundary value");
+    StepId::new("a".repeat(64)).expect("valid boundary value");
     for value in [
         "a".repeat(64),
         format!("sha256:{}", "A".repeat(64)),
         format!("sha256:{}", "g".repeat(64)),
         format!("sha256:{}", "a".repeat(63)),
     ] {
-        assert!(Sha256Digest::new(&value).is_err());
-        assert!(serde_json::from_value::<Sha256Digest>(json!(value)).is_err());
+        Sha256Digest::new(&value).expect_err("invalid contract value");
+        serde_json::from_value::<Sha256Digest>(json!(value)).expect_err("invalid contract value");
     }
     for endpoint in ["step:", "step:bad-id", "bead:", "other:proj-42", "proj-42"] {
-        assert!(serde_json::from_value::<BeadEndpoint>(json!(endpoint)).is_err());
+        serde_json::from_value::<BeadEndpoint>(json!(endpoint))
+            .expect_err("invalid contract value");
     }
 }
 
@@ -454,9 +458,12 @@ fn graph_reason_vocabulary_is_closed_and_prints_the_wire_value() {
             value
         );
     }
-    assert!(serde_json::from_value::<GraphConflictReason>(json!("unknown")).is_err());
-    assert!(serde_json::from_value::<GraphRelationInvalidReason>(json!("unknown")).is_err());
-    assert!(serde_json::from_value::<GraphFormulaUnsupportedReason>(json!("unknown")).is_err());
+    serde_json::from_value::<GraphConflictReason>(json!("unknown"))
+        .expect_err("invalid contract value");
+    serde_json::from_value::<GraphRelationInvalidReason>(json!("unknown"))
+        .expect_err("invalid contract value");
+    serde_json::from_value::<GraphFormulaUnsupportedReason>(json!("unknown"))
+        .expect_err("invalid contract value");
 }
 
 #[test]
@@ -493,4 +500,76 @@ fn phase_r_request_defaults_and_receipt_bytes_are_unchanged() {
     assert!(receipt.pour_mode.is_none());
     assert!(receipt.graph.is_none());
     assert_eq!(serde_json::to_string(&receipt).expect("serialize"), old);
+}
+
+#[test]
+fn captured_parser_fixtures_and_cross_surface_receipts_deserialize() {
+    use serde_json::Value;
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/beads/graph");
+    let read = |name: &str| std::fs::read_to_string(root.join(name)).expect("fixture file");
+    let index: Value = serde_json::from_str(&read("captures.json")).expect("capture index");
+    let cases = index["cases"].as_array().expect("cases");
+    assert_eq!(cases.len(), 27);
+    for case in cases {
+        let input: Value = serde_json::from_str(&read(case["input"].as_str().expect("input")))
+            .expect("formula JSON");
+        assert!(input["formula"].is_string());
+        let capture: Value =
+            serde_json::from_str(&read(case["capture"].as_str().expect("capture")))
+                .expect("capture JSON");
+        if let Some(cooked) = case["cooked"].as_str() {
+            assert_eq!(capture["exit_status"], 0);
+            let raw = read(cooked);
+            assert_eq!(raw, capture["stdout"].as_str().expect("captured stdout"));
+            let parsed: Value = serde_json::from_str(&raw).expect("bd parser JSON");
+            assert_eq!(parsed["schema_version"], 1);
+        } else {
+            assert_eq!(capture["exit_status"], 1);
+            assert!(!capture["stderr"].as_str().expect("stderr").is_empty());
+        }
+    }
+    for (file, code) in [
+        ("receipt-graph-pour.json", None),
+        ("receipt-registry.json", None),
+        ("receipt-conflict.json", Some("BEADS_GRAPH_CONFLICT")),
+        (
+            "receipt-edge-missing.json",
+            Some("BEADS_GRAPH_EDGE_MISSING"),
+        ),
+    ] {
+        let wire: Value = serde_json::from_str(&read(file)).expect("receipt JSON");
+        let receipt: BeadComposeReceipt =
+            serde_json::from_value(wire.clone()).expect("receipt contract");
+        assert_eq!(
+            serde_json::to_value(&receipt).expect("serialize receipt"),
+            wire
+        );
+        assert_eq!(
+            receipt.outcome,
+            code.map_or(BeadOutcome::Succeeded, |code| BeadOutcome::Refused {
+                code: code.into()
+            })
+        );
+    }
+}
+
+#[test]
+fn graph_without_missing_nodes_omits_plan_path() {
+    let mut graph: BeadGraph = serde_json::from_value(serde_json::json!({
+        "mode":"attach","parent":"proj-42","ref":"chain","formula":"release",
+        "revision":format!("sha256:{}", "a".repeat(64)),"ids":{},"nodes":[],"edges":[]
+    }))
+    .expect("no-op graph");
+    assert!(graph.plan_path.is_none());
+    assert!(
+        serde_json::to_value(&graph)
+            .expect("serialize")
+            .get("plan_path")
+            .is_none()
+    );
+    graph.plan_path = Some(PathBuf::from("plan.json"));
+    assert_eq!(
+        serde_json::to_value(&graph).expect("serialize")["plan_path"],
+        "plan.json"
+    );
 }

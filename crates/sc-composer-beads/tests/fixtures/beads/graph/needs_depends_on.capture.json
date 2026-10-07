@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"needs_depends_on\",\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/needs_depends_on.formula.json\",\n  \"steps\": [\n    {\n      \"id\": \"build\",\n      \"title\": \"Build\"\n    },\n    {\n      \"id\": \"test\",\n      \"needs\": [\n        \"build\"\n      ],\n      \"title\": \"Test\"\n    },\n    {\n      \"depends_on\": [\n        \"test\"\n      ],\n      \"id\": \"ship\",\n      \"title\": \"Ship\"\n    }\n  ],\n  \"type\": \"workflow\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

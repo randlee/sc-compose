@@ -1,0 +1,15 @@
+{
+  "formula": "allowed_top",
+  "description": "Graph parser contract",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "phase": "liquid",
+  "pour": true,
+  "intent": "fixture"
+}

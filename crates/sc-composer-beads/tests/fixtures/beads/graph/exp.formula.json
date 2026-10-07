@@ -1,0 +1,11 @@
+{
+  "formula": "exp",
+  "version": 1,
+  "type": "expansion",
+  "template": [
+    {
+      "id": "{target}.check",
+      "title": "Check {target}"
+    }
+  ]
+}
