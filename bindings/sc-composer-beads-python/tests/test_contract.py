@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import json
 import os
 import shutil
@@ -133,6 +134,35 @@ def test_receipt_decode_errors_have_a_receipt_code_and_stage() -> None:
     assert raised.value.code == "BEADS_RECEIPT_DESERIALIZATION_FAILED"
     assert raised.value.stage == "receipt"
     assert raised.value.message.startswith("failed to decode receipt:")
+
+
+@pytest.mark.parametrize("failure", ["import", "loads"])
+def test_graph_receipt_conversion_failures_raise_bead_compose_error(
+    monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    wire = (GRAPH_FIXTURE_ROOT / "receipt-graph-pour.json").read_text(encoding="utf-8")
+    message = f"injected graph JSON {failure} failure"
+    if failure == "import":
+        original_import = builtins.__import__
+
+        def fail_json_import(name: str, *args: object, **kwargs: object) -> object:
+            if name == "json":
+                raise ImportError(message)
+            return original_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", fail_json_import)
+    else:
+        def fail_json_loads(*args: object, **kwargs: object) -> object:
+            raise ValueError(message)
+
+        monkeypatch.setattr(json, "loads", fail_json_loads)
+
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeReceipt.from_json(wire)
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+    assert message in raised.value.message
 
 
 def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
