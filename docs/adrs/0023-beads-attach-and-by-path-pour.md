@@ -386,7 +386,8 @@ relations meets beads whose provenance differs and is refused as
 ### Formula grammar
 The formula is read from bd's own parse, `bd cook <path> --json` (compile
 mode: no `--var`, no `--persist`, no `--mode`, no `--search-path`; bd v1.3.1
-prints the parsed and resolved formula as JSON and writes nothing), and
+prints the parsed and resolved formula as JSON and writes nothing; behaviour below captured from bd v1.3.1 in
+`crates/sc-composer-beads/tests/fixtures/beads/graph/`), and
 deserialized with `serde_json` into a crate-private struct mirroring bd
 v1.3.1's `Formula` / `Step` JSON. TOML and JSON formulas are handled alike. A
 non-zero `bd cook` exit is the existing `BEADS_COOK_FAILED`.
@@ -410,13 +411,14 @@ template, where a preview shows it. Everything else is checked on the parse:
 | non-empty `vars` | `vars_declared` (resolve values in the template) |
 | non-empty request `bead_variables` on a graph-mode pour | `bead_variables_set` |
 | non-empty `template`, `compose`, `advice` or `pointcuts`; another `type` | `composition` (bd keeps these keys in its parse; `advice` is refused even though bd has already applied it) |
-| unknown top-level key | `unknown_key` |
+| unknown top-level key | `unknown_key` when present in the parse. bd v1.3.1 drops unknown top-level keys while parsing, so a misspelled key is not detectable there; check the rendered formula or the preview |
 | allowed step keys: `id`, `title`, `description`, `notes`, `type`, `priority`, `labels`, `metadata`, `assignee`, `needs`, `depends_on` | accepted |
 | non-empty `children`, `expand_vars`, `condition`, `gate`, `on_complete` or `waits_for` | `step_construct` (use template loops, conditionals and includes) |
-| unknown step key | `unknown_key` |
+| unknown step key | `unknown_key` when present in the parse. bd v1.3.1 drops unknown step keys while parsing (as for top-level keys) |
 | step `metadata` containing `PROVENANCE_KEY` | `reserved_metadata` |
 | a label containing a comma | `label_comma` |
-| no steps, a duplicate step id, or `needs` / `depends_on` naming no step | `step_graph` |
+| no steps | `step_graph` |
+| a duplicate step id, or `needs` / `depends_on` naming no step | bd v1.3.1 refuses these while parsing: `BEADS_COOK_FAILED` |
 
 Step fields map to bd graph-plan node fields of the same name; `type` and
 `priority` keep bd's defaults when absent. Text is passed literally: a `{{...}}`
