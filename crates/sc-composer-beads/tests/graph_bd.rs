@@ -6,8 +6,9 @@ use sc_composer_beads::{
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Command, Output, Stdio};
 use std::sync::{
     Mutex,
     atomic::{AtomicU64, Ordering},
@@ -16,6 +17,10 @@ use std::time::{Duration, Instant};
 
 static SERIAL: Mutex<()> = Mutex::new(());
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+const BD_COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
+const PIPE_DRAIN_TEST_TIMEOUT: Duration = Duration::from_secs(10);
+const PIPE_DRAIN_TEST_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_PIPE_DRAIN_CHILD";
+const PIPE_DRAIN_TEST_OUTPUT_BYTES: usize = 256 * 1024;
 const FORMULA: &str = "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build {{literal}}\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\nneeds = [\"build\"]\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\nneeds = [\"verify\"]\n";
 struct Workspace {
     root: PathBuf,
@@ -54,28 +59,13 @@ impl Workspace {
         ws
     }
     fn command(&self, args: &[&str]) -> String {
-        let mut child = Command::new(&self.bd)
+        let mut command = Command::new(&self.bd);
+        command
             .args(args)
             .current_dir(&self.root)
             .env("BEADS_NO_DAEMON", "1")
-            .env("BEADS_DIR", &self.beads_dir)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("bd spawn");
-        let started = Instant::now();
-        loop {
-            if child.try_wait().expect("bd status").is_some() {
-                break;
-            }
-            if started.elapsed() > Duration::from_secs(30) {
-                let _ = child.kill();
-                let _ = child.wait();
-                panic!("bd command timed out: {args:?}");
-            }
-            std::thread::sleep(Duration::from_millis(10));
-        }
-        let out = child.wait_with_output().expect("bd output");
+            .env("BEADS_DIR", &self.beads_dir);
+        let out = run_command_with_timeout(&mut command, args, BD_COMMAND_TIMEOUT);
         assert!(
             out.status.success(),
             "{args:?}: {}",
@@ -144,6 +134,95 @@ impl Workspace {
         assert_eq!(self.snapshot(), before, "refusal changes no beads or edges");
     }
 }
+
+fn run_command_with_timeout(command: &mut Command, args: &[&str], timeout: Duration) -> Output {
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = command.spawn().expect("bd spawn");
+    let mut stdout = child.stdout.take().expect("piped bd stdout");
+    let mut stderr = child.stderr.take().expect("piped bd stderr");
+    let stdout_reader = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        stdout.read_to_end(&mut bytes).expect("bd stdout");
+        bytes
+    });
+    let stderr_reader = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        stderr.read_to_end(&mut bytes).expect("bd stderr");
+        bytes
+    });
+    let started = Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if started.elapsed() <= timeout => {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = stdout_reader.join();
+                let _ = stderr_reader.join();
+                panic!("bd command timed out: {args:?}");
+            }
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = stdout_reader.join();
+                let _ = stderr_reader.join();
+                panic!("bd status: {error}");
+            }
+        }
+    };
+    let stdout = stdout_reader.join().expect("bd stdout reader");
+    let stderr = stderr_reader.join().expect("bd stderr reader");
+
+    Output {
+        status,
+        stdout,
+        stderr,
+    }
+}
+
+#[test]
+fn pipe_drain_child_emits_large_stdout_and_stderr() {
+    if std::env::var_os(PIPE_DRAIN_TEST_CHILD_ENV).is_none() {
+        return;
+    }
+    let stdout = vec![b'o'; PIPE_DRAIN_TEST_OUTPUT_BYTES];
+    let stderr = vec![b'e'; PIPE_DRAIN_TEST_OUTPUT_BYTES];
+    std::io::stdout()
+        .lock()
+        .write_all(&stdout)
+        .expect("write test stdout");
+    std::io::stderr()
+        .lock()
+        .write_all(&stderr)
+        .expect("write test stderr");
+}
+
+#[test]
+fn bd_command_drains_both_pipes_before_waiting_for_exit() {
+    let executable = std::env::current_exe().expect("test executable");
+    let mut command = Command::new(executable);
+    command
+        .args([
+            "--exact",
+            "pipe_drain_child_emits_large_stdout_and_stderr",
+            "--nocapture",
+        ])
+        .env(PIPE_DRAIN_TEST_CHILD_ENV, "1");
+
+    let output = run_command_with_timeout(
+        &mut command,
+        &["test child emitting large output"],
+        PIPE_DRAIN_TEST_TIMEOUT,
+    );
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stdout.len() >= PIPE_DRAIN_TEST_OUTPUT_BYTES);
+    assert!(output.stderr.len() >= PIPE_DRAIN_TEST_OUTPUT_BYTES);
+}
+
 fn with_workspace(test: impl FnOnce(&Workspace)) {
     let Some(binary) = std::env::var_os("BD_EXECUTABLE") else {
         eprintln!("skipping graph integration: BD_EXECUTABLE not configured");
