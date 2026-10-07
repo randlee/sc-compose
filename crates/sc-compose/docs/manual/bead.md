@@ -393,7 +393,9 @@ Human output includes `pour_mode` for pour operations, one
 when a plan was written. A pour root is shown as `_root`; a preview id that bd
 has not assigned is shown as `pending`. Missing-edge refusals print each
 `bd dep add` recovery command on its own line. A failed stage with a non-empty
-`stderr_excerpt` includes that diagnostic on its stage line.
+`stderr_excerpt` includes that diagnostic on its stage line. Graph failures also
+print the core error's structured `details` (such as the affected id or read
+cause) and actionable `recovery` guidance. Receipt JSON remains unchanged.
 
 ## Troubleshooting
 

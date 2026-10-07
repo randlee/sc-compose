@@ -22,47 +22,106 @@ fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::pat
     request
 }
 
-// FUZZ-039: human graph refusals retain the typed diagnostic recorded in the receipt.
+// FUZZ-039: human graph refusals expose canonical structured recovery fields.
+#[cfg(unix)]
 #[test]
 fn fuzz_039_human_preview_attach_prints_parent_refusal_reason() {
-    let Some(bd) = std::env::var_os("BD_EXECUTABLE") else {
-        return;
-    };
-    let root = temp_root("fuzz-039-human-graph-refusal");
-    let beads_dir = root.join(".beads");
-    let initialized = std::process::Command::new(bd)
-        .args([
-            "init",
-            "--non-interactive",
-            "--quiet",
-            "--skip-agents",
-            "--skip-hooks",
-        ])
-        .current_dir(&root)
-        .env("BEADS_DIR", &beads_dir)
-        .output()
-        .unwrap();
-    assert!(initialized.status.success(), "{initialized:?}");
-    write_file(
-        &root.join("m.formula.toml.j2"),
-        "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
-    );
-    let request = root.join("request.json");
-    write_file(&request, &serde_json::json!({"schema":"sc-compose/beads/v1","operation":"preview_attach","working_directory":root,"template":"m.formula.toml.j2","rendered_formula":root.join("out.formula.toml"),"compose_variables":{},"bead_variables":{},"parent":"nosuch","ref":"r"}).to_string());
+    let request = human_graph_request("fuzz-039-human-graph-refusal", "[]", "", 0);
     let output = sc_compose()
         .args(["bead", "preview-attach", "--request"])
         .arg(&request)
-        .current_dir(&root)
-        .env("BEADS_DIR", &beads_dir)
-        .env("BEADS_NO_DAEMON", "1")
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(2), "{output:?}");
     let human = String::from_utf8(output.stdout).unwrap();
+    let error = sc_composer_beads::BeadComposeError::GraphParentNotFound {
+        parent: sc_composer_beads::BeadId::new("nosuch").unwrap(),
+    };
+    let envelope = serde_json::to_value(&error).unwrap();
+    assert!(human.contains(&error.to_string()), "{human}");
     assert!(
-        human.contains("parent bead `nosuch` was not found"),
+        human.contains(&format!("details: {}", envelope["details"])),
         "{human}"
     );
+    assert!(
+        human.contains(&format!(
+            "recovery: {}",
+            envelope["recovery"].as_str().unwrap()
+        )),
+        "{human}"
+    );
+}
+
+#[cfg(unix)]
+fn human_graph_request(label: &str, stdout: &str, stderr: &str, status: i32) -> std::path::PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    let root = temp_root(label);
+    let bd = root.join("fake-bd");
+    let cooked = r#"{"formula":"m","type":"workflow","steps":[{"id":"a","title":"A"}]}"#;
+    write_file(
+        &bd,
+        &format!(
+            "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{cooked}' ;;\n show) printf '%s' '{stdout}'; printf '%s' '{stderr}' >&2; exit {status} ;;\nesac\n"
+        ),
+    );
+    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    write_file(&root.join("m.formula.toml.j2"), "formula = \"m\"\n");
+    let request = root.join("request.json");
+    write_file(&request, &serde_json::json!({"schema":"sc-compose/beads/v1","operation":"preview_attach","working_directory":root,"template":"m.formula.toml.j2","rendered_formula":root.join("out.formula.toml"),"compose_variables":{},"bead_variables":{},"parent":"nosuch","ref":"r","bd_executable":bd}).to_string());
+    request
+}
+
+#[cfg(unix)]
+#[test]
+fn fuzz_039_human_receipts_preserve_conflict_id_and_read_cause() {
+    let cases = [
+        (
+            "conflict",
+            r#"[{"id":"nosuch"},{"id":"nosuch.r-a","title":"A"}]"#,
+            "",
+            0,
+            "BEADS_GRAPH_CONFLICT",
+            "\"id\":\"nosuch.r-a\"",
+        ),
+        (
+            "read",
+            "",
+            r#"{"error":"permission denied"}"#,
+            2,
+            "BEADS_GRAPH_READ_FAILED",
+            "\"cause\":\"permission denied\"",
+        ),
+    ];
+    for (label, stdout, stderr, status, code, detail) in cases {
+        let request = human_graph_request(label, stdout, stderr, status);
+        let human = sc_compose()
+            .args(["bead", "preview-attach", "--request"])
+            .arg(&request)
+            .output()
+            .unwrap();
+        assert_eq!(human.status.code(), Some(2), "{human:?}");
+        let text = String::from_utf8(human.stdout).unwrap();
+        assert!(text.contains(code), "{text}");
+        assert!(text.contains("details:"), "{text}");
+        assert!(text.contains(detail), "{text}");
+        assert!(text.contains("recovery:"), "{text}");
+        let json = sc_compose()
+            .args(["bead", "preview-attach", "--request"])
+            .arg(&request)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert_eq!(json.status.code(), Some(2));
+        let envelope: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+        assert!(envelope["payload"].get("diagnostics").is_none());
+        assert!(envelope["payload"].get("error").is_none());
+        assert_eq!(
+            envelope["payload"]["outcome"]["refused"]["code"]
+                .as_str()
+                .or_else(|| envelope["payload"]["outcome"]["failed"]["code"].as_str()),
+            Some(code)
+        );
+    }
 }
 
 // FUZZ-012: a relative template resolves against working_directory.

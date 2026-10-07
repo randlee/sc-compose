@@ -5,7 +5,8 @@ use std::fs;
 use sc_composer_beads::error::shell_quote;
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadNodeAction, BeadOperation,
-    BeadOutcome, BeadPourMode, BeadStageOutcome, execute_bead_request, parse_request,
+    BeadOutcome, BeadPourMode, BeadStageOutcome, execute_bead_request_with_diagnostics,
+    parse_request,
 };
 
 use crate::CommandError;
@@ -41,13 +42,29 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     };
     request.operation = operation;
 
-    match execute_bead_request(&request) {
-        Ok(receipt) => print_receipt(receipt, json),
+    let mut diagnostics = Vec::new();
+    let result = execute_bead_request_with_diagnostics(&request, &mut |error| {
+        if !json {
+            diagnostics.push(serde_json::to_value(error));
+        }
+    });
+    match result {
+        Ok(receipt) => {
+            let diagnostics = diagnostics
+                .into_iter()
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|error| CommandError::usage(error.into()))?;
+            print_receipt(receipt, json, &diagnostics)
+        }
         Err(error) => print_bead_error(&error, operation, json),
     }
 }
 
-fn print_receipt(receipt: BeadComposeReceipt, json: bool) -> Result<i32, CommandError> {
+fn print_receipt(
+    receipt: BeadComposeReceipt,
+    json: bool,
+    diagnostics: &[serde_json::Value],
+) -> Result<i32, CommandError> {
     let exit_code = match &receipt.outcome {
         BeadOutcome::Succeeded => exit_codes::SUCCESS,
         BeadOutcome::Refused { .. } | BeadOutcome::Failed { .. } => {
@@ -57,7 +74,7 @@ fn print_receipt(receipt: BeadComposeReceipt, json: bool) -> Result<i32, Command
     if json {
         print_json(receipt, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        print_human_receipt(&receipt);
+        print_human_receipt(&receipt, diagnostics);
     }
     Ok(exit_code)
 }
@@ -130,6 +147,12 @@ fn print_bead_error(
 fn human_bead_error(error: &BeadComposeError) -> Result<String, serde_json::Error> {
     let envelope = serde_json::to_value(error)?;
     let mut output = format!("{}: {error}", error.code());
+    output.push_str(&human_error_fields(&envelope));
+    Ok(output)
+}
+
+fn human_error_fields(envelope: &serde_json::Value) -> String {
+    let mut output = String::new();
     if let Some(fields) = envelope.as_object() {
         for (name, value) in fields {
             if matches!(name.as_str(), "code" | "message") {
@@ -145,10 +168,10 @@ fn human_bead_error(error: &BeadComposeError) -> Result<String, serde_json::Erro
             }
         }
     }
-    Ok(output)
+    output
 }
 
-fn print_human_receipt(receipt: &BeadComposeReceipt) {
+fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::Value]) {
     println!("rendered_formula: {}", receipt.rendered_formula.display());
     if let Some(mode) = receipt.pour_mode {
         let mode = match mode {
@@ -170,6 +193,12 @@ fn print_human_receipt(receipt: &BeadComposeReceipt) {
         } else {
             println!("stage {:?}: {state}: {}", stage.stage, stage.stderr_excerpt);
         }
+    }
+    for diagnostic in diagnostics {
+        println!(
+            "{}",
+            human_error_fields(diagnostic).trim_start_matches('\n')
+        );
     }
     for command in missing_edge_recovery_commands(receipt) {
         println!("{command}");
