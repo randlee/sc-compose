@@ -214,6 +214,32 @@ def test_compose_variables_reject_non_string_object_keys(tmp_path: Path) -> None
     assert raised.value.message == "compose_variables object keys must be strings"
 
 
+@pytest.mark.parametrize(
+    "relation",
+    [
+        {"from": "root", "to": "", "type": "blocks"},
+        {"from": "root", "to": "child", "type": "unknown"},
+    ],
+)
+def test_relations_reject_malformed_endpoints_and_unknown_types(
+    tmp_path: Path, relation: dict[str, str]
+) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.toml.j2",
+            tmp_path / "output.toml",
+            {},
+            relations=[relation],
+            bd_executable=executable,
+        )
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+
+
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
 def test_compose_variables_reject_non_finite_floats(tmp_path: Path, value: float) -> None:
     executable, _trace = _write_fake_bd(tmp_path)
