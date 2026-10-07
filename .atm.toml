@@ -18,26 +18,29 @@ sandbox = "workspace-write"
 approval_policy = "on-failure"
 
 [startup.team-lead]
-all = ["Read /atm-bd-orchestration SKILL.md and /atm-beads SKILL.md; a phase planned in beads runs under atm-bd-orchestration",
+all = ["Your role is lead under atm-bd-orchestration: read .claude/skills/atm-bd-orchestration/SKILL.md (Lead Role and Loop) and .claude/skills/atm-beads/SKILL.md now (again after every compaction); on each Loop pass run .claude/skills/atm-bd-orchestration/scripts/bead-queues --phase <x> and act on every row",
        "Use native atm send or atm ack for messages to comp, comp2, comp3, comp-sanity, or quality-mgr",
        "Use native atm read to read messages from team-members" ]
 
 [startup.quality-mgr]
 all = ["read .claude/agents/quality-mgr.md for directive",
-       "When the phase runs under atm-bd-orchestration, also read .claude/skills/atm-bd-orchestration/roles/quality-mgr.md; where the two differ, the role file wins",
+       "Your role is quality-mgr under atm-bd-orchestration: read .claude/skills/atm-bd-orchestration/roles/quality-mgr.md now (again after every compaction); where it and quality-mgr.md differ, the role file wins",
        "Use native atm send or atm ack for messages to team-lead, comp, comp2, or comp3",
        "Use native atm read to read messages from team-members" ]
 
 [startup.comp]
-all = ["Use native atm send or atm ack for messages to team-lead or quality-mgr",
+all = ["Your role is dev under atm-bd-orchestration: work arrives by atm task assign with the dev template; no user is watching, so execute every step through to the task close and never end a turn on a promise of future work",
+       "Use native atm send or atm ack for messages to team-lead or quality-mgr",
        "Use native atm read to read messages from team-members" ]
 
 [startup.comp2]
-all = ["Use native atm send or atm ack for messages to team-lead or quality-mgr",
+all = ["Your role is dev under atm-bd-orchestration: work arrives by atm task assign with the dev template; no user is watching, so execute every step through to the task close and never end a turn on a promise of future work",
+       "Use native atm send or atm ack for messages to team-lead or quality-mgr",
        "Use native atm read to read messages from team-members" ]
 
 [startup.comp3]
-all = ["Use native atm send or atm ack for messages to team-lead or quality-mgr",
+all = ["Your role is dev under atm-bd-orchestration: work arrives by atm task assign with the dev template; no user is watching, so execute every step through to the task close and never end a turn on a promise of future work",
+       "Use native atm send or atm ack for messages to team-lead or quality-mgr",
        "Use native atm read to read messages from team-members" ]
 
 # ── rmux: pane layout ─────
@@ -94,6 +97,6 @@ dir = "/Users/randlee/github/sc-compose"
 env = { ATM_IDENTITY = "comp-sanity", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
 
 [startup.comp-sanity]
-all = ["read .claude/agents/dev-sanity.md for directive",
+all = ["Your role is dev-sanity under atm-bd-orchestration: read .claude/agents/dev-sanity.md now (again after every compaction) and run its Startup section",
        "Use native atm send or atm ack for messages to team-lead",
        "Use native atm read to read messages from team-members" ]
