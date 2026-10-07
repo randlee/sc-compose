@@ -31,7 +31,7 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             "Check that the request path names an existing UTF-8 JSON file and that you have permission to read it.",
         )),
         BeadComposeError::OutputPathInvalid { path, rule } => Some((
-            json!({ "field": "rendered_formula", "value": path, "rule": rule }),
+            json!({ "field": "rendered_formula", "value": path.to_string_lossy(), "rule": rule }),
             "Choose a rendered_formula path whose parent directory exists inside working_directory.",
         )),
         BeadComposeError::GraphParentNotFound { parent } => Some((
