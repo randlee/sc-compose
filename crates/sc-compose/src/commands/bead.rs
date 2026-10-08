@@ -183,7 +183,10 @@ fn human_error_fields(envelope: &serde_json::Value) -> String {
 }
 
 fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::Value]) {
-    println!("rendered_formula: {}", receipt.rendered_formula.display());
+    println!(
+        "rendered_formula: {}",
+        escape_human_text(&receipt.rendered_formula.display().to_string())
+    );
     if let Some(mode) = receipt.pour_mode {
         let mode = match mode {
             BeadPourMode::Registry => "registry",
@@ -240,7 +243,10 @@ fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::
         }
         println!("edges: {}", graph.edges.len());
         if let Some(plan_path) = &graph.plan_path {
-            println!("plan_path: {}", plan_path.display());
+            println!(
+                "plan_path: {}",
+                escape_human_text(&plan_path.display().to_string())
+            );
         }
     }
 }
@@ -409,6 +415,14 @@ mod tests {
             human_bead_error(&error).unwrap(),
             format!("{}: {error}", error.code())
         );
+    }
+
+    #[test]
+    fn human_receipt_paths_escape_terminal_controls() {
+        let hostile = "out\u{1b}[2Jforged: line\u{202e}.toml";
+        let escaped = super::escape_human_text(hostile);
+        assert!(!escaped.chars().any(char::is_control), "{escaped:?}");
+        assert!(escaped.contains("\\u{001B}"), "{escaped:?}");
     }
 
     #[test]

@@ -894,6 +894,46 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn graph_cook_failure_diagnostic_names_public_source_not_private_snapshot() {
+        struct FailingCook;
+        impl ProcessRunner for FailingCook {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                assert_eq!(spec.args[0], "cook");
+                assert!(spec.args[1].contains(".sc-compose-input-"));
+                let mut output = success("");
+                output.exit_status = Some(3);
+                output.stderr = format!("cannot cook {}\n", spec.args[1]);
+                Ok(output)
+            }
+        }
+        let root = fs::canonicalize(workspace()).unwrap();
+        let mut request = request(&root, BeadOperation::PreviewAttach);
+        request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+        request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+        request.bead_variables.clear();
+        fs::write(&request.template, "formula = \"example\"\n").unwrap();
+        let mut diagnostics = Vec::new();
+        let receipt =
+            super::execute_with_runner_and_diagnostics(&request, &FailingCook, &mut |error| {
+                assert!(!error.to_string().contains(".sc-compose-input-"));
+                diagnostics.push(serde_json::to_value(error).unwrap());
+            })
+            .unwrap();
+        let public = public_path_display(&request.rendered_formula);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0]["code"], "BEADS_COOK_FAILED");
+        assert!(
+            diagnostics[0]["message"]
+                .as_str()
+                .unwrap()
+                .contains(&public)
+        );
+        let wire = serde_json::to_string(&(receipt, diagnostics)).unwrap();
+        assert!(!wire.contains(".sc-compose-input-"), "{wire}");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn graph_create_diagnostic_names_public_plan_before_truncation() {
         struct FailingCreate(FakeRunner);
         impl ProcessRunner for FailingCreate {

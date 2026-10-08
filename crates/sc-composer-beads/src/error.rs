@@ -821,6 +821,15 @@ impl std::fmt::Display for GraphFormulaUnsupportedReason {
 }
 
 /// Quote one argument for a shell-copyable recovery command.
+///
+/// An argument without control or formatting characters is emitted as a POSIX
+/// single-quoted word (`'` becomes `'"'"'`), which every POSIX shell and
+/// `PowerShell` accept for these values. An argument that contains a control or
+/// formatting character is emitted as an ANSI-C `$'...'` word with `\xNN`
+/// byte escapes so no raw control character reaches the terminal; that form is
+/// understood by Bash, Zsh, ksh93 and mksh but not by every POSIX `sh`, and is
+/// not valid in `cmd.exe`. Windows callers should run recovery commands from
+/// `PowerShell` or Git Bash.
 #[must_use]
 pub fn shell_quote(argument: &str) -> String {
     if !argument.chars().any(needs_shell_escape) {

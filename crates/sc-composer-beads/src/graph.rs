@@ -134,16 +134,23 @@ fn run(
         "--json".into(),
     ];
     let output = runtime.invoke(args)?;
+    // Map the private snapshot path to its public source before the typed
+    // cause exists; the raw output is only parsed, never reported.
+    let snapshot = public_path_display(formula_input.path());
+    let source = public_path_display(&runtime.normalized.rendered_formula);
     if output.exit_status != Some(0) {
+        let mut presented = output.clone();
+        presented.stdout = presented.stdout.replace(snapshot.as_str(), &source);
+        presented.stderr = presented.stderr.replace(snapshot.as_str(), &source);
         return Err(BeadComposeError::CookFailed {
             exit_status: output.exit_status,
-            cause: process_failure_cause(&output),
+            cause: process_failure_cause(&presented),
         });
     }
     let cooked =
         serde_json::from_str(&output.stdout).map_err(|error| BeadComposeError::CookFailed {
             exit_status: output.exit_status,
-            cause: short_cause(&error.to_string()),
+            cause: short_cause(&error.to_string().replace(snapshot.as_str(), &source)),
         })?;
     let mode = if is_attach(request.operation) {
         BeadGraphMode::Attach
