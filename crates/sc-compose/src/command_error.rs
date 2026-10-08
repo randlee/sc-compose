@@ -77,7 +77,11 @@ impl CommandError {
         }
     }
 
-    pub(crate) fn render_append(error: Error, diagnostic_code: DiagnosticCode) -> Self {
+    pub(crate) fn render_append(
+        error: Error,
+        diagnostic_code: DiagnosticCode,
+        recovery_hints: Vec<RecoveryHint>,
+    ) -> Self {
         Self {
             exit_code: crate::exit_codes::VALIDATION_OR_RENDER_FAIL,
             diagnostic_code: Some(diagnostic_code),
@@ -86,7 +90,7 @@ impl CommandError {
                 diagnostic_code,
                 format!("{error:#}"),
             )],
-            recovery_hints: Vec::new(),
+            recovery_hints,
             error,
         }
     }
