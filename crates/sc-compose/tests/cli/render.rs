@@ -83,6 +83,63 @@ fn examples_and_templates_reject_append_without_changing_destination() {
 }
 
 #[test]
+fn render_append_preserves_typed_var_file_values_and_escaped_strings() {
+    let root = temp_root("append-typed-var-file");
+    write_file(
+        &root.join("record.json.j2"),
+        r#"{"escaped": {{ escaped | tojson }}, "count": {{ count }}, "enabled": {{ enabled }}, "nothing": {{ nothing | tojson }}, "array": {{ array | tojson }}, "object": {{ object | tojson }}}"#,
+    );
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{"escaped":"quote: \"hello\", slash: \\path, line1\nline2","count":12,"enabled":true,"nothing":null,"array":[1,"two",false],"object":{"nested":true,"label":"ok"}}"#,
+    );
+    let destination = root.join("records.jsonl");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--var-file",
+            vars_file.to_str().unwrap(),
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let appended = fs::read_to_string(destination).unwrap();
+    let records: Vec<Value> = appended
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(records.len(), 1);
+    let record = &records[0];
+    assert_eq!(
+        record["escaped"],
+        "quote: \"hello\", slash: \\path, line1\nline2"
+    );
+    assert_eq!(record["count"], 12);
+    assert_eq!(record["enabled"], true);
+    assert!(record["nothing"].is_null());
+    assert_eq!(record["array"], serde_json::json!([1, "two", false]));
+    assert_eq!(
+        record["object"],
+        serde_json::json!({"nested": true, "label": "ok"})
+    );
+}
+
+#[test]
 fn render_append_rejects_non_object_without_changing_destination() {
     let root = temp_root("append-non-object");
     write_file(&root.join("record.json.j2"), "[1, 2]");
