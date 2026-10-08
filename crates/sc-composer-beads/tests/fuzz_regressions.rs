@@ -69,6 +69,7 @@ impl Workspace {
         execute_bead_request_with_runner(&self.req, runner).expect("request")
     }
 
+    #[cfg(unix)]
     fn plan(&self) -> Value {
         serde_json::from_slice(
             &fs::read(self.req.rendered_formula.with_extension("toml.graph.json"))

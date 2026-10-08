@@ -399,7 +399,10 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
 
 #[cfg(windows)]
 pub(crate) fn public_path_display(path: &Path) -> String {
-    use std::path::{Component, Prefix};
+    use std::{
+        ffi::OsString,
+        path::{Component, Prefix},
+    };
 
     let mut displayed = PathBuf::new();
     let mut skip_root = false;
@@ -408,9 +411,13 @@ pub(crate) fn public_path_display(path: &Path) -> String {
             Component::Prefix(prefix) => match prefix.kind() {
                 Prefix::VerbatimDisk(drive) => displayed.push(format!("{}:", drive as char)),
                 Prefix::VerbatimUNC(server, share) => {
-                    let separator = std::path::MAIN_SEPARATOR;
-                    displayed =
-                        PathBuf::from(format!("{separator}{separator}{server}{separator}{share}"));
+                    let separator = std::path::MAIN_SEPARATOR_STR;
+                    let mut base = OsString::from(separator);
+                    base.push(separator);
+                    base.push(server);
+                    base.push(separator);
+                    base.push(share);
+                    displayed = PathBuf::from(base);
                     skip_root = true;
                 }
                 _ => displayed.push(prefix.as_os_str()),
