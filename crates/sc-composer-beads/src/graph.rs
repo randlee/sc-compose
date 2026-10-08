@@ -11,6 +11,7 @@ use crate::contract::{
 use crate::error::{BeadComposeError, short_cause};
 use crate::execute::{NormalizedRequest, process_receipt, receipt};
 use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
+use crate::snapshot::InputSnapshot;
 use plan::{GraphPlan, GraphReader, PendingCreate, PlanKey};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -29,6 +30,7 @@ pub(crate) fn execute(
     request: &BeadComposeRequest,
     runner: &dyn ProcessRunner,
     normalized: &NormalizedRequest,
+    formula_input: &InputSnapshot,
     bd: PathBuf,
     stages: Vec<BeadStageReceipt>,
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
@@ -46,7 +48,7 @@ pub(crate) fn execute(
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
     };
-    let result = run(request, &mut runtime, stage);
+    let result = run(request, &mut runtime, formula_input, stage);
     let missing_edges = match &result {
         Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
         _ => Vec::new(),
@@ -100,23 +102,16 @@ fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
 fn run(
     request: &BeadComposeRequest,
     runtime: &mut Runtime<'_>,
+    formula_input: &InputSnapshot,
     stage: BeadStage,
 ) -> Result<BeadGraph, BeadComposeError> {
     validate::scope(request)?;
-    let rendered = fs::read(&runtime.normalized.rendered_formula).map_err(|e| {
-        BeadComposeError::RenderFailed {
-            message: e.to_string(),
-        }
-    })?;
+    let rendered = formula_input.read()?;
     // Validate UTF-8 before handing bytes to bd's parser.
     validate::digest(&rendered)?;
     let args = vec![
         "cook".into(),
-        runtime
-            .normalized
-            .rendered_formula
-            .to_string_lossy()
-            .into_owned(),
+        formula_input.path().to_string_lossy().into_owned(),
         "--json".into(),
     ];
     let output = runtime.invoke(args)?;
@@ -380,13 +375,14 @@ impl PendingCreate {
         if !parent.starts_with(&runtime.normalized.working_directory) {
             return Err(BeadComposeError::OutputOutsideWorkingDirectory { path });
         }
+        crate::render::validate_output_destination(&path)?;
         let bytes = serde_json::to_vec(&self.payload).expect("plan JSON serializes");
-        crate::render::atomic_write(&path, &bytes)?;
+        let plan_input = InputSnapshot::write(&path, &bytes)?;
         self.graph.plan_path = Some(path.clone());
         let mut args = vec![
             "create".into(),
             "--graph".into(),
-            path.to_string_lossy().into_owned(),
+            plan_input.path().to_string_lossy().into_owned(),
         ];
         if preview {
             args.push("--dry-run".into());
@@ -398,7 +394,9 @@ impl PendingCreate {
             working_directory: runtime.normalized.working_directory.clone(),
         }
         .argv();
-        let output = runtime.invoke(args)?;
+        let attempted = runtime.invoke(args);
+        plan_input.publish(&path)?;
+        let output = attempted?;
         let failure = |cause: String| BeadComposeError::GraphApplyFailed {
             command: command.clone(),
             status: output.exit_status,

@@ -125,12 +125,12 @@ fn temporary_output_path(path: &Path) -> Result<std::path::PathBuf, BeadComposeE
 }
 
 #[cfg(unix)]
-fn replace_output(temporary: &Path, path: &Path) -> Result<(), BeadComposeError> {
+pub(crate) fn replace_output(temporary: &Path, path: &Path) -> Result<(), BeadComposeError> {
     fs::rename(temporary, path).map_err(|error| render_error(&error))
 }
 
 #[cfg(windows)]
-fn replace_output(temporary: &Path, path: &Path) -> Result<(), BeadComposeError> {
+pub(crate) fn replace_output(temporary: &Path, path: &Path) -> Result<(), BeadComposeError> {
     // Windows cannot atomically replace an existing destination with
     // `std::fs::rename`. Rechecking and removing the final component still
     // prevents following a symbolic link; a racing replacement causes rename

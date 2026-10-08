@@ -14,6 +14,7 @@ use crate::runner::{
     CommandSpec, PROCESS_OUTPUT_LIMIT_BYTES, ProcessOutput, ProcessRunner, StdProcessRunner,
     is_process_output_limit_error,
 };
+use crate::snapshot::InputSnapshot;
 
 const OUTPUT_EXCERPT_LIMIT: usize = 16 * 1024;
 
@@ -46,34 +47,61 @@ pub fn execute_bead_request_with_runner(
     let normalized = validate_request(request)?;
     let mut stages = Vec::new();
     let render_started = Instant::now();
-    if let Err(error) = render_formula_in_root(
-        &normalized.template,
-        &normalized.rendered_formula,
-        &request.compose_variables,
-        &normalized.working_directory,
-    ) {
-        stages.push(render_receipt(
-            render_started,
-            BeadStageOutcome::Failed {
-                code: error.code().to_owned(),
-            },
-            excerpt(&error.to_string()),
-        ));
-        return Ok(receipt(
-            request,
-            normalized.rendered_formula,
-            stages,
-            BeadOutcome::Failed {
-                code: error.code().to_owned(),
-            },
-        ));
-    }
+    let rendered = (|| {
+        let input = InputSnapshot::reserve(&normalized.rendered_formula)?;
+        render_formula_in_root(
+            &normalized.template,
+            input.path(),
+            &request.compose_variables,
+            &normalized.working_directory,
+        )?;
+        // Phase R consumes its named registry path. Graph operations retain
+        // the private input until bd has read it, even when routing by path.
+        if !crate::graph::is_attach(request.operation) && request.operation != BeadOperation::Render
+        {
+            crate::render::atomic_write(&normalized.rendered_formula, &input.read()?)?;
+        }
+        Ok::<_, BeadComposeError>(input)
+    })();
+    let formula_input = match rendered {
+        Ok(input) => input,
+        Err(error) => {
+            stages.push(render_receipt(
+                render_started,
+                BeadStageOutcome::Failed {
+                    code: error.code().to_owned(),
+                },
+                excerpt(&error.to_string()),
+            ));
+            return Ok(receipt(
+                request,
+                normalized.rendered_formula,
+                stages,
+                BeadOutcome::Failed {
+                    code: error.code().to_owned(),
+                },
+            ));
+        }
+    };
     stages.push(render_receipt(
         render_started,
         BeadStageOutcome::Succeeded,
         String::new(),
     ));
 
+    let destination = normalized.rendered_formula.clone();
+    let result = execute_rendered_request(request, runner, normalized, &formula_input, stages);
+    formula_input.publish(&destination)?;
+    result
+}
+
+fn execute_rendered_request(
+    request: &BeadComposeRequest,
+    runner: &dyn ProcessRunner,
+    normalized: NormalizedRequest,
+    formula_input: &InputSnapshot,
+    mut stages: Vec<BeadStageReceipt>,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
     if request.operation == BeadOperation::Render {
         return Ok(receipt(
             request,
@@ -88,7 +116,7 @@ pub fn execute_bead_request_with_runner(
         .clone()
         .unwrap_or_else(|| PathBuf::from("bd"));
     if crate::graph::is_attach(request.operation) {
-        return crate::graph::execute(request, runner, &normalized, bd, stages);
+        return crate::graph::execute(request, runner, &normalized, formula_input, bd, stages);
     }
     let cook = CommandSpec {
         executable: bd.clone(),
@@ -112,7 +140,7 @@ pub fn execute_bead_request_with_runner(
         ));
     }
 
-    crate::pour::execute_pour(request, runner, normalized, bd, stages)
+    crate::pour::execute_pour(request, runner, normalized, formula_input, bd, stages)
 }
 
 pub(crate) struct NormalizedRequest {
