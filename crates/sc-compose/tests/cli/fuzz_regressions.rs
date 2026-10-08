@@ -22,6 +22,19 @@ fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::pat
     request
 }
 
+fn json_contains_controls(value: &serde_json::Value, controls: &str) -> bool {
+    match value {
+        serde_json::Value::String(text) => controls.chars().all(|control| text.contains(control)),
+        serde_json::Value::Array(values) => values
+            .iter()
+            .any(|value| json_contains_controls(value, controls)),
+        serde_json::Value::Object(values) => values
+            .values()
+            .any(|value| json_contains_controls(value, controls)),
+        _ => false,
+    }
+}
+
 // FUZZ-039: human graph refusals expose canonical structured recovery fields.
 #[cfg(unix)]
 #[test]
@@ -326,6 +339,83 @@ fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
                 serde_json::json!({"field":"ref", "value":reference, "rule":"ref is [A-Za-z0-9_-]{1,32}"})
             );
         }
+    }
+}
+
+// FUZZ-040: human refused-attach diagnostics escape terminal controls in every id field.
+#[cfg(unix)]
+#[test]
+fn fuzz_040_human_attach_refusals_escape_identifier_controls_without_changing_json() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = temp_root("fuzz-040-human-identifier-controls");
+    let bd = root.join("fake-bd");
+    write_file(
+        &bd,
+        "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{\"formula\":\"m\",\"type\":\"workflow\",\"steps\":[{\"id\":\"a\",\"title\":\"A\"}]}' ;;\n show) if [ \"$4\" = proj-1 ]; then printf '%s' '[{\"id\":\"proj-1\"}]'; else printf '%s' '[]'; fi ;;\nesac\n",
+    );
+    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    write_file(
+        &root.join("m.formula.toml.j2"),
+        "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
+    );
+    let controls = "\u{202e}\u{200b}\u{feff}\u{0007}";
+    let cases = [
+        (
+            "parent",
+            serde_json::json!({"parent": format!("proj-{controls}")}),
+        ),
+        ("ref", serde_json::json!({"ref": format!("ref-{controls}")})),
+        (
+            "relation",
+            serde_json::json!({"relations": [{"from": format!("step:{controls}"), "to": "bead:proj-1", "type": "blocks"}]}),
+        ),
+    ];
+
+    for (field, override_fields) in cases {
+        let request = root.join(format!("{field}.json"));
+        let mut input = serde_json::json!({
+            "schema":"sc-compose/beads/v1", "operation":"attach",
+            "working_directory":root, "template":"m.formula.toml.j2",
+            "rendered_formula":root.join("out.formula.toml"),
+            "compose_variables":{}, "bead_variables":{}, "parent":"proj-1", "ref":"valid",
+            "relations":[], "pour_authorization":"CreatePersistentBeads", "bd_executable":bd
+        });
+        for (name, value) in override_fields.as_object().unwrap() {
+            input[name] = value.clone();
+        }
+        write_file(&request, &input.to_string());
+
+        let human = sc_compose()
+            .args(["bead", "attach", "--request"])
+            .arg(&request)
+            .output()
+            .unwrap();
+        assert_eq!(human.status.code(), Some(2), "{human:?}");
+        let human = format!(
+            "{}{}",
+            String::from_utf8(human.stdout).unwrap(),
+            String::from_utf8(human.stderr).unwrap()
+        );
+        for raw in ['\u{202e}', '\u{200b}', '\u{feff}', '\u{0007}'] {
+            assert!(!human.contains(raw), "{field}: {human:?}");
+        }
+        for escaped in ["\\u{202E}", "\\u{200B}", "\\u{FEFF}", "\\u{0007}"] {
+            assert!(human.contains(escaped), "{field}: {human:?}");
+        }
+
+        let json = sc_compose()
+            .args(["bead", "attach", "--json", "--request"])
+            .arg(&request)
+            .output()
+            .unwrap();
+        assert_eq!(json.status.code(), Some(2), "{json:?}");
+        let envelope = parse_stdout(&json);
+        assert!(envelope["payload"]["outcome"].get("refused").is_some());
+        assert!(
+            json_contains_controls(&envelope, controls),
+            "{field}: JSON must retain the original identifier: {envelope}"
+        );
     }
 }
 
