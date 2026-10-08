@@ -1,10 +1,11 @@
 //! Production bd graph use cases from ADR-0023; opt in with `BD_EXECUTABLE`.
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadGraphMode, BeadId, BeadNodeAction,
-    BeadOperation, BeadOutcome, BeadPourMode, GraphRef, PourAuthorization, execute_bead_request,
+    BeadOperation, BeadOutcome, BeadPourMode, BeadStage, GraphRef, PourAuthorization,
+    execute_bead_request,
 };
 use serde_json::{Value, json};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -123,7 +124,7 @@ impl Workspace {
         }
         json!({"beads": beads, "edges": edges})
     }
-    fn refuse(&self, req: &BeadComposeRequest, code: &str) {
+    fn refuse(&self, req: &BeadComposeRequest, code: &str) -> BeadComposeReceipt {
         let before = self.snapshot();
         let result = self.run(req);
         assert_eq!(
@@ -132,7 +133,45 @@ impl Workspace {
             "{result:#?}"
         );
         assert_eq!(self.snapshot(), before, "refusal changes no beads or edges");
+        result
     }
+}
+
+fn assert_dependency(w: &Workspace, from: &BeadId, to: &BeadId, kind: &str) {
+    let dependencies = w.json(&["dep", "list", from.as_str(), "--json"]);
+    assert!(
+        dependencies
+            .as_array()
+            .expect("dependency rows")
+            .iter()
+            .any(|row| { row["id"] == to.as_str() && row["dependency_type"] == kind }),
+        "expected {from} -> {to} ({kind}), got {dependencies:#}"
+    );
+}
+
+fn assert_persisted_graph(w: &Workspace, graph: &sc_composer_beads::BeadGraph) {
+    let parent = graph.parent.as_ref().expect("graph parent");
+    let children = w.json(&["children", parent.as_str(), "--json"]);
+    let actual = children
+        .as_array()
+        .expect("children")
+        .iter()
+        .map(|child| child["id"].as_str().expect("child id"))
+        .collect::<BTreeSet<_>>();
+    let expected = graph
+        .ids
+        .values()
+        .map(BeadId::as_str)
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual, expected, "children are exactly the graph steps");
+    for id in graph.ids.values() {
+        assert_dependency(w, id, parent, "parent-child");
+    }
+    let build = &graph.ids[&sc_composer_beads::StepId::new("build").expect("step")];
+    let verify = &graph.ids[&sc_composer_beads::StepId::new("verify").expect("step")];
+    let publish = &graph.ids[&sc_composer_beads::StepId::new("publish").expect("step")];
+    assert_dependency(w, verify, build, "blocks");
+    assert_dependency(w, publish, verify, "blocks");
 }
 
 fn run_command_with_timeout(command: &mut Command, args: &[&str], timeout: Duration) -> Output {
@@ -238,9 +277,11 @@ fn uc1_render_and_pour_outside_registry() {
     with_workspace(|w| {
         let r = w.request(BeadOperation::Render, None);
         w.success(&r);
+        let before_preview = w.snapshot();
         let preview = w.success(&w.request(BeadOperation::PreviewPour, None));
         assert_eq!(preview.pour_mode, Some(BeadPourMode::Graph));
         assert!(preview.graph.expect("graph").ids.is_empty());
+        assert_eq!(w.snapshot(), before_preview, "preview-pour must not write");
         let applied = w.success(&w.request(BeadOperation::Pour, None));
         let graph = applied.graph.expect("graph");
         assert_eq!(graph.ids.len(), 3);
@@ -251,6 +292,27 @@ fn uc1_render_and_pour_outside_registry() {
             "--json",
         ]);
         assert_eq!(root[0]["issue_type"], "molecule");
+        assert_persisted_graph(w, &graph);
+    });
+}
+
+#[test]
+fn graph_pour_ignores_same_name_toml_and_json_registry_formulas() {
+    with_workspace(|w| {
+        let registry = w.root.join(".beads/formulas");
+        fs::create_dir_all(&registry).expect("registry");
+        fs::write(registry.join("release.formula.toml"), FORMULA).expect("registry TOML");
+        fs::write(
+            registry.join("release.formula.json"),
+            r#"{"formula":"release","version":1,"type":"workflow","steps":[{"id":"build","title":"Build"}]}"#,
+        )
+        .expect("registry JSON");
+
+        let r = w.request(BeadOperation::Render, None);
+        w.success(&r);
+        let receipt = w.success(&w.request(BeadOperation::Pour, None));
+        assert_eq!(receipt.pour_mode, Some(BeadPourMode::Graph));
+        assert_persisted_graph(w, &receipt.graph.expect("graph"));
     });
 }
 #[test]
@@ -266,6 +328,7 @@ fn uc2_attach_children_directly_under_parent() {
             g.ids[&sc_composer_beads::StepId::new("build").expect("step")].as_str(),
             format!("{parent}.release-build")
         );
+        assert_persisted_graph(w, &g);
     });
 }
 #[test]
@@ -447,6 +510,18 @@ fn refusals_preserve_beads_and_edges() {
         ]))
         .expect("relation");
         w.refuse(&r, "BEADS_GRAPH_RELATION_INVALID");
+        r.relations = serde_json::from_value(json!([
+            {"from":"step:build","to":"bead:graph-missing","type":"related"}
+        ]))
+        .expect("missing bead relation");
+        let receipt = w.refuse(&r, "BEADS_GRAPH_RELATION_INVALID");
+        let stage = receipt.stages.last().expect("plan-stage receipt");
+        assert_eq!(stage.stage, BeadStage::Attach);
+        assert!(
+            stage.stderr_excerpt.contains("graph-missing")
+                && stage.stderr_excerpt.contains("not found"),
+            "missing bead relation must fail at planning: {stage:#?}"
+        );
         r.relations.clear();
         fs::write(
             &r.template,
