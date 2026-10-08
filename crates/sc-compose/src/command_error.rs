@@ -77,6 +77,20 @@ impl CommandError {
         }
     }
 
+    pub(crate) fn render_append(error: Error, diagnostic_code: DiagnosticCode) -> Self {
+        Self {
+            exit_code: crate::exit_codes::VALIDATION_OR_RENDER_FAIL,
+            diagnostic_code: Some(diagnostic_code),
+            diagnostics: vec![Diagnostic::new(
+                DiagnosticSeverity::Error,
+                diagnostic_code,
+                format!("{error:#}"),
+            )],
+            recovery_hints: Vec::new(),
+            error,
+        }
+    }
+
     pub(crate) fn render_check(error: sc_composer::OutputCheckError) -> Self {
         let diagnostic_code = error.diagnostics.first().map(|diagnostic| diagnostic.code);
         let message = error.to_string();

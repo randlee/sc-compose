@@ -64,6 +64,8 @@ sc-composer library and are normalized by the shared lint runner.
 | `SC_SHA_UNKNOWN_EDGE_ENDPOINT` | `CompositionError` | error | an include edge references no node in the resolved manifest | `sc_sha::calculate_composition_hash()` |
 | `ERR_RENDER_STDIN_DOUBLE_READ` | `RenderError` | error | CLI attempts to consume stdin twice for guidance/prompt inputs | CLI input layer |
 | `ERR_RENDER_WRITE` | `RenderError` | error | output write or output-target materialization failure | CLI output layer |
+| `ERR_RENDER_APPEND_NOT_OBJECT` | `RenderError` | error | JSON Lines append rendered a non-object JSON value | CLI output layer |
+| `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` | `RenderError` | error | JSON Lines append target has no final newline | CLI output layer |
 | `ERR_CONFIG_READONLY` | `ConfigError` | error | frontmatter rewrite or workspace update refused on read-only target | `frontmatter_init()`, `init_workspace()` |
 | `ERR_CONFIG_MODE` | `ConfigError` | error | command or helper invoked in an incompatible mode | CLI argument validation, `resolve_profile()` |
 | `ERR_CONFIG_READ` | `ConfigError` | error | a required text/config file exists but cannot be read as valid text | include engine, `verify()`, workspace helpers |

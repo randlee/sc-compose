@@ -217,6 +217,8 @@ pub(crate) struct RenderBehaviorArgs {
         help = "Write rendered output to the given path instead of stdout"
     )]
     pub(crate) output: Option<PathBuf>,
+    #[arg(long, conflicts_with_all = ["output", "dry_run"], help = "Append one rendered JSON object to a JSON Lines file")]
+    pub(crate) append: Option<PathBuf>,
     #[arg(long, help = "Append a guidance block after the rendered body")]
     pub(crate) guidance: Option<String>,
     #[arg(long, help = "Read the guidance block from a file or stdin")]
