@@ -8,7 +8,7 @@ use crate::contract::{
 };
 use crate::error::{BeadComposeError, GraphConflictReason, GraphRelationInvalidReason};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) trait GraphReader {
@@ -60,19 +60,34 @@ pub(super) enum PlannedEndpoint {
 }
 
 impl PlannedEndpoint {
-    pub(super) fn resolve(&self, graph: &BeadGraph) -> GraphEndpoint {
+    pub(super) fn resolve(&self, graph: &BeadGraph) -> Option<GraphEndpoint> {
         match self {
-            Self::Named(BeadEndpoint::Bead(id)) => GraphEndpoint::Bead(id.clone()),
-            Self::Named(BeadEndpoint::Step(step)) => GraphEndpoint::Bead(graph.ids[step].clone()),
-            Self::Root => GraphEndpoint::Bead(graph.parent.as_ref().expect("created root").clone()),
+            Self::Named(BeadEndpoint::Bead(id)) => Some(GraphEndpoint::Bead(id.clone())),
+            Self::Named(BeadEndpoint::Step(step)) => {
+                graph.ids.get(step).cloned().map(GraphEndpoint::Bead)
+            }
+            Self::Root => graph.parent.clone().map(GraphEndpoint::Bead),
         }
     }
 }
 
-struct Endpoint {
-    display: GraphEndpoint,
-    key: Option<PlanKey>,
-    id: Option<BeadId>,
+enum Endpoint {
+    Existing {
+        display: GraphEndpoint,
+        id: BeadId,
+    },
+    Planned {
+        display: GraphEndpoint,
+        key: PlanKey,
+    },
+}
+
+impl Endpoint {
+    fn display(&self) -> &GraphEndpoint {
+        match self {
+            Self::Existing { display, .. } | Self::Planned { display, .. } => display,
+        }
+    }
 }
 
 fn endpoint(
@@ -82,18 +97,22 @@ fn endpoint(
     attach: bool,
 ) -> Endpoint {
     match ep {
-        BeadEndpoint::Bead(id) => Endpoint {
+        BeadEndpoint::Bead(id) => Endpoint::Existing {
             display: GraphEndpoint::Bead(id.clone()),
-            key: None,
-            id: Some(id.clone()),
+            id: id.clone(),
         },
-        BeadEndpoint::Step(step) => Endpoint {
-            display: ids.get(step).map_or_else(
-                || GraphEndpoint::Step(step.clone()),
-                |id| GraphEndpoint::Bead(id.clone()),
-            ),
-            key: missing.contains(step).then(|| PlanKey::step(step, attach)),
-            id: ids.get(step).cloned(),
+        BeadEndpoint::Step(step) => match (missing.contains(step), ids.get(step)) {
+            (false, Some(id)) => Endpoint::Existing {
+                display: GraphEndpoint::Bead(id.clone()),
+                id: id.clone(),
+            },
+            _ => Endpoint::Planned {
+                display: ids.get(step).map_or_else(
+                    || GraphEndpoint::Step(step.clone()),
+                    |id| GraphEndpoint::Bead(id.clone()),
+                ),
+                key: PlanKey::step(step, attach),
+            },
         },
     }
 }
@@ -147,7 +166,9 @@ pub(super) fn plan(
     let missing = check_ownership(v, &ids, &found)?;
     let mut pending = create_nodes(v, &ids, &missing, attach);
     let edges = plan_edges(v, &ids, &missing, attach, reader, &mut pending)?;
-    pending.payload["edges"] = json!(edges);
+    if let Some(payload) = pending.payload.as_object_mut() {
+        payload.insert("edges".into(), json!(edges));
+    }
     if pending.keys.is_empty() {
         Ok(GraphPlan::Noop(pending.graph))
     } else {
@@ -239,14 +260,20 @@ fn create_nodes(
             } else {
                 fields.insert("parent_key".into(), json!("_root"));
             }
-            fields
-                .get_mut("metadata")
-                .and_then(Value::as_object_mut)
-                .expect("validated metadata")
-                .insert(
-                    PROVENANCE_KEY.into(),
-                    json!(v.provenance(Some(step.id.clone()))),
-                );
+            let metadata = fields
+                .entry("metadata")
+                .or_insert_with(|| Value::Object(Map::default()));
+            let provenance = json!(v.provenance(Some(step.id.clone())));
+            match metadata {
+                Value::Object(metadata) => {
+                    metadata.insert(PROVENANCE_KEY.into(), provenance);
+                }
+                metadata => {
+                    let mut object = Map::new();
+                    object.insert(PROVENANCE_KEY.into(), provenance);
+                    *metadata = Value::Object(object);
+                }
+            }
             nodes.push(Value::Object(fields));
             keys.insert(key, Some(step.id.clone()));
         }
@@ -279,8 +306,8 @@ fn plan_edges(
         let to = endpoint(&to, ids, missing, attach);
         let existing = check_edge(&from, &to, &kind, &existing_edges, &mut absent)?;
         pending.graph.edges.push(BeadGraphEdge {
-            from: from.display.clone(),
-            to: to.display.clone(),
+            from: from.display().clone(),
+            to: to.display().clone(),
             kind: kind.clone(),
             action: if existing {
                 BeadEdgeAction::Existing
@@ -288,19 +315,19 @@ fn plan_edges(
                 BeadEdgeAction::Add
             },
         });
-        if from.key.is_some() || to.key.is_some() {
+        if matches!(from, Endpoint::Planned { .. }) || matches!(to, Endpoint::Planned { .. }) {
             let mut edge = serde_json::Map::new();
             for (prefix, ep) in [("from", from), ("to", to)] {
-                if let Some(key) = ep.key {
-                    edge.insert(format!("{prefix}_key"), json!(key.as_str()));
-                } else {
-                    edge.insert(
-                        format!("{prefix}_id"),
-                        json!(ep.id.expect("existing endpoint")),
-                    );
+                match ep {
+                    Endpoint::Planned { key, .. } => {
+                        edge.insert(format!("{prefix}_key"), json!(key.as_str()));
+                    }
+                    Endpoint::Existing { id, .. } => {
+                        edge.insert(format!("{prefix}_id"), json!(id));
+                    }
                 }
             }
-            edge.insert("type".into(), json!(kind));
+            edge.insert("type".into(), json!(kind.to_string()));
             edges.push(Value::Object(edge));
         }
     }
@@ -313,13 +340,22 @@ fn plan_edges(
             }),
         ));
         let from = endpoint(&BeadEndpoint::Step(step.id.clone()), ids, missing, attach);
-        let to = Endpoint {
-            display: v
-                .parent
-                .as_ref()
-                .map_or(GraphEndpoint::Root, |id| GraphEndpoint::Bead(id.clone())),
-            key: (!attach).then(PlanKey::root),
-            id: v.parent.clone(),
+        let to = if attach {
+            v.parent.as_ref().map_or_else(
+                || Endpoint::Planned {
+                    display: GraphEndpoint::Root,
+                    key: PlanKey::root(),
+                },
+                |id| Endpoint::Existing {
+                    display: GraphEndpoint::Bead(id.clone()),
+                    id: id.clone(),
+                },
+            )
+        } else {
+            Endpoint::Planned {
+                display: GraphEndpoint::Root,
+                key: PlanKey::root(),
+            }
         };
         let existing = check_edge(
             &from,
@@ -329,8 +365,8 @@ fn plan_edges(
             &mut absent,
         )?;
         pending.graph.edges.push(BeadGraphEdge {
-            from: from.display,
-            to: to.display,
+            from: from.display().clone(),
+            to: to.display().clone(),
             kind: GraphDependencyType::ParentChild,
             action: if existing {
                 BeadEdgeAction::Existing
@@ -374,15 +410,15 @@ fn read_edges(
     let mut sources = BTreeSet::new();
     for (from, _, _) in &planned_edges {
         let ep = endpoint(from, ids, missing, attach);
-        if ep.key.is_none()
-            && let Some(id) = ep.id
-        {
+        if let Endpoint::Existing { id, .. } = ep {
             sources.insert(id);
         }
     }
     for step in &v.steps {
-        if !missing.contains(&step.id) {
-            sources.insert(ids[&step.id].clone());
+        if !missing.contains(&step.id)
+            && let Some(id) = ids.get(&step.id)
+        {
+            sources.insert(id.clone());
         }
     }
     for id in sources {
@@ -400,13 +436,10 @@ fn check_edge(
     existing: &BTreeMap<(BeadId, BeadId), GraphDependencyType>,
     absent: &mut Vec<MissingEdge>,
 ) -> Result<bool, BeadComposeError> {
-    if from.key.is_some() || to.key.is_some() {
+    let (Endpoint::Existing { id: from, .. }, Endpoint::Existing { id: to, .. }) = (from, to)
+    else {
         return Ok(false);
-    }
-    let (from, to) = (
-        from.id.as_ref().expect("existing from"),
-        to.id.as_ref().expect("existing to"),
-    );
+    };
     match existing.get(&(from.clone(), to.clone())) {
         Some(actual) if actual == kind => Ok(true),
         Some(actual) => Err(BeadComposeError::GraphEdgeConflict {
@@ -423,5 +456,85 @@ fn check_edge(
             });
             Ok(false)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn graph() -> BeadGraph {
+        let step = StepId::new("build").unwrap();
+        BeadGraph {
+            mode: BeadGraphMode::Pour,
+            parent: Some(BeadId::new("proj-1").unwrap()),
+            ref_: None,
+            formula: crate::FormulaName::new("example").unwrap(),
+            revision: crate::Sha256Digest::new(format!("sha256:{}", "a".repeat(64))).unwrap(),
+            plan_path: None,
+            ids: BTreeMap::from([(step, BeadId::new("proj-1.build").unwrap())]),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn planned_endpoints_resolve_when_their_identity_is_available() {
+        let graph = graph();
+        let step = StepId::new("build").unwrap();
+        let endpoint = PlannedEndpoint::Named(BeadEndpoint::Step(step));
+
+        assert_eq!(
+            endpoint.resolve(&graph),
+            Some(GraphEndpoint::Bead(BeadId::new("proj-1.build").unwrap()))
+        );
+        assert_eq!(
+            PlannedEndpoint::Root.resolve(&graph),
+            graph.parent.clone().map(GraphEndpoint::Bead)
+        );
+        let bead = BeadId::new("proj-9").unwrap();
+        assert_eq!(
+            PlannedEndpoint::Named(BeadEndpoint::Bead(bead.clone())).resolve(&graph),
+            Some(GraphEndpoint::Bead(bead))
+        );
+    }
+
+    #[test]
+    fn unresolved_planned_endpoints_return_none() {
+        let mut graph = graph();
+        graph.ids.clear();
+        graph.parent = None;
+
+        assert_eq!(
+            PlannedEndpoint::Named(BeadEndpoint::Step(StepId::new("build").unwrap()))
+                .resolve(&graph),
+            None
+        );
+        assert_eq!(PlannedEndpoint::Root.resolve(&graph), None);
+    }
+
+    #[test]
+    fn planned_endpoint_pair_is_not_treated_as_an_existing_dependency() {
+        let from = Endpoint::Planned {
+            display: GraphEndpoint::Step(StepId::new("build").unwrap()),
+            key: PlanKey::step(&StepId::new("build").unwrap(), false),
+        };
+        let id = BeadId::new("proj-1").unwrap();
+        let to = Endpoint::Existing {
+            display: GraphEndpoint::Bead(id.clone()),
+            id,
+        };
+        let mut absent = Vec::new();
+
+        let result = check_edge(
+            &from,
+            &to,
+            &GraphDependencyType::Known(BeadDependencyType::Blocks),
+            &BTreeMap::new(),
+            &mut absent,
+        );
+
+        assert!(!result.unwrap());
+        assert!(absent.is_empty());
     }
 }
