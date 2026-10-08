@@ -516,3 +516,38 @@ fn graph_capture_overflow_reports_the_actual_stream_limit() {
         );
     }
 }
+
+// FUZZ-021: semantic graph ids retain typed errors across request parsing.
+#[test]
+fn fuzz_021_invalid_refs_and_relation_steps_keep_typed_errors() {
+    for operation in ["attach", "preview_attach"] {
+        for reference in ["a.b", "", &"x".repeat(33)] {
+            let request = json!({
+                "schema": BEADS_SCHEMA_V1, "operation": operation,
+                "working_directory": "/work", "template": "sample.formula.toml.j2",
+                "rendered_formula": "/work/sample.formula.toml", "compose_variables": {},
+                "bead_variables": {}, "parent": "proj-1", "ref": reference
+            });
+            let error = parse_request(&request.to_string()).expect_err("invalid ref");
+            assert_eq!(error.code(), "BEADS_GRAPH_ID_INVALID");
+            assert!(
+                matches!(&error, BeadComposeError::GraphIdInvalid { field: GraphIdField::Ref, value } if value == reference)
+            );
+            let wire = serde_json::to_value(&error).unwrap();
+            assert_eq!(wire["details"], json!({"field":"ref", "value":reference}));
+            assert!(error.to_string().contains("[A-Za-z0-9_-]"));
+            for endpoint_field in ["from", "to"] {
+                let mut relation_request = request.clone();
+                relation_request["ref"] = json!("valid");
+                let mut relation =
+                    json!({"from":"step:build", "to":"bead:proj-1", "type":"blocks"});
+                relation[endpoint_field] = json!("step:bad.step");
+                relation_request["relations"] = json!([relation]);
+                let error = parse_request(&relation_request.to_string()).expect_err("invalid step");
+                assert!(
+                    matches!(error, BeadComposeError::GraphIdInvalid { field: GraphIdField::Step, value } if value == "bad.step")
+                );
+            }
+        }
+    }
+}

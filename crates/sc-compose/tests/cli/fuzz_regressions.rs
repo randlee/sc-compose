@@ -139,3 +139,39 @@ fn fuzz_019_bead_render_failure_reports_the_template_error() {
         "stage Render: failed (BEADS_RENDER_FAILED): {diagnostic}"
     )));
 }
+
+// FUZZ-021: graph-id validation failures are exit 2 with typed JSON details.
+#[test]
+fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
+    let root = temp_root("fuzz-021-typed-ref");
+    for operation in ["attach", "preview-attach"] {
+        for reference in ["a.b", "", &"x".repeat(33)] {
+            let request = root.join("request.json");
+            write_file(
+                &request,
+                &serde_json::json!({
+                    "schema":"sc-compose/beads/v1", "operation":operation.replace('-', "_"),
+                    "working_directory":root, "template":"missing.formula.toml.j2",
+                    "rendered_formula":root.join("out.formula.toml"),
+                    "compose_variables":{}, "bead_variables":{}, "parent":"proj-1", "ref":reference
+                })
+                .to_string(),
+            );
+            let output = sc_compose()
+                .args(["bead", operation, "--json", "--request"])
+                .arg(&request)
+                .output()
+                .unwrap();
+            assert_eq!(output.status.code(), Some(2), "{output:?}");
+            let payload = parse_stdout(&output);
+            assert_eq!(
+                payload["payload"]["error"]["code"],
+                "BEADS_GRAPH_ID_INVALID"
+            );
+            assert_eq!(
+                payload["payload"]["error"]["details"],
+                serde_json::json!({"field":"ref", "value":reference})
+            );
+        }
+    }
+}

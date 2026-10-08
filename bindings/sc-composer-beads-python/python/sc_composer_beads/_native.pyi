@@ -18,6 +18,7 @@ class BeadComposeError(Exception):
     code: str
     stage: str | None
     message: str
+    details: dict[str, str] | None
 
 
 class BeadOperation:

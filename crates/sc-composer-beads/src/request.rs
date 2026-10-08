@@ -6,7 +6,9 @@ use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
-use crate::{BeadComposeError, BeadComposeRequest, BeadRelation, PourAuthorization};
+use crate::{
+    BeadComposeError, BeadComposeRequest, BeadRelation, GraphRef, PourAuthorization, StepId,
+};
 
 #[derive(Default)]
 pub(crate) struct BeadVariables {
@@ -49,6 +51,10 @@ impl<'de> Deserialize<'de> for BeadVariables {
 #[derive(Deserialize)]
 struct RequestPreflight {
     #[serde(default)]
+    operation: Value,
+    #[serde(default, rename = "ref")]
+    reference: Value,
+    #[serde(default)]
     bead_variables: BeadVariables,
     #[serde(default)]
     pour_authorization: Value,
@@ -77,6 +83,13 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
             .ok_or(BeadComposeError::PourAuthorizationInvalid)?;
         PourAuthorization::try_from(token)?;
     }
+    if matches!(
+        preflight.operation.as_str(),
+        Some("attach" | "preview_attach")
+    ) && let Some(reference) = preflight.reference.as_str()
+    {
+        GraphRef::new(reference)?;
+    }
     validate_endpoint_prefixes(&preflight.relations)?;
     serde_json::from_str(input).map_err(|error| request_error(&error))
 }
@@ -85,13 +98,14 @@ fn validate_endpoint_prefixes(relations: &Value) -> Result<(), BeadComposeError>
     if let Some(relations) = relations.as_array() {
         for relation in relations {
             for field in ["from", "to"] {
-                if let Some(value) = relation.get(field).and_then(Value::as_str)
-                    && !value.starts_with("step:")
-                    && !value.starts_with("bead:")
-                {
-                    return Err(BeadComposeError::RelationEndpointInvalid {
-                        value: value.to_owned(),
-                    });
+                if let Some(value) = relation.get(field).and_then(Value::as_str) {
+                    if let Some(step) = value.strip_prefix("step:") {
+                        StepId::new(step)?;
+                    } else if !value.starts_with("bead:") {
+                        return Err(BeadComposeError::RelationEndpointInvalid {
+                            value: value.to_owned(),
+                        });
+                    }
                 }
             }
         }
