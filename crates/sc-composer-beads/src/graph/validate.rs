@@ -241,18 +241,19 @@ fn validate_relations(
         if relation.from == relation.to {
             return Err(invalid(Invalid::SelfEdge));
         }
-        for endpoint in [&relation.from, &relation.to] {
-            if let BeadEndpoint::Bead(id) = endpoint
-                && req.parent.as_ref() == Some(id)
-            {
-                return Err(invalid(Invalid::ParentPair));
-            }
-        }
         if matches!(
             (&relation.from, &relation.to),
             (BeadEndpoint::Bead(_), BeadEndpoint::Bead(_))
         ) {
             return Err(invalid(Invalid::NoStep));
+        }
+        if matches!(
+            (&relation.from, &relation.to),
+            (BeadEndpoint::Step(_), BeadEndpoint::Bead(id))
+                | (BeadEndpoint::Bead(id), BeadEndpoint::Step(_))
+                if req.parent.as_ref() == Some(id)
+        ) {
+            return Err(invalid(Invalid::ParentPair));
         }
         let pair = (relation.from.to_string(), relation.to.to_string());
         if !pairs.insert(pair) {

@@ -71,7 +71,13 @@ fn execute_with_runner_and_diagnostics(
     let mut stages = Vec::new();
     let render_started = Instant::now();
     let rendered = (|| {
-        let input = InputSnapshot::reserve(&normalized.rendered_formula)?;
+        let input = InputSnapshot::reserve(&normalized.rendered_formula).map_err(|error| {
+            if crate::graph::is_attach(request.operation) {
+                crate::snapshot::output_error(&normalized.rendered_formula, error)
+            } else {
+                error
+            }
+        })?;
         render_formula_in_root(
             &normalized.template,
             input.path(),
@@ -80,8 +86,9 @@ fn execute_with_runner_and_diagnostics(
         )?;
         // Phase R consumes its named registry path. Graph operations retain
         // the private input until bd has read it, even when routing by path.
-        if !crate::graph::is_attach(request.operation) && request.operation != BeadOperation::Render
-        {
+        if crate::graph::is_attach(request.operation) {
+            input.publish_copy(&normalized.rendered_formula)?;
+        } else if request.operation != BeadOperation::Render {
             crate::render::atomic_write(&normalized.rendered_formula, &input.read()?)?;
         }
         Ok::<_, BeadComposeError>(input)
@@ -121,7 +128,9 @@ fn execute_with_runner_and_diagnostics(
         stages,
         diagnostics,
     );
-    formula_input.publish(&destination)?;
+    if !crate::graph::is_attach(request.operation) {
+        formula_input.publish(&destination)?;
+    }
     result
 }
 
@@ -170,7 +179,13 @@ fn execute_rendered_request(
         args: cook_args(cook_input, request),
         working_directory: normalized.working_directory.clone(),
     };
-    if let Some(failed) = run_stage(runner, StageFailure::Cook, &cook, &mut stages)? {
+    let cook_result = run_stage(runner, StageFailure::Cook, &cook, &mut stages)?;
+    present_snapshot_paths(
+        &mut stages,
+        formula_input.path(),
+        &normalized.rendered_formula,
+    );
+    if let Some(failed) = cook_result {
         return Ok(receipt(
             request,
             normalized.rendered_formula,
@@ -256,19 +271,27 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     validate_utf8_path(&working_directory)?;
     validate_utf8_path(&template)?;
     if !template.is_file() {
-        return Err(BeadComposeError::FormulaPathNotFile { path: template });
+        return Err(BeadComposeError::FormulaPathNotFile {
+            path: public_path_buf(&template),
+        });
     }
     if !template.starts_with(&working_directory) {
-        return Err(BeadComposeError::TemplateOutsideWorkingDirectory { path: template });
+        return Err(BeadComposeError::TemplateOutsideWorkingDirectory {
+            path: public_path_buf(&template),
+        });
     }
-    let rendered_formula = normalize_output(&request.rendered_formula)?;
+    let rendered_formula = normalize_output(&if request.rendered_formula.is_absolute() {
+        request.rendered_formula.clone()
+    } else {
+        working_directory.join(&request.rendered_formula)
+    })?;
     validate_utf8_path(&rendered_formula)?;
     if let Some(executable) = &request.bd_executable {
         validate_utf8_path(executable)?;
     }
     if !is_formula_path(&rendered_formula) {
         return Err(BeadComposeError::FormulaExtensionUnsupported {
-            path: rendered_formula,
+            path: public_path_buf(&rendered_formula),
         });
     }
     if matches!(
@@ -280,7 +303,7 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     ) && !rendered_formula.starts_with(&working_directory)
     {
         return Err(BeadComposeError::OutputOutsideWorkingDirectory {
-            path: rendered_formula,
+            path: public_path_buf(&rendered_formula),
         });
     }
     validate_output_destination(&rendered_formula)?;
@@ -330,35 +353,115 @@ fn validate_utf8_path(path: &Path) -> Result<(), BeadComposeError> {
     if path.to_str().is_some() {
         Ok(())
     } else {
-        Err(BeadComposeError::PathNotUtf8 { path: path.into() })
+        Err(BeadComposeError::PathNotUtf8 {
+            path: public_path_buf(path),
+        })
     }
 }
 
 fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
+    let public_path = public_path_buf(path);
     let parent = path
         .parent()
         .ok_or_else(|| BeadComposeError::OutputPathInvalid {
-            path: path.into(),
+            path: public_path.clone(),
             rule: String::from("an existing parent directory and file name are required"),
         })?;
     let parent = fs::canonicalize(parent).map_err(|error| {
         let rule = if error.kind() == std::io::ErrorKind::NotFound {
-            format!("parent directory `{}` must exist", parent.display())
+            let parent_display = if parent.as_os_str().is_empty() {
+                path.display().to_string()
+            } else {
+                public_path_display(parent)
+            };
+            format!(
+                "parent directory `{parent_display}` for `{}` must exist",
+                public_path_display(path)
+            )
         } else {
             String::from("parent directory must be resolvable")
         };
         BeadComposeError::OutputPathInvalid {
-            path: path.into(),
+            path: public_path.clone(),
             rule,
         }
     })?;
+    if !parent.is_dir() {
+        return Err(BeadComposeError::OutputPathInvalid {
+            path: public_path.clone(),
+            rule: format!(
+                "parent `{}` must be a directory",
+                public_path_display(&parent)
+            ),
+        });
+    }
     let name = path
         .file_name()
         .ok_or_else(|| BeadComposeError::OutputPathInvalid {
-            path: path.into(),
+            path: public_path.clone(),
             rule: String::from("path must include a file name"),
         })?;
     Ok(parent.join(name))
+}
+
+#[cfg(windows)]
+pub(crate) fn public_path_display(path: &Path) -> String {
+    use std::{
+        ffi::OsString,
+        path::{Component, Prefix},
+    };
+
+    let mut displayed = PathBuf::new();
+    let mut skip_root = false;
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => match prefix.kind() {
+                Prefix::VerbatimDisk(drive) => displayed.push(format!("{}:", drive as char)),
+                Prefix::VerbatimUNC(server, share) => {
+                    let separator = std::path::MAIN_SEPARATOR_STR;
+                    let mut base = OsString::from(separator);
+                    base.push(separator);
+                    base.push(server);
+                    base.push(separator);
+                    base.push(share);
+                    displayed = PathBuf::from(base);
+                    skip_root = true;
+                }
+                _ => displayed.push(prefix.as_os_str()),
+            },
+            Component::RootDir if skip_root => skip_root = false,
+            component => displayed.push(component.as_os_str()),
+        }
+    }
+    displayed.to_string_lossy().into_owned()
+}
+
+/// Owned form of [`public_path_display`] for storing in user-visible errors.
+pub(crate) fn public_path_buf(path: &Path) -> PathBuf {
+    PathBuf::from(public_path_display(path))
+}
+
+#[cfg(all(not(windows), not(test)))]
+pub(crate) fn public_path_display(path: &Path) -> String {
+    path.to_string_lossy().into_owned()
+}
+
+/// Test seam: non-Windows canonical paths never carry a verbatim prefix, so a
+/// test can install a marker that `public_path_display` prepends. Any error
+/// path that bypasses `public_path_display` then lacks the marker.
+#[cfg(all(not(windows), test))]
+pub(crate) fn public_path_display(path: &Path) -> String {
+    let displayed = path.to_string_lossy().into_owned();
+    PUBLIC_PATH_MARKER.with(|marker| match marker.borrow().as_deref() {
+        Some(marker) => format!("{marker}{displayed}"),
+        None => displayed,
+    })
+}
+
+#[cfg(all(not(windows), test))]
+thread_local! {
+    pub(crate) static PUBLIC_PATH_MARKER: std::cell::RefCell<Option<String>> =
+        const { std::cell::RefCell::new(None) };
 }
 
 fn valid_bead_key(key: &str) -> bool {
@@ -376,7 +479,7 @@ fn is_formula_path(path: &Path) -> bool {
 fn cook_args(rendered_formula: &Path, request: &BeadComposeRequest) -> Vec<String> {
     let mut args = vec![
         String::from("cook"),
-        rendered_formula.to_string_lossy().into_owned(),
+        public_path_display(rendered_formula),
         String::from("--dry-run"),
         String::from("--json"),
     ];
@@ -489,16 +592,53 @@ pub(crate) fn run_stage_with_output(
     }
 }
 
+fn present_snapshot_paths(stages: &mut [BeadStageReceipt], snapshot: &Path, source: &Path) {
+    let snapshot = public_path_display(snapshot);
+    let source = public_path_display(source);
+    for stage in stages {
+        for argument in &mut stage.argv {
+            if argument == snapshot.as_str() {
+                argument.clone_from(&source);
+            }
+        }
+        stage.stderr_excerpt = stage
+            .stderr_excerpt
+            .replace(snapshot.as_str(), source.as_ref());
+        stage.stdout_excerpt = stage
+            .stdout_excerpt
+            .replace(snapshot.as_str(), source.as_ref());
+    }
+}
+
 pub(crate) fn receipt(
     request: &BeadComposeRequest,
     rendered_formula: PathBuf,
     stages: Vec<BeadStageReceipt>,
     outcome: BeadOutcome,
 ) -> BeadComposeReceipt {
+    let public_rendered_formula = public_path_display(&rendered_formula);
+    let private_rendered_formula = rendered_formula
+        .into_os_string()
+        .to_string_lossy()
+        .into_owned();
+    let mut stages = stages;
+    for stage in &mut stages {
+        for argument in &mut stage.argv {
+            if argument == private_rendered_formula.as_str() {
+                argument.clone_from(&public_rendered_formula);
+            }
+        }
+        stage.stderr_excerpt = stage
+            .stderr_excerpt
+            .replace(private_rendered_formula.as_str(), &public_rendered_formula);
+        stage.stdout_excerpt = stage
+            .stdout_excerpt
+            .replace(private_rendered_formula.as_str(), &public_rendered_formula);
+    }
     BeadComposeReceipt {
         schema: BEADS_SCHEMA_V1.to_owned(),
         operation: request.operation,
-        rendered_formula,
+        rendered_formula: PathBuf::from(public_rendered_formula),
         stages,
         outcome,
         pour_mode: None,
@@ -566,7 +706,7 @@ fn elapsed_ms(duration: std::time::Duration) -> u64 {
     duration.as_millis().try_into().unwrap_or(u64::MAX)
 }
 
-fn excerpt(value: &str) -> String {
+pub(crate) fn excerpt(value: &str) -> String {
     value.chars().take(OUTPUT_EXCERPT_LIMIT).collect()
 }
 
@@ -582,7 +722,7 @@ pub(crate) mod tests {
 
     use serde_json::{Map, json};
 
-    use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner};
+    use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner, public_path_display};
     #[cfg(unix)]
     use crate::StdProcessRunner;
     use crate::{
@@ -591,6 +731,48 @@ pub(crate) mod tests {
     };
 
     static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+    #[cfg(windows)]
+    #[test]
+    fn public_path_display_strips_windows_verbatim_prefix() {
+        assert_eq!(
+            public_path_display(Path::new(r"\\?\C:\Users\test\sample.formula.toml")),
+            r"C:\Users\test\sample.formula.toml"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn public_path_display_converts_verbatim_unc_to_unc() {
+        let separator = std::path::MAIN_SEPARATOR;
+        let path = format!(
+            "{separator}{separator}?{separator}UNC{separator}server{separator}share{separator}f"
+        );
+        assert_eq!(
+            public_path_display(Path::new(&path)),
+            format!("{separator}{separator}server{separator}share{separator}f")
+        );
+    }
+
+    #[test]
+    fn public_path_display_preserves_non_verbatim_paths() {
+        assert_eq!(
+            public_path_display(Path::new("plain.formula.toml")),
+            "plain.formula.toml"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn cook_arguments_use_the_same_public_path_as_receipts() {
+        let root = workspace();
+        let request = request(&root, BeadOperation::Validate);
+        let path = Path::new(r"\\?\C:\Users\test\example.formula.toml");
+        let args = super::cook_args(path, &request);
+        assert_eq!(args[1], public_path_display(path));
+        assert_eq!(args[1], r"C:\Users\test\example.formula.toml");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
 
     #[derive(Default)]
     pub(crate) struct FakeRunner {
@@ -709,6 +891,106 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn graph_create_diagnostic_names_public_plan_before_truncation() {
+        struct FailingCreate(FakeRunner);
+        impl ProcessRunner for FailingCreate {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                if spec.args[0] == "create" {
+                    assert!(spec.args[2].contains(".sc-compose-input-"));
+                    assert!(Path::new(&spec.args[2]).is_file());
+                    let mut output = success("{}");
+                    output.exit_status = Some(7);
+                    output.stderr = format!("cannot apply {} ", spec.args[2]).repeat(100);
+                    return Ok(output);
+                }
+                self.0.run(spec)
+            }
+        }
+        for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+            let root = fs::canonicalize(workspace()).unwrap();
+            let mut request = request(&root, operation);
+            request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+            request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+            request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+            request.bead_variables.clear();
+            fs::write(&request.template, "formula = \"example\"\n").unwrap();
+            let runner = FailingCreate(FakeRunner::with_outputs([
+                success(
+                    r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#,
+                ),
+                success(r#"[{"id":"proj-1"}]"#),
+            ]));
+            let mut diagnostics = Vec::new();
+            let receipt =
+                super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+                    assert!(matches!(error, BeadComposeError::GraphApplyFailed { .. }));
+                    assert!(!error.to_string().contains(".sc-compose-input-"));
+                    diagnostics.push(serde_json::to_value(error).unwrap());
+                })
+                .unwrap();
+            let public = public_path_display(&PathBuf::from(format!(
+                "{}.graph.json",
+                request.rendered_formula.display()
+            )));
+            assert_eq!(diagnostics.len(), 1);
+            let error = &diagnostics[0];
+            assert_eq!(error["details"]["command"][3], public);
+            assert!(
+                error["details"]["cause"]
+                    .as_str()
+                    .unwrap()
+                    .contains(&public)
+            );
+            assert!(error["message"].as_str().unwrap().contains(&public));
+            let wire = serde_json::to_string(&(receipt, diagnostics)).unwrap();
+            assert!(!wire.contains(".sc-compose-input-"), "{wire}");
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
+    fn attach_output_refusal_retains_exact_path_in_typed_diagnostic() {
+        for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+            let root = fs::canonicalize(workspace()).unwrap();
+            let mut request = request(&root, operation);
+            request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+            request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+            request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+            request.bead_variables.clear();
+            fs::write(&request.template, "formula = \"example\"\n").unwrap();
+            let mut path = request.rendered_formula.as_os_str().to_os_string();
+            path.push(".graph.json");
+            let path = PathBuf::from(path);
+            fs::create_dir(&path).unwrap();
+            let public = super::public_path_buf(&path);
+            let runner = FakeRunner::with_outputs([
+                success(
+                    r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#,
+                ),
+                success(r#"[{"id":"proj-1"}]"#),
+            ]);
+            let mut diagnostics = Vec::new();
+            let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+                assert!(matches!(error, BeadComposeError::OutputPathInvalid { path: actual, .. } if actual == &public));
+                diagnostics.push(serde_json::to_value(error).unwrap());
+            }).unwrap();
+            assert_eq!(diagnostics.len(), 1);
+            assert_eq!(
+                diagnostics[0]["details"]["value"],
+                public.to_string_lossy().as_ref()
+            );
+            assert_eq!(
+                receipt.outcome,
+                BeadOutcome::Refused {
+                    code: "BEADS_OUTPUT_PATH_INVALID".into()
+                }
+            );
+            assert!(receipt.graph.is_none());
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
     fn graph_diagnostic_callback_retains_typed_error_without_changing_receipt_json() {
         let root = workspace();
         let mut request = request(&root, BeadOperation::PreviewAttach);
@@ -782,7 +1064,7 @@ pub(crate) mod tests {
             calls[0].args,
             vec![
                 "cook",
-                canonical_output.to_string_lossy().as_ref(),
+                public_path_display(&canonical_output).as_str(),
                 "--dry-run",
                 "--json",
                 "--var",
@@ -1100,5 +1382,191 @@ pub(crate) mod tests {
         assert!(matches!(error, BeadComposeError::PathNotUtf8 { .. }));
         assert!(runner.calls.lock().expect("calls lock").is_empty());
         fs::remove_dir_all(root).expect("cleanup");
+    }
+    #[test]
+    fn fuzz_012_relative_rendered_formula_is_under_working_directory() {
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula = PathBuf::from("nested/output.formula.toml");
+        fs::create_dir_all(root.join("nested")).expect("output directory");
+        let receipt = execute_bead_request_with_runner(&request, &FakeRunner::default())
+            .expect("render receipt");
+        assert!(
+            receipt
+                .rendered_formula
+                .ends_with("nested/output.formula.toml")
+        );
+        assert!(receipt.rendered_formula.is_file());
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+}
+
+#[cfg(test)]
+mod fuzz_055_tests {
+    use super::*;
+
+    #[test]
+    fn fuzz_055_snapshot_paths_are_not_exposed_in_stage_evidence() {
+        let snapshot = Path::new("/work/.sc-compose-input-1.formula.toml");
+        let source = Path::new("/work/rendered.formula.toml");
+        let snapshot_display = public_path_display(snapshot);
+        let mut stages = vec![BeadStageReceipt {
+            stage: BeadStage::Validate,
+            argv: vec!["cook".into(), snapshot_display.clone()],
+            exit_status: Some(7),
+            elapsed_ms: 0,
+            stdout_excerpt: snapshot_display.clone(),
+            stderr_excerpt: format!("failed {snapshot_display}"),
+            outcome: BeadStageOutcome::Failed {
+                code: "BEADS_COOK_FAILED".into(),
+            },
+        }];
+        present_snapshot_paths(&mut stages, snapshot, source);
+        let evidence = format!("{:?}", stages[0]);
+        assert!(evidence.contains("rendered.formula.toml"));
+        assert!(!evidence.contains(".sc-compose-input-"));
+    }
+}
+
+/// t40-f1: every user-visible error path derived from `fs::canonicalize` must
+/// pass through `public_path_display` so Windows never shows `\\?\` paths.
+///
+/// On non-Windows hosts canonical paths have no verbatim prefix, so the tests
+/// install `PUBLIC_PATH_MARKER`, which `public_path_display` prepends. A site
+/// that bypasses `public_path_display` therefore lacks the marker and fails.
+#[cfg(all(test, not(windows)))]
+mod public_path_error_tests {
+    use std::fs;
+
+    use super::tests::{FakeRunner, request, workspace};
+    use super::{PUBLIC_PATH_MARKER, execute_bead_request_with_runner};
+    use crate::{BeadComposeError, BeadOperation};
+
+    const MARKER: &str = "PUBLIC-PATH<>";
+
+    struct MarkerGuard;
+
+    impl MarkerGuard {
+        fn install() -> Self {
+            PUBLIC_PATH_MARKER.with(|marker| *marker.borrow_mut() = Some(MARKER.to_owned()));
+            Self
+        }
+    }
+
+    impl Drop for MarkerGuard {
+        fn drop(&mut self) {
+            PUBLIC_PATH_MARKER.with(|marker| *marker.borrow_mut() = None);
+        }
+    }
+
+    fn assert_public(error: &BeadComposeError, code: &str) {
+        assert_eq!(error.code(), code);
+        let display = error.to_string();
+        let json = serde_json::to_string(error).expect("error JSON");
+        for text in [&display, &json] {
+            assert!(
+                text.contains(MARKER),
+                "path bypassed public_path_display: {text}"
+            );
+            assert!(!text.contains(r"\\?\"), "verbatim prefix leaked: {text}");
+        }
+    }
+
+    fn run(request: &crate::BeadComposeRequest) -> BeadComposeError {
+        execute_bead_request_with_runner(request, &FakeRunner::default())
+            .expect_err("request must be rejected")
+    }
+
+    #[test]
+    fn formula_path_not_file_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.template = root.join("directory.formula.toml.j2");
+        fs::create_dir(&request.template).expect("template directory");
+        assert_public(&run(&request), "BEADS_FORMULA_NOT_FILE");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn template_outside_working_directory_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let other = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.template = other.join("outside.formula.toml.j2");
+        fs::write(&request.template, "x = 1\n").expect("outside template");
+        assert_public(&run(&request), "BEADS_TEMPLATE_OUTSIDE_WORKING_DIR");
+        fs::remove_dir_all(root).expect("cleanup");
+        fs::remove_dir_all(other).expect("cleanup");
+    }
+
+    #[test]
+    fn formula_extension_unsupported_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula = root.join("example.invalid");
+        assert_public(&run(&request), "BEADS_FORMULA_EXTENSION_UNSUPPORTED");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn output_outside_working_directory_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let other = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula = other.join("outside.formula.toml");
+        assert_public(&run(&request), "BEADS_OUTPUT_OUTSIDE_WORKING_DIR");
+        fs::remove_dir_all(root).expect("cleanup");
+        fs::remove_dir_all(other).expect("cleanup");
+    }
+
+    #[test]
+    fn output_destination_directory_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let request = request(&root, BeadOperation::Render);
+        fs::create_dir(&request.rendered_formula).expect("destination directory");
+        assert_public(&run(&request), "BEADS_OUTPUT_PATH_INVALID");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn output_destination_symlink_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let request = request(&root, BeadOperation::Render);
+        std::os::unix::fs::symlink(&request.template, &request.rendered_formula)
+            .expect("destination symlink");
+        assert_public(&run(&request), "BEADS_OUTPUT_PATH_SYMLINK");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn non_utf8_path_uses_public_path() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula =
+            root.join(OsString::from_vec(b"output-\xff.formula.toml".to_vec()));
+        assert_public(&run(&request), "BEADS_PATH_NOT_UTF8");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn snapshot_output_error_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let error = crate::snapshot::output_error(
+            std::path::Path::new("/work/rendered.formula.toml"),
+            BeadComposeError::RenderFailed {
+                message: String::from("boom"),
+            },
+        );
+        assert_public(&error, "BEADS_OUTPUT_PATH_INVALID");
     }
 }

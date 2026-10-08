@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::Map;
 
 use crate::error::BeadComposeError;
+use crate::execute::public_path_buf;
 
 static TEMPORARY_OUTPUT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -72,13 +73,22 @@ pub(crate) fn render_formula_in_root(
 /// The subsequent write uses a fresh sibling temporary file and rename, so it
 /// never follows the final path component.
 pub(crate) fn validate_output_destination(path: &Path) -> Result<(), BeadComposeError> {
-    match fs::symlink_metadata(path) {
+    match retry_delete_pending(|| fs::symlink_metadata(path)) {
         Ok(metadata) if metadata.file_type().is_symlink() => {
-            Err(BeadComposeError::OutputPathSymlink { path: path.into() })
+            Err(BeadComposeError::OutputPathSymlink {
+                path: public_path_buf(path),
+            })
         }
-        Ok(_) => Ok(()),
+        Ok(metadata) if metadata.is_file() => Ok(()),
+        Ok(_) => Err(BeadComposeError::OutputPathInvalid {
+            path: public_path_buf(path),
+            rule: "destination must be a regular file or a nonexistent path".into(),
+        }),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(_error) => Err(BeadComposeError::TemplatePathInvalid { path: path.into() }),
+        Err(error) => Err(BeadComposeError::OutputPathInvalid {
+            path: public_path_buf(path),
+            rule: format!("cannot inspect output destination: {error}"),
+        }),
     }
 }
 
@@ -106,10 +116,14 @@ pub(crate) fn atomic_write(path: &Path, contents: &[u8]) -> Result<(), BeadCompo
 fn temporary_output_path(path: &Path) -> Result<std::path::PathBuf, BeadComposeError> {
     let parent = path
         .parent()
-        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+        .ok_or_else(|| BeadComposeError::TemplatePathInvalid {
+            path: public_path_buf(path),
+        })?;
     let name = path
         .file_name()
-        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+        .ok_or_else(|| BeadComposeError::TemplatePathInvalid {
+            path: public_path_buf(path),
+        })?;
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|error| BeadComposeError::RenderFailed {
@@ -136,12 +150,44 @@ pub(crate) fn replace_output(temporary: &Path, path: &Path) -> Result<(), BeadCo
     // prevents following a symbolic link; a racing replacement causes rename
     // to fail instead of redirecting the temporary file write.
     validate_output_destination(path)?;
-    match fs::remove_file(path) {
+    match retry_delete_pending(|| fs::remove_file(path)) {
         Ok(()) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(render_error(&error)),
     }
-    fs::rename(temporary, path).map_err(|error| render_error(&error))
+    retry_delete_pending(|| fs::rename(temporary, path)).map_err(|error| render_error(&error))
+}
+
+/// Retry a file operation that Windows refuses while a concurrent writer's
+/// removal of the same path is still pending.
+///
+/// Windows reports `ERROR_ACCESS_DENIED` for a path whose delete is pending
+/// until the last handle closes, which a concurrent pour publishing the same
+/// output triggers between its `remove_file` and `rename`. The window is
+/// short, so a bounded retry resolves it; any other error, or a denial that
+/// persists, is returned unchanged.
+#[cfg(windows)]
+fn retry_delete_pending<T>(
+    mut operation: impl FnMut() -> std::io::Result<T>,
+) -> std::io::Result<T> {
+    const ATTEMPTS: u32 = 50;
+    let mut attempt = 1;
+    loop {
+        match operation() {
+            Err(error)
+                if error.kind() == std::io::ErrorKind::PermissionDenied && attempt < ATTEMPTS =>
+            {
+                attempt += 1;
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            result => return result,
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn retry_delete_pending<T>(operation: impl FnOnce() -> std::io::Result<T>) -> std::io::Result<T> {
+    operation()
 }
 
 fn render_error(error: &std::io::Error) -> BeadComposeError {

@@ -12,3 +12,7 @@ nd
 
 # Truncated "information" in preserved historical fuzz evidence.
 infor
+
+# Literal evidence identifiers preserved from run4 worker envelopes.
+afile
+caf

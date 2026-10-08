@@ -2,11 +2,11 @@
 
 use std::fs;
 
-use sc_composer_beads::error::shell_quote;
+use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadNodeAction, BeadOperation,
-    BeadOutcome, BeadPourMode, BeadStageOutcome, execute_bead_request_with_diagnostics,
-    parse_request,
+    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadNodeAction,
+    BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome, RefusedBeadComposeReceipt,
+    RequestParseOutcome, execute_bead_request_with_diagnostics, parse_request_with_outcome,
 };
 
 use crate::CommandError;
@@ -36,20 +36,29 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
             return print_bead_error(&error, operation, json);
         }
     };
-    let mut request = match parse_request(&input) {
-        Ok(request) => request,
+    let mut request = match parse_request_with_outcome(&input) {
+        Ok(RequestParseOutcome::Ready(request)) => request,
+        Ok(RequestParseOutcome::Refused(mut receipt)) => {
+            receipt.receipt.operation = operation;
+            return print_refused_receipt(receipt, json);
+        }
         Err(error) => return print_bead_error(&error, operation, json),
     };
     request.operation = operation;
 
     let mut diagnostics = Vec::new();
+    let mut identifier_diagnostic = None;
     let result = execute_bead_request_with_diagnostics(&request, &mut |error| {
+        identifier_diagnostic = BeadDiagnostic::graph_id_invalid(error);
         if !json {
             diagnostics.push(serde_json::to_value(error));
         }
     });
     match result {
         Ok(receipt) => {
+            if let Some(error) = identifier_diagnostic {
+                return print_refused_receipt(RefusedBeadComposeReceipt { receipt, error }, json);
+            }
             let diagnostics = diagnostics
                 .into_iter()
                 .collect::<Result<Vec<_>, _>>()
@@ -58,6 +67,20 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         }
         Err(error) => print_bead_error(&error, operation, json),
     }
+}
+
+fn print_refused_receipt(
+    receipt: RefusedBeadComposeReceipt,
+    json: bool,
+) -> Result<i32, CommandError> {
+    if json {
+        print_json(receipt, Vec::new()).map_err(CommandError::usage)?;
+    } else {
+        let diagnostic = serde_json::to_value(&receipt.error)
+            .map_err(|error| CommandError::usage(error.into()))?;
+        print_human_receipt(&receipt.receipt, &[diagnostic]);
+    }
+    Ok(exit_codes::VALIDATION_OR_RENDER_FAIL)
 }
 
 fn print_receipt(
@@ -146,7 +169,11 @@ fn print_bead_error(
 /// Present the library's canonical error envelope without duplicating its recovery rules.
 fn human_bead_error(error: &BeadComposeError) -> Result<String, serde_json::Error> {
     let envelope = serde_json::to_value(error)?;
-    let mut output = format!("{}: {error}", error.code());
+    let mut output = format!(
+        "{}: {}",
+        error.code(),
+        escape_human_text(&error.to_string())
+    );
     output.push_str(&human_error_fields(&envelope));
     Ok(output)
 }
@@ -161,11 +188,10 @@ fn human_error_fields(envelope: &serde_json::Value) -> String {
             output.push('\n');
             output.push_str(name);
             output.push_str(": ");
-            if let Some(text) = value.as_str() {
-                output.push_str(text);
-            } else {
-                output.push_str(&value.to_string());
-            }
+            let text = value
+                .as_str()
+                .map_or_else(|| value.to_string(), str::to_owned);
+            output.push_str(&escape_human_text(&text));
         }
     }
     output
@@ -188,10 +214,16 @@ fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::
             BeadStageOutcome::Skipped => "skipped".to_owned(),
             BeadStageOutcome::Failed { code } => format!("failed ({code})"),
         };
-        if stage.stderr_excerpt.is_empty() {
+        if !matches!(stage.outcome, BeadStageOutcome::Failed { .. })
+            || stage.stderr_excerpt.is_empty()
+        {
             println!("stage {:?}: {state}", stage.stage);
         } else {
-            println!("stage {:?}: {state}: {}", stage.stage, stage.stderr_excerpt);
+            println!(
+                "stage {:?}: {state}: {}",
+                stage.stage,
+                escape_human_text(&stage.stderr_excerpt)
+            );
         }
     }
     for diagnostic in diagnostics {
@@ -251,6 +283,12 @@ fn missing_edge_recovery_commands(
 
 #[cfg(test)]
 mod tests {
+    mod shell_literal {
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../test-support/shell_literal.rs"
+        ));
+    }
     use super::{human_bead_error, missing_edge_recovery_commands};
     use sc_composer_beads::{
         BeadComposeError, BeadComposeReceipt, BeadId, GraphConflictReason, GraphDependencyType,
@@ -292,6 +330,49 @@ mod tests {
             );
         }
     }
+    #[test]
+    fn missing_edge_recovery_commands_escape_controls_and_bidi_for_bash() {
+        let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}$(literal)$HOME`literal`";
+        let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
+        let receipt: BeadComposeReceipt = serde_json::from_value(json!({
+            "schema": "sc-compose/beads/v1",
+            "operation": "attach",
+            "rendered_formula": "release.formula.toml",
+            "outcome": {"refused": {"code": "BEADS_GRAPH_EDGE_MISSING"}},
+            "missing_edges": [{"from":from, "to":to, "type":"blocks"}],
+            "stages": []
+        }))
+        .expect("receipt with unusual IDs");
+        let commands: Vec<_> = missing_edge_recovery_commands(&receipt).collect();
+        assert_eq!(commands.len(), 1);
+        let command = &commands[0];
+        assert!(!command.chars().any(char::is_control), "{command:?}");
+        assert!(
+            !command.chars().any(|c| matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{200e}' | '\u{200f}' | '\u{2028}' | '\u{2029}')),
+            "{command:?}"
+        );
+        let arguments = command
+            .strip_prefix("bd dep add ")
+            .unwrap()
+            .strip_suffix(" --type 'blocks'")
+            .unwrap();
+        shell_literal::assert_round_trip(arguments, &[from, to]);
+        let separators = "line\u{2028}paragraph\u{2029}end";
+        let escaped = super::shell_quote(separators);
+        assert!(!escaped.contains(['\u{2028}', '\u{2029}']));
+        shell_literal::assert_round_trip(&escaped, &[separators]);
+        #[cfg(unix)]
+        {
+            let output = std::process::Command::new("bash")
+                .args(["-c", &format!("printf '%s\\0' {arguments}")])
+                .env("LC_ALL", "C.UTF-8")
+                .output()
+                .expect("isolated Bash printf");
+            assert!(output.status.success(), "{output:?}");
+            assert_eq!(output.stdout, format!("{from}\0{to}\0").into_bytes());
+        }
+    }
+
     #[test]
     fn human_errors_preserve_library_recovery_details_and_causes() {
         let errors = [
@@ -348,5 +429,35 @@ mod tests {
             human_bead_error(&error).unwrap(),
             format!("{}: {error}", error.code())
         );
+    }
+
+    #[test]
+    fn human_refusal_message_escapes_terminal_controls_and_format_characters() {
+        let error = BeadComposeError::GraphScopeMismatch {
+            field: GraphIdField::Parent,
+            value: "item\u{7}\u{202e}\u{200b}\u{feff}\u{2028}\u{2029}\u{00ad}".into(),
+        };
+
+        let first_line = human_bead_error(&error).unwrap();
+        let first_line = first_line.lines().next().unwrap();
+        assert!(!first_line.chars().any(char::is_control), "{first_line:?}");
+        assert!(
+            !first_line.chars().any(|character| matches!(
+                character,
+                '\u{2028}' | '\u{2029}' | '\u{00ad}' | '\u{200b}' | '\u{feff}' | '\u{202e}'
+            )),
+            "{first_line:?}"
+        );
+        for escaped in [
+            "\\u{0007}",
+            "\\u{202E}",
+            "\\u{200B}",
+            "\\u{FEFF}",
+            "\\u{2028}",
+            "\\u{2029}",
+            "\\u{00AD}",
+        ] {
+            assert!(first_line.contains(escaped), "{first_line:?}");
+        }
     }
 }

@@ -1,5 +1,6 @@
 //! Stable Beads composition failures.
 
+use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use thiserror::Error;
@@ -49,7 +50,7 @@ impl std::fmt::Display for GraphIdField {
     }
 }
 
-fn graph_id_rule(field: GraphIdField) -> &'static str {
+pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
     match field {
         GraphIdField::Bead => "bead ids are non-empty without whitespace",
         GraphIdField::Ref => "ref is [A-Za-z0-9_-]{1,32}",
@@ -511,11 +512,54 @@ impl std::fmt::Display for GraphFormulaUnsupportedReason {
 /// Quote one argument for a shell-copyable recovery command.
 #[must_use]
 pub fn shell_quote(argument: &str) -> String {
-    if argument.chars().any(char::is_control) {
-        format!("$'{argument}'", argument = argument.escape_default())
-    } else {
-        format!("'{}'", argument.replace('\'', "'\"'\"'"))
+    if !argument.chars().any(needs_shell_escape) {
+        return format!("'{}'", argument.replace('\'', "'\"'\"'"));
     }
+    let mut quoted = String::from("$'");
+    for character in argument.chars() {
+        match character {
+            '\\' => quoted.push_str("\\\\"),
+            '\'' => quoted.push_str("\\'"),
+            character if needs_shell_escape(character) => {
+                let mut encoded = [0; 4];
+                for byte in character.encode_utf8(&mut encoded).bytes() {
+                    // String formatting is infallible.
+                    let _ = write!(quoted, "\\x{byte:02X}");
+                }
+            }
+            character => quoted.push(character),
+        }
+    }
+    quoted.push('\'');
+    quoted
+}
+
+fn needs_shell_escape(character: char) -> bool {
+    character.is_control()
+        || matches!(character, '\u{2028}' | '\u{2029}')
+        || is_format_character(character)
+}
+
+fn is_format_character(character: char) -> bool {
+    matches!(u32::from(character),
+        0x00AD | 0x0600..=0x0605 | 0x061C | 0x06DD | 0x070F | 0x0890..=0x0891 | 0x08E2
+        | 0x180E | 0x200B..=0x200F | 0x202A..=0x202E | 0x2060..=0x2064 | 0x2066..=0x206F
+        | 0xFEFF | 0xFFF9..=0xFFFB | 0x110BD | 0x110CD | 0x13430..=0x1343F
+        | 0x1BCA0..=0x1BCA3 | 0x1D173..=0x1D17A | 0xE0001 | 0xE0020..=0xE007F)
+}
+
+/// Render terminal control and formatting characters as visible Unicode escapes.
+#[must_use]
+pub fn escape_human_text(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for character in text.chars() {
+        if needs_shell_escape(character) {
+            let _ = write!(escaped, "\\u{{{:04X}}}", u32::from(character));
+        } else {
+            escaped.push(character);
+        }
+    }
+    escaped
 }
 
 fn missing_edge_commands(edges: &[MissingEdge]) -> String {

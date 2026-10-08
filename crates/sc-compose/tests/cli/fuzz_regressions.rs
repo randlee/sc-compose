@@ -22,6 +22,19 @@ fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::pat
     request
 }
 
+fn json_contains_controls(value: &serde_json::Value, controls: &str) -> bool {
+    match value {
+        serde_json::Value::String(text) => controls.chars().all(|control| text.contains(control)),
+        serde_json::Value::Array(values) => values
+            .iter()
+            .any(|value| json_contains_controls(value, controls)),
+        serde_json::Value::Object(values) => values
+            .values()
+            .any(|value| json_contains_controls(value, controls)),
+        _ => false,
+    }
+}
+
 // FUZZ-039: human graph refusals expose canonical structured recovery fields.
 #[cfg(unix)]
 #[test]
@@ -122,6 +135,45 @@ fn fuzz_039_human_receipts_preserve_conflict_id_and_read_cause() {
             Some(code)
         );
     }
+}
+
+// FUZZ-053: successful graph stages never print their bd stderr in human output.
+#[cfg(unix)]
+#[test]
+fn fuzz_053_human_preview_attach_suppresses_successful_stage_stderr() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = temp_root("fuzz-053-human-success-stderr");
+    let bd = root.join("fake-bd");
+    let cooked = r#"{"formula":"m","type":"workflow","steps":[{"id":"a","title":"A"}]}"#;
+    write_file(
+        &bd,
+        &format!(
+            "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{cooked}' ;;\n show) printf '%s' '[{{\"id\":\"proj-1\"}}]'; printf '%s' 'Hint: harmless' >&2 ;;\nesac\n"
+        ),
+    );
+    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    write_file(
+        &root.join("m.formula.toml.j2"),
+        "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
+    );
+    let request = root.join("request.json");
+    write_file(&request, &serde_json::json!({"schema":"sc-compose/beads/v1","operation":"preview_attach","working_directory":root,"template":"m.formula.toml.j2","rendered_formula":root.join("out.formula.toml"),"compose_variables":{},"bead_variables":{},"parent":"proj-1","ref":"r","bd_executable":bd}).to_string());
+    let output = sc_compose()
+        .args(["bead", "preview-attach", "--request"])
+        .arg(&request)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let human = String::from_utf8(output.stdout).unwrap();
+    assert!(!human.contains("Hint: harmless"), "{human}");
+    assert_eq!(
+        human
+            .lines()
+            .filter(|line| line.starts_with("stage "))
+            .count(),
+        4,
+        "{human}"
+    );
 }
 
 // FUZZ-012: a relative template resolves against working_directory.
@@ -255,7 +307,8 @@ fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
                     "schema":"sc-compose/beads/v1", "operation":operation.replace('-', "_"),
                     "working_directory":root, "template":"missing.formula.toml.j2",
                     "rendered_formula":root.join("out.formula.toml"),
-                    "compose_variables":{}, "bead_variables":{}, "parent":"proj-1", "ref":reference
+                    "compose_variables":{}, "bead_variables":{}, "parent":"proj-1", "ref":reference,
+                    "pour_authorization":"CreatePersistentBeads"
                 })
                 .to_string(),
             );
@@ -267,14 +320,102 @@ fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
             assert_eq!(output.status.code(), Some(2), "{output:?}");
             let payload = parse_stdout(&output);
             assert_eq!(
+                payload["payload"]["outcome"],
+                serde_json::json!({"refused":{"code":"BEADS_GRAPH_ID_INVALID"}})
+            );
+            let receipt: sc_composer_beads::BeadComposeReceipt =
+                serde_json::from_value(payload["payload"].clone()).unwrap();
+            assert!(matches!(
+                receipt.outcome,
+                sc_composer_beads::BeadOutcome::Refused { .. }
+            ));
+
+            assert_eq!(
                 payload["payload"]["error"]["code"],
                 "BEADS_GRAPH_ID_INVALID"
             );
             assert_eq!(
                 payload["payload"]["error"]["details"],
-                serde_json::json!({"field":"ref", "value":reference})
+                serde_json::json!({"field":"ref", "value":reference, "rule":"ref is [A-Za-z0-9_-]{1,32}"})
             );
         }
+    }
+}
+
+// FUZZ-040: human refused-attach diagnostics escape terminal controls in every id field.
+#[cfg(unix)]
+#[test]
+fn fuzz_040_human_attach_refusals_escape_identifier_controls_without_changing_json() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = temp_root("fuzz-040-human-identifier-controls");
+    let bd = root.join("fake-bd");
+    write_file(
+        &bd,
+        "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{\"formula\":\"m\",\"type\":\"workflow\",\"steps\":[{\"id\":\"a\",\"title\":\"A\"}]}' ;;\n show) if [ \"$4\" = proj-1 ]; then printf '%s' '[{\"id\":\"proj-1\"}]'; else printf '%s' '[]'; fi ;;\nesac\n",
+    );
+    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    write_file(
+        &root.join("m.formula.toml.j2"),
+        "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
+    );
+    let controls = "\u{202e}\u{200b}\u{feff}\u{0007}";
+    let cases = [
+        (
+            "parent",
+            serde_json::json!({"parent": format!("proj-{controls}")}),
+        ),
+        ("ref", serde_json::json!({"ref": format!("ref-{controls}")})),
+        (
+            "relation",
+            serde_json::json!({"relations": [{"from": format!("step:{controls}"), "to": "bead:proj-1", "type": "blocks"}]}),
+        ),
+    ];
+
+    for (field, override_fields) in cases {
+        let request = root.join(format!("{field}.json"));
+        let mut input = serde_json::json!({
+            "schema":"sc-compose/beads/v1", "operation":"attach",
+            "working_directory":root, "template":"m.formula.toml.j2",
+            "rendered_formula":root.join("out.formula.toml"),
+            "compose_variables":{}, "bead_variables":{}, "parent":"proj-1", "ref":"valid",
+            "relations":[], "pour_authorization":"CreatePersistentBeads", "bd_executable":bd
+        });
+        for (name, value) in override_fields.as_object().unwrap() {
+            input[name] = value.clone();
+        }
+        write_file(&request, &input.to_string());
+
+        let human = sc_compose()
+            .args(["bead", "attach", "--request"])
+            .arg(&request)
+            .output()
+            .unwrap();
+        assert_eq!(human.status.code(), Some(2), "{human:?}");
+        let human = format!(
+            "{}{}",
+            String::from_utf8(human.stdout).unwrap(),
+            String::from_utf8(human.stderr).unwrap()
+        );
+        for raw in ['\u{202e}', '\u{200b}', '\u{feff}', '\u{0007}'] {
+            assert!(!human.contains(raw), "{field}: {human:?}");
+        }
+        for escaped in ["\\u{202E}", "\\u{200B}", "\\u{FEFF}", "\\u{0007}"] {
+            assert!(human.contains(escaped), "{field}: {human:?}");
+        }
+
+        let json = sc_compose()
+            .args(["bead", "attach", "--json", "--request"])
+            .arg(&request)
+            .output()
+            .unwrap();
+        assert_eq!(json.status.code(), Some(2), "{json:?}");
+        let envelope = parse_stdout(&json);
+        assert!(envelope["payload"]["outcome"].get("refused").is_some());
+        assert!(
+            json_contains_controls(&envelope, controls),
+            "{field}: JSON must retain the original identifier: {envelope}"
+        );
     }
 }
 
@@ -425,4 +566,146 @@ fn fuzz_017_nested_raw_values_append_as_one_line_without_changing_lexemes() {
     let envelope = parse_stdout(&output);
     assert_eq!(envelope["payload"]["bytes_written"], appended.len());
     assert_eq!(envelope["payload"]["appended"], true);
+}
+
+// FUZZ-017 round 3: JSON number grammar is not limited by floating-point range.
+#[test]
+fn fuzz_017_append_preserves_large_exponent_lexemes() {
+    let root = temp_root("fuzz-017-large-exponent");
+    write_file(
+        &root.join("rec.json.j2"),
+        r#"{"n":1e400,"tiny":-1.2300e-4000}"#,
+    );
+    let destination = root.join("log.jsonl");
+    let output = sc_compose()
+        .args(["render", "--file", "rec.json.j2", "--root"])
+        .arg(&root)
+        .arg("--append")
+        .arg(&destination)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        std::fs::read_to_string(destination).unwrap(),
+        "{\"n\":1e400,\"tiny\":-1.2300e-4000}\n"
+    );
+}
+
+#[test]
+fn fuzz_052_request_errors_take_precedence_over_invalid_ids() {
+    let root = temp_root("fuzz-052-request-precedence");
+    let valid = serde_json::json!({
+        "schema":"sc-compose/beads/v1", "operation":"preview_attach",
+        "working_directory":root, "template":"missing.formula.toml.j2",
+        "rendered_formula":root.join("out.formula.toml"), "compose_variables":{},
+        "bead_variables":{}, "parent":"proj-1", "ref":"valid", "relations":[]
+    });
+    let mut unknown = valid.clone();
+    unknown["operation"] = serde_json::json!("bogus");
+    unknown["relations"] =
+        serde_json::json!([{"from":"step:a", "to":"bead:bad id", "type":"blocks"}]);
+    let mut unauthorized = valid.clone();
+    unauthorized["operation"] = serde_json::json!("attach");
+    unauthorized["ref"] = serde_json::json!("a.b");
+    let mut wrong_type = valid.clone();
+    wrong_type["compose_variables"] = serde_json::json!([]);
+    wrong_type["parent"] = serde_json::json!("bad id");
+    let mut missing = valid.clone();
+    missing.as_object_mut().unwrap().remove("template");
+    missing["ref"] = serde_json::json!("a.b");
+    let mut id_only = valid.clone();
+    id_only["ref"] = serde_json::json!("a.b");
+    for (case, code, exit) in [
+        (unknown, "BEADS_REQUEST_DESERIALIZATION_FAILED", 3),
+        (unauthorized, "BEADS_POUR_AUTH_REQUIRED", 3),
+        (wrong_type, "BEADS_REQUEST_DESERIALIZATION_FAILED", 3),
+        (missing, "BEADS_REQUEST_DESERIALIZATION_FAILED", 3),
+        (id_only, "BEADS_GRAPH_ID_INVALID", 2),
+    ] {
+        let request = root.join("request.json");
+        write_file(&request, &case.to_string());
+        let command = if case["operation"] == "attach" {
+            "attach"
+        } else {
+            "preview-attach"
+        };
+        // Preserve parse-first authorization precedence even when the CLI
+        // subcommand overrides the serialized operation after parsing.
+        let command = if case["operation"] == "attach" {
+            "preview-attach"
+        } else {
+            command
+        };
+        let output = sc_compose()
+            .args(["bead", command, "--request"])
+            .arg(&request)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(exit), "{case}: {output:?}");
+        let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(
+            envelope["payload"]["error"]["code"], code,
+            "{case}: {envelope}"
+        );
+        if exit == 2 {
+            assert_eq!(
+                envelope["payload"]["error"]["details"],
+                serde_json::json!({"field":"ref", "value":"a.b", "rule":"ref is [A-Za-z0-9_-]{1,32}"})
+            );
+            assert!(
+                envelope["payload"]["error"]["message"]
+                    .as_str()
+                    .unwrap()
+                    .contains("[A-Za-z0-9_-]")
+            );
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn fuzz_021_cooked_step_refusal_has_canonical_error_and_legacy_receipt() {
+    for command in ["attach", "preview-attach"] {
+        let request = human_graph_request("fuzz-021-cooked-step", "[]", "", 0);
+        let mut input: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&request).unwrap()).unwrap();
+        input["operation"] = serde_json::json!(command.replace('-', "_"));
+        input["pour_authorization"] = serde_json::json!("CreatePersistentBeads");
+        write_file(&request, &input.to_string());
+        let bd = std::path::Path::new(input["bd_executable"].as_str().unwrap());
+        let script = std::fs::read_to_string(bd)
+            .unwrap()
+            .replace("\"id\":\"a\"", "\"id\":\"bad-step\"");
+        write_file(bd, &script);
+        for json in [true, false] {
+            let mut process = sc_compose();
+            process.args(["bead", command, "--request"]).arg(&request);
+            if json {
+                process.arg("--json");
+            }
+            let output = process.output().unwrap();
+            assert_eq!(output.status.code(), Some(2), "{output:?}");
+            if json {
+                let envelope = parse_stdout(&output);
+                let payload = &envelope["payload"];
+                assert_eq!(
+                    payload["error"]["details"],
+                    serde_json::json!({"field":"step","value":"bad-step","rule":"step is [A-Za-z0-9_]{1,64}; hyphens are forbidden"})
+                );
+                let receipt: sc_composer_beads::BeadComposeReceipt =
+                    serde_json::from_value(payload.clone()).unwrap();
+                assert!(matches!(
+                    receipt.outcome,
+                    sc_composer_beads::BeadOutcome::Refused { .. }
+                ));
+            } else {
+                let output = String::from_utf8(output.stdout).unwrap();
+                assert!(
+                    output.contains("bad-step") && output.contains("hyphens are forbidden"),
+                    "{output}"
+                );
+            }
+        }
+    }
 }

@@ -1,13 +1,15 @@
 //! Typed request preflight; protocol classification never parses serializer prose.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use serde::de::{MapAccess, Visitor};
+use serde::de::{IgnoredAny, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
 use crate::{
-    BeadComposeError, BeadComposeRequest, BeadId, BeadRelation, GraphRef, PourAuthorization, StepId,
+    BeadComposeError, BeadComposeRequest, BeadDiagnostic, BeadId, BeadOperation, BeadOutcome,
+    BeadRelation, BeadStage, BeadStageOutcome, BeadStageReceipt, GraphRef, PourAuthorization,
+    RefusedBeadComposeReceipt, RequestParseOutcome, StepId,
 };
 
 #[derive(Default)]
@@ -70,9 +72,41 @@ fn request_error(error: &serde_json::Error) -> BeadComposeError {
     }
 }
 
+fn duplicate_top_level_key(input: &str) -> Result<Option<String>, BeadComposeError> {
+    struct Keys;
+    impl<'de> Visitor<'de> for Keys {
+        type Value = Option<String>;
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str("a JSON object")
+        }
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: MapAccess<'de>,
+        {
+            let mut seen = BTreeSet::new();
+            let mut duplicate = None;
+            while let Some((key, _)) = map.next_entry::<String, IgnoredAny>()? {
+                if !seen.insert(key.clone()) && duplicate.is_none() {
+                    duplicate = Some(key);
+                }
+            }
+            Ok(duplicate)
+        }
+    }
+    let mut deserializer = serde_json::Deserializer::from_str(input);
+    deserializer
+        .deserialize_map(Keys)
+        .map_err(|error| request_error(&error))
+}
+
 pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
     // Finish parsing the JSON before classifying semantic errors. The captured
     // duplicate is an exact decoded key, independent of serde's display format.
+    if let Some(key) = duplicate_top_level_key(input)? {
+        return Err(BeadComposeError::RequestDeserializationFailed {
+            message: format!("duplicate field `{key}`"),
+        });
+    }
     let preflight: RequestPreflight =
         serde_json::from_str(input).map_err(|error| request_error(&error))?;
     if let Some(key) = preflight.bead_variables.duplicate {
@@ -85,30 +119,145 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
             .ok_or(BeadComposeError::PourAuthorizationInvalid)?;
         PourAuthorization::try_from(token)?;
     }
-    if let Some(parent) = preflight.parent.as_str() {
-        BeadId::new(parent)?;
+    // Request shape and authorization take precedence over identifier grammar.
+    let shape = request_shape(input)?;
+    let identifiers = (|| {
+        if let Some(parent) = preflight.parent.as_str() {
+            BeadId::new(parent)?;
+        }
+        if matches!(
+            preflight.operation.as_str(),
+            Some("attach" | "preview_attach")
+        ) && let Some(reference) = preflight.reference.as_str()
+        {
+            GraphRef::new(reference)?;
+        }
+        validate_endpoint_prefixes(&preflight.relations)
+    })();
+    if let Err(error) = identifiers {
+        if matches!(&error, BeadComposeError::GraphIdInvalid { .. })
+            && matches!(shape.operation, BeadOperation::Attach | BeadOperation::Pour)
+            && shape.pour_authorization.is_none()
+        {
+            return Err(BeadComposeError::PourAuthorizationRequired);
+        }
+        return Err(error);
     }
-    if matches!(
-        preflight.operation.as_str(),
-        Some("attach" | "preview_attach")
-    ) && let Some(reference) = preflight.reference.as_str()
-    {
-        GraphRef::new(reference)?;
+    deserialize_request(input)
+}
+
+fn request_shape(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
+    let mut shape: Value = serde_json::from_str(input).map_err(|error| request_error(&error))?;
+    for field in ["parent", "ref"] {
+        if let Some(value) = shape.get_mut(field).filter(|value| value.is_string()) {
+            *value = Value::String("valid".into());
+        }
     }
-    validate_endpoint_prefixes(&preflight.relations)?;
+    if let Some(relations) = shape.get_mut("relations").and_then(Value::as_array_mut) {
+        for relation in relations {
+            for field in ["from", "to"] {
+                if let Some(value) = relation.get_mut(field).filter(|value| value.is_string()) {
+                    *value = Value::String("bead:valid".into());
+                }
+            }
+        }
+    }
+    deserialize_request(&shape.to_string())
+}
+
+pub(crate) fn parse_request_with_outcome(
+    input: &str,
+) -> Result<RequestParseOutcome, BeadComposeError> {
+    match parse_request(input) {
+        Ok(request) => Ok(RequestParseOutcome::Ready(request)),
+        Err(error) => {
+            let Some(diagnostic) = BeadDiagnostic::graph_id_invalid(&error) else {
+                return Err(error);
+            };
+            let shape = request_shape(input)?;
+            if !matches!(
+                shape.operation,
+                BeadOperation::Attach | BeadOperation::PreviewAttach
+            ) {
+                return Err(error);
+            }
+            let rendered_formula = refused_formula_path(&shape)?;
+            let receipt = crate::execute::receipt(
+                &shape,
+                rendered_formula,
+                vec![BeadStageReceipt {
+                    stage: BeadStage::Validate,
+                    argv: Vec::new(),
+                    exit_status: None,
+                    elapsed_ms: 0,
+                    stdout_excerpt: String::new(),
+                    stderr_excerpt: crate::execute::excerpt(&error.to_string()),
+                    outcome: BeadStageOutcome::Failed {
+                        code: error.code().into(),
+                    },
+                }],
+                BeadOutcome::Refused {
+                    code: error.code().into(),
+                },
+            );
+            Ok(RequestParseOutcome::Refused(RefusedBeadComposeReceipt {
+                receipt,
+                error: diagnostic,
+            }))
+        }
+    }
+}
+
+fn refused_formula_path(
+    request: &BeadComposeRequest,
+) -> Result<std::path::PathBuf, BeadComposeError> {
+    let path = if request.rendered_formula.is_absolute() {
+        request.rendered_formula.clone()
+    } else if request.working_directory.is_absolute() {
+        request.working_directory.join(&request.rendered_formula)
+    } else {
+        std::env::current_dir()
+            .map_err(|source| BeadComposeError::RequestReadFailed {
+                path: request.working_directory.clone(),
+                source,
+            })?
+            .join(&request.working_directory)
+            .join(&request.rendered_formula)
+    };
+    // Refusal requires no filesystem validation: normalize lexically so missing
+    // templates or output directories cannot mask the native identifier error.
+    let mut normalized = std::path::PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                normalized.pop();
+            }
+            component => normalized.push(component.as_os_str()),
+        }
+    }
+    Ok(normalized)
+}
+
+fn deserialize_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
     match serde_json::from_str(input) {
         Ok(request) => Ok(request),
         Err(error) => {
             let mut value: Value =
                 serde_json::from_str(input).map_err(|_reparse| request_error(&error))?;
-            if !matches!(
-                value.get("operation").and_then(Value::as_str),
-                Some("attach" | "preview_attach")
-            ) {
-                let legacy_name = value
-                    .get("formula_name")
-                    .and_then(Value::as_str)
-                    .map(str::to_owned);
+            let formula_name = value.get("formula_name");
+            if formula_name.is_some_and(|name| !name.is_string()) {
+                return Err(BeadComposeError::RequestDeserializationFailed {
+                    message: format!("formula_name: {error}"),
+                });
+            }
+            let legacy_name = formula_name.and_then(Value::as_str).map(str::to_owned);
+            if legacy_name.is_some()
+                && !matches!(
+                    value.get("operation").and_then(Value::as_str),
+                    Some("attach" | "preview_attach")
+                )
+            {
                 value
                     .as_object_mut()
                     .expect("JSON object")

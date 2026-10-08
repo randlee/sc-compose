@@ -320,6 +320,13 @@ and 64 KiB of stderr; other Beads commands retain at most 64 KiB per stream.
 Exceeding either applicable limit terminates the process tree and reports
 `BEADS_PROCESS_OUTPUT_LIMIT` with the actual limit.
 
+Identifier validation refusals also carry an additive `error` object with the canonical
+`code`, `message`, `details` (`field`, rejected `value`, and native validation `rule`),
+and recovery guidance when available. Invalid attach identifiers produce a refused
+receipt with a failed validation stage and exit `2`; malformed requests and missing
+persistent-write authorization retain request-error exit `3`. Existing receipt
+consumers can continue reading the ordinary receipt fields.
+
 Graph block:
 
 ```json
@@ -415,3 +422,8 @@ Request-file read failures use `BEADS_REQUEST_READ_FAILED` (exit 3), with JSON
 recovery guidance. Check the request path, read permissions, and UTF-8 encoding.
 A readable file containing malformed JSON retains
 `BEADS_REQUEST_DESERIALIZATION_FAILED`.
+
+Malformed request shapes (unknown operation, wrong field type, or missing required
+field) and missing persistent-operation authorization are reported before invalid
+identifier grammar. They retain usage exit 3; an invalid identifier in an otherwise
+well-formed, authorized request retains its typed error and exit 2.

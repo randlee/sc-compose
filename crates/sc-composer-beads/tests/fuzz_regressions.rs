@@ -1,11 +1,18 @@
 //! Regression tests promoted from the Phase T adversarial fuzz campaign.
 
+mod shell_literal {
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../test-support/shell_literal.rs"
+    ));
+}
+
 use sc_composer_beads::*;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, VecDeque};
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{
     Mutex,
     atomic::{AtomicU64, Ordering},
@@ -15,6 +22,22 @@ use std::time::Duration;
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COOKED: &str =
     r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#;
+
+fn public_path(path: &Path) -> String {
+    #[cfg(windows)]
+    {
+        let value = path.to_string_lossy();
+        if let Some(unc) = value.strip_prefix("\\\\?\\UNC\\") {
+            return format!("\\\\{unc}");
+        }
+        return value
+            .strip_prefix("\\\\?\\")
+            .unwrap_or(value.as_ref())
+            .to_owned();
+    }
+    #[cfg(not(windows))]
+    path.to_string_lossy().into_owned()
+}
 
 struct Workspace {
     root: PathBuf,
@@ -62,6 +85,7 @@ impl Workspace {
         execute_bead_request_with_runner(&self.req, runner).expect("request")
     }
 
+    #[cfg(unix)]
     fn plan(&self) -> Value {
         serde_json::from_slice(
             &fs::read(self.req.rendered_formula.with_extension("toml.graph.json"))
@@ -262,6 +286,35 @@ fn fuzz_015_first_attach_and_rerun_of_500_steps_have_bounded_graph_output() {
     scalable_attach_roundtrip(500, true);
 }
 
+// FUZZ-015 round 3: bd emits one diagnostic per missing planned id.
+#[cfg(unix)]
+#[test]
+fn fuzz_015_preview_of_500_missing_steps_batches_not_found_diagnostics() {
+    scalable_attach_roundtrip(500, false);
+}
+
+#[test]
+fn fuzz_015_later_issue_batch_failure_stops_before_graph_apply() {
+    let w = Workspace::new();
+    let steps: Vec<Value> = (0..500)
+        .map(|i| json!({"id":format!("item_{i}"), "title":"Item"}))
+        .collect();
+    let cooked = json!({"formula":"sample", "type":"workflow", "steps":steps}).to_string();
+    for failure in [
+        out(Some(2), r#"{"error":"read failed"}"#),
+        ok(r#"[{"id":"proj-1"}]"#), // A parent row belongs to the first batch, not the second.
+    ] {
+        let runner = FakeRunner::new([ok(&cooked), parent(), failure]);
+        let receipt = w.run(&runner);
+        failed(
+            &receipt,
+            "BEADS_GRAPH_READ_FAILED",
+            BeadStage::PreviewAttach,
+        );
+        assert!(runner.calls().iter().all(|call| call.args[0] != "create"));
+    }
+}
+
 #[cfg(unix)]
 fn scalable_attach_roundtrip(count: usize, apply: bool) {
     use std::os::unix::fs::PermissionsExt;
@@ -296,16 +349,7 @@ fn scalable_attach_roundtrip(count: usize, apply: bool) {
     .expect("cooked");
     fs::write(&shown, r#"[{"id":"proj-1"}]"#).expect("show");
     let bd = w.root.join("fake-bd");
-    fs::write(
-        &bd,
-        format!(
-            "#!/bin/sh\ncase \"$1\" in\n  cook) cat '{}' ;;\n  show) cat '{}' ;;\n  dep) printf '%s' '[{{\"id\":\"proj-1\",\"dependency_type\":\"parent-child\"}}]' ;;\n  create) cat '{}' ;;\n  *) printf '{{}}' ;;\nesac\n",
-            cooked.display(),
-            shown.display(),
-            created.display()
-        ),
-    )
-    .expect("fake bd");
+    write_scalable_fake_bd(&bd, &cooked, &created, &shown);
     fs::set_permissions(&bd, fs::Permissions::from_mode(0o755)).expect("chmod");
     w.req.bd_executable = Some(bd);
     let first = execute_bead_request(&w.req).expect("first preview");
@@ -349,16 +393,126 @@ fn scalable_attach_roundtrip(count: usize, apply: bool) {
     );
 }
 
+#[cfg(unix)]
+fn write_scalable_fake_bd(
+    bd: &std::path::Path,
+    cooked: &std::path::Path,
+    created: &std::path::Path,
+    shown: &std::path::Path,
+) {
+    let script = r#"#!/usr/bin/env python3
+import json, sys
+command = sys.argv[1]
+if command in ('cook', 'create'):
+    with open(COOKED_PATH if command == 'cook' else CREATED_PATH) as source:
+        sys.stdout.write(source.read())
+elif command == 'show':
+    requested = sys.argv[sys.argv.index('--') + 1:]
+    with open(SHOWN_PATH) as source:
+        existing = {row['id']: row for row in json.load(source)}
+    found = [existing[id] for id in requested if id in existing]
+    for id in requested:
+        if id not in existing:
+            sys.stderr.write('Issue ' + id + ' not found: ' + 'diagnostic ' * 20 + '\n')
+    print(json.dumps(found if found else {'error': 'no issues found matching the provided IDs'}))
+    sys.exit(0 if found else 1)
+elif command == 'dep':
+    print('[{"id":"proj-1","dependency_type":"parent-child"}]')
+else:
+    print('{}')
+"#
+    .replace(
+        "COOKED_PATH",
+        &serde_json::to_string(cooked).expect("UTF-8 fixture path"),
+    )
+    .replace(
+        "CREATED_PATH",
+        &serde_json::to_string(created).expect("UTF-8 fixture path"),
+    )
+    .replace(
+        "SHOWN_PATH",
+        &serde_json::to_string(shown).expect("UTF-8 fixture path"),
+    );
+    fs::write(bd, script).expect("fake bd");
+}
+
 const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 
 // FUZZ-040: recovery command arguments cannot execute shell syntax or emit controls.
 #[test]
 fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
-    assert_eq!(
-        sc_composer_beads::error::shell_quote("spc-$(id)58;\u{7}"),
-        "$'spc-$(id)58;\\u{7}'"
-    );
+    let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}\u{200b}\u{00ad}$(literal)$HOME`literal`";
+    let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}\u{feff}";
+    let error = sc_composer_beads::BeadComposeError::GraphEdgeMissing {
+        edges: vec![sc_composer_beads::MissingEdge {
+            from: sc_composer_beads::BeadId::new(from).unwrap(),
+            to: sc_composer_beads::BeadId::new(to).unwrap(),
+            kind: sc_composer_beads::GraphDependencyType::try_from("blocks".to_owned()).unwrap(),
+        }],
+    };
+    let message = error.to_string(); // Drives missing_edge_commands, not just shell_quote.
+    assert!(!message.chars().any(char::is_control), "{message:?}");
+    for raw in ['\u{200b}', '\u{feff}', '\u{00ad}', '\u{202e}'] {
+        assert!(!message.contains(raw), "{message:?}");
+    }
+    for escaped in [
+        "\\xE2\\x80\\x8B",
+        "\\xEF\\xBB\\xBF",
+        "\\xC2\\xAD",
+        "\\xE2\\x80\\xAE",
+    ] {
+        assert!(message.contains(escaped), "{message:?}");
+    }
+    let command = message
+        .strip_prefix("graph edges missing; repair then retry: ")
+        .unwrap();
+    let arguments = command
+        .strip_prefix("bd dep add ")
+        .unwrap()
+        .strip_suffix(" --type 'blocks'")
+        .unwrap();
+    shell_literal::assert_round_trip(arguments, &[from, to]);
+    #[cfg(unix)]
+    assert_bash_round_trip(arguments, format!("{from}\0{to}\0").as_bytes());
+
+    let separators = "line\u{2028}paragraph\u{2029}end";
+    let escaped_separators = sc_composer_beads::error::shell_quote(separators);
+    assert!(escaped_separators.contains("\\xE2\\x80\\xA8"));
+    assert!(escaped_separators.contains("\\xE2\\x80\\xA9"));
+    shell_literal::assert_round_trip(&escaped_separators, &[separators]);
+    #[cfg(unix)]
+    assert_bash_round_trip(&escaped_separators, format!("{separators}\0").as_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
+    for value in [
+        "",
+        " ",
+        "trailing\\",
+        "a'b",
+        "$(literal);$HOME`literal`*?[]",
+    ] {
+        shell_literal::assert_round_trip(&sc_composer_beads::error::shell_quote(value), &[value]);
+    }
+}
+
+#[cfg(unix)]
+fn assert_bash_round_trip(arguments: &str, expected: &[u8]) {
+    let mut tested_shell = false;
+    for shell in ["/bin/bash", "bash"] {
+        let output = std::process::Command::new(shell)
+            .args(["-c", &format!("printf '%s\\0' {arguments}")])
+            .env("LC_ALL", "C.UTF-8")
+            .output();
+        let Ok(output) = output else {
+            continue;
+        };
+        tested_shell = true;
+        assert!(output.status.success(), "{shell}: {output:?}");
+        assert_eq!(output.stdout, expected, "{shell}");
+    }
+    assert!(
+        tested_shell,
+        "neither /bin/bash nor bash from PATH is available"
+    );
 }
 
 fn option_id_argument_errors(calls: &[CommandSpec], ids: &[&str]) -> Vec<String> {
@@ -561,7 +715,8 @@ fn fuzz_021_invalid_refs_and_relation_steps_keep_typed_errors() {
                 "schema": BEADS_SCHEMA_V1, "operation": operation,
                 "working_directory": "/work", "template": "sample.formula.toml.j2",
                 "rendered_formula": "/work/sample.formula.toml", "compose_variables": {},
-                "bead_variables": {}, "parent": "proj-1", "ref": reference
+                "bead_variables": {}, "parent": "proj-1", "ref": reference,
+                "pour_authorization": "CreatePersistentBeads"
             });
             let error = parse_request(&request.to_string()).expect_err("invalid ref");
             assert_eq!(error.code(), "BEADS_GRAPH_ID_INVALID");
@@ -751,12 +906,17 @@ fn fuzz_014_concurrent_attaches_keep_complete_inputs_and_receipts() {
                     "description":request.compose_variables["description"],"metadata":{PROVENANCE_KEY:provenance}
                 }]})
             );
-            assert_eq!(receipt.rendered_formula, w.req.rendered_formula);
+            assert_eq!(
+                receipt.rendered_formula,
+                PathBuf::from(public_path(&w.req.rendered_formula))
+            );
             assert_eq!(
                 graph.plan_path.as_ref().expect("public plan"),
-                &w.req
-                    .rendered_formula
-                    .with_extension(format!("{suffix}.graph.json"))
+                &PathBuf::from(public_path(
+                    &w.req
+                        .rendered_formula
+                        .with_extension(format!("{suffix}.graph.json")),
+                ))
             );
         }
         let public_formula =
@@ -865,7 +1025,8 @@ fn invalid_parent_and_relation_bead_ids_keep_native_typed_errors() {
                 "schema": BEADS_SCHEMA_V1, "operation": operation,
                 "working_directory": "/work", "template": "sample.formula.toml.j2",
                 "rendered_formula": "/work/sample.formula.toml", "compose_variables": {},
-                "bead_variables": {}, "parent": invalid, "ref": "valid"
+                "bead_variables": {}, "parent": invalid, "ref": "valid",
+                "pour_authorization": "CreatePersistentBeads"
             });
             let error = parse_request(&request.to_string()).expect_err("invalid parent");
             assert_native_bead_id_error(&error, invalid);
@@ -1047,8 +1208,9 @@ fn fuzz_014b_concurrent_bypath_pours_validate_their_own_initial_cook_inputs() {
                 assert_eq!(calls[1].args, ["where", "--json"]);
                 assert_eq!(&calls[2].args[2..], ["--json"]);
                 assert_eq!(
-                    calls[0].args[1], calls[2].args[1],
-                    "both cooks must use the same private snapshot"
+                    public_path(Path::new(&calls[0].args[1])),
+                    public_path(Path::new(&calls[2].args[1])),
+                    "both cooks must use the same public snapshot path"
                 );
                 assert_ne!(calls[0].args[1], w.req.rendered_formula.to_string_lossy());
                 let graph_stage = if operation == BeadOperation::Pour {
@@ -1071,7 +1233,10 @@ fn fuzz_014b_concurrent_bypath_pours_validate_their_own_initial_cook_inputs() {
                     ]
                 );
                 assert_eq!(receipt.pour_mode, Some(BeadPourMode::Graph));
-                assert_eq!(receipt.rendered_formula, w.req.rendered_formula);
+                assert_eq!(
+                    receipt.rendered_formula,
+                    PathBuf::from(public_path(&w.req.rendered_formula))
+                );
                 let graph = receipt.graph.as_ref().expect("graph");
                 assert_eq!(graph.nodes.len(), 2);
                 assert_eq!(
@@ -1111,15 +1276,12 @@ fn fuzz_042_missing_rendered_formula_directory_is_typed() {
     let details =
         serde_json::to_value(&error).expect("serialize output-path diagnostic")["details"].clone();
     assert_eq!(details["field"], "rendered_formula");
-    assert_eq!(
-        details["value"],
-        w.req.rendered_formula.to_string_lossy().as_ref()
-    );
+    assert_eq!(details["value"], public_path(&w.req.rendered_formula));
     assert!(
         details["rule"]
             .as_str()
             .expect("rule")
-            .contains(&missing_directory.to_string_lossy().to_string())
+            .contains(&public_path(&missing_directory))
     );
     assert!(
         details["rule"]
@@ -1128,4 +1290,537 @@ fn fuzz_042_missing_rendered_formula_directory_is_typed() {
             .contains("must exist")
     );
     assert!(runner.calls().is_empty(), "{:#?}", runner.calls());
+}
+
+// FUZZ-050: an unusable public output must refuse before any graph transaction.
+#[test]
+fn fuzz_050_directory_outputs_refuse_attach_before_bd_create() {
+    for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+        for graph_plan in [true, false] {
+            let mut w = Workspace::new();
+            w.req.operation = operation;
+            let destination = if graph_plan {
+                w.req.rendered_formula.with_extension("toml.graph.json")
+            } else {
+                w.req.rendered_formula.clone()
+            };
+            fs::create_dir(&destination).expect("unusable output directory");
+            let runner = FakeRunner::new([
+                ok(COOKED),
+                parent(),
+                ok(if operation == BeadOperation::Attach {
+                    r#"{"ids":{"build":"proj-1.chain-build"}}"#
+                } else {
+                    "{}"
+                }),
+            ]);
+            let result = execute_bead_request_with_runner(&w.req, &runner);
+            let calls = runner.calls();
+            assert!(
+                !calls
+                    .iter()
+                    .any(|call| call.args.first().is_some_and(|arg| arg == "create")),
+                "{operation:?}: local publication failure must happen before bd create: {calls:#?}"
+            );
+            match result {
+                Ok(receipt) => {
+                    assert_eq!(
+                        receipt.outcome,
+                        BeadOutcome::Refused {
+                            code: "BEADS_OUTPUT_PATH_INVALID".into()
+                        },
+                        "{receipt:#?}"
+                    );
+                    assert!(receipt.graph.is_none());
+                    let diagnostic = &receipt.stages.last().expect("stage").stderr_excerpt;
+                    assert!(
+                        diagnostic.contains(&public_path(&destination)),
+                        "{diagnostic}"
+                    );
+                }
+                Err(error) => {
+                    assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID", "{error}");
+                    assert!(
+                        matches!(&error,BeadComposeError::OutputPathInvalid{path,..} if path.to_string_lossy()==public_path(&destination))
+                    );
+                }
+            }
+            assert!(
+                destination.is_dir(),
+                "must not replace the unusable destination"
+            );
+            assert!(
+                !fs::read_dir(&w.root).expect("directory").any(|entry| entry
+                    .expect("entry")
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(".sc-compose")),
+                "private input leak"
+            );
+        }
+    }
+}
+
+/// Makes further publication impossible after bd has consumed its own inputs.
+struct PublishedBeforeCreateRunner {
+    inner: FakeRunner,
+    formula: PathBuf,
+    plan: PathBuf,
+}
+
+impl ProcessRunner for PublishedBeforeCreateRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args[0] == "cook" {
+            assert_eq!(fs::read(&self.formula)?, fs::read(&spec.args[1])?);
+        }
+        if spec.args[0] == "create" {
+            let input = spec
+                .args
+                .iter()
+                .position(|arg| arg == "--graph")
+                .expect("graph")
+                + 1;
+            assert_eq!(fs::read(&self.plan)?, fs::read(&spec.args[input])?);
+            // Another owner can replace public paths after publication. This
+            // request must need no further local output writes after bd runs.
+            for path in [&self.formula, &self.plan] {
+                fs::remove_file(path)?;
+                fs::create_dir(path)?;
+            }
+        }
+        self.inner.run(spec)
+    }
+}
+
+#[test]
+fn fuzz_050_attach_publishes_all_outputs_before_create_and_never_after() {
+    for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+        let mut w = Workspace::new();
+        w.req.operation = operation;
+        let runner = PublishedBeforeCreateRunner {
+            inner: FakeRunner::new([
+                ok(COOKED),
+                parent(),
+                ok(if operation == BeadOperation::Attach {
+                    r#"{"ids":{"build":"proj-1.chain-build"}}"#
+                } else {
+                    "{}"
+                }),
+            ]),
+            formula: w.req.rendered_formula.clone(),
+            plan: w.req.rendered_formula.with_extension("toml.graph.json"),
+        };
+        let receipt = execute_bead_request_with_runner(&w.req, &runner).expect("request");
+        assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+        assert!(receipt.graph.is_some());
+        assert!(runner.formula.is_dir());
+        assert!(runner.plan.is_dir());
+        assert!(fs::read_dir(&w.root).expect("files").all(|entry| {
+            !entry
+                .expect("entry")
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".sc-compose-input-")
+        }));
+    }
+}
+
+#[test]
+fn fuzz_021_refused_parse_preserves_native_details_and_legacy_consumers() {
+    for operation in ["attach", "preview_attach"] {
+        let base = json!({"schema":BEADS_SCHEMA_V1,"operation":operation,
+            "working_directory":"relative-work", "template":"missing.toml.j2",
+            "rendered_formula":"out.toml", "compose_variables":{},"bead_variables":{},
+            "parent":"proj-1","ref":"valid","pour_authorization":"CreatePersistentBeads"});
+        assert!(matches!(
+            parse_request_with_outcome(&base.to_string()).unwrap(),
+            RequestParseOutcome::Ready(_)
+        ));
+        for (field, value, endpoint) in [
+            ("bead", "bad id", None),
+            ("step", "bad-step", Some("step:bad-step")),
+            ("bead", "bad id", Some("bead:bad id")),
+            ("ref", "a.b", None),
+        ] {
+            let mut input = base.clone();
+            if let Some(endpoint) = endpoint {
+                input["relations"] = json!([{"from":endpoint,"to":"bead:proj-1","type":"blocks"}]);
+            } else {
+                input[if field == "bead" { "parent" } else { "ref" }] = json!(value);
+            }
+            let error = parse_request(&input.to_string()).unwrap_err();
+            let RequestParseOutcome::Refused(refused) =
+                parse_request_with_outcome(&input.to_string()).unwrap()
+            else {
+                panic!("expected refused receipt")
+            };
+            assert_eq!(
+                refused.error,
+                BeadDiagnostic::graph_id_invalid(&error).unwrap()
+            );
+            assert_eq!(refused.error.details.as_ref().unwrap()["field"], field);
+            assert_eq!(refused.error.details.as_ref().unwrap()["value"], value);
+            assert!(refused.error.details.as_ref().unwrap()["rule"].is_string());
+            assert!(refused.receipt.rendered_formula.is_absolute());
+            assert_eq!(refused.receipt.stages[0].stage, BeadStage::Validate);
+            let wire = serde_json::to_value(&refused).unwrap();
+            let legacy: BeadComposeReceipt = serde_json::from_value(wire.clone()).unwrap();
+            assert_eq!(legacy, refused.receipt);
+            assert_eq!(
+                serde_json::from_value::<RefusedBeadComposeReceipt>(wire).unwrap(),
+                refused
+            );
+        }
+        let mut invalid = base.clone();
+        invalid["ref"] = json!("x".repeat(100_000));
+        let RequestParseOutcome::Refused(receipt) =
+            parse_request_with_outcome(&invalid.to_string()).unwrap()
+        else {
+            panic!("refused")
+        };
+        assert!(receipt.receipt.stages[0].stderr_excerpt.chars().count() <= 16 * 1024);
+        invalid["operation"] = json!("unknown");
+        assert_eq!(
+            parse_request_with_outcome(&invalid.to_string())
+                .unwrap_err()
+                .code(),
+            "BEADS_REQUEST_DESERIALIZATION_FAILED"
+        );
+        if operation == "attach" {
+            invalid["operation"] = json!(operation);
+            invalid
+                .as_object_mut()
+                .unwrap()
+                .remove("pour_authorization");
+            assert_eq!(
+                parse_request_with_outcome(&invalid.to_string())
+                    .unwrap_err()
+                    .code(),
+                "BEADS_POUR_AUTH_REQUIRED"
+            );
+        }
+    }
+}
+
+// FUZZ-049: parser fallback preserves typed errors for malformed fields and duplicate keys.
+#[test]
+fn fuzz_049_request_fallback_preserves_typed_errors() {
+    for operation in ["render", "validate", "preview_pour", "pour"] {
+        for name in [serde_json::json!(5), serde_json::json!({"bad": true})] {
+            let request = serde_json::json!({"schema":BEADS_SCHEMA_V1,"operation":operation,"working_directory":"/work","template":"f.formula.toml.j2","rendered_formula":"/work/f.formula.toml","formula_name":name,"compose_variables":{},"bead_variables":{}});
+            let error = parse_request(&request.to_string())
+                .expect_err("non-string formula_name must remain a typed parse error");
+            assert_eq!(error.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
+            assert!(error.to_string().contains("formula_name"), "{error}");
+        }
+
+        for duplicate in [
+            format!(
+                r#"{{"schema":"{BEADS_SCHEMA_V1}","operation":"{operation}","working_directory":"/work","template":"a","template":"b","rendered_formula":"/work/f.formula.toml","formula_name":"re g0","compose_variables":{{}},"bead_variables":{{}}}}"#
+            ),
+            format!(
+                r#"{{"schema":"{BEADS_SCHEMA_V1}","operation":"{operation}","working_directory":"/work","formula_name":"re g0","template":"a","template":"b","rendered_formula":"/work/f.formula.toml","compose_variables":{{}},"bead_variables":{{}}}}"#
+            ),
+        ] {
+            let error = parse_request(&duplicate)
+                .expect_err("duplicate top-level template must remain a typed parse error");
+            assert_eq!(error.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
+            assert!(
+                error.to_string().contains("duplicate field `template`"),
+                "{error}"
+            );
+        }
+    }
+}
+
+// FUZZ-042: invalid output parents name the requested rendered formula.
+#[test]
+fn fuzz_042_parent_file_and_relative_output_are_typed() {
+    let mut w = Workspace::new();
+    let parent_file = w.root.join("not-a-directory");
+    fs::write(&parent_file, "file").expect("parent file");
+    w.req.rendered_formula = parent_file.join("out.formula.toml");
+    let error = execute_bead_request_with_runner(&w.req, &FakeRunner::new([]))
+        .expect_err("file parent must be rejected as an output path");
+    assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID");
+    assert!(
+        error
+            .to_string()
+            .contains(&public_path(&w.req.rendered_formula)),
+        "{error}"
+    );
+
+    let mut w = Workspace::new();
+    w.req.rendered_formula = PathBuf::from("missing-dir/out.formula.toml");
+    let error = execute_bead_request_with_runner(&w.req, &FakeRunner::new([]))
+        .expect_err("relative output with no parent must be rejected");
+    assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID");
+    assert!(!error.to_string().contains("``"), "{error}");
+    assert!(
+        error.to_string().contains(&public_path(
+            &w.root.join("missing-dir").join("out.formula.toml")
+        )),
+        "{error}"
+    );
+}
+// FUZZ-012: relative rendered outputs are rooted at working_directory for Phase R operations.
+#[test]
+fn fuzz_012_relative_rendered_formula_is_rooted_at_working_directory() {
+    for operation in [BeadOperation::Render, BeadOperation::PreviewPour] {
+        let mut w = Workspace::new();
+        w.req.operation = operation;
+        w.req.parent = None;
+        w.req.ref_ = None;
+        w.req.rendered_formula = PathBuf::from("nested/out.formula.toml");
+        fs::create_dir_all(w.root.join("nested")).expect("output directory");
+        let runner = if operation == BeadOperation::PreviewPour {
+            FakeRunner::new([
+                ok(COOKED),
+                ok(&format!(
+                    r#"{{"path":"{}"}}"#,
+                    w.root.join(".beads").display()
+                )),
+                ok(""),
+            ])
+        } else {
+            FakeRunner::new([])
+        };
+        let receipt = w.run(&runner);
+        assert_eq!(
+            receipt.rendered_formula,
+            PathBuf::from(public_path(&w.root.join("nested/out.formula.toml")))
+        );
+        assert!(receipt.rendered_formula.is_file());
+    }
+}
+
+struct CookFailureSourceRunner {
+    inner: FakeRunner,
+    fail_cook: usize,
+    cooks: Mutex<usize>,
+}
+
+impl ProcessRunner for CookFailureSourceRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args[0] == "cook" {
+            let mut cooks = self.cooks.lock().expect("cooks");
+            *cooks += 1;
+            assert!(spec.args[1].contains(".sc-compose-input-"), "{spec:#?}");
+            assert!(PathBuf::from(&spec.args[1]).is_file(), "live private input");
+            if *cooks == self.fail_cook {
+                self.inner.calls.lock().expect("calls").push(spec.clone());
+                return Ok(ProcessOutput {
+                    stderr: format!("cannot cook source {}: invalid formula", spec.args[1]),
+                    ..out(Some(7), "")
+                });
+            }
+        }
+        self.inner.run(spec)
+    }
+}
+
+#[test]
+fn fuzz_055_real_registry_pour_cook_failure_receipt_names_public_source() {
+    for operation in [BeadOperation::PreviewPour, BeadOperation::Pour] {
+        let mut w = Workspace::new();
+        w.req.operation = operation;
+        w.req.parent = None;
+        w.req.ref_ = None;
+        let formulas = w.root.join(".beads/formulas");
+        fs::create_dir_all(&formulas).expect("registry formulas");
+        w.req.rendered_formula = formulas.join("sample.formula.toml");
+        let runner = CookFailureSourceRunner {
+            inner: FakeRunner::new([]),
+            fail_cook: 1,
+            cooks: Mutex::new(0),
+        };
+        assert_fuzz_055_cook_failure(&w, &runner, BeadStage::Validate, 1);
+    }
+}
+
+#[test]
+fn fuzz_055_real_graph_routes_cook_failure_receipt_names_public_source() {
+    for operation in [
+        BeadOperation::PreviewPour,
+        BeadOperation::Pour,
+        BeadOperation::PreviewAttach,
+        BeadOperation::Attach,
+    ] {
+        let mut w = Workspace::new();
+        w.req.operation = operation;
+        let by_path = matches!(operation, BeadOperation::PreviewPour | BeadOperation::Pour);
+        if by_path {
+            w.req.parent = None;
+            w.req.ref_ = None;
+        }
+        let registry = w.root.join(".beads");
+        fs::create_dir(&registry).expect("registry");
+        let runner = CookFailureSourceRunner {
+            inner: FakeRunner::new(if by_path {
+                vec![ok(COOKED), ok(&json!({"path":registry}).to_string())]
+            } else {
+                vec![]
+            }),
+            fail_cook: if by_path { 2 } else { 1 },
+            cooks: Mutex::new(0),
+        };
+        let stage = match operation {
+            BeadOperation::PreviewPour => BeadStage::PreviewPour,
+            BeadOperation::Pour => BeadStage::Pour,
+            _ => BeadStage::Validate,
+        };
+        assert_fuzz_055_cook_failure(&w, &runner, stage, if by_path { 2 } else { 1 });
+    }
+}
+
+fn assert_fuzz_055_cook_failure(
+    w: &Workspace,
+    runner: &CookFailureSourceRunner,
+    stage: BeadStage,
+    cook_count: usize,
+) {
+    let receipt = execute_bead_request_with_runner(&w.req, runner).expect("actual execute receipt");
+    failed(&receipt, "BEADS_COOK_FAILED", stage);
+    assert_eq!(
+        receipt.rendered_formula,
+        PathBuf::from(public_path(&w.req.rendered_formula))
+    );
+    let evidence = serde_json::to_string(&receipt).expect("receipt JSON");
+    let source = public_path(&w.req.rendered_formula);
+    let encoded_source = serde_json::to_string(&source).expect("encoded source");
+    assert!(
+        evidence.contains(encoded_source.trim_matches('"')),
+        "{evidence}"
+    );
+    assert!(!evidence.contains(".sc-compose-input-"), "{evidence}");
+    let diagnostic = &receipt
+        .stages
+        .last()
+        .expect("failed cook stage")
+        .stderr_excerpt;
+    assert!(diagnostic.contains(source.as_str()), "{diagnostic}");
+    assert!(diagnostic.contains("cannot cook source"), "{diagnostic}");
+    assert!(!diagnostic.contains(".sc-compose-input-"), "{diagnostic}");
+    let calls = runner.inner.calls();
+    assert_eq!(
+        calls.iter().filter(|call| call.args[0] == "cook").count(),
+        cook_count
+    );
+    for call in calls.iter().filter(|call| call.args[0] == "cook") {
+        assert!(call.args[1].contains(".sc-compose-input-"));
+        assert!(
+            !PathBuf::from(&call.args[1]).exists(),
+            "private input cleaned up"
+        );
+    }
+    assert!(
+        !calls
+            .iter()
+            .any(|call| matches!(call.args[0].as_str(), "create" | "mol"))
+    );
+}
+
+struct GraphPlanSourceRunner {
+    inner: FakeRunner,
+    fail_create: bool,
+}
+
+impl ProcessRunner for GraphPlanSourceRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args[0] == "create" {
+            let index = spec
+                .args
+                .iter()
+                .position(|arg| arg == "--graph")
+                .expect("graph")
+                + 1;
+            let private = &spec.args[index];
+            assert!(private.contains(".sc-compose-input-"), "{spec:#?}");
+            let _: Value = serde_json::from_slice(&fs::read(private)?).expect("own live plan");
+            self.inner.calls.lock().expect("calls").push(spec.clone());
+            return Ok(ProcessOutput {
+                stderr: if self.fail_create {
+                    format!("cannot apply graph {private}")
+                } else {
+                    String::new()
+                },
+                ..out(
+                    Some(if self.fail_create { 7 } else { 0 }),
+                    &format!("graph input {private}"),
+                )
+            });
+        }
+        self.inner.run(spec)
+    }
+}
+
+#[test]
+fn fuzz_055_r3_create_failures_and_preview_receipts_name_public_graph_plan() {
+    for operation in [
+        BeadOperation::PreviewPour,
+        BeadOperation::Pour,
+        BeadOperation::PreviewAttach,
+        BeadOperation::Attach,
+    ] {
+        for fail_create in [true, false] {
+            if !fail_create && matches!(operation, BeadOperation::Pour | BeadOperation::Attach) {
+                continue;
+            }
+            let mut w = Workspace::new();
+            w.req.operation = operation;
+            let by_path = matches!(operation, BeadOperation::PreviewPour | BeadOperation::Pour);
+            let registry = w.root.join(".beads");
+            fs::create_dir(&registry).expect("registry");
+            let outputs = if by_path {
+                w.req.parent = None;
+                w.req.ref_ = None;
+                vec![
+                    ok(COOKED),
+                    ok(&json!({"path":registry}).to_string()),
+                    ok(COOKED),
+                ]
+            } else {
+                vec![ok(COOKED), parent()]
+            };
+            let runner = GraphPlanSourceRunner {
+                inner: FakeRunner::new(outputs),
+                fail_create,
+            };
+            let receipt =
+                execute_bead_request_with_runner(&w.req, &runner).expect("actual execution");
+            if fail_create {
+                assert_eq!(
+                    receipt.outcome,
+                    BeadOutcome::Failed {
+                        code: "BEADS_GRAPH_APPLY_FAILED".into()
+                    }
+                );
+                let message = &receipt.stages.last().expect("create stage").stderr_excerpt;
+                assert!(message.contains("cannot apply graph"), "{message}");
+            } else {
+                assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+            }
+            let public = w.req.rendered_formula.with_extension("toml.graph.json");
+            let public_display = public_path(&public);
+            let wire = serde_json::to_string(&receipt).expect("receipt");
+            let encoded_public = serde_json::to_string(&public_display).expect("encoded path");
+            assert!(wire.contains(encoded_public.trim_matches('"')), "{wire}");
+            assert!(!wire.contains(".sc-compose-input-"), "{wire}");
+            let create = receipt
+                .stages
+                .iter()
+                .find(|stage| stage.argv.iter().any(|arg| arg == "--graph"))
+                .expect("create");
+            assert!(create.argv.iter().any(|arg| arg == &public_display));
+            let calls = runner.inner.calls();
+            let actual = calls
+                .iter()
+                .find(|call| call.args[0] == "create")
+                .expect("actual create");
+            assert!(
+                !PathBuf::from(&actual.args[2]).exists(),
+                "private plan cleaned"
+            );
+        }
+    }
 }

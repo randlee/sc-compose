@@ -9,14 +9,16 @@ use crate::contract::{
     BeadStageReceipt, GraphDependencyType,
 };
 use crate::error::{BeadComposeError, short_cause};
-use crate::execute::{NormalizedRequest, process_receipt, receipt};
+use crate::execute::{
+    NormalizedRequest, process_receipt, public_path_buf, public_path_display, receipt,
+};
 use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
 use crate::snapshot::InputSnapshot;
 use plan::{GraphPlan, GraphReader, PendingCreate, PlanKey};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub(crate) fn is_attach(operation: BeadOperation) -> bool {
@@ -89,6 +91,17 @@ pub(crate) fn execute(
     result.graph = graph;
     result.missing_edges = missing_edges;
     result.pour_mode = (!attach).then_some(BeadPourMode::Graph);
+    let snapshot = public_path_display(formula_input.path());
+    let source = public_path_display(&normalized.rendered_formula);
+    for stage in &mut result.stages {
+        for argument in &mut stage.argv {
+            if argument == snapshot.as_str() {
+                argument.clone_from(&source);
+            }
+        }
+        stage.stderr_excerpt = stage.stderr_excerpt.replace(snapshot.as_str(), &source);
+        stage.stdout_excerpt = stage.stdout_excerpt.replace(snapshot.as_str(), &source);
+    }
     Ok(result)
 }
 
@@ -113,7 +126,7 @@ fn run(
     validate::digest(&rendered)?;
     let args = vec![
         "cook".into(),
-        formula_input.path().to_string_lossy().into_owned(),
+        public_path_display(formula_input.path()),
         "--json".into(),
     ];
     let output = runtime.invoke(args)?;
@@ -160,20 +173,43 @@ struct Runtime<'a> {
 
 impl Runtime<'_> {
     fn invoke(&mut self, args: Vec<String>) -> Result<ProcessOutput, BeadComposeError> {
+        self.invoke_presenting(args, None)
+    }
+
+    fn invoke_presenting(
+        &mut self,
+        args: Vec<String>,
+        source: Option<(&Path, &Path)>,
+    ) -> Result<ProcessOutput, BeadComposeError> {
+        let present = |text: &str| {
+            source.map_or_else(
+                || text.to_owned(),
+                |(private, public)| {
+                    text.replace(
+                        private.to_string_lossy().as_ref(),
+                        public.to_string_lossy().as_ref(),
+                    )
+                },
+            )
+        };
         let spec = CommandSpec {
             executable: self.bd.clone(),
             args,
             working_directory: self.normalized.working_directory.clone(),
         };
         let attempted = self.runner.run_graph(&spec);
+        let mut presented_spec = spec.clone();
+        for argument in &mut presented_spec.args {
+            *argument = present(argument);
+        }
         if let Err(error) = &attempted {
             self.stages.push(process_receipt(
                 self.stage,
-                &spec,
+                &presented_spec,
                 &ProcessOutput {
                     exit_status: None,
                     stdout: String::new(),
-                    stderr: error.to_string(),
+                    stderr: present(&error.to_string()),
                     elapsed: Duration::ZERO,
                 },
                 BeadStageOutcome::Succeeded,
@@ -188,7 +224,7 @@ impl Runtime<'_> {
             } else if error.kind() == std::io::ErrorKind::InvalidInput {
                 BeadComposeError::ProcessArgumentInvalid {
                     executable: self.bd.clone(),
-                    message: error.to_string(),
+                    message: present(&error.to_string()),
                 }
             } else {
                 BeadComposeError::BdUnavailable {
@@ -196,10 +232,15 @@ impl Runtime<'_> {
                 }
             }
         })?;
+        // Normalize complete streams before receipt excerpts truncate them,
+        // retaining the original stdout for semantic response parsing.
+        let mut presented_output = output.clone();
+        presented_output.stdout = present(&output.stdout);
+        presented_output.stderr = present(&output.stderr);
         self.stages.push(process_receipt(
             self.stage,
-            &spec,
-            &output,
+            &presented_spec,
+            &presented_output,
             BeadStageOutcome::Succeeded,
         ));
         Ok(output)
@@ -272,36 +313,41 @@ fn process_failure_cause(output: &ProcessOutput) -> String {
 
 impl GraphReader for Runtime<'_> {
     fn issues(&mut self, ids: &[BeadId]) -> Result<BTreeMap<BeadId, Value>, BeadComposeError> {
-        let mut args = vec!["show".into(), "--json".into()];
-        args.push("--".into());
-        args.extend(ids.iter().map(ToString::to_string));
-        let output = self.invoke(args)?;
-        if all_missing(&output) {
-            return Ok(BTreeMap::new());
-        }
-        if output.exit_status != Some(0) {
-            return Err(self.read_error(output.exit_status, &process_failure_cause(&output)));
-        }
-        let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|error| {
-            self.read_error(output.exit_status, &short_cause(&error.to_string()))
-        })?;
+        // bd prints a not-found diagnostic for each absent id. Keep every
+        // show invocation bounded while retaining the existing stream caps.
+        const SHOW_BATCH_SIZE: usize = 64;
         let mut found = BTreeMap::new();
-        for row in rows {
-            let id = row
-                .get("id")
-                .and_then(Value::as_str)
-                .and_then(|s| BeadId::new(s).ok())
-                .ok_or_else(|| {
-                    self.read_error(
+        for ids in ids.chunks(SHOW_BATCH_SIZE) {
+            let mut args = vec!["show".into(), "--json".into()];
+            args.push("--".into());
+            args.extend(ids.iter().map(ToString::to_string));
+            let output = self.invoke(args)?;
+            if all_missing(&output) {
+                continue;
+            }
+            if output.exit_status != Some(0) {
+                return Err(self.read_error(output.exit_status, &process_failure_cause(&output)));
+            }
+            let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|error| {
+                self.read_error(output.exit_status, &short_cause(&error.to_string()))
+            })?;
+            for row in rows {
+                let id = row
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .and_then(|s| BeadId::new(s).ok())
+                    .ok_or_else(|| {
+                        self.read_error(
+                            output.exit_status,
+                            "bd show returned a row without a valid id",
+                        )
+                    })?;
+                if !ids.contains(&id) || found.insert(id, row).is_some() {
+                    return Err(self.read_error(
                         output.exit_status,
-                        "bd show returned a row without a valid id",
-                    )
-                })?;
-            if !ids.contains(&id) || found.insert(id, row).is_some() {
-                return Err(self.read_error(
-                    output.exit_status,
-                    "bd show returned an unexpected or duplicate issue id",
-                ));
+                        "bd show returned an unexpected or duplicate issue id",
+                    ));
+                }
             }
         }
         Ok(found)
@@ -371,17 +417,23 @@ impl PendingCreate {
             .to_os_string();
         path.push(".graph.json");
         let path = PathBuf::from(path);
+        let public_path = public_path_buf(&path);
         let parent = path
             .parent()
             .and_then(|p| fs::canonicalize(p).ok())
-            .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.clone() })?;
+            .ok_or_else(|| BeadComposeError::OutputPathInvalid {
+                path: public_path.clone(),
+                rule: "output parent must exist and be accessible".into(),
+            })?;
         if !parent.starts_with(&runtime.normalized.working_directory) {
-            return Err(BeadComposeError::OutputOutsideWorkingDirectory { path });
+            return Err(BeadComposeError::OutputOutsideWorkingDirectory { path: public_path });
         }
         crate::render::validate_output_destination(&path)?;
         let bytes = serde_json::to_vec(&self.payload).expect("plan JSON serializes");
-        let plan_input = InputSnapshot::write(&path, &bytes)?;
-        self.graph.plan_path = Some(path.clone());
+        let plan_input = InputSnapshot::write(&path, &bytes)
+            .map_err(|error| crate::snapshot::output_error(&path, error))?;
+        plan_input.publish_copy(&path)?;
+        self.graph.plan_path = Some(public_path.clone());
         let mut args = vec![
             "create".into(),
             "--graph".into(),
@@ -391,35 +443,44 @@ impl PendingCreate {
             args.push("--dry-run".into());
         }
         args.push("--json".into());
+        let mut presented_args = args.clone();
+        presented_args[2] = public_path.to_string_lossy().into_owned();
         let command = CommandSpec {
             executable: runtime.bd.clone(),
-            args: args.clone(),
+            args: presented_args,
             working_directory: runtime.normalized.working_directory.clone(),
         }
         .argv();
-        let attempted = runtime.invoke(args);
-        plan_input.publish(&path)?;
-        let output = attempted?;
+        let output = runtime.invoke_presenting(args, Some((plan_input.path(), &public_path)))?;
+        let present = |text: &str| {
+            text.replace(
+                plan_input.path().to_string_lossy().as_ref(),
+                public_path.to_string_lossy().as_ref(),
+            )
+        };
         let failure = |cause: String| BeadComposeError::GraphApplyFailed {
             command: command.clone(),
             status: output.exit_status,
-            cause,
+            cause: short_cause(&present(&cause)),
         };
         if output.exit_status != Some(0) {
-            return Err(failure(process_failure_cause(&output)));
+            let mut presented_output = output.clone();
+            presented_output.stdout = present(&output.stdout);
+            presented_output.stderr = present(&output.stderr);
+            return Err(failure(process_failure_cause(&presented_output)));
         }
         if preview {
             return Ok(self.graph);
         }
-        let value: Value = serde_json::from_str(&output.stdout)
-            .map_err(|error| failure(short_cause(&error.to_string())))?;
+        let value: Value =
+            serde_json::from_str(&output.stdout).map_err(|error| failure(error.to_string()))?;
         let assigned: BTreeMap<PlanKey, BeadId> = serde_json::from_value(
             value
                 .get("ids")
                 .cloned()
                 .ok_or_else(|| failure("bd create --graph response is missing ids".to_owned()))?,
         )
-        .map_err(|error| failure(short_cause(&error.to_string())))?;
+        .map_err(|error| failure(error.to_string()))?;
         if assigned.len() != self.keys.len() || self.keys.keys().any(|k| !assigned.contains_key(k))
         {
             return Err(failure(
@@ -491,5 +552,103 @@ impl PendingCreate {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod presentation_tests {
+    use super::*;
+    use std::io;
+
+    #[test]
+    fn graph_plan_presentation_does_not_change_raw_response() {
+        struct Response;
+        impl ProcessRunner for Response {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                Ok(ProcessOutput {
+                    exit_status: Some(0),
+                    stdout: format!("{{\"source\":\"{}\"}}", spec.args[2]),
+                    stderr: spec.args[2].clone(),
+                    elapsed: Duration::ZERO,
+                })
+            }
+        }
+        let private = Path::new("/work/.sc-compose-input-123.json");
+        let public = Path::new("/work/sample.formula.toml.graph.json");
+        let normalized = NormalizedRequest {
+            working_directory: "/work".into(),
+            template: "/work/sample.formula.toml.j2".into(),
+            rendered_formula: "/work/sample.formula.toml".into(),
+        };
+        let mut runtime = Runtime {
+            runner: &Response,
+            normalized: &normalized,
+            bd: "fake-bd".into(),
+            stage: BeadStage::Attach,
+            stages: Vec::new(),
+        };
+        let output = runtime
+            .invoke_presenting(
+                vec![
+                    "create".into(),
+                    "--graph".into(),
+                    private.to_string_lossy().into_owned(),
+                ],
+                Some((private, public)),
+            )
+            .unwrap();
+        assert_eq!(
+            serde_json::from_str::<Value>(&output.stdout).unwrap()["source"],
+            private.to_string_lossy().as_ref()
+        );
+        assert_eq!(output.stderr, private.to_string_lossy());
+        let wire = serde_json::to_string(&runtime.stages).unwrap();
+        assert!(wire.contains(public.to_string_lossy().as_ref()));
+        assert!(!wire.contains(".sc-compose-input-"));
+    }
+
+    #[test]
+    fn graph_plan_invoke_error_preserves_public_stage_and_typed_message() {
+        struct ArgumentFailure;
+        impl ProcessRunner for ArgumentFailure {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                assert!(spec.args[2].contains(".sc-compose-input-"));
+                Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("invalid input {}", spec.args[2]),
+                ))
+            }
+        }
+        let private = Path::new("/work/.sc-compose-input-123.json");
+        let public = Path::new("/work/sample.formula.toml.graph.json");
+        let normalized = NormalizedRequest {
+            working_directory: "/work".into(),
+            template: "/work/sample.formula.toml.j2".into(),
+            rendered_formula: "/work/sample.formula.toml".into(),
+        };
+        let mut runtime = Runtime {
+            runner: &ArgumentFailure,
+            normalized: &normalized,
+            bd: "fake-bd".into(),
+            stage: BeadStage::Attach,
+            stages: Vec::new(),
+        };
+        let error = runtime
+            .invoke_presenting(
+                vec![
+                    "create".into(),
+                    "--graph".into(),
+                    private.to_string_lossy().into_owned(),
+                ],
+                Some((private, public)),
+            )
+            .unwrap_err();
+        assert!(matches!(
+            error,
+            BeadComposeError::ProcessArgumentInvalid { .. }
+        ));
+        let wire = serde_json::to_string(&(error, runtime.stages)).unwrap();
+        assert!(wire.contains(public.to_string_lossy().as_ref()), "{wire}");
+        assert!(!wire.contains(".sc-compose-input-"), "{wire}");
     }
 }

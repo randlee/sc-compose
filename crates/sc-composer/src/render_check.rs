@@ -311,20 +311,20 @@ pub fn check_rendered_output_with_meta(
         });
     }
 
-    let Err(error) = serde_json::from_str::<serde_json::Value>(rendered) else {
-        return Ok(CheckedOutput {
-            body: rendered.to_owned(),
-            meta,
-        });
-    };
-
-    let line = error.line();
-    let column = error.column();
-    let byte_offset = byte_offset_at(rendered, line, column, error.classify());
-    // Keep the parser's first syntax failure authoritative. Its recursion
-    // guard reports the opening container at the unsupported depth; only
-    // matching structural evidence changes that failure's classification.
-    if excessive_json_depth(rendered) == Some(byte_offset) {
+    // RawValue validates JSON grammar without converting number lexemes to f64.
+    // Its iterative parser is paired with our explicit nesting bound below.
+    let parse_error = serde_json::from_str::<&serde_json::value::RawValue>(rendered).err();
+    let syntax_offset = parse_error
+        .as_ref()
+        .map(|error| byte_offset_at(rendered, error.line(), error.column(), error.classify()));
+    // Preserve the first failure: an earlier syntax error remains malformed,
+    // while exceeding the supported depth is reported before later failures.
+    if let Some(byte_offset) = excessive_json_depth(rendered)
+        && syntax_offset.is_none_or(|offset| byte_offset <= offset)
+    {
+        let prefix = &rendered[..byte_offset];
+        let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+        let column = prefix.rsplit('\n').next().map_or(0, str::len) + 1;
         return Err(OutputCheckError {
             reason: OutputCheckReason::JsonDepthLimit { limit: MAX_JSON_NESTING_DEPTH },
             diagnostics: vec![Diagnostic::new(
@@ -334,6 +334,15 @@ pub fn check_rendered_output_with_meta(
             ).with_path(&meta.template).with_location(line, column)],
         });
     }
+    let Some(error) = parse_error else {
+        return Ok(CheckedOutput {
+            body: rendered.to_owned(),
+            meta,
+        });
+    };
+    let line = error.line();
+    let column = error.column();
+    let byte_offset = byte_offset_at(rendered, line, column, error.classify());
 
     let diagnostic = Diagnostic::new(
         DiagnosticSeverity::Error,
@@ -433,6 +442,28 @@ mod tests {
                     .expect("valid JSON");
             assert_eq!(checked.body(), body);
         }
+    }
+
+    #[test]
+    fn json_number_validation_preserves_grammar_beyond_f64_range() {
+        let body = r#"{"n":1e400,"tiny":-1.2300e-4000}"#;
+        assert_eq!(
+            check_rendered_output(OutputFormat::Json, Path::new("numbers.json.j2"), body)
+                .expect("valid number lexemes")
+                .body(),
+            body
+        );
+        let deep = format!("{}1e400{}", "[".repeat(128), "]".repeat(128));
+        let error = check_rendered_output(OutputFormat::Json, Path::new("deep.json.j2"), &deep)
+            .expect_err("depth remains bounded");
+        assert_eq!(
+            error.reason,
+            super::OutputCheckReason::JsonDepthLimit { limit: 127 }
+        );
+        assert_eq!(
+            error.diagnostics[0].code,
+            crate::DiagnosticCode::ErrRenderJsonDepthLimit
+        );
     }
 
     #[test]
