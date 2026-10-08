@@ -103,7 +103,7 @@ fn print_bead_error(
             serde_json::json!({
                 "schema": BEADS_SCHEMA_V1,
                 "operation": operation,
-                "error": { "code": error.code(), "message": error.to_string() },
+                "error": error,
             }),
             Vec::new(),
         )

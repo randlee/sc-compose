@@ -8,6 +8,7 @@
 pub mod contract;
 /// Stable Beads composition error types and codes.
 pub mod error;
+mod error_json;
 /// Render-to-`bd` operation staging.
 pub mod execute;
 mod graph;

@@ -8,6 +8,10 @@ use crate::contract::{BeadId, BeadStage, GraphDependencyType, MissingEdge};
 use serde::{Deserialize, Serialize};
 
 /// Stable errors returned before or during Beads composition.
+///
+/// Serializes as `code` and `message`, with additive `details` and `recovery`
+/// fields for graph failures. Graph details retain the variant field names and
+/// wire types; non-graph errors preserve their original two-field shape.
 #[derive(Debug, Error)]
 pub enum BeadComposeError {
     /// The JSON request did not deserialize into the versioned contract.
