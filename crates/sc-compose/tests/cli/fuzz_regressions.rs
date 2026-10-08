@@ -699,6 +699,84 @@ fn pe_f6_subcommand_decides_operation_for_authorization_and_id_errors() {
     }
 }
 
+// pe-f6 QA r2: legacy `formula_name` tolerance and identifier error class key
+// on the CLI subcommand's operation, never on the request file's own.
+#[test]
+fn pe_f6_r2_subcommand_operation_decides_formula_name_tolerance_and_id_class() {
+    let root = temp_root("pe-f6-r2-operation-tolerance");
+    let request_with = |operation: &str, extra: serde_json::Value| {
+        let mut request = serde_json::json!({
+            "schema":"sc-compose/beads/v1", "operation":operation,
+            "working_directory":root, "template":"missing.formula.toml.j2",
+            "rendered_formula":root.join("out.formula.toml"), "compose_variables":{},
+            "bead_variables":{}
+        });
+        for (key, value) in extra.as_object().unwrap() {
+            request[key] = value.clone();
+        }
+        request
+    };
+    let attach = serde_json::json!({
+        "parent":"proj-1", "ref":"valid", "formula_name":"caf\u{e9}",
+        "pour_authorization":"CreatePersistentBeads"
+    });
+    let run = |command: &str, case: &serde_json::Value| {
+        let request = root.join("request.json");
+        write_file(&request, &case.to_string());
+        let output = sc_compose()
+            .args(["bead", command, "--request"])
+            .arg(&request)
+            .arg("--json")
+            .output()
+            .unwrap();
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        (output.status.code(), text)
+    };
+    // The subcommand is attach/preview-attach: a non-portable formula name is
+    // rejected even though the file says render or pour.
+    for command in ["attach", "preview-attach"] {
+        for file_operation in ["render", "pour"] {
+            let (code, text) = run(command, &request_with(file_operation, attach.clone()));
+            assert_eq!(code, Some(3), "{command}/{file_operation}: {text}");
+            assert!(
+                text.contains("BEADS_REQUEST_DESERIALIZATION_FAILED"),
+                "{command}/{file_operation}: {text}"
+            );
+        }
+    }
+    // The subcommand is render: the file saying attach keeps the legacy name.
+    let legacy_only = serde_json::json!({"formula_name":"caf\u{e9}"});
+    let (_, text) = run("render", &request_with("attach", legacy_only));
+    assert!(
+        !text.contains("BEADS_REQUEST_DESERIALIZATION_FAILED"),
+        "render over an attach file must tolerate a legacy name: {text}"
+    );
+    // A bad relation endpoint on a non-attach subcommand is a request error;
+    // on preview-attach it stays a refused receipt.
+    let relation = serde_json::json!({
+        "relations":[{"from":"step:a", "to":"bead:bad id", "type":"blocks"}]
+    });
+    let (code, text) = run(
+        "preview-pour",
+        &request_with("preview_pour", relation.clone()),
+    );
+    assert_eq!(code, Some(3), "{text}");
+    assert!(text.contains("BEADS_GRAPH_ID_INVALID"), "{text}");
+    let mut attach_relation = relation;
+    attach_relation["parent"] = serde_json::json!("proj-1");
+    attach_relation["ref"] = serde_json::json!("valid");
+    let (code, text) = run(
+        "preview-attach",
+        &request_with("preview_attach", attach_relation),
+    );
+    assert_eq!(code, Some(2), "{text}");
+    assert!(text.contains("BEADS_GRAPH_ID_INVALID"), "{text}");
+}
+
 #[cfg(unix)]
 #[test]
 fn fuzz_021_cooked_step_refusal_has_canonical_error_and_legacy_receipt() {

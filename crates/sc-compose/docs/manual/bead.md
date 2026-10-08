@@ -426,5 +426,10 @@ A readable file containing malformed JSON retains
 
 Malformed request shapes (unknown operation, wrong field type, or missing required
 field) and missing persistent-operation authorization are reported before invalid
-identifier grammar. They retain usage exit 3; an invalid identifier in an otherwise
-well-formed, authorized request retains its typed error and exit 2.
+identifier grammar. They retain usage exit 3. An invalid identifier in an otherwise
+well-formed, authorized request keeps its typed `BEADS_GRAPH_ID_INVALID` error; the
+subcommand, not the request file's `operation`, decides how it is reported: exit 3
+(a request error) for `render`, `validate`, `preview-pour` and `pour`, and a refused
+receipt with exit 2 only for `attach` and `preview-attach`. The subcommand likewise
+decides whether a legacy (non-portable) `formula_name` is tolerated: it is for every
+subcommand except `attach` and `preview-attach`.
