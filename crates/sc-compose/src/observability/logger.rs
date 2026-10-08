@@ -9,7 +9,7 @@ use sc_observability::{
 use sc_observability::v2::Logger;
 
 use crate::CommandError;
-use crate::observability::SERVICE_NAME;
+use crate::observability::validated_service_name;
 
 const DEFAULT_LOG_ROOT_DIR: &str = ".sc-compose";
 
@@ -47,7 +47,7 @@ fn default_log_root() -> Result<PathBuf, CommandError> {
 }
 
 fn build_service_name() -> Result<ServiceName, CommandError> {
-    ServiceName::new(SERVICE_NAME).map_err(|error| {
+    validated_service_name().map_err(|error| {
         CommandError::usage(anyhow!("invalid observability service name: {error}"))
     })
 }
