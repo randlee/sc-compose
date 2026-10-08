@@ -370,6 +370,11 @@ mod tests {
             (InfoValDefaultUsed, "INFO_VAL_DEFAULT_USED"),
             (ErrRenderStdinDoubleRead, "ERR_RENDER_STDIN_DOUBLE_READ"),
             (ErrRenderWrite, "ERR_RENDER_WRITE"),
+            (ErrRenderAppendNotObject, "ERR_RENDER_APPEND_NOT_OBJECT"),
+            (
+                ErrRenderAppendNoFinalNewline,
+                "ERR_RENDER_APPEND_NO_FINAL_NEWLINE",
+            ),
             (ErrConfigReadonly, "ERR_CONFIG_READONLY"),
             (ErrConfigMode, "ERR_CONFIG_MODE"),
             (ErrJsonEscapeModeNonJson, "ERR_JSON_ESCAPE_MODE_NON_JSON"),
@@ -478,7 +483,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 81);
+        assert_eq!(codes.len(), 83);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(

@@ -1801,6 +1801,8 @@ Canonical failures must map to stable error families and stable codes.
 | Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
+| JSON Lines append rendered a non-object value | `RenderError` | `ERR_RENDER_APPEND_NOT_OBJECT` |
+| JSON Lines append target has no final newline | `RenderError` | `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
 | Text/config file exists but is not readable as valid text | `ConfigError` | `ERR_CONFIG_READ` |
