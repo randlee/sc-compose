@@ -305,6 +305,30 @@ fn render_append_rejects_output_conflict_without_changing_destination() {
         !output_path.exists(),
         "conflicting --output must not create a file"
     );
+
+    let json_output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+            "--output",
+            output_path.to_str().unwrap(),
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(json_output.status.code(), Some(3));
+    assert!(json_output.stderr.is_empty());
+    let envelope: Value = serde_json::from_slice(&json_output.stdout).unwrap();
+    assert_eq!(envelope["diagnostics"][0]["code"], "ERR_CONFIG_PARSE");
+    assert_eq!(fs::read(&destination).unwrap(), original);
+    assert!(!output_path.exists());
 }
 
 #[test]
@@ -343,6 +367,28 @@ fn render_append_rejects_dry_run_conflict_without_changing_destination() {
             && stderr.contains("cannot be used with '--dry-run'"),
         "expected the --append/--dry-run conflict diagnostic, got: {stderr}"
     );
+    assert_eq!(fs::read(&destination).unwrap(), original);
+
+    let json_output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(json_output.status.code(), Some(3));
+    assert!(json_output.stderr.is_empty());
+    let envelope: Value = serde_json::from_slice(&json_output.stdout).unwrap();
+    assert_eq!(envelope["diagnostics"][0]["code"], "ERR_CONFIG_PARSE");
     assert_eq!(fs::read(&destination).unwrap(), original);
 }
 
