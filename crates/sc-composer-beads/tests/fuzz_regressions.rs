@@ -447,16 +447,19 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
         .unwrap()
         .strip_suffix(" --type 'blocks'")
         .unwrap();
+    #[cfg(unix)]
     assert_bash_round_trip(arguments, format!("{from}\0{to}\0").as_bytes());
 
     let separators = "line\u{2028}paragraph\u{2029}end";
     let escaped_separators = sc_composer_beads::error::shell_quote(separators);
     assert!(escaped_separators.contains("\\xE2\\x80\\xA8"));
     assert!(escaped_separators.contains("\\xE2\\x80\\xA9"));
+    #[cfg(unix)]
     assert_bash_round_trip(&escaped_separators, format!("{separators}\0").as_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
 }
 
+#[cfg(unix)]
 fn assert_bash_round_trip(arguments: &str, expected: &[u8]) {
     let mut tested_shell = false;
     for shell in ["/bin/bash", "bash"] {

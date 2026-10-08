@@ -365,11 +365,11 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
             let parent_display = if parent.as_os_str().is_empty() {
                 path.display().to_string()
             } else {
-                parent.display().to_string()
+                public_path_display(parent)
             };
             format!(
                 "parent directory `{parent_display}` for `{}` must exist",
-                path.display()
+                public_path_display(path)
             )
         } else {
             String::from("parent directory must be resolvable")
@@ -382,7 +382,10 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
     if !parent.is_dir() {
         return Err(BeadComposeError::OutputPathInvalid {
             path: path.into(),
-            rule: format!("parent `{}` must be a directory", parent.display()),
+            rule: format!(
+                "parent `{}` must be a directory",
+                public_path_display(&parent)
+            ),
         });
     }
     let name = path
@@ -392,6 +395,14 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
             rule: String::from("path must include a file name"),
         })?;
     Ok(parent.join(name))
+}
+
+fn public_path_display(path: &Path) -> String {
+    let displayed = path.to_string_lossy();
+    displayed
+        .strip_prefix(r"\\?\")
+        .unwrap_or(displayed.as_ref())
+        .to_owned()
 }
 
 fn valid_bead_key(key: &str) -> bool {
@@ -546,10 +557,29 @@ pub(crate) fn receipt(
     stages: Vec<BeadStageReceipt>,
     outcome: BeadOutcome,
 ) -> BeadComposeReceipt {
+    let public_rendered_formula = public_path_display(&rendered_formula);
+    let private_rendered_formula = rendered_formula
+        .into_os_string()
+        .to_string_lossy()
+        .into_owned();
+    let mut stages = stages;
+    for stage in &mut stages {
+        for argument in &mut stage.argv {
+            if argument == private_rendered_formula.as_str() {
+                argument.clone_from(&public_rendered_formula);
+            }
+        }
+        stage.stderr_excerpt = stage
+            .stderr_excerpt
+            .replace(private_rendered_formula.as_str(), &public_rendered_formula);
+        stage.stdout_excerpt = stage
+            .stdout_excerpt
+            .replace(private_rendered_formula.as_str(), &public_rendered_formula);
+    }
     BeadComposeReceipt {
         schema: BEADS_SCHEMA_V1.to_owned(),
         operation: request.operation,
-        rendered_formula,
+        rendered_formula: PathBuf::from(public_rendered_formula),
         stages,
         outcome,
         pour_mode: None,
@@ -633,7 +663,7 @@ pub(crate) mod tests {
 
     use serde_json::{Map, json};
 
-    use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner};
+    use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner, public_path_display};
     #[cfg(unix)]
     use crate::StdProcessRunner;
     use crate::{
@@ -642,6 +672,18 @@ pub(crate) mod tests {
     };
 
     static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+    #[test]
+    fn public_path_display_strips_windows_verbatim_prefix_on_all_platforms() {
+        assert_eq!(
+            public_path_display(Path::new(r"\\?\C:\Users\test\sample.formula.toml")),
+            r"C:\Users\test\sample.formula.toml"
+        );
+        assert_eq!(
+            public_path_display(Path::new("plain.formula.toml")),
+            "plain.formula.toml"
+        );
+    }
 
     #[derive(Default)]
     pub(crate) struct FakeRunner {
