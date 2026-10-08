@@ -1,5 +1,6 @@
 //! Fixed-delimiter formula rendering.
 
+use std::collections::BTreeMap;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
@@ -10,6 +11,9 @@ use serde_json::Map;
 
 use crate::error::BeadComposeError;
 use crate::execute::public_path_buf;
+
+const OPEN_DELIMITER: &str = "{{{";
+const CLOSE_DELIMITER: &str = "}}}";
 
 static TEMPORARY_OUTPUT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -47,23 +51,70 @@ pub(crate) fn render_formula_in_root(
 ) -> Result<(), BeadComposeError> {
     let root =
         sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
-    let expanded =
-        sc_composer::expand_includes(template, &root, &sc_composer::ComposePolicy::default())
-            .map_err(|error| BeadComposeError::RenderFailed {
-                message: error.to_string(),
-            })?;
-    let rendered =
-        sc_composer::Renderer::with_delimiters_and_escape_mode("{{{", "}}}", escape_mode(template))
-            .and_then(|renderer| {
-                renderer.render_named(
-                    &template.to_string_lossy(),
-                    &expanded.text,
-                    compose_variables,
-                )
+    let request = sc_composer::ComposeRequest {
+        runtime: None,
+        mode: sc_composer::ComposeMode::File {
+            template_path: template.to_path_buf(),
+        },
+        root,
+        vars_input: compose_variables
+            .iter()
+            .filter_map(|(name, value)| {
+                sc_composer::VariableName::new(name.as_str())
+                    .ok()
+                    .map(|name| (name, value.clone()))
             })
-            .map_err(|error| BeadComposeError::RenderFailed {
-                message: error.message().to_owned(),
-            })?;
+            .collect(),
+        vars_env: BTreeMap::new(),
+        vars_defaults: BTreeMap::new(),
+        guidance_block: None,
+        user_prompt: None,
+        policy: sc_composer::ComposePolicy::default(),
+    };
+    // Reuse the library validation path so frontmatter `required_variables`
+    // and `defaults` have the same meaning here as in `sc-composer` render.
+    let (report, expanded) = sc_composer::validate_with_observer_and_delimiters_with_expansion(
+        &request,
+        &mut sc_composer::NoopObserver,
+        Some((OPEN_DELIMITER, CLOSE_DELIMITER)),
+    )
+    .map_err(|error| BeadComposeError::RenderFailed {
+        message: error.to_string(),
+    })?;
+    if !report.ok {
+        return Err(BeadComposeError::RenderFailed {
+            message: report
+                .errors
+                .iter()
+                .map(|diagnostic| format!("{:?}: {}", diagnostic.code, diagnostic.message))
+                .collect::<Vec<_>>()
+                .join("; "),
+        });
+    }
+    let mut context = BTreeMap::new();
+    if let Some(frontmatter) = expanded.frontmatters.iter().find_map(|(path, passes)| {
+        (path == &report.resolve_result.resolved_path)
+            .then(|| passes.first())
+            .flatten()
+    }) {
+        for (name, value) in frontmatter.defaults() {
+            context.insert(name.to_string(), value.clone());
+        }
+    }
+    for (name, value) in compose_variables {
+        context.insert(name.clone(), value.clone());
+    }
+    let rendered = sc_composer::Renderer::with_delimiters_and_escape_mode(
+        OPEN_DELIMITER,
+        CLOSE_DELIMITER,
+        escape_mode(template),
+    )
+    .and_then(|renderer| {
+        renderer.render_named(&template.to_string_lossy(), &expanded.text, context)
+    })
+    .map_err(|error| BeadComposeError::RenderFailed {
+        message: error.message().to_owned(),
+    })?;
     atomic_write(rendered_formula, rendered.as_bytes())
 }
 
@@ -218,6 +269,52 @@ mod tests {
     use serde_json::{Map, json};
 
     use super::{render_formula, render_formula_in_root};
+
+    // TMPL5-02: a template that declares a required input must refuse when the
+    // input is absent instead of rendering a successful but incorrect formula.
+    #[test]
+    fn missing_frontmatter_required_variable_is_refused() {
+        let root = temporary_directory();
+        let template = root.join("needs.formula.json.j2");
+        let output = root.join("needs.formula.json");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - title\n---\n{ \"title\": \"{{{ title }}}\" }",
+        )
+        .expect("write template");
+        let error = render_formula(&template, &output, &Map::new())
+            .expect_err("missing required input must be refused");
+        assert!(
+            matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("title")),
+            "{error:?}"
+        );
+        assert!(!output.exists(), "nothing is written on refusal");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn frontmatter_defaults_apply_and_caller_values_win() {
+        let root = temporary_directory();
+        let template = root.join("defaults.formula.json.j2");
+        let output = root.join("defaults.formula.json");
+        fs::write(
+            &template,
+            "---\ndefaults:\n  title: fallback\n  owner: team\n---\n{ \"title\": \"{{{ title }}}\", \"owner\": \"{{{ owner }}}\" }",
+        )
+        .expect("write template");
+        render_formula(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("owner"), json!("ada"))]),
+        )
+        .expect("render with defaults");
+        let rendered = fs::read_to_string(&output).expect("read output");
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&rendered).expect("valid JSON"),
+            json!({ "title": "fallback", "owner": "ada" })
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
 
     #[test]
     fn json_formula_templates_escape_literal_quoted_values_once() {
