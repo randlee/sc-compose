@@ -30,19 +30,42 @@ pub fn execute_bead_request(
     execute_bead_request_with_runner(request, &StdProcessRunner)
 }
 
+/// Execute a request and report typed graph failures retained in its receipt.
+///
+/// Diagnostic callbacks receive borrowed errors before they become receipt
+/// codes and stage excerpts. Receipt serialization is unchanged. Errors returned
+/// directly from this function remain available through its `Result`.
+///
+/// # Errors
+/// Returns the same request and process errors as [`execute_bead_request`].
+pub fn execute_bead_request_with_diagnostics(
+    request: &BeadComposeRequest,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_with_runner_and_diagnostics(request, &StdProcessRunner, diagnostics)
+}
+
 /// Execute a Beads request through an injected direct process runner.
 ///
 /// # Errors
 ///
 /// Returns a stable error for rejected request preconditions or an unavailable
 /// executable. Process failures return a failed receipt with stage evidence.
-#[allow(
-    clippy::too_many_lines,
-    reason = "The receipt-producing render, validate, registry, and pour progression is intentionally visible in one ordered function."
-)]
 pub fn execute_bead_request_with_runner(
     request: &BeadComposeRequest,
     runner: &dyn ProcessRunner,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_with_runner_and_diagnostics(request, runner, &mut |_| {})
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "The receipt-producing progression remains visible in one ordered function."
+)]
+fn execute_with_runner_and_diagnostics(
+    request: &BeadComposeRequest,
+    runner: &dyn ProcessRunner,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     let normalized = validate_request(request)?;
     let mut stages = Vec::new();
@@ -90,7 +113,14 @@ pub fn execute_bead_request_with_runner(
     ));
 
     let destination = normalized.rendered_formula.clone();
-    let result = execute_rendered_request(request, runner, normalized, &formula_input, stages);
+    let result = execute_rendered_request(
+        request,
+        runner,
+        normalized,
+        &formula_input,
+        stages,
+        diagnostics,
+    );
     formula_input.publish(&destination)?;
     result
 }
@@ -101,6 +131,7 @@ fn execute_rendered_request(
     normalized: NormalizedRequest,
     formula_input: &InputSnapshot,
     mut stages: Vec<BeadStageReceipt>,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     if request.operation == BeadOperation::Render {
         return Ok(receipt(
@@ -116,7 +147,15 @@ fn execute_rendered_request(
         .clone()
         .unwrap_or_else(|| PathBuf::from("bd"));
     if crate::graph::is_attach(request.operation) {
-        return crate::graph::execute(request, runner, &normalized, formula_input, bd, stages);
+        return crate::graph::execute(
+            request,
+            runner,
+            &normalized,
+            formula_input,
+            bd,
+            stages,
+            diagnostics,
+        );
     }
     let cook_input = if matches!(
         request.operation,
@@ -148,7 +187,15 @@ fn execute_rendered_request(
         ));
     }
 
-    crate::pour::execute_pour(request, runner, normalized, formula_input, bd, stages)
+    crate::pour::execute_pour(
+        request,
+        runner,
+        normalized,
+        formula_input,
+        bd,
+        stages,
+        diagnostics,
+    )
 }
 
 pub(crate) struct NormalizedRequest {
@@ -659,6 +706,47 @@ pub(crate) mod tests {
             ref_: None,
             relations: Vec::new(),
         }
+    }
+
+    #[test]
+    fn graph_diagnostic_callback_retains_typed_error_without_changing_receipt_json() {
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::PreviewAttach);
+        request.parent = Some(crate::BeadId::new("nosuch").unwrap());
+        request.ref_ = Some(crate::GraphRef::new("r").unwrap());
+        request.bead_variables.clear();
+        fs::write(&request.template, "formula = \"example\"\n").unwrap();
+        let runner = FakeRunner::with_outputs([
+            success(r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#),
+            success("[]"),
+        ]);
+        let mut diagnostics = Vec::new();
+        let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+            assert!(matches!(error, BeadComposeError::GraphParentNotFound { parent } if parent.as_str() == "nosuch"));
+            diagnostics.push(serde_json::to_value(error).unwrap());
+        }).unwrap();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0]["details"], json!({"parent":"nosuch"}));
+        assert_eq!(
+            diagnostics[0]["recovery"],
+            "Create the parent or name an existing bead."
+        );
+        let wire = serde_json::to_value(&receipt).unwrap();
+        assert_eq!(
+            wire["outcome"],
+            json!({"refused":{"code":"BEADS_GRAPH_PARENT_NOT_FOUND"}})
+        );
+        assert!(wire.get("error").is_none());
+        assert!(wire.get("diagnostics").is_none());
+        assert!(
+            receipt
+                .stages
+                .last()
+                .unwrap()
+                .stderr_excerpt
+                .contains("graph parent `nosuch` does not exist")
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

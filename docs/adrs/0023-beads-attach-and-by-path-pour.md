@@ -322,6 +322,9 @@ non-empty `relations` on render or validate; non-empty `bead_variables` on an
 attach op (`RequestDeserializationFailed`); and the existing Phase R request
 codes. Everything in the table is a receipt (Rust `Ok`, Python receipt, CLI
 exit 2).
+A `BeadId`, `GraphRef` or `StepId` that fails its newtype rule instead returns
+`GraphIdInvalid` (refused / exit 2, with field, value and rule), not
+`RequestDeserializationFailed`.
 
 A pour learns its mode only after resolving the active registry (see
 "Stages"), so its two mode-dependent misuses are refused receipts, before any

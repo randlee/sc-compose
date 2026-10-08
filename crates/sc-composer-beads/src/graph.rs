@@ -33,6 +33,7 @@ pub(crate) fn execute(
     formula_input: &InputSnapshot,
     bd: PathBuf,
     stages: Vec<BeadStageReceipt>,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     let attach = is_attach(request.operation);
     let stage = match request.operation {
@@ -60,6 +61,7 @@ pub(crate) fn execute(
                 return Err(error);
             }
             runtime.record_error(&error);
+            diagnostics(&error);
             let code = error.code().to_owned();
             let failed = matches!(
                 error,

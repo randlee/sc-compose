@@ -35,6 +35,8 @@ pub use error::{
     GraphRelationInvalidReason,
 };
 #[doc(inline)]
-pub use execute::{execute_bead_request, execute_bead_request_with_runner};
+pub use execute::{
+    execute_bead_request, execute_bead_request_with_diagnostics, execute_bead_request_with_runner,
+};
 #[doc(inline)]
 pub use runner::{CommandSpec, ProcessOutput, ProcessRunner, StdProcessRunner};

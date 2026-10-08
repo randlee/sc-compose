@@ -508,10 +508,27 @@ impl std::fmt::Display for GraphFormulaUnsupportedReason {
     }
 }
 
+/// Quote one argument for a shell-copyable recovery command.
+#[must_use]
+pub fn shell_quote(argument: &str) -> String {
+    if argument.chars().any(char::is_control) {
+        format!("$'{argument}'", argument = argument.escape_default())
+    } else {
+        format!("'{}'", argument.replace('\'', "'\"'\"'"))
+    }
+}
+
 fn missing_edge_commands(edges: &[MissingEdge]) -> String {
     edges
         .iter()
-        .map(|edge| format!("bd dep add {} {} --type {}", edge.from, edge.to, edge.kind))
+        .map(|edge| {
+            format!(
+                "bd dep add {} {} --type {}",
+                shell_quote(edge.from.as_str()),
+                shell_quote(edge.to.as_str()),
+                shell_quote(&edge.kind.to_string())
+            )
+        })
         .collect::<Vec<_>>()
         .join("; ")
 }

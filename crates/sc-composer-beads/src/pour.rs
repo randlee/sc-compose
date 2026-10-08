@@ -21,6 +21,7 @@ pub(crate) fn execute_pour(
     formula_input: &InputSnapshot,
     bd: PathBuf,
     mut stages: Vec<BeadStageReceipt>,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     let formula_name = request
         .formula_name
@@ -61,7 +62,15 @@ pub(crate) fn execute_pour(
         if let Some(refusal) = refuse_outside_workspace(request, &normalized, &stages) {
             return Ok(refusal);
         }
-        return crate::graph::execute(request, runner, &normalized, formula_input, bd, stages);
+        return crate::graph::execute(
+            request,
+            runner,
+            &normalized,
+            formula_input,
+            bd,
+            stages,
+            diagnostics,
+        );
     }
     if !request.relations.is_empty() {
         return Ok(refuse_registry_relations(request, normalized, stages));

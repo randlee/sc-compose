@@ -22,6 +22,108 @@ fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::pat
     request
 }
 
+// FUZZ-039: human graph refusals expose canonical structured recovery fields.
+#[cfg(unix)]
+#[test]
+fn fuzz_039_human_preview_attach_prints_parent_refusal_reason() {
+    let request = human_graph_request("fuzz-039-human-graph-refusal", "[]", "", 0);
+    let output = sc_compose()
+        .args(["bead", "preview-attach", "--request"])
+        .arg(&request)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let human = String::from_utf8(output.stdout).unwrap();
+    let error = sc_composer_beads::BeadComposeError::GraphParentNotFound {
+        parent: sc_composer_beads::BeadId::new("nosuch").unwrap(),
+    };
+    let envelope = serde_json::to_value(&error).unwrap();
+    assert!(human.contains(&error.to_string()), "{human}");
+    assert!(
+        human.contains(&format!("details: {}", envelope["details"])),
+        "{human}"
+    );
+    assert!(
+        human.contains(&format!(
+            "recovery: {}",
+            envelope["recovery"].as_str().unwrap()
+        )),
+        "{human}"
+    );
+}
+
+#[cfg(unix)]
+fn human_graph_request(label: &str, stdout: &str, stderr: &str, status: i32) -> std::path::PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    let root = temp_root(label);
+    let bd = root.join("fake-bd");
+    let cooked = r#"{"formula":"m","type":"workflow","steps":[{"id":"a","title":"A"}]}"#;
+    write_file(
+        &bd,
+        &format!(
+            "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{cooked}' ;;\n show) printf '%s' '{stdout}'; printf '%s' '{stderr}' >&2; exit {status} ;;\nesac\n"
+        ),
+    );
+    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    write_file(&root.join("m.formula.toml.j2"), "formula = \"m\"\n");
+    let request = root.join("request.json");
+    write_file(&request, &serde_json::json!({"schema":"sc-compose/beads/v1","operation":"preview_attach","working_directory":root,"template":"m.formula.toml.j2","rendered_formula":root.join("out.formula.toml"),"compose_variables":{},"bead_variables":{},"parent":"nosuch","ref":"r","bd_executable":bd}).to_string());
+    request
+}
+
+#[cfg(unix)]
+#[test]
+fn fuzz_039_human_receipts_preserve_conflict_id_and_read_cause() {
+    let cases = [
+        (
+            "conflict",
+            r#"[{"id":"nosuch"},{"id":"nosuch.r-a","title":"A"}]"#,
+            "",
+            0,
+            "BEADS_GRAPH_CONFLICT",
+            "\"id\":\"nosuch.r-a\"",
+        ),
+        (
+            "read",
+            "",
+            r#"{"error":"permission denied"}"#,
+            2,
+            "BEADS_GRAPH_READ_FAILED",
+            "\"cause\":\"permission denied\"",
+        ),
+    ];
+    for (label, stdout, stderr, status, code, detail) in cases {
+        let request = human_graph_request(label, stdout, stderr, status);
+        let human = sc_compose()
+            .args(["bead", "preview-attach", "--request"])
+            .arg(&request)
+            .output()
+            .unwrap();
+        assert_eq!(human.status.code(), Some(2), "{human:?}");
+        let text = String::from_utf8(human.stdout).unwrap();
+        assert!(text.contains(code), "{text}");
+        assert!(text.contains("details:"), "{text}");
+        assert!(text.contains(detail), "{text}");
+        assert!(text.contains("recovery:"), "{text}");
+        let json = sc_compose()
+            .args(["bead", "preview-attach", "--request"])
+            .arg(&request)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert_eq!(json.status.code(), Some(2));
+        let envelope: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+        assert!(envelope["payload"].get("diagnostics").is_none());
+        assert!(envelope["payload"].get("error").is_none());
+        assert_eq!(
+            envelope["payload"]["outcome"]["refused"]["code"]
+                .as_str()
+                .or_else(|| envelope["payload"]["outcome"]["failed"]["code"].as_str()),
+            Some(code)
+        );
+    }
+}
+
 // FUZZ-012: a relative template resolves against working_directory.
 #[test]
 fn fuzz_012_bead_request_template_is_relative_to_working_directory() {
@@ -268,4 +370,59 @@ fn fuzz_043_json_depth_limit_is_typed_and_append_preserves_output() {
         );
         assert_eq!(std::fs::read(&destination).unwrap(), previous);
     }
+}
+
+// FUZZ-017 round 2: nested raw values must still produce exactly one physical JSONL line.
+#[test]
+fn fuzz_017_nested_raw_values_append_as_one_line_without_changing_lexemes() {
+    let root = temp_root("fuzz-017-nested-one-line-record");
+    let template = r#"{
+  "nested": {
+    "array": [
+      12345678901234567890123,
+      { "decimal": 0.10000000000000000001, "exponent": -1.2300E+04 },
+      [ 4.20e-03, "spaces stay  here", "escaped\nline\tand\rreturn", "quote: \" then \\" ]
+    ],
+    "escaped": "\u0061\/b",
+    "after": { "value": true }
+  }
+}"#;
+    write_file(
+        &root.join("nested.json.j2"),
+        &template.replace('\n', "\r\n").replace("    ", "\t"),
+    );
+    let destination = root.join("records.jsonl");
+    let existing = "{\"existing\":true}\n";
+    write_file(&destination, existing);
+    let output = sc_compose()
+        .args(["render", "--file", "nested.json.j2", "--root"])
+        .arg(&root)
+        .arg("--append")
+        .arg(&destination)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let contents = std::fs::read_to_string(&destination).unwrap();
+    assert!(contents.starts_with(existing), "existing records changed");
+    let appended = &contents[existing.len()..];
+    assert_eq!(
+        appended.bytes().filter(|byte| *byte == b'\n').count(),
+        1,
+        "nested whitespace leaked into JSONL: {appended}"
+    );
+    assert!(appended.ends_with('\n'));
+    let expected = concat!(
+        r#"{"nested":{"array":[12345678901234567890123,{"decimal":0.10000000000000000001,"exponent":-1.2300E+04},"#,
+        r#"[4.20e-03,"spaces stay  here","escaped\nline\tand\rreturn","quote: \" then \\"]],"#,
+        r#""escaped":"\u0061\/b","after":{"value":true}}}"#,
+        "\n"
+    );
+    assert_eq!(
+        appended, expected,
+        "numeric or escaped-string lexemes changed"
+    );
+    let envelope = parse_stdout(&output);
+    assert_eq!(envelope["payload"]["bytes_written"], appended.len());
+    assert_eq!(envelope["payload"]["appended"], true);
 }

@@ -678,7 +678,7 @@ fn missing_edge_error_lists_each_repair_in_plan_order() {
     };
     assert_eq!(
         error.to_string(),
-        "graph edges missing; repair then retry: bd dep add proj-42 proj-3 --type blocks; bd dep add proj-9 proj-42 --type validates"
+        "graph edges missing; repair then retry: bd dep add 'proj-42' 'proj-3' --type 'blocks'; bd dep add 'proj-9' 'proj-42' --type 'validates'"
     );
 }
 
@@ -863,7 +863,7 @@ fn graph_edge_types_validate_strings_without_changing_wire_format() {
     assert!(
         error
             .to_string()
-            .ends_with("bd dep add proj-42 proj-3 --type custom-audit_1")
+            .ends_with("bd dep add 'proj-42' 'proj-3' --type 'custom-audit_1'")
     );
 
     let step = BeadEndpoint::Step(StepId::new("build").expect("valid step"));
@@ -936,6 +936,9 @@ fn formula_names_are_validated_in_requests_and_graph_metadata() {
     ] {
         FormulaName::new(name).expect_err("invalid Rust name");
         let mut invalid = request.clone();
+        invalid["operation"] = json!("preview_attach");
+        invalid["parent"] = json!("proj-1");
+        invalid["ref"] = json!("chain");
         invalid["formula_name"] = json!(name);
         let error = parse_request(&invalid.to_string()).expect_err("invalid wire name");
         assert_eq!(error.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
