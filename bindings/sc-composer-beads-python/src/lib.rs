@@ -361,14 +361,14 @@ impl PyBeadComposeReceipt {
     /// Decode a versioned Rust receipt into the Python receipt surface.
     #[classmethod]
     fn from_json(class: &Bound<'_, PyType>, receipt_json: &str) -> PyResult<Self> {
-        serde_json::from_str::<BeadComposeReceipt>(receipt_json)
-            .map(Self::from)
-            .map_err(|error| {
+        let receipt =
+            serde_json::from_str::<BeadComposeReceipt>(receipt_json).map_err(|error| {
                 receipt_deserialization_error(
                     class.py(),
                     format!("failed to decode receipt: {error}"),
                 )
-            })
+            })?;
+        Self::from_rust(class.py(), receipt)
     }
 
     /// Return the canonical Rust receipt JSON as Python JSON data.
@@ -429,10 +429,20 @@ fn outcome(inner: &BeadOutcome) -> PyBeadOutcome {
     }
 }
 
-impl From<BeadComposeReceipt> for PyBeadComposeReceipt {
-    fn from(inner: BeadComposeReceipt) -> Self {
-        let wire = serde_json::to_string(&inner).expect("receipt serializes");
-        Self {
+impl PyBeadComposeReceipt {
+    fn from_rust(py: Python<'_>, inner: BeadComposeReceipt) -> PyResult<Self> {
+        let wire =
+            serde_json::to_string(&inner).map_err(|error| request_error(py, error.to_string()))?;
+        let graph = inner
+            .graph
+            .as_ref()
+            .map(|graph| {
+                let value = serde_json::to_value(graph)
+                    .map_err(|error| request_error(py, error.to_string()))?;
+                json_to_py(py, &value)
+            })
+            .transpose()?;
+        Ok(Self {
             wire,
             schema: inner.schema,
             operation: operation_name(inner.operation).to_owned(),
@@ -440,17 +450,8 @@ impl From<BeadComposeReceipt> for PyBeadComposeReceipt {
             stages: inner.stages.iter().map(stage_receipt).collect(),
             outcome: outcome(&inner.outcome),
             pour_mode: inner.pour_mode.map(serde_variant_name),
-            graph: Python::attach(|py| {
-                inner
-                    .graph
-                    .as_ref()
-                    .map(|graph| {
-                        json_to_py(py, &serde_json::to_value(graph).expect("graph serializes"))
-                    })
-                    .transpose()
-                    .expect("graph converts")
-            }),
-        }
+            graph,
+        })
     }
 }
 
@@ -604,9 +605,10 @@ fn execute_with_operation(
     if let Some(operation) = operation {
         request.operation = operation;
     }
-    py.detach(|| execute_bead_request(&request))
-        .map(PyBeadComposeReceipt::from)
-        .map_err(|error_kind| rust_error_to_pyerr(py, &error_kind))
+    let receipt = py
+        .detach(|| execute_bead_request(&request))
+        .map_err(|error_kind| rust_error_to_pyerr(py, &error_kind))?;
+    PyBeadComposeReceipt::from_rust(py, receipt)
 }
 
 #[pyfunction]
