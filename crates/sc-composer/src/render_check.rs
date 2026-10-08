@@ -10,6 +10,12 @@ use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::is_json_template_path;
 use crate::renderer::JsonEscapeMode;
 
+/// Maximum supported number of nested JSON objects and arrays.
+///
+/// Keeps parsing, value destruction and append serialization within the
+/// bounded recursion supported by the JSON parser.
+pub const MAX_JSON_NESTING_DEPTH: usize = 127;
+
 /// Output formats understood by the checked-render contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -251,6 +257,11 @@ pub enum OutputCheckReason {
         /// Zero-based byte offset.
         byte_offset: usize,
     },
+    /// JSON nesting exceeded the supported resource limit.
+    JsonDepthLimit {
+        /// Maximum supported number of nested objects and arrays.
+        limit: usize,
+    },
     /// The requested format contract was violated.
     ContractViolation,
     /// Rendering itself failed before output checking.
@@ -266,8 +277,8 @@ pub enum OutputCheckReason {
 /// # Errors
 ///
 /// Returns [`OutputCheckError`] when a JSON body is not one complete valid JSON
-/// document. The error includes a stable diagnostic location and never echoes
-/// rendered values.
+/// document or exceeds [`MAX_JSON_NESTING_DEPTH`]. The error includes a stable
+/// diagnostic location and never echoes rendered values.
 pub fn check_rendered_output(
     format: OutputFormat,
     template: &Path,
@@ -287,8 +298,8 @@ pub fn check_rendered_output(
 /// # Errors
 ///
 /// Returns [`OutputCheckError`] when a JSON body is not one complete valid JSON
-/// document. The error includes a stable diagnostic location and never echoes
-/// rendered values.
+/// document or exceeds [`MAX_JSON_NESTING_DEPTH`]. The error includes a stable
+/// diagnostic location and never echoes rendered values.
 pub fn check_rendered_output_with_meta(
     meta: RenderCheckMeta,
     rendered: &str,
@@ -310,6 +321,20 @@ pub fn check_rendered_output_with_meta(
     let line = error.line();
     let column = error.column();
     let byte_offset = byte_offset_at(rendered, line, column, error.classify());
+    // Keep the parser's first syntax failure authoritative. Its recursion
+    // guard reports the opening container at the unsupported depth; only
+    // matching structural evidence changes that failure's classification.
+    if excessive_json_depth(rendered) == Some(byte_offset) {
+        return Err(OutputCheckError {
+            reason: OutputCheckReason::JsonDepthLimit { limit: MAX_JSON_NESTING_DEPTH },
+            diagnostics: vec![Diagnostic::new(
+                DiagnosticSeverity::Error,
+                DiagnosticCode::ErrRenderJsonDepthLimit,
+                format!("rendered JSON exceeds the maximum nesting depth of {MAX_JSON_NESTING_DEPTH} at line {line}, column {column}, byte offset {byte_offset}"),
+            ).with_path(&meta.template).with_location(line, column)],
+        });
+    }
+
     let diagnostic = Diagnostic::new(
         DiagnosticSeverity::Error,
         DiagnosticCode::ErrRenderJsonMalformed,
@@ -327,6 +352,38 @@ pub fn check_rendered_output_with_meta(
         },
         diagnostics: vec![diagnostic],
     })
+}
+
+// Identify the depth boundary without allocating a container stack. Braces
+// inside JSON strings (including escaped quotes) are data, not nesting.
+fn excessive_json_depth(text: &str) -> Option<usize> {
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    for (offset, byte) in text.bytes().enumerate() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == b'"' {
+                in_string = false;
+            }
+        } else {
+            match byte {
+                b'"' => in_string = true,
+                b'{' | b'[' => {
+                    depth += 1;
+                    if depth > MAX_JSON_NESTING_DEPTH {
+                        return Some(offset);
+                    }
+                }
+                b'}' | b']' => depth = depth.saturating_sub(1),
+                _ => {}
+            }
+        }
+    }
+    None
 }
 
 fn byte_offset_at(
@@ -376,6 +433,62 @@ mod tests {
                     .expect("valid JSON");
             assert_eq!(checked.body(), body);
         }
+    }
+
+    #[test]
+    fn json_depth_boundary_has_a_distinct_typed_failure() {
+        for (open, close) in [("{\"a\":", "}"), ("[", "]")] {
+            for depth in [127, 128, 10_000] {
+                let body = format!("{}1{}", open.repeat(depth), close.repeat(depth));
+                let result =
+                    check_rendered_output(OutputFormat::Json, Path::new("deep.json.j2"), &body);
+                if depth == 127 {
+                    assert_eq!(result.expect("supported boundary").body(), body);
+                } else {
+                    let error = result.expect_err("bounded JSON depth");
+                    assert_eq!(
+                        error.reason,
+                        super::OutputCheckReason::JsonDepthLimit { limit: 127 }
+                    );
+                    assert_eq!(
+                        error.diagnostics[0].code,
+                        crate::DiagnosticCode::ErrRenderJsonDepthLimit
+                    );
+                    assert!(error.diagnostics[0].message.contains("127"));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn malformed_json_before_the_depth_boundary_keeps_its_original_reason() {
+        for prefix in ["x", "{\"a\" ", "1 "] {
+            let body = format!("{prefix}{}1{}", "[".repeat(128), "]".repeat(128));
+            let error =
+                check_rendered_output(OutputFormat::Json, Path::new("malformed.json.j2"), &body)
+                    .expect_err("syntax error before deep containers");
+            assert!(matches!(
+                error.reason,
+                super::OutputCheckReason::InvalidJson { .. }
+            ));
+            assert_eq!(
+                error.diagnostics[0].code,
+                crate::DiagnosticCode::ErrRenderJsonMalformed
+            );
+        }
+    }
+
+    #[test]
+    fn json_depth_scan_ignores_escaped_quotes_and_brackets_in_strings() {
+        let text = format!("{}\"\\{}", "{[".repeat(200), "]}".repeat(200));
+        let body =
+            serde_json::to_string(&serde_json::json!({ "text": text })).expect("JSON string");
+        assert_eq!(
+            check_rendered_output(OutputFormat::Json, Path::new("string.json.j2"), &body)
+                .expect("brackets in string")
+                .body(),
+            body
+        );
     }
 
     #[test]

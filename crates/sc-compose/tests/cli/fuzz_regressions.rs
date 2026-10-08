@@ -225,3 +225,47 @@ fn fuzz_038_non_utf8_request_paths_are_typed_errors_in_json_and_human_modes() {
         }
     }
 }
+
+// FUZZ-043: valid JSON beyond the supported nesting limit is not malformed.
+#[test]
+fn fuzz_043_json_depth_limit_is_typed_and_append_preserves_output() {
+    let root = temp_root("fuzz-043-json-depth");
+    let template = root.join("deep.json.j2");
+    let destination = root.join("records.jsonl");
+    let previous = b"{\"previous\":true}\n";
+    std::fs::write(&destination, previous).unwrap();
+    write_file(
+        &template,
+        &format!("{}1{}", "{\"a\":".repeat(128), "}".repeat(128)),
+    );
+    for append in [false, true] {
+        let mut command = sc_compose();
+        command
+            .args(["render", "--json", "--file"])
+            .arg(&template)
+            .arg("--root")
+            .arg(&root);
+        if append {
+            command.arg("--append").arg(&destination);
+        } else {
+            command.arg("--output").arg(&destination);
+        }
+        let output = command.output().unwrap();
+        assert_eq!(output.status.code(), Some(2), "{output:?}");
+        let envelope = parse_stdout(&output);
+        let diagnostics = envelope["diagnostics"].as_array().unwrap();
+        assert!(
+            diagnostics
+                .iter()
+                .any(|d| d["code"] == "ERR_RENDER_JSON_DEPTH_LIMIT"),
+            "{envelope}"
+        );
+        assert!(
+            diagnostics
+                .iter()
+                .any(|d| d["message"].as_str().unwrap().contains("127")),
+            "{envelope}"
+        );
+        assert_eq!(std::fs::read(&destination).unwrap(), previous);
+    }
+}
