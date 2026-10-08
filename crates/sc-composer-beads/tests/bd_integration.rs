@@ -115,7 +115,7 @@ fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
         .join("formulas")
         .join("missing-release-name.formula.toml");
     let mut missing_variable = request(&root, &template, output, "missing-release-name", &bd);
-    // `bd` v1.2.2 permits unresolved placeholders for cook and dry-run pour.
+    // `bd` v1.3.1 permits unresolved placeholders for cook and dry-run pour.
     // The real missing-required-variable rejection occurs before a persistent
     // pour; this isolated temporary registry prevents any lasting state.
     missing_variable.operation = BeadOperation::Pour;
