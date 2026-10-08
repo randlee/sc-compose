@@ -899,7 +899,10 @@ pub(crate) mod tests {
                     diagnostics.push(serde_json::to_value(error).unwrap());
                 })
                 .unwrap();
-            let public = format!("{}.graph.json", request.rendered_formula.display());
+            let public = public_path_display(&PathBuf::from(format!(
+                "{}.graph.json",
+                request.rendered_formula.display()
+            )));
             assert_eq!(diagnostics.len(), 1);
             let error = &diagnostics[0];
             assert_eq!(error["details"]["command"][3], public);
