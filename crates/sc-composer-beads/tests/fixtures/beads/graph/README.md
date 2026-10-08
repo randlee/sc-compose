@@ -30,3 +30,9 @@ two refusal codes for downstream conversion tests. Refusal fixtures use the
 existing preview_pour operation because t-1 intentionally does not publish
 attach operation/stage variants (t-2 adds them with execution). They test the
 transport of a refusal code, not which operation can produce it at runtime.
+
+For these specimens, only the outcome code, `graph` and `pour_mode` are
+contract assertions. Stage outcomes, `argv` and the `stages` collection are
+non-normative placeholders; they do not define the relationship between a
+refused receipt and its stages. The empty graph-pour stages and example
+revision likewise are illustrative values, not captured runtime evidence.
