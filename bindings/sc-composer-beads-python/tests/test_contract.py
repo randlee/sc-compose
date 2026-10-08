@@ -160,6 +160,21 @@ def test_request_getters_expose_parent_ref_and_relations(tmp_path: Path) -> None
     assert empty_request.parent is None
     assert empty_request.ref is None
     assert empty_request.relations == []
+    assert empty_request.pour_authorization is None
+
+
+def test_pour_authorization_getter_returns_the_stored_token(tmp_path: Path) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+    request = beads.BeadComposeRequest(
+        tmp_path,
+        tmp_path / "template.formula.toml.j2",
+        tmp_path / "output.formula.toml",
+        {},
+        bd_executable=executable,
+        pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+    )
+
+    assert request.pour_authorization == beads.PourAuthorization.CREATE_PERSISTENT_BEADS
 
 
 def test_receipt_decode_errors_have_a_receipt_code_and_stage() -> None:

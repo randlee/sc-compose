@@ -52,13 +52,25 @@ pub enum PourAuthorization {
     CreatePersistentBeads,
 }
 
+impl PourAuthorization {
+    /// Stable wire token for this authorization.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::CreatePersistentBeads => "CreatePersistentBeads",
+        }
+    }
+}
+
 impl TryFrom<&str> for PourAuthorization {
     type Error = BeadComposeError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            "CreatePersistentBeads" => Ok(Self::CreatePersistentBeads),
-            _ => Err(BeadComposeError::PourAuthorizationInvalid),
+        let authorization = Self::CreatePersistentBeads;
+        if value == authorization.as_str() {
+            Ok(authorization)
+        } else {
+            Err(BeadComposeError::PourAuthorizationInvalid)
         }
     }
 }

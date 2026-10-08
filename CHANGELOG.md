@@ -11,6 +11,15 @@ All notable changes to this project will be documented in this file.
   (`BEADS_GRAPH_APPLY_UNCONFIRMED`) instead of `GraphApplyFailed`, because
   beads may already exist; its recovery is to reconcile before pouring again.
   Exhaustive matches on `BeadComposeError` must add the new variant.
+- `sc-composer-beads`: `BeadComposeError` is now `#[non_exhaustive]`; match
+  it with a wildcard arm. Adapters classify errors through the new
+  `BeadComposeError::stage()` and `BeadComposeError::class()`
+  (`BeadErrorClass::{Request, Execution}`, mapped by the CLI to exit 3 and 2),
+  and take codes from the new `BeadComposeError::*_CODE` constants and
+  `BeadComposeError::GRAPH_CODES`. `PourAuthorization::as_str()` returns the
+  wire token. The Python `BeadComposeRequest.pour_authorization` getter now
+  returns the stored token. No version bump: the crate has no external users
+  yet.
 
 ## [1.6.1] - 2026-08-30
 

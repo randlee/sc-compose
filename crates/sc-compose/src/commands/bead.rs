@@ -4,9 +4,10 @@ use std::fs;
 
 use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadNodeAction,
-    BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome, RefusedBeadComposeReceipt,
-    RequestParseOutcome, execute_bead_request_with_diagnostics, parse_request_for_operation,
+    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadErrorClass,
+    BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome,
+    RefusedBeadComposeReceipt, RequestParseOutcome, execute_bead_request_with_diagnostics,
+    parse_request_for_operation,
 };
 
 use crate::CommandError;
@@ -118,46 +119,10 @@ fn print_bead_error(
 }
 
 fn bead_error_exit_code(error: &BeadComposeError) -> i32 {
-    match &error {
-        BeadComposeError::RequestReadFailed { .. }
-        | BeadComposeError::RequestDeserializationFailed { .. }
-        | BeadComposeError::RelationEndpointInvalid { .. }
-        | BeadComposeError::UnknownSchema { .. }
-        | BeadComposeError::FormulaPathNotFile { .. }
-        | BeadComposeError::FormulaExtensionUnsupported { .. }
-        | BeadComposeError::TemplatePathInvalid { .. }
-        | BeadComposeError::OutputPathInvalid { .. }
-        | BeadComposeError::TemplateOutsideWorkingDirectory { .. }
-        | BeadComposeError::OutputOutsideWorkingDirectory { .. }
-        | BeadComposeError::OutputPathSymlink { .. }
-        | BeadComposeError::PathNotUtf8 { .. }
-        | BeadComposeError::BeadVariableKeyInvalid { .. }
-        | BeadComposeError::BeadVariableKeyDuplicate { .. }
-        | BeadComposeError::BeadVariableValueInvalid { .. }
-        | BeadComposeError::FormulaNameRequired
-        | BeadComposeError::PourAuthorizationRequired
-        | BeadComposeError::PourAuthorizationInvalid => exit_codes::USAGE_FAIL,
-        BeadComposeError::BdUnavailable { .. }
-        | BeadComposeError::ProcessArgumentInvalid { .. }
-        | BeadComposeError::ProcessOutputLimitExceeded { .. }
-        | BeadComposeError::RenderFailed { .. }
-        | BeadComposeError::CookFailed { .. }
-        | BeadComposeError::ActiveRegistryResolutionFailed { .. }
-        | BeadComposeError::FormulaOutsideActiveRegistry { .. }
-        | BeadComposeError::FormulaRegistryAmbiguous { .. }
-        | BeadComposeError::PreviewPourFailed { .. }
-        | BeadComposeError::PourFailed { .. }
-        | BeadComposeError::GraphParentNotFound { .. }
-        | BeadComposeError::GraphIdInvalid { .. }
-        | BeadComposeError::GraphScopeMismatch { .. }
-        | BeadComposeError::GraphFormulaUnsupported { .. }
-        | BeadComposeError::GraphRelationInvalid { .. }
-        | BeadComposeError::GraphConflict { .. }
-        | BeadComposeError::GraphEdgeConflict { .. }
-        | BeadComposeError::GraphEdgeMissing { .. }
-        | BeadComposeError::GraphReadFailed { .. }
-        | BeadComposeError::GraphApplyFailed { .. }
-        | BeadComposeError::GraphApplyUnconfirmed { .. } => exit_codes::VALIDATION_OR_RENDER_FAIL,
+    match error.class() {
+        BeadErrorClass::Request => exit_codes::USAGE_FAIL,
+        // An execution failure, or a class added by a newer library.
+        _ => exit_codes::VALIDATION_OR_RENDER_FAIL,
     }
 }
 

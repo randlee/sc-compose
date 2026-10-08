@@ -32,8 +32,8 @@ pub use contract::{
 };
 #[doc(inline)]
 pub use error::{
-    BeadComposeError, GraphConflictReason, GraphFormulaUnsupportedReason, GraphIdField,
-    GraphRelationInvalidReason,
+    BeadComposeError, BeadErrorClass, GraphConflictReason, GraphFormulaUnsupportedReason,
+    GraphIdField, GraphRelationInvalidReason,
 };
 #[doc(inline)]
 pub use execute::{

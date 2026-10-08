@@ -4,11 +4,11 @@ use std::path::PathBuf;
 
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDependencyType, BeadEdgeAction,
-    BeadEndpoint, BeadGraph, BeadGraphMode, BeadGraphProvenance, BeadId, BeadNodeAction,
-    BeadOperation, BeadOutcome, BeadPourMode, BeadRelation, BeadStage, BeadStageOutcome,
-    DependencyName, FormulaName, GraphConflictReason, GraphFormulaUnsupportedReason, GraphIdField,
-    GraphRef, GraphRelationInvalidReason, MissingEdge, PROVENANCE_KEY, Sha256Digest, StepId,
-    parse_request,
+    BeadEndpoint, BeadErrorClass, BeadGraph, BeadGraphMode, BeadGraphProvenance, BeadId,
+    BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadRelation, BeadStage,
+    BeadStageOutcome, DependencyName, FormulaName, GraphConflictReason,
+    GraphFormulaUnsupportedReason, GraphIdField, GraphRef, GraphRelationInvalidReason, MissingEdge,
+    PROVENANCE_KEY, Sha256Digest, StepId, parse_request,
 };
 
 #[test]
@@ -357,9 +357,100 @@ fn every_advertised_error_has_its_stable_code() {
         ),
     ];
 
+    // The CLI's former exit-3 list: request errors found before any stage.
+    let request_codes = [
+        "BEADS_REQUEST_READ_FAILED",
+        "BEADS_REQUEST_DESERIALIZATION_FAILED",
+        "BEADS_RELATION_ENDPOINT_INVALID",
+        "BEADS_UNKNOWN_SCHEMA",
+        "BEADS_FORMULA_NOT_FILE",
+        "BEADS_FORMULA_EXTENSION_UNSUPPORTED",
+        "BEADS_TEMPLATE_PATH_INVALID",
+        "BEADS_OUTPUT_PATH_INVALID",
+        "BEADS_TEMPLATE_OUTSIDE_WORKING_DIR",
+        "BEADS_OUTPUT_OUTSIDE_WORKING_DIR",
+        "BEADS_OUTPUT_PATH_SYMLINK",
+        "BEADS_PATH_NOT_UTF8",
+        "BEADS_VARIABLE_KEY_INVALID",
+        "BEADS_VARIABLE_KEY_DUPLICATE",
+        "BEADS_VARIABLE_VALUE_INVALID",
+        "BEADS_FORMULA_NAME_REQUIRED",
+        "BEADS_POUR_AUTH_REQUIRED",
+        "BEADS_POUR_AUTH_INVALID",
+    ];
+    let mut graph_codes = Vec::new();
     for (error, expected_code) in examples {
         assert_eq!(error.code(), expected_code);
+        let expected_class = if request_codes.contains(&expected_code) {
+            BeadErrorClass::Request
+        } else {
+            BeadErrorClass::Execution
+        };
+        assert_eq!(error.class(), expected_class, "{expected_code}");
+        if error.class() == BeadErrorClass::Request {
+            assert_eq!(error.stage(), None, "{expected_code}");
+        }
+        if expected_code.starts_with("BEADS_GRAPH_") {
+            graph_codes.push(expected_code);
+        }
     }
+    assert_eq!(BeadComposeError::GRAPH_CODES, graph_codes.as_slice());
+}
+
+#[test]
+fn library_owns_error_stages_and_the_pour_authorization_token() {
+    let stages = [
+        (
+            BeadComposeError::RenderFailed {
+                message: "boom".into(),
+            },
+            Some(BeadStage::Render),
+        ),
+        (
+            BeadComposeError::CookFailed {
+                exit_status: Some(1),
+                cause: "bad formula".into(),
+            },
+            Some(BeadStage::Validate),
+        ),
+        (
+            BeadComposeError::ActiveRegistryResolutionFailed { exit_status: None },
+            Some(BeadStage::ResolveActiveRegistry),
+        ),
+        (
+            BeadComposeError::PreviewPourFailed {
+                exit_status: Some(1),
+            },
+            Some(BeadStage::PreviewPour),
+        ),
+        (
+            BeadComposeError::PourFailed {
+                exit_status: Some(1),
+            },
+            Some(BeadStage::Pour),
+        ),
+        (
+            BeadComposeError::ProcessOutputLimitExceeded {
+                stage: BeadStage::Attach,
+                limit_bytes: 1,
+            },
+            Some(BeadStage::Attach),
+        ),
+        (BeadComposeError::FormulaNameRequired, None),
+    ];
+    for (error, stage) in stages {
+        assert_eq!(error.stage(), stage, "{}", error.code());
+    }
+    let token = sc_composer_beads::PourAuthorization::CreatePersistentBeads;
+    assert_eq!(token.as_str(), "CreatePersistentBeads");
+    assert_eq!(
+        sc_composer_beads::PourAuthorization::try_from(token.as_str()).unwrap(),
+        token
+    );
+    assert_eq!(
+        serde_json::to_value(token).unwrap(),
+        serde_json::json!(token.as_str())
+    );
 }
 
 #[test]

@@ -15,7 +15,6 @@ use serde_json::Value;
 
 const REQUEST_STAGE: &str = "request";
 const RECEIPT_STAGE: &str = "receipt";
-const RECEIPT_DESERIALIZATION_FAILED_CODE: &str = "BEADS_RECEIPT_DESERIALIZATION_FAILED";
 
 #[pyclass(extends = PyException, name = "BeadComposeError")]
 #[derive(Debug)]
@@ -77,58 +76,14 @@ fn request_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
 fn receipt_deserialization_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
     error(
         py,
-        RECEIPT_DESERIALIZATION_FAILED_CODE,
+        RustBeadComposeError::RECEIPT_DESERIALIZATION_FAILED_CODE,
         Some(RECEIPT_STAGE),
         message,
     )
 }
 
 fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
-    match error_kind {
-        RustBeadComposeError::RenderFailed { .. } => BeadStage::Render.as_str(),
-        RustBeadComposeError::ProcessOutputLimitExceeded { stage, .. } => stage.as_str(),
-        RustBeadComposeError::GraphIdInvalid { .. }
-        | RustBeadComposeError::CookFailed { .. }
-        | RustBeadComposeError::BdUnavailable { .. }
-        | RustBeadComposeError::ProcessArgumentInvalid { .. } => BeadStage::Validate.as_str(),
-        RustBeadComposeError::ActiveRegistryResolutionFailed { .. }
-        | RustBeadComposeError::FormulaOutsideActiveRegistry { .. }
-        | RustBeadComposeError::FormulaRegistryAmbiguous { .. } => {
-            BeadStage::ResolveActiveRegistry.as_str()
-        }
-        RustBeadComposeError::PreviewPourFailed { .. } => BeadStage::PreviewPour.as_str(),
-        RustBeadComposeError::PourFailed { .. } => BeadStage::Pour.as_str(),
-        // Graph-stage failures are returned in receipts, not through this
-        // request-error conversion. Preserve their code if directly supplied.
-        RustBeadComposeError::GraphParentNotFound { .. }
-        | RustBeadComposeError::GraphScopeMismatch { .. }
-        | RustBeadComposeError::GraphFormulaUnsupported { .. }
-        | RustBeadComposeError::GraphRelationInvalid { .. }
-        | RustBeadComposeError::GraphConflict { .. }
-        | RustBeadComposeError::GraphEdgeConflict { .. }
-        | RustBeadComposeError::GraphEdgeMissing { .. }
-        | RustBeadComposeError::GraphReadFailed { .. }
-        | RustBeadComposeError::GraphApplyFailed { .. }
-        | RustBeadComposeError::GraphApplyUnconfirmed { .. }
-        | RustBeadComposeError::RelationEndpointInvalid { .. }
-        | RustBeadComposeError::RequestReadFailed { .. }
-        | RustBeadComposeError::RequestDeserializationFailed { .. }
-        | RustBeadComposeError::UnknownSchema { .. }
-        | RustBeadComposeError::FormulaPathNotFile { .. }
-        | RustBeadComposeError::FormulaExtensionUnsupported { .. }
-        | RustBeadComposeError::TemplatePathInvalid { .. }
-        | RustBeadComposeError::OutputPathInvalid { .. }
-        | RustBeadComposeError::TemplateOutsideWorkingDirectory { .. }
-        | RustBeadComposeError::OutputOutsideWorkingDirectory { .. }
-        | RustBeadComposeError::OutputPathSymlink { .. }
-        | RustBeadComposeError::PathNotUtf8 { .. }
-        | RustBeadComposeError::BeadVariableKeyInvalid { .. }
-        | RustBeadComposeError::BeadVariableKeyDuplicate { .. }
-        | RustBeadComposeError::BeadVariableValueInvalid { .. }
-        | RustBeadComposeError::FormulaNameRequired
-        | RustBeadComposeError::PourAuthorizationRequired
-        | RustBeadComposeError::PourAuthorizationInvalid => REQUEST_STAGE,
-    }
+    error_kind.stage().map_or(REQUEST_STAGE, BeadStage::as_str)
 }
 
 fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyErr {
@@ -291,7 +246,7 @@ struct PyPourAuthorization;
 #[pymethods]
 impl PyPourAuthorization {
     #[classattr]
-    const CREATE_PERSISTENT_BEADS: &'static str = "CreatePersistentBeads";
+    const CREATE_PERSISTENT_BEADS: &'static str = PourAuthorization::CreatePersistentBeads.as_str();
 }
 
 #[pyclass(name = "BeadStage")]
@@ -609,9 +564,7 @@ impl PyBeadComposeRequest {
 
     #[getter]
     fn pour_authorization(&self) -> Option<&'static str> {
-        self.inner
-            .pour_authorization
-            .map(|_| "CreatePersistentBeads")
+        self.inner.pour_authorization.map(PourAuthorization::as_str)
     }
 
     #[getter]
@@ -734,19 +687,7 @@ fn attach(
 #[pyo3(name = "_native")]
 fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("BEADS_SCHEMA_V1", BEADS_SCHEMA_V1)?;
-    for code in [
-        "BEADS_GRAPH_PARENT_NOT_FOUND",
-        "BEADS_GRAPH_ID_INVALID",
-        "BEADS_GRAPH_SCOPE_MISMATCH",
-        "BEADS_GRAPH_FORMULA_UNSUPPORTED",
-        "BEADS_GRAPH_RELATION_INVALID",
-        "BEADS_GRAPH_CONFLICT",
-        "BEADS_GRAPH_EDGE_CONFLICT",
-        "BEADS_GRAPH_EDGE_MISSING",
-        "BEADS_GRAPH_READ_FAILED",
-        "BEADS_GRAPH_APPLY_FAILED",
-        "BEADS_GRAPH_APPLY_UNCONFIRMED",
-    ] {
+    for &code in RustBeadComposeError::GRAPH_CODES {
         module.add(code, code)?;
     }
     module.add_class::<PyBeadComposeError>()?;

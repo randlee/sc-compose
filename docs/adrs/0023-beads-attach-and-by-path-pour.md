@@ -293,6 +293,10 @@ A planned edge between two beads that both already exist, absent in bd
 that adds only edges, and reporting success would leave the graph incomplete.
 
 ### Errors (`BeadComposeError`, additive)
+`BeadComposeError` is `#[non_exhaustive]`. Adapters classify an error with its
+library accessors (`code()`, `stage()`, and `class()`, which is request or
+execution, CLI exit 3 or 2) and a fallback arm, never variant by variant.
+
 | Variant | Code | Outcome / exit | Recovery |
 |---|---|---|---|
 | `GraphParentNotFound { parent }` | `BEADS_GRAPH_PARENT_NOT_FOUND` | refused / 2 | create the parent or name an existing one |

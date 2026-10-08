@@ -71,7 +71,60 @@ pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
 /// Serializes as `code` and `message`, with additive `details` and `recovery`
 /// fields for graph failures and request-file read failures. Other errors
 /// preserve their original two-field shape.
+///
+/// Adapters must not match every variant: the enum is `#[non_exhaustive]`,
+/// so new conditions are additive. Use [`BeadComposeError::code`],
+/// [`BeadComposeError::stage`] and [`BeadComposeError::class`] instead.
+///
+/// ```compile_fail,E0004
+/// # use sc_composer_beads::BeadComposeError;
+/// # fn exit(error: &BeadComposeError) -> u8 {
+/// // Listing every variant without a wildcard arm does not compile.
+/// # match error {
+/// #     BeadComposeError::RequestReadFailed { .. } => 0,
+/// #     BeadComposeError::RequestDeserializationFailed { .. } => 0,
+/// #     BeadComposeError::RelationEndpointInvalid { .. } => 0,
+/// #     BeadComposeError::UnknownSchema { .. } => 0,
+/// #     BeadComposeError::FormulaPathNotFile { .. } => 0,
+/// #     BeadComposeError::FormulaExtensionUnsupported { .. } => 0,
+/// #     BeadComposeError::TemplatePathInvalid { .. } => 0,
+/// #     BeadComposeError::OutputPathInvalid { .. } => 0,
+/// #     BeadComposeError::TemplateOutsideWorkingDirectory { .. } => 0,
+/// #     BeadComposeError::OutputOutsideWorkingDirectory { .. } => 0,
+/// #     BeadComposeError::OutputPathSymlink { .. } => 0,
+/// #     BeadComposeError::PathNotUtf8 { .. } => 0,
+/// #     BeadComposeError::BeadVariableKeyInvalid { .. } => 0,
+/// #     BeadComposeError::BeadVariableKeyDuplicate { .. } => 0,
+/// #     BeadComposeError::BeadVariableValueInvalid { .. } => 0,
+/// #     BeadComposeError::FormulaNameRequired => 0,
+/// #     BeadComposeError::PourAuthorizationRequired => 0,
+/// #     BeadComposeError::PourAuthorizationInvalid => 0,
+/// #     BeadComposeError::BdUnavailable { .. } => 0,
+/// #     BeadComposeError::ProcessArgumentInvalid { .. } => 0,
+/// #     BeadComposeError::ProcessOutputLimitExceeded { .. } => 0,
+/// #     BeadComposeError::RenderFailed { .. } => 0,
+/// #     BeadComposeError::CookFailed { .. } => 0,
+/// #     BeadComposeError::ActiveRegistryResolutionFailed { .. } => 0,
+/// #     BeadComposeError::FormulaOutsideActiveRegistry { .. } => 0,
+/// #     BeadComposeError::FormulaRegistryAmbiguous { .. } => 0,
+/// #     BeadComposeError::PreviewPourFailed { .. } => 0,
+/// #     BeadComposeError::PourFailed { .. } => 0,
+/// #     BeadComposeError::GraphParentNotFound { .. } => 0,
+/// #     BeadComposeError::GraphIdInvalid { .. } => 0,
+/// #     BeadComposeError::GraphScopeMismatch { .. } => 0,
+/// #     BeadComposeError::GraphFormulaUnsupported { .. } => 0,
+/// #     BeadComposeError::GraphRelationInvalid { .. } => 0,
+/// #     BeadComposeError::GraphConflict { .. } => 0,
+/// #     BeadComposeError::GraphEdgeConflict { .. } => 0,
+/// #     BeadComposeError::GraphEdgeMissing { .. } => 0,
+/// #     BeadComposeError::GraphReadFailed { .. } => 0,
+/// #     BeadComposeError::GraphApplyFailed { .. } => 0,
+/// #     BeadComposeError::GraphApplyUnconfirmed { .. } => 0,
+/// # }
+/// # }
+/// ```
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum BeadComposeError {
     /// The request file could not be read as UTF-8.
     #[error(
@@ -383,51 +436,292 @@ impl BeadComposeError {
     pub const REQUEST_DESERIALIZATION_FAILED_CODE: &'static str =
         "BEADS_REQUEST_DESERIALIZATION_FAILED";
 
+    /// Stable code for [`BeadComposeError::RelationEndpointInvalid`].
+    pub const RELATION_ENDPOINT_INVALID_CODE: &'static str = "BEADS_RELATION_ENDPOINT_INVALID";
+
+    /// Stable code for [`BeadComposeError::UnknownSchema`].
+    pub const UNKNOWN_SCHEMA_CODE: &'static str = "BEADS_UNKNOWN_SCHEMA";
+
+    /// Stable code for [`BeadComposeError::FormulaPathNotFile`].
+    pub const FORMULA_NOT_FILE_CODE: &'static str = "BEADS_FORMULA_NOT_FILE";
+
+    /// Stable code for [`BeadComposeError::FormulaExtensionUnsupported`].
+    pub const FORMULA_EXTENSION_UNSUPPORTED_CODE: &'static str =
+        "BEADS_FORMULA_EXTENSION_UNSUPPORTED";
+
+    /// Stable code for [`BeadComposeError::TemplatePathInvalid`].
+    pub const TEMPLATE_PATH_INVALID_CODE: &'static str = "BEADS_TEMPLATE_PATH_INVALID";
+
+    /// Stable code for [`BeadComposeError::OutputPathInvalid`].
+    pub const OUTPUT_PATH_INVALID_CODE: &'static str = "BEADS_OUTPUT_PATH_INVALID";
+
+    /// Stable code for [`BeadComposeError::TemplateOutsideWorkingDirectory`].
+    pub const TEMPLATE_OUTSIDE_WORKING_DIR_CODE: &'static str =
+        "BEADS_TEMPLATE_OUTSIDE_WORKING_DIR";
+
+    /// Stable code for [`BeadComposeError::OutputOutsideWorkingDirectory`].
+    pub const OUTPUT_OUTSIDE_WORKING_DIR_CODE: &'static str = "BEADS_OUTPUT_OUTSIDE_WORKING_DIR";
+
+    /// Stable code for [`BeadComposeError::OutputPathSymlink`].
+    pub const OUTPUT_PATH_SYMLINK_CODE: &'static str = "BEADS_OUTPUT_PATH_SYMLINK";
+
+    /// Stable code for [`BeadComposeError::PathNotUtf8`].
+    pub const PATH_NOT_UTF8_CODE: &'static str = "BEADS_PATH_NOT_UTF8";
+
+    /// Stable code for [`BeadComposeError::BeadVariableKeyInvalid`].
+    pub const VARIABLE_KEY_INVALID_CODE: &'static str = "BEADS_VARIABLE_KEY_INVALID";
+
+    /// Stable code for [`BeadComposeError::BeadVariableKeyDuplicate`].
+    pub const VARIABLE_KEY_DUPLICATE_CODE: &'static str = "BEADS_VARIABLE_KEY_DUPLICATE";
+
+    /// Stable code for [`BeadComposeError::BeadVariableValueInvalid`].
+    pub const VARIABLE_VALUE_INVALID_CODE: &'static str = "BEADS_VARIABLE_VALUE_INVALID";
+
+    /// Stable code for [`BeadComposeError::FormulaNameRequired`].
+    pub const FORMULA_NAME_REQUIRED_CODE: &'static str = "BEADS_FORMULA_NAME_REQUIRED";
+
+    /// Stable code for [`BeadComposeError::PourAuthorizationRequired`].
+    pub const POUR_AUTH_REQUIRED_CODE: &'static str = "BEADS_POUR_AUTH_REQUIRED";
+
+    /// Stable code for [`BeadComposeError::PourAuthorizationInvalid`].
+    pub const POUR_AUTH_INVALID_CODE: &'static str = "BEADS_POUR_AUTH_INVALID";
+
+    /// Stable code for [`BeadComposeError::BdUnavailable`].
+    pub const BD_UNAVAILABLE_CODE: &'static str = "BEADS_BD_UNAVAILABLE";
+
+    /// Stable code for [`BeadComposeError::ProcessArgumentInvalid`].
+    pub const PROCESS_ARGUMENT_INVALID_CODE: &'static str = "BEADS_PROCESS_ARGUMENT_INVALID";
+
+    /// Stable code for [`BeadComposeError::ProcessOutputLimitExceeded`].
+    pub const PROCESS_OUTPUT_LIMIT_CODE: &'static str = "BEADS_PROCESS_OUTPUT_LIMIT";
+
+    /// Stable code for [`BeadComposeError::RenderFailed`].
+    pub const RENDER_FAILED_CODE: &'static str = "BEADS_RENDER_FAILED";
+
+    /// Stable code for [`BeadComposeError::CookFailed`].
+    pub const COOK_FAILED_CODE: &'static str = "BEADS_COOK_FAILED";
+
+    /// Stable code for [`BeadComposeError::ActiveRegistryResolutionFailed`].
+    pub const WHERE_FAILED_CODE: &'static str = "BEADS_WHERE_FAILED";
+
+    /// Stable code for [`BeadComposeError::FormulaOutsideActiveRegistry`].
+    pub const FORMULA_OUTSIDE_ACTIVE_REGISTRY_CODE: &'static str =
+        "BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY";
+
+    /// Stable code for [`BeadComposeError::FormulaRegistryAmbiguous`].
+    pub const FORMULA_REGISTRY_AMBIGUOUS_CODE: &'static str = "BEADS_FORMULA_REGISTRY_AMBIGUOUS";
+
+    /// Stable code for [`BeadComposeError::PreviewPourFailed`].
+    pub const PREVIEW_POUR_FAILED_CODE: &'static str = "BEADS_PREVIEW_POUR_FAILED";
+
+    /// Stable code for [`BeadComposeError::PourFailed`].
+    pub const POUR_FAILED_CODE: &'static str = "BEADS_POUR_FAILED";
+
+    /// Stable code for [`BeadComposeError::GraphParentNotFound`].
+    pub const GRAPH_PARENT_NOT_FOUND_CODE: &'static str = "BEADS_GRAPH_PARENT_NOT_FOUND";
+
+    /// Stable code for [`BeadComposeError::GraphIdInvalid`].
+    pub const GRAPH_ID_INVALID_CODE: &'static str = "BEADS_GRAPH_ID_INVALID";
+
+    /// Stable code for [`BeadComposeError::GraphScopeMismatch`].
+    pub const GRAPH_SCOPE_MISMATCH_CODE: &'static str = "BEADS_GRAPH_SCOPE_MISMATCH";
+
+    /// Stable code for [`BeadComposeError::GraphFormulaUnsupported`].
+    pub const GRAPH_FORMULA_UNSUPPORTED_CODE: &'static str = "BEADS_GRAPH_FORMULA_UNSUPPORTED";
+
+    /// Stable code for [`BeadComposeError::GraphRelationInvalid`].
+    pub const GRAPH_RELATION_INVALID_CODE: &'static str = "BEADS_GRAPH_RELATION_INVALID";
+
+    /// Stable code for [`BeadComposeError::GraphConflict`].
+    pub const GRAPH_CONFLICT_CODE: &'static str = "BEADS_GRAPH_CONFLICT";
+
+    /// Stable code for [`BeadComposeError::GraphEdgeConflict`].
+    pub const GRAPH_EDGE_CONFLICT_CODE: &'static str = "BEADS_GRAPH_EDGE_CONFLICT";
+
+    /// Stable code for [`BeadComposeError::GraphEdgeMissing`].
+    pub const GRAPH_EDGE_MISSING_CODE: &'static str = "BEADS_GRAPH_EDGE_MISSING";
+
+    /// Stable code for [`BeadComposeError::GraphReadFailed`].
+    pub const GRAPH_READ_FAILED_CODE: &'static str = "BEADS_GRAPH_READ_FAILED";
+
+    /// Stable code for [`BeadComposeError::GraphApplyFailed`].
+    pub const GRAPH_APPLY_FAILED_CODE: &'static str = "BEADS_GRAPH_APPLY_FAILED";
+
+    /// Stable code for [`BeadComposeError::GraphApplyUnconfirmed`].
+    pub const GRAPH_APPLY_UNCONFIRMED_CODE: &'static str = "BEADS_GRAPH_APPLY_UNCONFIRMED";
+
+    /// Stable code an adapter reports when it cannot deserialize a receipt
+    /// returned by this library.
+    pub const RECEIPT_DESERIALIZATION_FAILED_CODE: &'static str =
+        "BEADS_RECEIPT_DESERIALIZATION_FAILED";
+
+    /// Every `BEADS_GRAPH_*` code, in ADR-0023 table order.
+    pub const GRAPH_CODES: &'static [&'static str] = &[
+        Self::GRAPH_PARENT_NOT_FOUND_CODE,
+        Self::GRAPH_ID_INVALID_CODE,
+        Self::GRAPH_SCOPE_MISMATCH_CODE,
+        Self::GRAPH_FORMULA_UNSUPPORTED_CODE,
+        Self::GRAPH_RELATION_INVALID_CODE,
+        Self::GRAPH_CONFLICT_CODE,
+        Self::GRAPH_EDGE_CONFLICT_CODE,
+        Self::GRAPH_EDGE_MISSING_CODE,
+        Self::GRAPH_READ_FAILED_CODE,
+        Self::GRAPH_APPLY_FAILED_CODE,
+        Self::GRAPH_APPLY_UNCONFIRMED_CODE,
+    ];
+
+    /// Return the stage this error belongs to, or `None` for a request error
+    /// found before any stage ran.
+    #[must_use]
+    pub const fn stage(&self) -> Option<BeadStage> {
+        match self {
+            Self::RenderFailed { .. } => Some(BeadStage::Render),
+            Self::ProcessOutputLimitExceeded { stage, .. } => Some(*stage),
+            Self::GraphIdInvalid { .. }
+            | Self::CookFailed { .. }
+            | Self::BdUnavailable { .. }
+            | Self::ProcessArgumentInvalid { .. } => Some(BeadStage::Validate),
+            Self::ActiveRegistryResolutionFailed { .. }
+            | Self::FormulaOutsideActiveRegistry { .. }
+            | Self::FormulaRegistryAmbiguous { .. } => Some(BeadStage::ResolveActiveRegistry),
+            Self::PreviewPourFailed { .. } => Some(BeadStage::PreviewPour),
+            Self::PourFailed { .. } => Some(BeadStage::Pour),
+            // Graph-stage failures are reported in receipts, whose stage
+            // receipts carry the stage; as a bare error they have none.
+            Self::GraphParentNotFound { .. }
+            | Self::GraphScopeMismatch { .. }
+            | Self::GraphFormulaUnsupported { .. }
+            | Self::GraphRelationInvalid { .. }
+            | Self::GraphConflict { .. }
+            | Self::GraphEdgeConflict { .. }
+            | Self::GraphEdgeMissing { .. }
+            | Self::GraphReadFailed { .. }
+            | Self::GraphApplyFailed { .. }
+            | Self::GraphApplyUnconfirmed { .. }
+            | Self::RelationEndpointInvalid { .. }
+            | Self::RequestReadFailed { .. }
+            | Self::RequestDeserializationFailed { .. }
+            | Self::UnknownSchema { .. }
+            | Self::FormulaPathNotFile { .. }
+            | Self::FormulaExtensionUnsupported { .. }
+            | Self::TemplatePathInvalid { .. }
+            | Self::OutputPathInvalid { .. }
+            | Self::TemplateOutsideWorkingDirectory { .. }
+            | Self::OutputOutsideWorkingDirectory { .. }
+            | Self::OutputPathSymlink { .. }
+            | Self::PathNotUtf8 { .. }
+            | Self::BeadVariableKeyInvalid { .. }
+            | Self::BeadVariableKeyDuplicate { .. }
+            | Self::BeadVariableValueInvalid { .. }
+            | Self::FormulaNameRequired
+            | Self::PourAuthorizationRequired
+            | Self::PourAuthorizationInvalid => None,
+        }
+    }
+
+    /// Return whether this error rejects the request itself or reports a
+    /// failure while executing it. The CLI maps these to exit 3 and 2.
+    #[must_use]
+    pub const fn class(&self) -> BeadErrorClass {
+        match self {
+            Self::RequestReadFailed { .. }
+            | Self::RequestDeserializationFailed { .. }
+            | Self::RelationEndpointInvalid { .. }
+            | Self::UnknownSchema { .. }
+            | Self::FormulaPathNotFile { .. }
+            | Self::FormulaExtensionUnsupported { .. }
+            | Self::TemplatePathInvalid { .. }
+            | Self::OutputPathInvalid { .. }
+            | Self::TemplateOutsideWorkingDirectory { .. }
+            | Self::OutputOutsideWorkingDirectory { .. }
+            | Self::OutputPathSymlink { .. }
+            | Self::PathNotUtf8 { .. }
+            | Self::BeadVariableKeyInvalid { .. }
+            | Self::BeadVariableKeyDuplicate { .. }
+            | Self::BeadVariableValueInvalid { .. }
+            | Self::FormulaNameRequired
+            | Self::PourAuthorizationRequired
+            | Self::PourAuthorizationInvalid => BeadErrorClass::Request,
+            Self::BdUnavailable { .. }
+            | Self::ProcessArgumentInvalid { .. }
+            | Self::ProcessOutputLimitExceeded { .. }
+            | Self::RenderFailed { .. }
+            | Self::CookFailed { .. }
+            | Self::ActiveRegistryResolutionFailed { .. }
+            | Self::FormulaOutsideActiveRegistry { .. }
+            | Self::FormulaRegistryAmbiguous { .. }
+            | Self::PreviewPourFailed { .. }
+            | Self::PourFailed { .. }
+            | Self::GraphParentNotFound { .. }
+            | Self::GraphIdInvalid { .. }
+            | Self::GraphScopeMismatch { .. }
+            | Self::GraphFormulaUnsupported { .. }
+            | Self::GraphRelationInvalid { .. }
+            | Self::GraphConflict { .. }
+            | Self::GraphEdgeConflict { .. }
+            | Self::GraphEdgeMissing { .. }
+            | Self::GraphReadFailed { .. }
+            | Self::GraphApplyFailed { .. }
+            | Self::GraphApplyUnconfirmed { .. } => BeadErrorClass::Execution,
+        }
+    }
+
     /// Return the stable protocol code for this condition.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
             Self::RequestReadFailed { .. } => Self::REQUEST_READ_FAILED_CODE,
             Self::RequestDeserializationFailed { .. } => Self::REQUEST_DESERIALIZATION_FAILED_CODE,
-            Self::RelationEndpointInvalid { .. } => "BEADS_RELATION_ENDPOINT_INVALID",
-            Self::UnknownSchema { .. } => "BEADS_UNKNOWN_SCHEMA",
-            Self::FormulaPathNotFile { .. } => "BEADS_FORMULA_NOT_FILE",
-            Self::FormulaExtensionUnsupported { .. } => "BEADS_FORMULA_EXTENSION_UNSUPPORTED",
-            Self::TemplatePathInvalid { .. } => "BEADS_TEMPLATE_PATH_INVALID",
-            Self::OutputPathInvalid { .. } => "BEADS_OUTPUT_PATH_INVALID",
-            Self::TemplateOutsideWorkingDirectory { .. } => "BEADS_TEMPLATE_OUTSIDE_WORKING_DIR",
-            Self::OutputOutsideWorkingDirectory { .. } => "BEADS_OUTPUT_OUTSIDE_WORKING_DIR",
-            Self::OutputPathSymlink { .. } => "BEADS_OUTPUT_PATH_SYMLINK",
-            Self::PathNotUtf8 { .. } => "BEADS_PATH_NOT_UTF8",
-            Self::BeadVariableKeyInvalid { .. } => "BEADS_VARIABLE_KEY_INVALID",
-            Self::BeadVariableKeyDuplicate { .. } => "BEADS_VARIABLE_KEY_DUPLICATE",
-            Self::BeadVariableValueInvalid { .. } => "BEADS_VARIABLE_VALUE_INVALID",
-            Self::FormulaNameRequired => "BEADS_FORMULA_NAME_REQUIRED",
-            Self::PourAuthorizationRequired => "BEADS_POUR_AUTH_REQUIRED",
-            Self::PourAuthorizationInvalid => "BEADS_POUR_AUTH_INVALID",
-            Self::BdUnavailable { .. } => "BEADS_BD_UNAVAILABLE",
-            Self::ProcessArgumentInvalid { .. } => "BEADS_PROCESS_ARGUMENT_INVALID",
-            Self::ProcessOutputLimitExceeded { .. } => "BEADS_PROCESS_OUTPUT_LIMIT",
-            Self::RenderFailed { .. } => "BEADS_RENDER_FAILED",
-            Self::CookFailed { .. } => "BEADS_COOK_FAILED",
-            Self::ActiveRegistryResolutionFailed { .. } => "BEADS_WHERE_FAILED",
-            Self::FormulaOutsideActiveRegistry { .. } => "BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY",
-            Self::FormulaRegistryAmbiguous { .. } => "BEADS_FORMULA_REGISTRY_AMBIGUOUS",
-            Self::PreviewPourFailed { .. } => "BEADS_PREVIEW_POUR_FAILED",
-            Self::PourFailed { .. } => "BEADS_POUR_FAILED",
-            Self::GraphParentNotFound { .. } => "BEADS_GRAPH_PARENT_NOT_FOUND",
-            Self::GraphIdInvalid { .. } => "BEADS_GRAPH_ID_INVALID",
-            Self::GraphScopeMismatch { .. } => "BEADS_GRAPH_SCOPE_MISMATCH",
-            Self::GraphFormulaUnsupported { .. } => "BEADS_GRAPH_FORMULA_UNSUPPORTED",
-            Self::GraphRelationInvalid { .. } => "BEADS_GRAPH_RELATION_INVALID",
-            Self::GraphConflict { .. } => "BEADS_GRAPH_CONFLICT",
-            Self::GraphEdgeConflict { .. } => "BEADS_GRAPH_EDGE_CONFLICT",
-            Self::GraphEdgeMissing { .. } => "BEADS_GRAPH_EDGE_MISSING",
-            Self::GraphReadFailed { .. } => "BEADS_GRAPH_READ_FAILED",
-            Self::GraphApplyFailed { .. } => "BEADS_GRAPH_APPLY_FAILED",
-            Self::GraphApplyUnconfirmed { .. } => "BEADS_GRAPH_APPLY_UNCONFIRMED",
+            Self::RelationEndpointInvalid { .. } => Self::RELATION_ENDPOINT_INVALID_CODE,
+            Self::UnknownSchema { .. } => Self::UNKNOWN_SCHEMA_CODE,
+            Self::FormulaPathNotFile { .. } => Self::FORMULA_NOT_FILE_CODE,
+            Self::FormulaExtensionUnsupported { .. } => Self::FORMULA_EXTENSION_UNSUPPORTED_CODE,
+            Self::TemplatePathInvalid { .. } => Self::TEMPLATE_PATH_INVALID_CODE,
+            Self::OutputPathInvalid { .. } => Self::OUTPUT_PATH_INVALID_CODE,
+            Self::TemplateOutsideWorkingDirectory { .. } => Self::TEMPLATE_OUTSIDE_WORKING_DIR_CODE,
+            Self::OutputOutsideWorkingDirectory { .. } => Self::OUTPUT_OUTSIDE_WORKING_DIR_CODE,
+            Self::OutputPathSymlink { .. } => Self::OUTPUT_PATH_SYMLINK_CODE,
+            Self::PathNotUtf8 { .. } => Self::PATH_NOT_UTF8_CODE,
+            Self::BeadVariableKeyInvalid { .. } => Self::VARIABLE_KEY_INVALID_CODE,
+            Self::BeadVariableKeyDuplicate { .. } => Self::VARIABLE_KEY_DUPLICATE_CODE,
+            Self::BeadVariableValueInvalid { .. } => Self::VARIABLE_VALUE_INVALID_CODE,
+            Self::FormulaNameRequired => Self::FORMULA_NAME_REQUIRED_CODE,
+            Self::PourAuthorizationRequired => Self::POUR_AUTH_REQUIRED_CODE,
+            Self::PourAuthorizationInvalid => Self::POUR_AUTH_INVALID_CODE,
+            Self::BdUnavailable { .. } => Self::BD_UNAVAILABLE_CODE,
+            Self::ProcessArgumentInvalid { .. } => Self::PROCESS_ARGUMENT_INVALID_CODE,
+            Self::ProcessOutputLimitExceeded { .. } => Self::PROCESS_OUTPUT_LIMIT_CODE,
+            Self::RenderFailed { .. } => Self::RENDER_FAILED_CODE,
+            Self::CookFailed { .. } => Self::COOK_FAILED_CODE,
+            Self::ActiveRegistryResolutionFailed { .. } => Self::WHERE_FAILED_CODE,
+            Self::FormulaOutsideActiveRegistry { .. } => Self::FORMULA_OUTSIDE_ACTIVE_REGISTRY_CODE,
+            Self::FormulaRegistryAmbiguous { .. } => Self::FORMULA_REGISTRY_AMBIGUOUS_CODE,
+            Self::PreviewPourFailed { .. } => Self::PREVIEW_POUR_FAILED_CODE,
+            Self::PourFailed { .. } => Self::POUR_FAILED_CODE,
+            Self::GraphParentNotFound { .. } => Self::GRAPH_PARENT_NOT_FOUND_CODE,
+            Self::GraphIdInvalid { .. } => Self::GRAPH_ID_INVALID_CODE,
+            Self::GraphScopeMismatch { .. } => Self::GRAPH_SCOPE_MISMATCH_CODE,
+            Self::GraphFormulaUnsupported { .. } => Self::GRAPH_FORMULA_UNSUPPORTED_CODE,
+            Self::GraphRelationInvalid { .. } => Self::GRAPH_RELATION_INVALID_CODE,
+            Self::GraphConflict { .. } => Self::GRAPH_CONFLICT_CODE,
+            Self::GraphEdgeConflict { .. } => Self::GRAPH_EDGE_CONFLICT_CODE,
+            Self::GraphEdgeMissing { .. } => Self::GRAPH_EDGE_MISSING_CODE,
+            Self::GraphReadFailed { .. } => Self::GRAPH_READ_FAILED_CODE,
+            Self::GraphApplyFailed { .. } => Self::GRAPH_APPLY_FAILED_CODE,
+            Self::GraphApplyUnconfirmed { .. } => Self::GRAPH_APPLY_UNCONFIRMED_CODE,
         }
     }
+}
+
+/// Whether a [`BeadComposeError`] rejects the request or reports an execution
+/// failure.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum BeadErrorClass {
+    /// The request is malformed or not permitted; nothing ran (CLI exit 3).
+    Request,
+    /// A stage failed while executing a valid request (CLI exit 2).
+    Execution,
 }
 
 /// Closed wire vocabulary for `GraphConflictReason` (ADR-0023).
