@@ -69,7 +69,13 @@ pub(crate) fn render_formula_in_root(
         vars_defaults: BTreeMap::new(),
         guidance_block: None,
         user_prompt: None,
-        policy: sc_composer::ComposePolicy::default(),
+        // A composition variable with no caller value and no frontmatter
+        // default would otherwise render as `""` or `"null"` and reach bd as
+        // a valid formula; bead rendering refuses it (TMPL5-02).
+        policy: sc_composer::ComposePolicy {
+            unbound_variable_policy: Some(sc_composer::UnknownVariablePolicy::Error),
+            ..sc_composer::ComposePolicy::default()
+        },
     };
     // Reuse the library validation path so frontmatter `required_variables`
     // and `defaults` have the same meaning here as in `sc-composer` render.
@@ -309,6 +315,64 @@ mod tests {
             "{error:?}"
         );
         assert!(!output.exists(), "nothing is written on refusal");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    // TMPL5-02: without frontmatter an undefined composition variable must be
+    // refused too, not rendered as `""` (TOML) or `"null"` (JSON).
+    #[test]
+    fn undefined_variable_without_frontmatter_is_refused() {
+        let root = temporary_directory();
+        for (name, body) in [
+            ("undefined.formula.toml.j2", "title = \"{{{ title }}}\"\n"),
+            (
+                "undefined.formula.json.j2",
+                "{ \"title\": \"{{{ title }}}\" }",
+            ),
+        ] {
+            let template = root.join(name);
+            let output = root.join(name.trim_end_matches(".j2"));
+            fs::write(&template, body).expect("write template");
+            let error = render_formula(&template, &output, &Map::new())
+                .expect_err("undefined variable must be refused");
+            assert!(
+                matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("title")),
+                "{name}: {error:?}"
+            );
+            assert!(!output.exists(), "{name}: nothing is written on refusal");
+
+            render_formula(
+                &template,
+                &output,
+                &Map::from_iter([(String::from("title"), json!("set"))]),
+            )
+            .expect("a defined variable still renders");
+            assert!(
+                fs::read_to_string(&output)
+                    .expect("read output")
+                    .contains("set")
+            );
+        }
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn frontmatter_default_satisfies_an_otherwise_undefined_variable() {
+        let root = temporary_directory();
+        let template = root.join("defaulted.formula.toml.j2");
+        let output = root.join("defaulted.formula.toml");
+        fs::write(
+            &template,
+            "---\ndefaults:\n  title: fallback\n---\ntitle = \"{{{ title }}}\"\nrun = \"{{ bead_var }}\"\n",
+        )
+        .expect("write template");
+        render_formula(&template, &output, &Map::new()).expect("default satisfies the variable");
+        let rendered = fs::read_to_string(&output).expect("read output");
+        assert!(rendered.contains("title = \"fallback\""), "{rendered}");
+        assert!(
+            rendered.contains("{{ bead_var }}"),
+            "Beads runtime vars stay literal: {rendered}"
+        );
         fs::remove_dir_all(root).expect("cleanup");
     }
 

@@ -21,6 +21,14 @@ All notable changes to this project will be documented in this file.
   returns the stored token. No version bump: the crate has no external users
   yet.
 
+### Fixed
+
+- Bead rendering (`sc-composer-beads` and `sc-compose bead`, every
+  operation) now refuses a `{{{ variable }}}` that has no caller value and no
+  frontmatter default with `BEADS_RENDER_FAILED` naming the variable, and
+  writes nothing. It previously rendered as `""` in TOML and `"null"` in JSON
+  formulas. Core `sc-compose render` semantics are unchanged.
+
 ## [1.6.1] - 2026-08-30
 
 ### Added

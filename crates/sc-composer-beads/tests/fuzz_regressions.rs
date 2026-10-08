@@ -168,6 +168,61 @@ impl ProcessRunner for RewritingRunner {
     }
 }
 
+// TMPL5-02: every bead route refuses an undefined composition variable in a
+// TOML or JSON formula template before writing the formula or calling bd.
+#[test]
+fn tmpl5_02_every_route_refuses_an_undefined_variable_without_frontmatter() {
+    for (template, body) in [
+        ("sample.formula.toml.j2", "formula = \"{{{ title }}}\"\n"),
+        (
+            "sample.formula.json.j2",
+            "{ \"formula\": \"{{{ title }}}\" }",
+        ),
+    ] {
+        for operation in [
+            BeadOperation::Render,
+            BeadOperation::Validate,
+            BeadOperation::PreviewPour,
+            BeadOperation::Pour,
+            BeadOperation::PreviewAttach,
+            BeadOperation::Attach,
+        ] {
+            let mut w = Workspace::new();
+            w.req.operation = operation;
+            if !matches!(
+                operation,
+                BeadOperation::PreviewAttach | BeadOperation::Attach
+            ) {
+                w.req.parent = None;
+                w.req.ref_ = None;
+            }
+            if !matches!(operation, BeadOperation::Pour | BeadOperation::Attach) {
+                w.req.pour_authorization = None;
+            }
+            w.req.template = w.root.join(template);
+            w.req.rendered_formula = w.root.join(template.trim_end_matches(".j2"));
+            fs::write(&w.req.template, body).expect("template");
+            let runner = FakeRunner::new([]);
+            let receipt = w.run(&runner);
+            failed(&receipt, "BEADS_RENDER_FAILED", BeadStage::Render);
+            assert!(
+                receipt
+                    .stages
+                    .last()
+                    .expect("stage")
+                    .stderr_excerpt
+                    .contains("title"),
+                "{operation:?} {template}: {receipt:#?}"
+            );
+            assert!(runner.calls().is_empty(), "{operation:?} {template}");
+            assert!(
+                !w.req.rendered_formula.exists(),
+                "{operation:?} {template}: nothing is written"
+            );
+        }
+    }
+}
+
 // FUZZ-013: Phase R requests parse unchanged (ADR-0023 Decision 1).
 #[test]
 fn fuzz_013_phase_r_operations_keep_accepting_legacy_formula_names() {
