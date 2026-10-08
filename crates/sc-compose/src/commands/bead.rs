@@ -116,9 +116,34 @@ fn print_bead_error(
         )
         .map_err(CommandError::usage)?;
     } else {
-        eprintln!("{}: {error}", error.code());
+        eprintln!(
+            "{}",
+            human_bead_error(error).map_err(|error| CommandError::usage(error.into()))?
+        );
     }
     Ok(exit_code)
+}
+
+/// Present the library's canonical error envelope without duplicating its recovery rules.
+fn human_bead_error(error: &BeadComposeError) -> Result<String, serde_json::Error> {
+    let envelope = serde_json::to_value(error)?;
+    let mut output = format!("{}: {error}", error.code());
+    if let Some(fields) = envelope.as_object() {
+        for (name, value) in fields {
+            if matches!(name.as_str(), "code" | "message") {
+                continue;
+            }
+            output.push('\n');
+            output.push_str(name);
+            output.push_str(": ");
+            if let Some(text) = value.as_str() {
+                output.push_str(text);
+            } else {
+                output.push_str(&value.to_string());
+            }
+        }
+    }
+    Ok(output)
 }
 
 fn print_human_receipt(receipt: &BeadComposeReceipt) {
@@ -187,8 +212,11 @@ fn missing_edge_recovery_commands(
 
 #[cfg(test)]
 mod tests {
-    use super::missing_edge_recovery_commands;
-    use sc_composer_beads::BeadComposeReceipt;
+    use super::{human_bead_error, missing_edge_recovery_commands};
+    use sc_composer_beads::{
+        BeadComposeError, BeadComposeReceipt, BeadId, GraphConflictReason, GraphDependencyType,
+        GraphIdField, MissingEdge,
+    };
     use serde_json::json;
 
     #[test]
@@ -224,5 +252,62 @@ mod tests {
                 expected
             );
         }
+    }
+    #[test]
+    fn human_errors_preserve_library_recovery_details_and_causes() {
+        let errors = [
+            BeadComposeError::GraphEdgeMissing {
+                edges: vec![MissingEdge {
+                    from: BeadId::new("parent.build").unwrap(),
+                    to: BeadId::new("parent.test").unwrap(),
+                    kind: GraphDependencyType::try_from("blocks".to_owned()).unwrap(),
+                }],
+            },
+            BeadComposeError::GraphConflict {
+                id: BeadId::new("parent.build").unwrap(),
+                reason: GraphConflictReason::NotOwned,
+            },
+            BeadComposeError::GraphScopeMismatch {
+                field: GraphIdField::Parent,
+                value: "other-parent".into(),
+            },
+            BeadComposeError::RequestReadFailed {
+                path: "missing-request.json".into(),
+                source: std::io::Error::from(std::io::ErrorKind::NotFound),
+            },
+            BeadComposeError::GraphReadFailed {
+                command: vec!["bd".into(), "show".into(), "parent".into()],
+                status: Some(7),
+                cause: "malformed JSON from bd".into(),
+            },
+        ];
+        for error in errors {
+            let envelope = serde_json::to_value(&error).unwrap();
+            let human = human_bead_error(&error).unwrap();
+            assert!(human.starts_with(&format!("{}: {error}\n", error.code())));
+            assert!(human.contains(&format!(
+                "\nrecovery: {}",
+                envelope["recovery"].as_str().unwrap()
+            )));
+            let details = human
+                .lines()
+                .find_map(|line| line.strip_prefix("details: "))
+                .unwrap();
+            assert_eq!(
+                serde_json::from_str::<serde_json::Value>(details).unwrap(),
+                envelope["details"]
+            );
+        }
+    }
+
+    #[test]
+    fn human_errors_without_additive_fields_keep_existing_text() {
+        let error = BeadComposeError::UnknownSchema {
+            actual: "future".into(),
+        };
+        assert_eq!(
+            human_bead_error(&error).unwrap(),
+            format!("{}: {error}", error.code())
+        );
     }
 }
