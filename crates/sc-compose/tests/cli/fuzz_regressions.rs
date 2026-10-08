@@ -52,7 +52,6 @@ fn fuzz_012_bead_request_template_is_relative_to_working_directory() {
 
 // FUZZ-017: append preserves exact JSON number values.
 #[test]
-#[ignore = "FUZZ-017"]
 fn fuzz_017_render_append_keeps_exact_number_values() {
     let root = temp_root("fuzz-017-append-number-fidelity");
     write_file(

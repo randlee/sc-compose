@@ -145,7 +145,18 @@ fn append_json_record(
             })],
         ));
     }
-    let mut line = serde_json::to_string(&value)
+    let object: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
+        serde_json::from_str(checked.body()).map_err(|error| {
+            CommandError::render_append(
+                anyhow!(error).context(format!(
+                    "failed to parse checked JSON from template {}",
+                    template_path.display()
+                )),
+                DiagnosticCode::ErrRenderJsonMalformed,
+                Vec::new(),
+            )
+        })?;
+    let mut line = serde_json::to_string(&object)
         .map_err(|error| CommandError::render_write(anyhow!(error)))?;
     line.push('\n');
     let mut file = std::fs::OpenOptions::new()
