@@ -68,10 +68,20 @@ fn graph_id_rule(field: GraphIdField) -> &'static str {
 /// Stable errors returned before or during Beads composition.
 ///
 /// Serializes as `code` and `message`, with additive `details` and `recovery`
-/// fields for graph failures. Graph details retain the variant field names and
-/// wire types; non-graph errors preserve their original two-field shape.
+/// fields for graph failures and request-file read failures. Other errors
+/// preserve their original two-field shape.
 #[derive(Debug, Error)]
 pub enum BeadComposeError {
+    /// The request file could not be read as UTF-8.
+    #[error(
+        "could not read Beads request `{path}`: {source}; check that the request path exists and is a readable UTF-8 file"
+    )]
+    RequestReadFailed {
+        /// Request path supplied by the caller.
+        path: PathBuf,
+        /// Native I/O error, retaining its kind and operating-system context.
+        source: std::io::Error,
+    },
     /// The JSON request did not deserialize into the versioned contract.
     #[error("invalid Beads composition request: {message}")]
     RequestDeserializationFailed {
@@ -341,6 +351,9 @@ pub(crate) fn short_cause(message: &str) -> String {
 }
 
 impl BeadComposeError {
+    /// Stable code for request-file read failures.
+    pub const REQUEST_READ_FAILED_CODE: &'static str = "BEADS_REQUEST_READ_FAILED";
+
     /// Stable code for malformed requests, available without constructing an error.
     pub const REQUEST_DESERIALIZATION_FAILED_CODE: &'static str =
         "BEADS_REQUEST_DESERIALIZATION_FAILED";
@@ -349,6 +362,7 @@ impl BeadComposeError {
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
+            Self::RequestReadFailed { .. } => Self::REQUEST_READ_FAILED_CODE,
             Self::RequestDeserializationFailed { .. } => Self::REQUEST_DESERIALIZATION_FAILED_CODE,
             Self::RelationEndpointInvalid { .. } => "BEADS_RELATION_ENDPOINT_INVALID",
             Self::UnknownSchema { .. } => "BEADS_UNKNOWN_SCHEMA",

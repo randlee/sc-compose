@@ -271,7 +271,7 @@ fn malformed_request_preserves_the_r1_deserialization_code() {
 }
 
 #[test]
-fn unreadable_request_preserves_the_r1_deserialization_code() {
+fn unreadable_request_preserves_path_and_io_kind() {
     let fixture = TempFixture::new("bead-unreadable-request");
     let request = fixture.path.join("missing-request.json");
 
@@ -286,7 +286,41 @@ fn unreadable_request_preserves_the_r1_deserialization_code() {
     let envelope: serde_json::Value = serde_json::from_slice(&command.stdout).expect("envelope");
     assert_eq!(
         envelope["payload"]["error"]["code"],
-        "BEADS_REQUEST_DESERIALIZATION_FAILED"
+        "BEADS_REQUEST_READ_FAILED"
+    );
+    assert_eq!(
+        envelope["payload"]["error"]["details"]["path"],
+        request.to_str().unwrap()
+    );
+    assert_eq!(envelope["payload"]["error"]["details"]["kind"], "NotFound");
+    assert!(
+        envelope["payload"]["error"]["recovery"]
+            .as_str()
+            .unwrap()
+            .contains("permission")
+    );
+}
+
+#[test]
+fn invalid_utf8_request_is_a_read_failure() {
+    let fixture = TempFixture::new("bead-invalid-utf8-request");
+    let request = fixture.path.join("request.json");
+    fs::write(&request, [0xff]).unwrap();
+    let command = sc_compose()
+        .args(["bead", "validate", "--request"])
+        .arg(&request)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert_eq!(command.status.code(), Some(3));
+    let envelope: serde_json::Value = serde_json::from_slice(&command.stdout).unwrap();
+    assert_eq!(
+        envelope["payload"]["error"]["code"],
+        "BEADS_REQUEST_READ_FAILED"
+    );
+    assert_eq!(
+        envelope["payload"]["error"]["details"]["kind"],
+        "InvalidData"
     );
 }
 

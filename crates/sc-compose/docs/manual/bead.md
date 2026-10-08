@@ -399,3 +399,9 @@ has not assigned is shown as `pending`. Missing-edge refusals print each
   `ref`, or keep the old inputs.
 - **`bd children <parent>` does not list the steps after `preview-attach`.**
   Preview writes nothing; run `attach`.
+
+Request-file read failures use `BEADS_REQUEST_READ_FAILED` (exit 3), with JSON
+`details.path`, `details.kind` (for example `NotFound` or `PermissionDenied`), and
+recovery guidance. Check the request path, read permissions, and UTF-8 encoding.
+A readable file containing malformed JSON retains
+`BEADS_REQUEST_DESERIALIZATION_FAILED`.

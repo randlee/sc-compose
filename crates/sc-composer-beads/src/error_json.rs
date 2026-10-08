@@ -20,7 +20,11 @@ impl Serialize for BeadComposeError {
     where
         S: Serializer,
     {
-        let graph = match self {
+        let context = match self {
+            Self::RequestReadFailed { path, source } => Some((
+                json!({ "path": path, "kind": format!("{:?}", source.kind()) }),
+                "Check that the request path names an existing UTF-8 JSON file and that you have permission to read it.",
+            )),
             Self::GraphParentNotFound { parent } => Some((
                 json!({ "parent": parent }),
                 "Create the parent or name an existing bead.",
@@ -73,7 +77,7 @@ impl Serialize for BeadComposeError {
             )),
             _ => None,
         };
-        let (details, recovery) = match graph {
+        let (details, recovery) = match context {
             Some((details, recovery)) => (Some(details), Some(recovery)),
             None => (None, None),
         };

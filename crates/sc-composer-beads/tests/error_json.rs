@@ -116,3 +116,35 @@ fn existing_request_error_wire_shape_is_unchanged() {
         })
     );
 }
+
+#[test]
+fn request_read_errors_preserve_native_sources_and_recovery() {
+    for kind in [
+        std::io::ErrorKind::NotFound,
+        std::io::ErrorKind::PermissionDenied,
+        std::io::ErrorKind::InvalidData,
+    ] {
+        let error = Error::RequestReadFailed {
+            path: "requests/input.json".into(),
+            source: std::io::Error::new(kind, "read diagnostic"),
+        };
+        let document = serde_json::to_value(&error).unwrap();
+        assert_eq!(document["code"], "BEADS_REQUEST_READ_FAILED");
+        assert_eq!(
+            document["details"],
+            json!({"path": "requests/input.json", "kind": format!("{kind:?}")})
+        );
+        assert!(
+            document["recovery"]
+                .as_str()
+                .unwrap()
+                .contains("permission")
+        );
+        assert!(error.to_string().contains("read diagnostic"));
+        let source = std::error::Error::source(&error)
+            .unwrap()
+            .downcast_ref::<std::io::Error>()
+            .unwrap();
+        assert_eq!(source.kind(), kind);
+    }
+}

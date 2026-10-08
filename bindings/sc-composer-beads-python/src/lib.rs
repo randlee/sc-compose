@@ -102,6 +102,7 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
         | RustBeadComposeError::GraphReadFailed { .. }
         | RustBeadComposeError::GraphApplyFailed { .. }
         | RustBeadComposeError::RelationEndpointInvalid { .. }
+        | RustBeadComposeError::RequestReadFailed { .. }
         | RustBeadComposeError::RequestDeserializationFailed { .. }
         | RustBeadComposeError::UnknownSchema { .. }
         | RustBeadComposeError::FormulaPathNotFile { .. }
