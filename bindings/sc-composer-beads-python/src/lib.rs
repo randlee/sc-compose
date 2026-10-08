@@ -14,6 +14,8 @@ use sc_composer_beads::{
 use serde_json::Value;
 
 const REQUEST_STAGE: &str = "request";
+const RECEIPT_STAGE: &str = "receipt";
+const RECEIPT_DESERIALIZATION_FAILED_CODE: &str = "BEADS_RECEIPT_DESERIALIZATION_FAILED";
 
 #[pyclass(extends = PyException, name = "BeadComposeError")]
 #[derive(Debug)]
@@ -60,6 +62,15 @@ fn request_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
         py,
         RustBeadComposeError::REQUEST_DESERIALIZATION_FAILED_CODE,
         Some(REQUEST_STAGE),
+        message,
+    )
+}
+
+fn receipt_deserialization_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
+    error(
+        py,
+        RECEIPT_DESERIALIZATION_FAILED_CODE,
+        Some(RECEIPT_STAGE),
         message,
     )
 }
@@ -352,13 +363,22 @@ impl PyBeadComposeReceipt {
     fn from_json(class: &Bound<'_, PyType>, receipt_json: &str) -> PyResult<Self> {
         serde_json::from_str::<BeadComposeReceipt>(receipt_json)
             .map(Self::from)
-            .map_err(|error| request_error(class.py(), error.to_string()))
+            .map_err(|error| {
+                receipt_deserialization_error(
+                    class.py(),
+                    format!("failed to decode receipt: {error}"),
+                )
+            })
     }
 
     /// Return the canonical Rust receipt JSON as Python JSON data.
     fn to_json(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        let value = serde_json::from_str(&self.wire)
-            .map_err(|error| request_error(py, error.to_string()))?;
+        let value = serde_json::from_str(&self.wire).map_err(|error| {
+            receipt_deserialization_error(
+                py,
+                format!("failed to decode receipt for JSON conversion: {error}"),
+            )
+        })?;
         json_to_py(py, &value)
     }
 }

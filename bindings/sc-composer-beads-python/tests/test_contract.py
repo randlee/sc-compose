@@ -126,6 +126,15 @@ def test_graph_receipt_fixtures_remain_json_contracts(
         assert receipt.outcome.code == outcome_code
 
 
+def test_receipt_decode_errors_have_a_receipt_code_and_stage() -> None:
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeReceipt.from_json("{}")
+
+    assert raised.value.code == "BEADS_RECEIPT_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "receipt"
+    assert raised.value.message.startswith("failed to decode receipt:")
+
+
 def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
     executable, trace = _write_fake_bd(tmp_path)
 
