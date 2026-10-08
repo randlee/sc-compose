@@ -1051,3 +1051,25 @@ fn malformed_endpoint_prefixes_have_a_stable_request_code() {
         }
     }
 }
+
+// FUZZ-013: Phase R requests parse unchanged (ADR-0023 Decision 1). A render
+// request whose formula_name bd accepts, such as `café`, was valid before the
+// graph grammar existed and must still parse.
+#[test]
+#[ignore = "FUZZ-013"]
+fn fuzz_013_phase_r_render_request_keeps_accepting_its_formula_name() {
+    for name in ["café", "re g0"] {
+        let request = serde_json::json!({
+            "schema": BEADS_SCHEMA_V1,
+            "operation": "render",
+            "working_directory": "/work",
+            "template": "f.formula.toml.j2",
+            "rendered_formula": "/work/build/f.formula.toml",
+            "formula_name": name,
+            "compose_variables": {},
+            "bead_variables": {}
+        });
+        let parsed = parse_request(&request.to_string());
+        assert!(parsed.is_ok(), "{name}: {:?}", parsed.err());
+    }
+}

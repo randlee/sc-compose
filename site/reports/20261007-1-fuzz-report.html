@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>sc-compose adversarial fuzz report 20261007-1</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-fail { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>sc-compose adversarial fuzz report 20261007-1</h1>
+    <p class="subtitle">Phase T t-7: bead attach / by-path pour (ADR-0023) and render --append</p>
+    <p class="generated-at">Generated: 2026-10-07</p>
+    <div class="top-status"><span class="status status-fail">FAIL</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+    </div>
+    <table class="summary-intro"><tbody><tr><th scope="row">Fuzz run description</th><td>Phase T t-7 full campaign over bead attach / by-path pour (ADR-0023) and render --append: 9 confirmed bugs promoted as ignored regressions.</td></tr><tr><th scope="row">Iterations</th><td>1149</td></tr><tr><th scope="row">Pass</th><td>1083/1149</td></tr><tr><th scope="row">Result</th><td><span class="status status-fail">FAIL</span></td></tr></tbody></table>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">ADR-0023 negative contract (id, scope, relation, conflict rows), path confinement and symlinks, render --append failures, exit 3 vs exit 2</th>
+          <td>285</td>
+          <td>270/285</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">metamorphic and differential relations: attach twice == once, relation order, CRLF revision, preview == apply, Phase R registry pour vs origin/develop, CLI vs Python receipts, concurrency, determinism</th>
+          <td>304</td>
+          <td>289/304</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">request JSON shapes; Unicode/control characters in parent, ref, step ids, relation endpoints and metadata; render --append records</th>
+          <td>312</td>
+          <td>296/312</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">bead templates with loops, conditionals and includes producing formulas up to 500 steps; TOML/JSON parity; formula grammar refusals</th>
+          <td>248</td>
+          <td>228/248</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="toc">
+    <strong>Worker Sections</strong>
+    <ul>
+      <li><a href="#boundary-probe">boundary-probe</a> <span class="status status-fail">FAIL</span></li>
+      <li><a href="#differential-probe">differential-probe</a> <span class="status status-fail">FAIL</span></li>
+      <li><a href="#shape-probe">shape-probe</a> <span class="status status-fail">FAIL</span></li>
+      <li><a href="#template-probe">template-probe</a> <span class="status status-fail">FAIL</span></li>
+    </ul>
+  </nav>
+
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-1 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0001&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 14, &quot;name&quot;: &quot;id_rule_ref&quot;, &quot;passed&quot;: 6}, {&quot;cases&quot;: 7, &quot;name&quot;: &quot;id_rule_parent&quot;, &quot;passed&quot;: 2}, {&quot;cases&quot;: 8, &quot;name&quot;: &quot;id_rule_step&quot;, &quot;passed&quot;: 8}, {&quot;cases&quot;: 18, &quot;name&quot;: &quot;scope&quot;, &quot;passed&quot;: 18}, {&quot;cases&quot;: 29, &quot;name&quot;: &quot;request_shape&quot;, &quot;passed&quot;: 29}, {&quot;cases&quot;: 10, &quot;name&quot;: &quot;relation_request&quot;, &quot;passed&quot;: 10}, {&quot;cases&quot;: 14, &quot;name&quot;: &quot;relations&quot;, &quot;passed&quot;: 14}, {&quot;cases&quot;: 18, &quot;name&quot;: &quot;relation_types&quot;, &quot;passed&quot;: 18}, {&quot;cases&quot;: 7, &quot;name&quot;: &quot;pour_mode&quot;, &quot;passed&quot;: 7}, {&quot;cases&quot;: 39, &quot;name&quot;: &quot;conflict (real bd)&quot;, &quot;passed&quot;: 39}, {&quot;cases&quot;: 15, &quot;name&quot;: &quot;ids_bd&quot;, &quot;passed&quot;: 15}, {&quot;cases&quot;: 42, &quot;name&quot;: &quot;paths&quot;, &quot;passed&quot;: 41}, {&quot;cases&quot;: 64, &quot;name&quot;: &quot;append&quot;, &quot;passed&quot;: 63}], &quot;cases_run&quot;: 285, &quot;correlation_id&quot;: &quot;boundary-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 15, &quot;finding_ids&quot;: [&quot;FUZZ-012&quot;, &quot;FUZZ-021&quot;, &quot;FUZZ-022&quot;, &quot;FUZZ-023&quot;, &quot;FUZZ-024&quot;, &quot;FUZZ-025&quot;, &quot;FUZZ-026&quot;, &quot;FUZZ-027&quot;], &quot;passed&quot;: 270, &quot;seed&quot;: 7023, &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;ADR-0023 negative contract (id, scope, relation, conflict rows), path confinement and symlinks, render --append failures, exit 3 vs exit 2&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="285 recorded checks (~250 sc-compose invocations) on bd v1.3.1 workspaces bnda..bndd. Every refusal left bd byte-identical (list + dep list snapshots). No timeouts, panics or hangs. 18 first-pass harness-expectation errors were rescored. Not testable on APFS: non-UTF-8 file names.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">ADR-0023 negative contract (id, scope, relation, conflict rows), path confinement and symlinks, render --append failures, exit 3 vs exit 2</th>
+        <td>285</td>
+        <td>270/285</td>
+        <td>
+          <span class="status status-error">FAIL: 1 confirmed bug(s)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">boundary-probe/id_rule_ref</th><td><code>id_rule_ref</code></td><td>6/14 passed</td></tr>
+        <tr><th scope="row">boundary-probe/id_rule_parent</th><td><code>id_rule_parent</code></td><td>2/7 passed</td></tr>
+        <tr><th scope="row">boundary-probe/id_rule_step</th><td><code>id_rule_step</code></td><td>8/8 passed</td></tr>
+        <tr><th scope="row">boundary-probe/scope</th><td><code>scope</code></td><td>18/18 passed</td></tr>
+        <tr><th scope="row">boundary-probe/request_shape</th><td><code>request_shape</code></td><td>29/29 passed</td></tr>
+        <tr><th scope="row">boundary-probe/relation_request</th><td><code>relation_request</code></td><td>10/10 passed</td></tr>
+        <tr><th scope="row">boundary-probe/relations</th><td><code>relations</code></td><td>14/14 passed</td></tr>
+        <tr><th scope="row">boundary-probe/relation_types</th><td><code>relation_types</code></td><td>18/18 passed</td></tr>
+        <tr><th scope="row">boundary-probe/pour_mode</th><td><code>pour_mode</code></td><td>7/7 passed</td></tr>
+        <tr><th scope="row">boundary-probe/conflict (real bd)</th><td><code>conflict (real bd)</code></td><td>39/39 passed</td></tr>
+        <tr><th scope="row">boundary-probe/ids_bd</th><td><code>ids_bd</code></td><td>15/15 passed</td></tr>
+        <tr><th scope="row">boundary-probe/paths</th><td><code>paths</code></td><td>41/42 passed</td></tr>
+        <tr><th scope="row">boundary-probe/append</th><td><code>append</code></td><td>63/64 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-012</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>wf/m.formula.toml.j2: formula = &quot;m&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A&quot;</code></dd>
+        <dt>Input</dt><dd><code>{&quot;operation&quot;:&quot;render&quot;,&quot;working_directory&quot;:&quot;&lt;ws&gt;&quot;,&quot;template&quot;:&quot;wf/m.formula.toml.j2&quot;,&quot;rendered_formula&quot;:&quot;&lt;ws&gt;/build/out.formula.toml&quot;,&quot;compose_variables&quot;:{},&quot;bead_variables&quot;:{}}  (process cwd != working_directory)</code></dd>
+        <dt>Expected</dt><dd>A relative template resolves against working_directory, so the render succeeds from any cwd (ADR-0021 line 207 &#x27;All paths resolve relative to working_directory&#x27;; help bead request table).</dd>
+        <dt>Observed</dt><dd>Exit 3 BEADS_TEMPLATE_PATH_INVALID &#x27;invalid template path: wf/m.formula.toml.j2&#x27;. Succeeds only when cwd == working_directory. origin/develop behaves the same (pre-existing). Reproduced 3/3 by the coordinator.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 paths paragraph; help bead request table; ADR-0023 Authorization and confinement</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed; the contract already states the rule.</dd>
+        <dt>Root cause</dt><dd>validate_request canonicalizes request.template (and normalize_output the rendered_formula) as given, so relative paths resolve against the process cwd.</dd>
+        <dt>Recommended fix</dt><dd>Join relative template/rendered_formula onto the canonical working_directory before canonicalizing and confining.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-1 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0001&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 36, &quot;name&quot;: &quot;R1 attach twice == once&quot;, &quot;passed&quot;: 36}, {&quot;cases&quot;: 40, &quot;name&quot;: &quot;R2 relation order and inputs&quot;, &quot;passed&quot;: 40}, {&quot;cases&quot;: 48, &quot;name&quot;: &quot;R3 CRLF / lone CR revision&quot;, &quot;passed&quot;: 48}, {&quot;cases&quot;: 24, &quot;name&quot;: &quot;R4 preview == apply&quot;, &quot;passed&quot;: 24}, {&quot;cases&quot;: 60, &quot;name&quot;: &quot;R5 head vs origin/develop&quot;, &quot;passed&quot;: 51}, {&quot;cases&quot;: 37, &quot;name&quot;: &quot;R6 CLI vs Python receipts&quot;, &quot;passed&quot;: 37}, {&quot;cases&quot;: 25, &quot;name&quot;: &quot;R7 concurrency (append + attach)&quot;, &quot;passed&quot;: 19}, {&quot;cases&quot;: 14, &quot;name&quot;: &quot;R8 determinism&quot;, &quot;passed&quot;: 14}, {&quot;cases&quot;: 20, &quot;name&quot;: &quot;R9 extra metamorphic&quot;, &quot;passed&quot;: 20}], &quot;cases_run&quot;: 304, &quot;correlation_id&quot;: &quot;differential-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 15, &quot;finding_ids&quot;: [&quot;FUZZ-013&quot;, &quot;FUZZ-014&quot;, &quot;FUZZ-028&quot;, &quot;FUZZ-029&quot;, &quot;FUZZ-030&quot;, &quot;FUZZ-031&quot;, &quot;FUZZ-032&quot;, &quot;FUZZ-033&quot;], &quot;passed&quot;: 289, &quot;seed&quot;: 7023, &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;metamorphic and differential relations: attach twice == once, relation order, CRLF revision, preview == apply, Phase R registry pour vs origin/develop, CLI vs Python receipts, concurrency, determinism&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Workspaces difa..difg. Python binding built from head stood in for the Rust library (the optional scratch cargo harness was skipped to avoid writing outside the campaign dir). Concurrent render --append (8x25, 8x25 at 70 KB, 16x10) produced exact counts and no interleaving. CLI and Python receipts agreed in 37/37 cases.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">metamorphic and differential relations: attach twice == once, relation order, CRLF revision, preview == apply, Phase R registry pour vs origin/develop, CLI vs Python receipts, concurrency, determinism</th>
+        <td>304</td>
+        <td>289/304</td>
+        <td>
+          <span class="status status-error">FAIL: 2 confirmed bug(s)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">differential-probe/R1 attach twice == once</th><td><code>R1 attach twice == once</code></td><td>36/36 passed</td></tr>
+        <tr><th scope="row">differential-probe/R2 relation order and inputs</th><td><code>R2 relation order and inputs</code></td><td>40/40 passed</td></tr>
+        <tr><th scope="row">differential-probe/R3 CRLF / lone CR revision</th><td><code>R3 CRLF / lone CR revision</code></td><td>48/48 passed</td></tr>
+        <tr><th scope="row">differential-probe/R4 preview == apply</th><td><code>R4 preview == apply</code></td><td>24/24 passed</td></tr>
+        <tr><th scope="row">differential-probe/R5 head vs origin/develop</th><td><code>R5 head vs origin/develop</code></td><td>51/60 passed</td></tr>
+        <tr><th scope="row">differential-probe/R6 CLI vs Python receipts</th><td><code>R6 CLI vs Python receipts</code></td><td>37/37 passed</td></tr>
+        <tr><th scope="row">differential-probe/R7 concurrency (append + attach)</th><td><code>R7 concurrency (append + attach)</code></td><td>19/25 passed</td></tr>
+        <tr><th scope="row">differential-probe/R8 determinism</th><td><code>R8 determinism</code></td><td>14/14 passed</td></tr>
+        <tr><th scope="row">differential-probe/R9 extra metamorphic</th><td><code>R9 extra metamorphic</code></td><td>20/20 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-013</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;re g0&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A&quot;</code></dd>
+        <dt>Input</dt><dd><code>render request with &quot;formula_name&quot;:&quot;re g0&quot; (also &quot;café&quot;, &quot;a+b&quot;, &quot;&quot;)</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Decision 1: additive only; Phase R requests parse unchanged. Baseline accepts these requests (exit 0 render/validate/registry preview-pour).</dd>
+        <dt>Observed</dt><dd>Head: exit 3 BEADS_REQUEST_DESERIALIZATION_FAILED &#x27;invalid graph formula ...; follow ADR-0023&#x27; for every operation, including render, which never uses the name. formula_name &quot;&quot; now gives deserialization failure instead of BEADS_FORMULA_NAME_REQUIRED on pour. Reproduced 3/3 by the coordinator, head vs baseline.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Decision 1 and Consequences; ADR-0021 FormulaNameRequired</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Decision owner team-lead: either keep the grammar and amend ADR-0021/0023 (documenting the breaking change), or confine the grammar to the uses that need it (registry path, graph metadata).</dd>
+        <dt>Root cause</dt><dd>Commit e1b5168 made BeadComposeRequest.formula_name a validating FormulaName newtype, so serde rejects names outside [A-Za-z0-9_][A-Za-z0-9_.-]* during request parsing.</dd>
+        <dt>Recommended fix</dt><dd>Validate formula_name only where it becomes a path or bd argument, with a stable code, and keep Phase R parsing unchanged; or record the break in an ADR.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-014</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;x&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A {{{ tag }}}&quot;</code></dd>
+        <dt>Input</dt><dd><code>request k: ref race&lt;k&gt;, compose_variables {&quot;tag&quot;:&quot;T&lt;k&gt;&quot;}, rendered_formula &lt;ws&gt;/build/x.formula.toml</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Atomic apply and Revision: each request&#x27;s beads come from its own rendered text; GraphApplyFailed means bd wrote nothing.</dd>
+        <dt>Observed</dt><dd>Coordinator repro (3 trials): trial 1: a failed receipt (GraphApplyFailed, &#x27;nothing was written&#x27;) whose own bd create returned ids for the other request&#x27;s plan; trial 2: a succeeded receipt for ref race20 created a bead titled &#x27;A T21&#x27;, i.e. the other request&#x27;s content. Worker saw cross-contamination in 27/27 trials. Deterministic regression via a path-honest fake bd.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Decision 6, Graph plan, Revision, Errors (GraphApplyFailed); UC-9</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed for the invariant; if a shared rendered_formula is to be unsupported, document and refuse it.</dd>
+        <dt>Root cause</dt><dd>graph::run re-reads rendered_formula from disk and bd cooks it by path, and PendingCreate::execute writes then applies the fixed path &lt;rendered_formula&gt;.graph.json, so concurrent requests sharing the path race on both files.</dd>
+        <dt>Recommended fix</dt><dd>Hash and cook the bytes this request rendered (private copy), and write the plan to a per-invocation path or hold a lock across render-cook-apply.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-1 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0001&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 73, &quot;name&quot;: &quot;f1 request shape (render/validate)&quot;, &quot;passed&quot;: 73}, {&quot;cases&quot;: 50, &quot;name&quot;: &quot;f2 attach request shape&quot;, &quot;passed&quot;: 50}, {&quot;cases&quot;: 52, &quot;name&quot;: &quot;f3 attach ids (bd)&quot;, &quot;passed&quot;: 44}, {&quot;cases&quot;: 57, &quot;name&quot;: &quot;f4 step content (bd)&quot;, &quot;passed&quot;: 56}, {&quot;cases&quot;: 13, &quot;name&quot;: &quot;f5 attach re-run (bd)&quot;, &quot;passed&quot;: 12}, {&quot;cases&quot;: 14, &quot;name&quot;: &quot;f6 pour (bd)&quot;, &quot;passed&quot;: 13}, {&quot;cases&quot;: 53, &quot;name&quot;: &quot;f7 render --append&quot;, &quot;passed&quot;: 48}], &quot;cases_run&quot;: 312, &quot;correlation_id&quot;: &quot;shape-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 16, &quot;finding_ids&quot;: [&quot;FUZZ-015&quot;, &quot;FUZZ-016&quot;, &quot;FUZZ-017&quot;, &quot;FUZZ-034&quot;, &quot;FUZZ-035&quot;], &quot;passed&quot;: 296, &quot;seed&quot;: 7023, &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;request JSON shapes; Unicode/control characters in parent, ref, step ids, relation endpoints and metadata; render --append records&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Workspaces shpa..shpc. Request-shape errors exit 3 before any bd call; Unicode/control text round-trips literally into bd; re-runs up to 33 steps are idempotent; --append framing, newline and not-object refusals leave the destination byte-identical. Three harness-oracle mistakes were corrected.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">request JSON shapes; Unicode/control characters in parent, ref, step ids, relation endpoints and metadata; render --append records</th>
+        <td>312</td>
+        <td>296/312</td>
+        <td>
+          <span class="status status-error">FAIL: 3 confirmed bug(s)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">shape-probe/f1 request shape (render/validate)</th><td><code>f1 request shape (render/validate)</code></td><td>73/73 passed</td></tr>
+        <tr><th scope="row">shape-probe/f2 attach request shape</th><td><code>f2 attach request shape</code></td><td>50/50 passed</td></tr>
+        <tr><th scope="row">shape-probe/f3 attach ids (bd)</th><td><code>f3 attach ids (bd)</code></td><td>44/52 passed</td></tr>
+        <tr><th scope="row">shape-probe/f4 step content (bd)</th><td><code>f4 step content (bd)</code></td><td>56/57 passed</td></tr>
+        <tr><th scope="row">shape-probe/f5 attach re-run (bd)</th><td><code>f5 attach re-run (bd)</code></td><td>12/13 passed</td></tr>
+        <tr><th scope="row">shape-probe/f6 pour (bd)</th><td><code>f6 pour (bd)</code></td><td>13/14 passed</td></tr>
+        <tr><th scope="row">shape-probe/f7 render --append</th><td><code>f7 render --append</code></td><td>48/53 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-015</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>UC-8 loop: formula = &quot;batch&quot; ... {% for i in range(1, count + 1) %}[[steps]] id = &quot;item_{{{ i }}}&quot; ... needs = [&quot;item_{{{ i - 1 }}}&quot;]{% endfor %}</code></dd>
+        <dt>Input</dt><dd><code>attach, compose_variables {&quot;count&quot;:36}, parent &lt;epic&gt;, ref batch</code></dd>
+        <dt>Expected</dt><dd>FR-23.5 / ADR-0023 UC-4, UC-5: re-running an attach whose beads all exist succeeds and writes nothing; UC-8 generates many steps; no step limit is documented.</dd>
+        <dt>Observed</dt><dd>First attach creates 36 beads; every re-run or preview-attach exits 2 with BEADS_PROCESS_OUTPUT_LIMIT (&#x27;Beads Attach output exceeded the 65536-byte capture limit&#x27;) and no receipt. Threshold ~34 minimal steps (fewer with metadata). The 500-step attach fails even on its first run (bd show stderr for 500 missing ids ~101 KB) and a 500-step graph preview-pour fails on bd cook --json (78 KB). Reproduced 3/3 by the coordinator at count=36.</dd>
+        <dt>Requirement / ADR</dt><dd>FR-23.5, FR-23.6; ADR-0023 UC-4, UC-5, UC-8, UC-9, Conflict rules</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed for re-run; if a step ceiling remains, document it in ADR-0023 and the bead manual.</dd>
+        <dt>Root cause</dt><dd>GraphReader::issues issues one `bd show &lt;parent&gt; &lt;every planned id&gt; --json`; bd v1.3.1 prints ~1.9 KB per existing bead, beyond runner PROCESS_OUTPUT_LIMIT_BYTES (64 KiB per stream). The cook --json read hits the same cap for large formulas.</dd>
+        <dt>Recommended fix</dt><dd>Batch bd show reads, and size the capture limit for graph reads (or stream-parse) so attach scales to the documented use cases.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-016</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;one&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A&quot;</code></dd>
+        <dt>Input</dt><dd><code>attach request with &quot;parent&quot;:&quot;--help&quot; (or &quot;--version&quot;); or relation {&quot;from&quot;:&quot;step:a&quot;,&quot;to&quot;:&quot;bead:--db=/nonexistent&quot;,&quot;type&quot;:&quot;related&quot;}</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Conflict rules / Relation validation: a missing parent is BEADS_GRAPH_PARENT_NOT_FOUND and a missing bead: endpoint is GraphRelationInvalid(bead_not_found). BeadId only requires non-empty, no whitespace.</dd>
+        <dt>Observed</dt><dd>Exit 2 failed BEADS_GRAPH_READ_FAILED; argv [&#x27;bd&#x27;,&#x27;show&#x27;,&#x27;--help&#x27;,&#x27;--help.inj-a&#x27;,...] and [&#x27;bd&#x27;,&#x27;show&#x27;,&#x27;--db=/nonexistent&#x27;,...]: bd parsed the ids as options and, for --db=, opened a different database. Controls with ordinary missing ids give the documented codes. Reproduced 3/3 per variant by the coordinator. No write is reachable.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Conflict rules, Relation validation; BeadId contract</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>Request ids are spliced into `bd show &lt;ids...&gt; --json` and `bd dep list &lt;id&gt; --json` with no `--` separator.</dd>
+        <dt>Recommended fix</dt><dd>Pass ids after `--` (bd v1.3.1 accepts it) or reject bead ids starting with &#x27;-&#x27; at the BeadId boundary.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-017</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{&quot;id&quot;: 12345678901234567890123, &quot;amount&quot;: 0.10000000000000000001}</code></dd>
+        <dt>Input</dt><dd><code>no variables; destination absent</code></dd>
+        <dt>Expected</dt><dd>help render &#x27;Appending JSON records&#x27; step 2: the object is parsed and re-serialized and only its key order may differ; FR-7 render --append.</dd>
+        <dt>Observed</dt><dd>Exit 0; appended {&quot;amount&quot;:0.1,&quot;id&quot;:1.2345678901234568e+22}. Integers above u64 become lossy floats, long decimals round, 1e2 -&gt; 100.0, -0 -&gt; -0.0. Plain render passes the body unchanged. Reproduced 3/3 by the coordinator; --append does not exist on origin/develop.</dd>
+        <dt>Requirement / ADR</dt><dd>FR-7 render --append; FR-8a; help render &#x27;Appending JSON records&#x27;</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed; if normalization is intended, the manual must say so.</dd>
+        <dt>Root cause</dt><dd>append_json_record parses into serde_json::Value without arbitrary_precision and re-serializes.</dd>
+        <dt>Recommended fix</dt><dd>Validate the object but keep the original number tokens (arbitrary_precision or RawValue plus minification).</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-1 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0001&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 60, &quot;name&quot;: &quot;A render fidelity&quot;, &quot;passed&quot;: 60}, {&quot;cases&quot;: 53, &quot;name&quot;: &quot;B TOML vs JSON preview parity&quot;, &quot;passed&quot;: 53}, {&quot;cases&quot;: 45, &quot;name&quot;: &quot;C formula grammar refusals&quot;, &quot;passed&quot;: 45}, {&quot;cases&quot;: 12, &quot;name&quot;: &quot;D/E real attach + re-run fidelity&quot;, &quot;passed&quot;: 11}, {&quot;cases&quot;: 10, &quot;name&quot;: &quot;scale 30-500 steps&quot;, &quot;passed&quot;: 5}, {&quot;cases&quot;: 25, &quot;name&quot;: &quot;G whitespace/delimiters/includes&quot;, &quot;passed&quot;: 21}, {&quot;cases&quot;: 12, &quot;name&quot;: &quot;H special text through attach&quot;, &quot;passed&quot;: 12}, {&quot;cases&quot;: 1, &quot;name&quot;: &quot;I step-id case&quot;, &quot;passed&quot;: 1}, {&quot;cases&quot;: 6, &quot;name&quot;: &quot;J graph pour parity&quot;, &quot;passed&quot;: 6}, {&quot;cases&quot;: 15, &quot;name&quot;: &quot;K ref id rule and scope&quot;, &quot;passed&quot;: 10}, {&quot;cases&quot;: 3, &quot;name&quot;: &quot;revision CRLF&quot;, &quot;passed&quot;: 3}, {&quot;cases&quot;: 6, &quot;name&quot;: &quot;misc includes/paths&quot;, &quot;passed&quot;: 1}], &quot;cases_run&quot;: 248, &quot;correlation_id&quot;: &quot;template-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 20, &quot;finding_ids&quot;: [&quot;FUZZ-018&quot;, &quot;FUZZ-019&quot;, &quot;FUZZ-020&quot;, &quot;FUZZ-036&quot;, &quot;FUZZ-037&quot;], &quot;passed&quot;: 228, &quot;seed&quot;: 7023, &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;bead templates with loops, conditionals and includes producing formulas up to 500 steps; TOML/JSON parity; formula grammar refusals&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Workspaces tpla, tplb. TOML/JSON parity held for ids, nodes, edges, plan nodes and bd content across 53 previews, 12 attaches and 6 graph pours. Every ADR-0023 grammar refusal matched in both formats and modes. 300-step attach and pour pass; 500-step attach/pour fail (FUZZ-015).">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">bead templates with loops, conditionals and includes producing formulas up to 500 steps; TOML/JSON parity; formula grammar refusals</th>
+        <td>248</td>
+        <td>228/248</td>
+        <td>
+          <span class="status status-error">FAIL: 3 confirmed bug(s)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">template-probe/A render fidelity</th><td><code>A render fidelity</code></td><td>60/60 passed</td></tr>
+        <tr><th scope="row">template-probe/B TOML vs JSON preview parity</th><td><code>B TOML vs JSON preview parity</code></td><td>53/53 passed</td></tr>
+        <tr><th scope="row">template-probe/C formula grammar refusals</th><td><code>C formula grammar refusals</code></td><td>45/45 passed</td></tr>
+        <tr><th scope="row">template-probe/D/E real attach + re-run fidelity</th><td><code>D/E real attach + re-run fidelity</code></td><td>11/12 passed</td></tr>
+        <tr><th scope="row">template-probe/scale 30-500 steps</th><td><code>scale 30-500 steps</code></td><td>5/10 passed</td></tr>
+        <tr><th scope="row">template-probe/G whitespace/delimiters/includes</th><td><code>G whitespace/delimiters/includes</code></td><td>21/25 passed</td></tr>
+        <tr><th scope="row">template-probe/H special text through attach</th><td><code>H special text through attach</code></td><td>12/12 passed</td></tr>
+        <tr><th scope="row">template-probe/I step-id case</th><td><code>I step-id case</code></td><td>1/1 passed</td></tr>
+        <tr><th scope="row">template-probe/J graph pour parity</th><td><code>J graph pour parity</code></td><td>6/6 passed</td></tr>
+        <tr><th scope="row">template-probe/K ref id rule and scope</th><td><code>K ref id rule and scope</code></td><td>10/15 passed</td></tr>
+        <tr><th scope="row">template-probe/revision CRLF</th><td><code>revision CRLF</code></td><td>3/3 passed</td></tr>
+        <tr><th scope="row">template-probe/misc includes/paths</th><td><code>misc includes/paths</code></td><td>1/6 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-018</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>main.formula.toml.j2: formula = &quot;inc&quot; / version = 1 / type = &quot;workflow&quot; / @&lt;frag/common.toml.j2&gt; / [[steps]] id = &quot;local&quot; ...; frag/common.toml.j2: [[steps]] id = &quot;shared&quot; title = &quot;Shared step&quot;</code></dd>
+        <dt>Input</dt><dd><code>render request, compose_variables {}</code></dd>
+        <dt>Expected</dt><dd>help bead &#x27;Shared step blocks&#x27;: include fragments with sc-compose&#x27;s @&lt;path&gt; include syntax; FR-23.1 (structure from loops, conditionals, includes); FR-3.</dd>
+        <dt>Observed</dt><dd>Exit 0 but the rendered formula keeps the literal line &#x27;@&lt;frag/common.toml.j2&gt;&#x27;; the same text through plain `sc-compose render` expands the include. A later preview-attach fails with BEADS_COOK_FAILED. Reproduced 3/3 by the coordinator; origin/develop renders the same.</dd>
+        <dt>Requirement / ADR</dt><dd>FR-23.1, FR-3, bead manual &#x27;Shared step blocks&#x27;, ADR-0023 step_construct guidance</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>render_formula calls Renderer::render_named on the raw template text and bypasses sc-composer&#x27;s include-expansion pipeline.</dd>
+        <dt>Recommended fix</dt><dd>Run include expansion (confined to working_directory) before rendering bead templates.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-019</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{% if %}</code></dd>
+        <dt>Input</dt><dd><code>render request, compose_variables {}</code></dd>
+        <dt>Expected</dt><dd>FR-8: diagnostics carry a human-readable message; RenderFailed has a cause message.</dd>
+        <dt>Observed</dt><dd>Exit 2, BEADS_RENDER_FAILED, render stage stderr_excerpt and stdout_excerpt empty; text mode prints only &#x27;stage Render: failed (BEADS_RENDER_FAILED)&#x27;. Reproduced 3/3 by the coordinator; same on baseline.</dd>
+        <dt>Requirement / ADR</dt><dd>FR-8 Determinism and Diagnostics</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>The receipt built for a render failure drops RenderFailed.message.</dd>
+        <dt>Recommended fix</dt><dd>Record the render error message in the render stage&#x27;s stderr_excerpt, as graph stages do via record_error.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-020</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;g&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;T a&quot; needs = [&quot;a&quot;]</code></dd>
+        <dt>Input</dt><dd><code>preview_attach under an existing epic, ref gcx</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Errors: GraphApplyFailed carries bd&#x27;s failure cause so the caller can fix it.</dd>
+        <dt>Observed</dt><dd>Exit 2 BEADS_GRAPH_APPLY_FAILED with message &#x27;graph apply failed (Some(1)): {; [argv]&#x27;: the cause is &#x27;{&#x27;, the first line of bd&#x27;s pretty-printed JSON; the real error (blocking dependency cycle) appears only in stdout_excerpt. Reproduced 3/3 by the coordinator.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Errors (GraphApplyFailed, GraphReadFailed)</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>process_failure_cause falls back to stdout and short_cause takes its first non-empty line.</dd>
+        <dt>Recommended fix</dt><dd>Parse bd&#x27;s JSON error object (the `error` field) before falling back to the first line.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+
+  <section class="section recommendations">
+    <h2>Recommendations</h2>
+    <p>9 confirmed bugs, all promoted as ignored regression tests.</p><ul><li><strong>FUZZ-012</strong> (medium): bead request path resolution &#8212; <code>crates/sc-composer-beads/src/execute.rs (validate_request, normalize_output)</code></li><li><strong>FUZZ-013</strong> (medium): bead request contract (formula_name), Phase R regression &#8212; <code>crates/sc-composer-beads/src/contract.rs (FormulaName, BeadComposeRequest.formula_name)</code></li><li><strong>FUZZ-014</strong> (medium): graph engine apply, shared rendered_formula &#8212; <code>crates/sc-composer-beads/src/graph.rs (run, PendingCreate::execute); crates/sc-composer-beads/src/render.rs</code></li><li><strong>FUZZ-015</strong> (high): graph engine reads vs 64 KiB process capture limit &#8212; <code>crates/sc-composer-beads/src/graph.rs (GraphReader::issues, run); crates/sc-composer-beads/src/runner.rs (PROCESS_OUTPUT_LIMIT_BYTES)</code></li><li><strong>FUZZ-016</strong> (medium): graph plan-stage bd argv (option-like bead ids) &#8212; <code>crates/sc-composer-beads/src/graph.rs (impl GraphReader for Runtime: issues, dependencies)</code></li><li><strong>FUZZ-017</strong> (medium): render --append record serialization &#8212; <code>crates/sc-compose/src/commands/compose_output.rs (append_json_record)</code></li><li><strong>FUZZ-018</strong> (medium): bead renderer includes &#8212; <code>crates/sc-composer-beads/src/render.rs (render_formula)</code></li><li><strong>FUZZ-019</strong> (low): bead receipt render-stage diagnostics &#8212; <code>crates/sc-composer-beads/src/execute.rs (render failure receipt)</code></li><li><strong>FUZZ-020</strong> (low): graph engine apply diagnostics &#8212; <code>crates/sc-composer-beads/src/graph.rs (process_failure_cause); crates/sc-composer-beads/src/error.rs (short_cause)</code></li></ul>
+  </section>
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">Campaign id</th><td>t7-20261007-0001</td></tr>
+      <tr><th scope="row">Session id</th><td>sc-compose-fuzz-20261007-1</td></tr>
+      <tr><th scope="row">Seed</th><td>7023</td></tr>
+      <tr><th scope="row">Target</th><td>full</td></tr>
+      <tr><th scope="row">Baseline</th><td>origin/develop (080f261)</td></tr>
+      <tr><th scope="row">Head</th><td>58e3b49</td></tr>
+      <tr><th scope="row">Workers</th><td>4 x 200 requested cases (actual 285/304/312/248)</td></tr>
+      <tr><th scope="row">Per-worker timeout</th><td>600 s</td></tr>
+      <tr><th scope="row">Confirmed bugs</th><td>9 (FUZZ-012..FUZZ-020, all promoted as #[ignore] regression tests)</td></tr>
+      <tr><th scope="row">Intentional boundaries</th><td>7</td></tr>
+      <tr><th scope="row">Inconclusive</th><td>10</td></tr>
+      <tr><th scope="row">Environment</th><td>bd v1.3.1 in scratch workspaces bound to a throwaway dolt sql-server on 127.0.0.1:62888 (stopped after the campaign); isolated HOME; DO_NOT_TRACK=1 (bd metrics off); no network services.</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

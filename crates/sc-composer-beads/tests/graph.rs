@@ -855,3 +855,167 @@ fn missing_relation_retains_typed_reason_with_nonempty_bd_stderr() {
         assert_read_only(&runner);
     }
 }
+
+/// Runner whose `bd cook` parses the file it is given, after another request
+/// sharing `rendered_formula` has replaced that file with its own render.
+struct RewritingRunner {
+    inner: FakeRunner,
+    rendered_formula: PathBuf,
+}
+impl ProcessRunner for RewritingRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args[0] != "cook" {
+            return self.inner.run(spec);
+        }
+        self.inner.calls.lock().expect("calls").push(spec.clone());
+        fs::write(&self.rendered_formula, "formula = \"other\"\n").expect("rewrite");
+        let parsed = fs::read_to_string(&spec.args[1]).expect("cooked path");
+        Ok(ok(if parsed.contains("other") {
+            r#"{"formula":"sample","type":"workflow","steps":[{"id":"other","title":"Other"}]}"#
+        } else {
+            COOKED
+        }))
+    }
+}
+
+// FUZZ-014: the graph a request plans comes from the text that request
+// rendered, even when another request rewrites the shared rendered file.
+#[test]
+#[ignore = "FUZZ-014"]
+fn fuzz_014_graph_is_built_from_this_requests_rendered_text() {
+    let w = Workspace::new();
+    let clean = w.run(&FakeRunner::new([ok(COOKED), parent(), ok("{}")]));
+    assert_eq!(clean.outcome, BeadOutcome::Succeeded, "{clean:#?}");
+    let raced = execute_bead_request_with_runner(
+        &w.req,
+        &RewritingRunner {
+            inner: FakeRunner::new([parent(), ok("{}")]),
+            rendered_formula: w.req.rendered_formula.clone(),
+        },
+    )
+    .expect("request");
+    let ids = |r: &BeadComposeReceipt| r.graph.as_ref().map(|g| g.ids.clone());
+    assert_eq!(
+        ids(&raced),
+        ids(&clean),
+        "steps must come from this request's render: {raced:#?}"
+    );
+}
+
+// FUZZ-015: re-running an attach whose beads all exist succeeds no matter how
+// many steps it has; bd v1.3.1 prints about 1.9 KB of JSON per existing bead.
+#[cfg(unix)]
+#[test]
+#[ignore = "FUZZ-015"]
+fn fuzz_015_rerun_of_a_40_step_attach_is_not_capped_by_the_output_limit() {
+    use std::os::unix::fs::PermissionsExt;
+    let mut w = Workspace::new();
+    let steps: Vec<Value> = (1..=40)
+        .map(|i| json!({"id": format!("item_{i}"), "title": format!("Item {i}")}))
+        .collect();
+    let cooked = w.root.join("cooked.json");
+    let shown = w.root.join("show.json");
+    fs::write(
+        &cooked,
+        json!({"formula": "sample", "type": "workflow", "steps": steps}).to_string(),
+    )
+    .expect("cooked");
+    fs::write(&shown, r#"[{"id":"proj-1"}]"#).expect("show");
+    let bd = w.root.join("fake-bd");
+    fs::write(
+        &bd,
+        format!(
+            "#!/bin/sh\ncase \"$1\" in\n  cook) cat '{}' ;;\n  show) cat '{}' ;;\n  dep) printf '%s' '[{{\"id\":\"proj-1\",\"dependency_type\":\"parent-child\"}}]' ;;\n  *) printf '{{}}' ;;\nesac\n",
+            cooked.display(),
+            shown.display()
+        ),
+    )
+    .expect("fake bd");
+    fs::set_permissions(&bd, fs::Permissions::from_mode(0o755)).expect("chmod");
+    w.req.bd_executable = Some(bd);
+    let first = execute_bead_request(&w.req).expect("first preview");
+    assert_eq!(first.outcome, BeadOutcome::Succeeded, "{first:#?}");
+    let mut rows = vec![json!({"id": "proj-1"})];
+    for node in w.plan()["nodes"].as_array().expect("plan nodes") {
+        rows.push(json!({
+            "id": node["id"],
+            "title": node["title"],
+            "description": "x".repeat(1900),
+            "metadata": node["metadata"],
+        }));
+    }
+    fs::write(&shown, Value::Array(rows).to_string()).expect("existing rows");
+    let rerun = execute_bead_request(&w.req).expect("re-run must yield a receipt");
+    assert_eq!(rerun.outcome, BeadOutcome::Succeeded, "{rerun:#?}");
+    let graph = rerun.graph.expect("graph");
+    assert_eq!(graph.nodes.len(), 40);
+    assert!(
+        graph
+            .nodes
+            .iter()
+            .all(|n| n.action == BeadNodeAction::Existing)
+    );
+}
+
+// FUZZ-016: a bead id that begins with `-` is passed to bd as an id, never as
+// an option, so a missing parent is reported as not found.
+#[test]
+#[ignore = "FUZZ-016"]
+fn fuzz_016_option_like_bead_ids_are_never_parsed_as_bd_options() {
+    let mut w = Workspace::new();
+    w.req.parent = Some(BeadId::new("--db=/elsewhere").expect("valid bead id"));
+    let runner = FakeRunner::new([
+        ok(COOKED),
+        out(
+            Some(1),
+            r#"{"error":"no issues found matching the provided IDs"}"#,
+        ),
+    ]);
+    let receipt = execute_bead_request_with_runner(&w.req, &runner);
+    for call in runner.calls() {
+        let separator = call.args.iter().position(|a| a == "--");
+        for (index, arg) in call.args.iter().enumerate() {
+            if arg.starts_with("--db=") {
+                assert!(
+                    separator.is_some_and(|s| s < index),
+                    "bead id `{arg}` reaches bd as an option: {:?}",
+                    call.args
+                );
+            }
+        }
+    }
+    if let Ok(receipt) = receipt {
+        refused(
+            &receipt,
+            "BEADS_GRAPH_PARENT_NOT_FOUND",
+            BeadStage::PreviewAttach,
+        );
+    }
+}
+
+// FUZZ-020: an apply failure names bd's error, not the first line of its
+// pretty-printed JSON.
+#[test]
+#[ignore = "FUZZ-020"]
+fn fuzz_020_apply_failure_cause_is_bds_error_text() {
+    let w = Workspace::new();
+    let runner = FakeRunner::new([
+        ok(COOKED),
+        parent(),
+        out(
+            Some(1),
+            "{\n  \"error\": \"graph contains a blocking dependency cycle involving node \\\"build\\\"\"\n}",
+        ),
+    ]);
+    let receipt = w.run(&runner);
+    failed(
+        &receipt,
+        "BEADS_GRAPH_APPLY_FAILED",
+        BeadStage::PreviewAttach,
+    );
+    let evidence = &receipt.stages.last().expect("stage").stderr_excerpt;
+    assert!(
+        evidence.contains("graph apply failed") && evidence.contains("blocking dependency cycle"),
+        "{evidence}"
+    );
+}
