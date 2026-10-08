@@ -42,6 +42,12 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
             receipt.receipt.operation = operation;
             return print_refused_receipt(receipt, json);
         }
+        // An identifier error that survives parsing is outside the attach
+        // family (attach identifiers become refused receipts): ADR-0023 calls
+        // it a request error, exit 3, keeping the native typed error.
+        Err(error @ BeadComposeError::GraphIdInvalid { .. }) => {
+            return print_bead_error_with_exit(&error, operation, json, exit_codes::USAGE_FAIL);
+        }
         Err(error) => return print_bead_error(&error, operation, json),
     };
     request.operation = operation;
@@ -107,7 +113,12 @@ fn print_bead_error(
     operation: BeadOperation,
     json: bool,
 ) -> Result<i32, CommandError> {
-    let exit_code = match &error {
+    let exit_code = bead_error_exit_code(error);
+    print_bead_error_with_exit(error, operation, json, exit_code)
+}
+
+fn bead_error_exit_code(error: &BeadComposeError) -> i32 {
+    match &error {
         BeadComposeError::RequestReadFailed { .. }
         | BeadComposeError::RequestDeserializationFailed { .. }
         | BeadComposeError::RelationEndpointInvalid { .. }
@@ -146,7 +157,15 @@ fn print_bead_error(
         | BeadComposeError::GraphEdgeMissing { .. }
         | BeadComposeError::GraphReadFailed { .. }
         | BeadComposeError::GraphApplyFailed { .. } => exit_codes::VALIDATION_OR_RENDER_FAIL,
-    };
+    }
+}
+
+fn print_bead_error_with_exit(
+    error: &BeadComposeError,
+    operation: BeadOperation,
+    json: bool,
+    exit_code: i32,
+) -> Result<i32, CommandError> {
     if json {
         print_json(
             serde_json::json!({

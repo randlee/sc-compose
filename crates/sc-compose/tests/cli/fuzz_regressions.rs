@@ -677,13 +677,9 @@ fn pe_f6_subcommand_decides_operation_for_authorization_and_id_errors() {
         (base.clone(), "attach", "BEADS_POUR_AUTH_REQUIRED", 3),
         // Same file as `bead preview-attach` stays an identifier refusal.
         (base.clone(), "preview-attach", "BEADS_GRAPH_ID_INVALID", 2),
-        // A bad parent outside the attach family is a request error.
-        (
-            bad_parent,
-            "render",
-            "BEADS_REQUEST_DESERIALIZATION_FAILED",
-            3,
-        ),
+        // A bad parent outside the attach family is a request error (exit
+        // 3) that keeps its native typed identifier error.
+        (bad_parent, "render", "BEADS_GRAPH_ID_INVALID", 3),
     ] {
         let request = root.join("request.json");
         write_file(&request, &case.to_string());

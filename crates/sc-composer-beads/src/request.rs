@@ -142,20 +142,11 @@ pub(crate) fn parse_request_as(
         validate_endpoint_prefixes(&preflight.relations)
     })();
     if let Err(error) = identifiers {
-        if matches!(&error, BeadComposeError::GraphIdInvalid { .. }) {
-            if matches!(shape.operation, BeadOperation::Attach | BeadOperation::Pour)
-                && shape.pour_authorization.is_none()
-            {
-                return Err(BeadComposeError::PourAuthorizationRequired);
-            }
-            // Identifier grammar is a graph refusal only for the attach
-            // family; elsewhere a bad parent or relation id is a malformed
-            // request (ADR-0023 request errors, exit 3).
-            if !attach_family {
-                return Err(BeadComposeError::RequestDeserializationFailed {
-                    message: error.to_string(),
-                });
-            }
+        if matches!(&error, BeadComposeError::GraphIdInvalid { .. })
+            && matches!(shape.operation, BeadOperation::Attach | BeadOperation::Pour)
+            && shape.pour_authorization.is_none()
+        {
+            return Err(BeadComposeError::PourAuthorizationRequired);
         }
         return Err(error);
     }
