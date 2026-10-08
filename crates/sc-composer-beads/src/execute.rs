@@ -159,7 +159,12 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
             path: request.working_directory.clone(),
         }
     })?;
-    let template = fs::canonicalize(&request.template).map_err(|_error| {
+    let template_path = if request.template.is_absolute() {
+        request.template.clone()
+    } else {
+        working_directory.join(&request.template)
+    };
+    let template = fs::canonicalize(template_path).map_err(|_error| {
         BeadComposeError::TemplatePathInvalid {
             path: request.template.clone(),
         }

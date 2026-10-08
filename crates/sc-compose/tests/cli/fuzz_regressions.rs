@@ -24,7 +24,6 @@ fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::pat
 
 // FUZZ-012: a relative template resolves against working_directory.
 #[test]
-#[ignore = "FUZZ-012"]
 fn fuzz_012_bead_request_template_is_relative_to_working_directory() {
     let root = std::fs::canonicalize(temp_root("fuzz-012-bead-relative-template")).unwrap();
     write_file(
