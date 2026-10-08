@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use sc_composer::CompositionObserver;
+use sc_composer::{CompositionObserver, DiagnosticCode, RecoveryHint, RecoveryHintKind};
 
 use crate::CommandError;
 use crate::cli::{Cli, Command, ExamplesSubcommand, TemplatesSubcommand};
@@ -171,9 +171,7 @@ fn run_examples_command(
     observer: &mut CliObserver,
 ) -> Result<i32, CommandError> {
     if args.render.append.is_some() {
-        return Err(CommandError::usage(anyhow::anyhow!(
-            "--append is only supported by sc-compose render"
-        )));
+        return Err(append_requires_render());
     }
     match &args.command {
         Some(ExamplesSubcommand::List(list_args)) => {
@@ -192,9 +190,7 @@ fn run_templates_command(
     observer: &mut CliObserver,
 ) -> Result<i32, CommandError> {
     if args.render.append.is_some() {
-        return Err(CommandError::usage(anyhow::anyhow!(
-            "--append is only supported by sc-compose render"
-        )));
+        return Err(append_requires_render());
     }
     match &args.command {
         Some(TemplatesSubcommand::List(list_args)) => {
@@ -211,4 +207,14 @@ fn run_templates_command(
             run_templates_render(args, observer)
         }),
     }
+}
+
+fn append_requires_render() -> CommandError {
+    CommandError::usage_with_code_and_hints(
+        anyhow::anyhow!("--append is only supported by sc-compose render"),
+        DiagnosticCode::ErrConfigMode,
+        vec![RecoveryHint::new(RecoveryHintKind::RunCommand {
+            command: "sc-compose render ... --append <file>".into(),
+        })],
+    )
 }
