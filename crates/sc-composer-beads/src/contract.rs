@@ -147,7 +147,22 @@ pub fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError
 /// # Errors
 /// Request-shape and authorization errors retain [`parse_request`]'s errors.
 pub fn parse_request_with_outcome(input: &str) -> Result<RequestParseOutcome, BeadComposeError> {
-    crate::request::parse_request_with_outcome(input)
+    crate::request::parse_request_with_outcome(input, None)
+}
+
+/// Parse a request whose operation is decided by the caller, not the file.
+///
+/// Every operation-dependent check (authorization precedence, reference
+/// grammar, identifier error class) uses `operation`; the returned request
+/// carries it. Duplicate-field and source-location handling are unchanged.
+///
+/// # Errors
+/// Request-shape and authorization errors retain [`parse_request`]'s errors.
+pub fn parse_request_for_operation(
+    input: &str,
+    operation: BeadOperation,
+) -> Result<RequestParseOutcome, BeadComposeError> {
+    crate::request::parse_request_with_outcome(input, Some(operation))
 }
 
 /// A valid request or an attach identifier validation refusal.

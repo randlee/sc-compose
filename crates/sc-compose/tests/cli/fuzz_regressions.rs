@@ -629,13 +629,6 @@ fn fuzz_052_request_errors_take_precedence_over_invalid_ids() {
         } else {
             "preview-attach"
         };
-        // Preserve parse-first authorization precedence even when the CLI
-        // subcommand overrides the serialized operation after parsing.
-        let command = if case["operation"] == "attach" {
-            "preview-attach"
-        } else {
-            command
-        };
         let output = sc_compose()
             .args(["bead", command, "--request"])
             .arg(&request)
@@ -660,6 +653,52 @@ fn fuzz_052_request_errors_take_precedence_over_invalid_ids() {
                     .contains("[A-Za-z0-9_-]")
             );
         }
+    }
+}
+
+// The CLI subcommand, not the request file's `operation`, decides which
+// operation-dependent parse rules apply (docs/manual/bead.md).
+#[test]
+fn pe_f6_subcommand_decides_operation_for_authorization_and_id_errors() {
+    let root = temp_root("pe-f6-subcommand-operation");
+    let base = serde_json::json!({
+        "schema":"sc-compose/beads/v1", "operation":"preview_attach",
+        "working_directory":root, "template":"missing.formula.toml.j2",
+        "rendered_formula":root.join("out.formula.toml"), "compose_variables":{},
+        "bead_variables":{}, "parent":"proj-1", "ref":"a.b", "relations":[]
+    });
+    let mut bad_parent = base.clone();
+    bad_parent["operation"] = serde_json::json!("render");
+    bad_parent["parent"] = serde_json::json!("bad id");
+    bad_parent["ref"] = serde_json::Value::Null;
+    // (request, subcommand, expected code, expected exit)
+    for (case, command, code, exit) in [
+        // Request file says preview_attach; `bead attach` needs authorization.
+        (base.clone(), "attach", "BEADS_POUR_AUTH_REQUIRED", 3),
+        // Same file as `bead preview-attach` stays an identifier refusal.
+        (base.clone(), "preview-attach", "BEADS_GRAPH_ID_INVALID", 2),
+        // A bad parent outside the attach family is a request error.
+        (
+            bad_parent,
+            "render",
+            "BEADS_REQUEST_DESERIALIZATION_FAILED",
+            3,
+        ),
+    ] {
+        let request = root.join("request.json");
+        write_file(&request, &case.to_string());
+        let output = sc_compose()
+            .args(["bead", command, "--request"])
+            .arg(&request)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(exit), "{command}: {output:?}");
+        let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        let reported = envelope["payload"]["error"]["code"]
+            .as_str()
+            .or_else(|| envelope["payload"]["error"]["code"].as_str());
+        assert_eq!(reported, Some(code), "{command}: {envelope}");
     }
 }
 

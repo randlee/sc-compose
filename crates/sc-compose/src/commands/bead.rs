@@ -6,7 +6,7 @@ use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadNodeAction,
     BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome, RefusedBeadComposeReceipt,
-    RequestParseOutcome, execute_bead_request_with_diagnostics, parse_request_with_outcome,
+    RequestParseOutcome, execute_bead_request_with_diagnostics, parse_request_for_operation,
 };
 
 use crate::CommandError;
@@ -36,7 +36,7 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
             return print_bead_error(&error, operation, json);
         }
     };
-    let mut request = match parse_request_with_outcome(&input) {
+    let mut request = match parse_request_for_operation(&input, operation) {
         Ok(RequestParseOutcome::Ready(request)) => request,
         Ok(RequestParseOutcome::Refused(mut receipt)) => {
             receipt.receipt.operation = operation;

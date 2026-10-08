@@ -53,8 +53,6 @@ impl<'de> Deserialize<'de> for BeadVariables {
 #[derive(Deserialize)]
 struct RequestPreflight {
     #[serde(default)]
-    operation: Value,
-    #[serde(default)]
     parent: Value,
     #[serde(default, rename = "ref")]
     reference: Value,
@@ -100,6 +98,15 @@ fn duplicate_top_level_key(input: &str) -> Result<Option<String>, BeadComposeErr
 }
 
 pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
+    parse_request_as(input, None)
+}
+
+/// Parse with `operation` (the CLI subcommand) overriding the request file's
+/// own `operation` for every operation-dependent check.
+pub(crate) fn parse_request_as(
+    input: &str,
+    operation: Option<BeadOperation>,
+) -> Result<BeadComposeRequest, BeadComposeError> {
     // Finish parsing the JSON before classifying semantic errors. The captured
     // duplicate is an exact decoded key, independent of serde's display format.
     if let Some(key) = duplicate_top_level_key(input)? {
@@ -120,30 +127,54 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
         PourAuthorization::try_from(token)?;
     }
     // Request shape and authorization take precedence over identifier grammar.
-    let shape = request_shape(input)?;
+    let shape = request_shape_as(input, operation)?;
+    let attach_family = matches!(
+        shape.operation,
+        BeadOperation::Attach | BeadOperation::PreviewAttach
+    );
     let identifiers = (|| {
         if let Some(parent) = preflight.parent.as_str() {
             BeadId::new(parent)?;
         }
-        if matches!(
-            preflight.operation.as_str(),
-            Some("attach" | "preview_attach")
-        ) && let Some(reference) = preflight.reference.as_str()
-        {
+        if attach_family && let Some(reference) = preflight.reference.as_str() {
             GraphRef::new(reference)?;
         }
         validate_endpoint_prefixes(&preflight.relations)
     })();
     if let Err(error) = identifiers {
-        if matches!(&error, BeadComposeError::GraphIdInvalid { .. })
-            && matches!(shape.operation, BeadOperation::Attach | BeadOperation::Pour)
-            && shape.pour_authorization.is_none()
-        {
-            return Err(BeadComposeError::PourAuthorizationRequired);
+        if matches!(&error, BeadComposeError::GraphIdInvalid { .. }) {
+            if matches!(shape.operation, BeadOperation::Attach | BeadOperation::Pour)
+                && shape.pour_authorization.is_none()
+            {
+                return Err(BeadComposeError::PourAuthorizationRequired);
+            }
+            // Identifier grammar is a graph refusal only for the attach
+            // family; elsewhere a bad parent or relation id is a malformed
+            // request (ADR-0023 request errors, exit 3).
+            if !attach_family {
+                return Err(BeadComposeError::RequestDeserializationFailed {
+                    message: error.to_string(),
+                });
+            }
         }
         return Err(error);
     }
-    deserialize_request(input)
+    let mut request = deserialize_request(input)?;
+    if let Some(operation) = operation {
+        request.operation = operation;
+    }
+    Ok(request)
+}
+
+fn request_shape_as(
+    input: &str,
+    operation: Option<BeadOperation>,
+) -> Result<BeadComposeRequest, BeadComposeError> {
+    let mut shape = request_shape(input)?;
+    if let Some(operation) = operation {
+        shape.operation = operation;
+    }
+    Ok(shape)
 }
 
 fn request_shape(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
@@ -167,14 +198,15 @@ fn request_shape(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
 
 pub(crate) fn parse_request_with_outcome(
     input: &str,
+    operation: Option<BeadOperation>,
 ) -> Result<RequestParseOutcome, BeadComposeError> {
-    match parse_request(input) {
+    match parse_request_as(input, operation) {
         Ok(request) => Ok(RequestParseOutcome::Ready(request)),
         Err(error) => {
             let Some(diagnostic) = BeadDiagnostic::graph_id_invalid(&error) else {
                 return Err(error);
             };
-            let shape = request_shape(input)?;
+            let shape = request_shape_as(input, operation)?;
             if !matches!(
                 shape.operation,
                 BeadOperation::Attach | BeadOperation::PreviewAttach
