@@ -127,6 +127,39 @@ def test_graph_receipt_fixtures_remain_json_contracts(
         assert receipt.outcome.code == outcome_code
 
 
+def test_request_getters_expose_parent_ref_and_relations(tmp_path: Path) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+    request = beads.BeadComposeRequest(
+        tmp_path,
+        tmp_path / "template.formula.toml.j2",
+        tmp_path / "output.formula.toml",
+        {},
+        bd_executable=executable,
+        parent="comp-parent",
+        ref="attach-ref",
+        relations=[
+            {"from": "step:child", "to": "bead:comp-dependency", "type": "blocks"}
+        ],
+    )
+
+    assert request.parent == "comp-parent"
+    assert request.ref == "attach-ref"
+    assert request.relations == [
+        {"from": "step:child", "to": "bead:comp-dependency", "type": "blocks"}
+    ]
+
+    empty_request = beads.BeadComposeRequest(
+        tmp_path,
+        tmp_path / "template.formula.toml.j2",
+        tmp_path / "output.formula.toml",
+        {},
+        bd_executable=executable,
+    )
+    assert empty_request.parent is None
+    assert empty_request.ref is None
+    assert empty_request.relations == []
+
+
 def test_receipt_decode_errors_have_a_receipt_code_and_stage() -> None:
     with pytest.raises(beads.BeadComposeError) as raised:
         beads.BeadComposeReceipt.from_json("{}")

@@ -107,6 +107,9 @@ class BeadComposeRequest:
     bead_variables: Mapping[str, str]
     bd_executable: str | None
     pour_authorization: str | None
+    parent: str | None
+    ref: str | None
+    relations: list[dict[str, str]]
 
 
 def execute(request: BeadComposeRequest) -> BeadComposeReceipt: ...

@@ -559,6 +559,23 @@ impl PyBeadComposeRequest {
             .pour_authorization
             .map(|_| "CreatePersistentBeads")
     }
+
+    #[getter]
+    fn parent(&self) -> Option<String> {
+        self.inner.parent.as_ref().map(ToString::to_string)
+    }
+
+    #[getter]
+    fn r#ref(&self) -> Option<String> {
+        self.inner.ref_.as_ref().map(ToString::to_string)
+    }
+
+    #[getter]
+    fn relations(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let relations = serde_json::to_value(&self.inner.relations)
+            .map_err(|error| request_error(py, error.to_string()))?;
+        json_to_py(py, &relations)
+    }
 }
 
 fn execute_with_operation(
