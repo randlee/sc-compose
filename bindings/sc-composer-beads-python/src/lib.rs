@@ -186,9 +186,11 @@ fn operation_from_str(py: Python<'_>, value: &str) -> PyResult<BeadOperation> {
         "validate" => Ok(BeadOperation::Validate),
         "preview_pour" => Ok(BeadOperation::PreviewPour),
         "pour" => Ok(BeadOperation::Pour),
+        "preview_attach" => Ok(BeadOperation::PreviewAttach),
+        "attach" => Ok(BeadOperation::Attach),
         _ => Err(request_error(
             py,
-            "operation must be render, validate, preview_pour, or pour",
+            "operation must be render, validate, preview_pour, pour, preview_attach, or attach",
         )),
     }
 }
@@ -199,6 +201,8 @@ fn operation_name(operation: BeadOperation) -> &'static str {
         BeadOperation::Validate => "validate",
         BeadOperation::PreviewPour => "preview_pour",
         BeadOperation::Pour => "pour",
+        BeadOperation::PreviewAttach => "preview_attach",
+        BeadOperation::Attach => "attach",
     }
 }
 
@@ -209,6 +213,8 @@ fn stage_name(stage: BeadStage) -> &'static str {
         BeadStage::ResolveActiveRegistry => "resolve_active_registry",
         BeadStage::PreviewPour => "preview_pour",
         BeadStage::Pour => "pour",
+        BeadStage::PreviewAttach => "preview_attach",
+        BeadStage::Attach => "attach",
     }
 }
 
@@ -248,6 +254,10 @@ impl PyBeadOperation {
     const PREVIEW_POUR: &'static str = "preview_pour";
     #[classattr]
     const POUR: &'static str = "pour";
+    #[classattr]
+    const PREVIEW_ATTACH: &'static str = "preview_attach";
+    #[classattr]
+    const ATTACH: &'static str = "attach";
 }
 
 #[pyclass(name = "PourAuthorization")]
@@ -274,6 +284,10 @@ impl PyBeadStage {
     const PREVIEW_POUR: &'static str = "preview_pour";
     #[classattr]
     const POUR: &'static str = "pour";
+    #[classattr]
+    const PREVIEW_ATTACH: &'static str = "preview_attach";
+    #[classattr]
+    const ATTACH: &'static str = "attach";
 }
 
 #[pyclass(name = "BeadStageOutcome", skip_from_py_object)]

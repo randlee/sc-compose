@@ -10,6 +10,7 @@ pub mod contract;
 pub mod error;
 /// Render-to-`bd` operation staging.
 pub mod execute;
+mod graph;
 mod pour;
 /// Fixed-delimiter formula rendering.
 pub mod render;

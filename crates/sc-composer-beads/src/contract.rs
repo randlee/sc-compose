@@ -26,6 +26,10 @@ pub enum BeadOperation {
     PreviewPour,
     /// Render, validate, and create persistent Beads state when authorized.
     Pour,
+    /// Preview graph children under an existing parent.
+    PreviewAttach,
+    /// Atomically attach graph children under an existing parent.
+    Attach,
 }
 
 /// Explicit authorization required for a persistent pour.
@@ -170,6 +174,10 @@ pub enum BeadStage {
     PreviewPour,
     /// Authorized persistent `bd mol pour`.
     Pour,
+    /// Preview graph children under an existing parent.
+    PreviewAttach,
+    /// Atomically attach graph children under an existing parent.
+    Attach,
 }
 
 /// Outcome of a stage.
