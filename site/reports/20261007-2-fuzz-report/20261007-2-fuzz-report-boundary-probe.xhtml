@@ -1,0 +1,92 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-2 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0002&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 29, &quot;name&quot;: &quot;id_rule_ref/parent/step (ADR Id rule) [seed 7023]&quot;, &quot;passed&quot;: 16}, {&quot;cases&quot;: 18, &quot;name&quot;: &quot;scope (GraphScopeMismatch) [seed 7023]&quot;, &quot;passed&quot;: 18}, {&quot;cases&quot;: 29, &quot;name&quot;: &quot;request_shape (exit 3 vs 2) [seed 7023]&quot;, &quot;passed&quot;: 29}, {&quot;cases&quot;: 42, &quot;name&quot;: &quot;relation_request/relations/relation_types [seed 7023]&quot;, &quot;passed&quot;: 41}, {&quot;cases&quot;: 7, &quot;name&quot;: &quot;pour_mode [seed 7023]&quot;, &quot;passed&quot;: 7}, {&quot;cases&quot;: 39, &quot;name&quot;: &quot;conflict rows (not_owned/provenance_differs/edge conflict/edge missing/parent not found) [seed 7023]&quot;, &quot;passed&quot;: 39}, {&quot;cases&quot;: 15, &quot;name&quot;: &quot;ids_bd [seed 7023]&quot;, &quot;passed&quot;: 15}, {&quot;cases&quot;: 42, &quot;name&quot;: &quot;paths (template/rendered/plan confinement, symlinks) [seed 7023]&quot;, &quot;passed&quot;: 40}, {&quot;cases&quot;: 64, &quot;name&quot;: &quot;append (ERR_RENDER_* codes, usage exit 3, byte-identical) [seed 7023]&quot;, &quot;passed&quot;: 61}, {&quot;cases&quot;: 36, &quot;name&quot;: &quot;fuzz024_031 head vs baseline x3 [seed 7023]&quot;, &quot;passed&quot;: 15}, {&quot;cases&quot;: 252, &quot;name&quot;: &quot;request_read (missing/dir/chmod000/non-UTF-8/UTF-16/empty/BOM/huge/symlinks/loop, 6 ops x json+human) [seed 7023]&quot;, &quot;passed&quot;: 252}, {&quot;cases&quot;: 17, &quot;name&quot;: &quot;endpoint_states (attach plan from_key/from_id, partial re-run) [seed 7023]&quot;, &quot;passed&quot;: 17}, {&quot;cases&quot;: 22, &quot;name&quot;: &quot;missing_edges (structured receipt, order, human commands runnable) [seed 7023]&quot;, &quot;passed&quot;: 22}, {&quot;cases&quot;: 34, &quot;name&quot;: &quot;human_graph_codes (exit parity, bd unchanged, all 10 codes) [seed 7023]&quot;, &quot;passed&quot;: 34}, {&quot;cases&quot;: 33, &quot;name&quot;: &quot;human_graph_codes_detail (reason/identity in human output) [seed 7023]&quot;, &quot;passed&quot;: 0}, {&quot;cases&quot;: 56, &quot;name&quot;: &quot;json_capability (clap errors with --json, 6 subcommands, parity) [seed 7023]&quot;, &quot;passed&quot;: 56}, {&quot;cases&quot;: 24, &quot;name&quot;: &quot;alias_relations [seed 7023]&quot;, &quot;passed&quot;: 24}, {&quot;cases&quot;: 15, &quot;name&quot;: &quot;pour_endpoint_states [seed 7023]&quot;, &quot;passed&quot;: 15}, {&quot;cases&quot;: 61, &quot;name&quot;: &quot;s48611_request_mutation (+ shuffled-key metamorphic) [seed 48611]&quot;, &quot;passed&quot;: 61}, {&quot;cases&quot;: 50, &quot;name&quot;: &quot;s48611_append [seed 48611]&quot;, &quot;passed&quot;: 50}, {&quot;cases&quot;: 40, &quot;name&quot;: &quot;s48611_paths [seed 48611]&quot;, &quot;passed&quot;: 40}, {&quot;cases&quot;: 86, &quot;name&quot;: &quot;s48611_relation_table (+first-index) [seed 48611]&quot;, &quot;passed&quot;: 77}], &quot;cases_run&quot;: 1011, &quot;correlation_id&quot;: &quot;boundary-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 83, &quot;finding_ids&quot;: [&quot;FUZZ-041&quot;, &quot;FUZZ-043&quot;, &quot;FUZZ-044&quot;], &quot;known_findings_status&quot;: [{&quot;evidence&quot;: &quot;f6b relative_template_cwd_elsewhere: template wf/rel.formula.toml.j2, cwd != working_directory -&gt; exit 3 BEADS_TEMPLATE_PATH_INVALID &#x27;invalid template path: wf/rel.formula.toml.j2&#x27;&quot;, &quot;id&quot;: &quot;FUZZ-012&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;not touched&quot;, &quot;id&quot;: &quot;FUZZ-013&quot;, &quot;still_reproduces&quot;: null}, {&quot;evidence&quot;: &quot;not touched&quot;, &quot;id&quot;: &quot;FUZZ-016&quot;, &quot;still_reproduces&quot;: null}, {&quot;evidence&quot;: &quot;{\&quot;n\&quot;:123456789012345678901234567890} appended as {\&quot;n\&quot;:1.2345678901234568e+29}; {\&quot;n\&quot;:1e400} -&gt; exit 2 ERR_RENDER_JSON_MALFORMED&quot;, &quot;id&quot;: &quot;FUZZ-017&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;bead render of template &#x27;{% if %}&#x27; -&gt; BEADS_RENDER_FAILED with empty render-stage stderr_excerpt; human mode shows only &#x27;stage Render: failed (BEADS_RENDER_FAILED)&#x27; (3 of 3)&quot;, &quot;id&quot;: &quot;FUZZ-019&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;not touched with real bd (APPLY_FAILED came from a test double, cause &#x27;simulated create failure&#x27;)&quot;, &quot;id&quot;: &quot;FUZZ-020&quot;, &quot;still_reproduces&quot;: null}, {&quot;evidence&quot;: &quot;13 cases: an invalid ref (&#x27;&#x27;, &#x27;.&#x27;, &#x27;a.b&#x27;, 33 chars, &#x27;é&#x27;, ...) or an invalid parent (&#x27;&#x27;, &#x27; &#x27;, &#x27;a b&#x27;, &#x27;&lt;P&gt;\\n&#x27;, &#x27;\\u2003x&#x27;) -&gt; exit 3 BEADS_REQUEST_DESERIALIZATION_FAILED, not BEADS_GRAPH_ID_INVALID exit 2&quot;, &quot;id&quot;: &quot;FUZZ-021&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;{\&quot;a\&quot;:1,\&quot;a\&quot;:2} appended as {\&quot;a\&quot;:2}, exit 0&quot;, &quot;id&quot;: &quot;FUZZ-022&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;--append through a symlink to an outside file appends there; a dangling outside symlink creates the outside target&quot;, &quot;id&quot;: &quot;FUZZ-023&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;see fuzz_024_031&quot;, &quot;id&quot;: &quot;FUZZ-024&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;plan file &lt;rendered&gt;.graph.json as a symlink to outside -&gt; exit 2 BEADS_OUTPUT_PATH_SYMLINK at preview_attach/attach/preview_pour stage; target unchanged; no create&quot;, &quot;id&quot;: &quot;FUZZ-025&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;relation with an extra field &#x27;x&#x27;:1 accepted; proceeds to plan stage (bead_not_found for bead:x)&quot;, &quot;id&quot;: &quot;FUZZ-026&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;render --file e27.json.j2 --append e27.jsonl (no --json) prints {\&quot;a\&quot;:1} on stdout&quot;, &quot;id&quot;: &quot;FUZZ-027&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;see fuzz_024_031 (head BEADS_POUR_AUTH_INVALID; baseline deserialization failed)&quot;, &quot;id&quot;: &quot;FUZZ-031&quot;, &quot;still_reproduces&quot;: true}], &quot;passed&quot;: 928, &quot;per_seed&quot;: {&quot;48611&quot;: {&quot;cases&quot;: 237, &quot;passed&quot;: 228}, &quot;7023&quot;: {&quot;cases&quot;: 774, &quot;passed&quot;: 700}}, &quot;seed&quot;: [7023, 48611], &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;ADR-0023 negative contract, path confinement, render --append failures, exit 3 vs 2; run 2 adds request-file read failures (ba13841), human graph codes, json capability (d2dd10b), missing_edges (c77838a), endpoint states (2e8f60b)&quot;, &quot;tested_head&quot;: &quot;d47d35ed4ff0145141c0517451b576c5815c6a79&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Run 2 at d47d35e, seeds 7023 + 48611. FUZZ-024/031 re-checked 3x head vs baseline. Every refusal left bd byte-identical. Cases per seed: 7023 = 774 (700 passed), 48611 = 237 (228 passed).">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">ADR-0023 negative contract, path confinement, render --append failures, exit 3 vs 2; run 2 adds request-file read failures (ba13841), human graph codes, json capability (d2dd10b), missing_edges (c77838a), endpoint states (2e8f60b)</th>
+        <td>1011</td>
+        <td>928/1011</td>
+        <td>
+          <span class="status status-error">FAIL: 2 new confirmed bug(s); 83 failing cases incl. known findings</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">boundary-probe/id_rule_ref/parent/step (ADR Id rule) [seed 7023]</th><td><code>id_rule_ref/parent/step (ADR Id rule) [seed 7023]</code></td><td>16/29 passed</td></tr>
+        <tr><th scope="row">boundary-probe/scope (GraphScopeMismatch) [seed 7023]</th><td><code>scope (GraphScopeMismatch) [seed 7023]</code></td><td>18/18 passed</td></tr>
+        <tr><th scope="row">boundary-probe/request_shape (exit 3 vs 2) [seed 7023]</th><td><code>request_shape (exit 3 vs 2) [seed 7023]</code></td><td>29/29 passed</td></tr>
+        <tr><th scope="row">boundary-probe/relation_request/relations/relation_types [seed 7023]</th><td><code>relation_request/relations/relation_types [seed 7023]</code></td><td>41/42 passed</td></tr>
+        <tr><th scope="row">boundary-probe/pour_mode [seed 7023]</th><td><code>pour_mode [seed 7023]</code></td><td>7/7 passed</td></tr>
+        <tr><th scope="row">boundary-probe/conflict rows (not_owned/provenance_differs/edge conflict/edge missing/parent not found) [seed 7023]</th><td><code>conflict rows (not_owned/provenance_differs/edge conflict/edge missing/parent not found) [seed 7023]</code></td><td>39/39 passed</td></tr>
+        <tr><th scope="row">boundary-probe/ids_bd [seed 7023]</th><td><code>ids_bd [seed 7023]</code></td><td>15/15 passed</td></tr>
+        <tr><th scope="row">boundary-probe/paths (template/rendered/plan confinement, symlinks) [seed 7023]</th><td><code>paths (template/rendered/plan confinement, symlinks) [seed 7023]</code></td><td>40/42 passed</td></tr>
+        <tr><th scope="row">boundary-probe/append (ERR_RENDER_* codes, usage exit 3, byte-identical) [seed 7023]</th><td><code>append (ERR_RENDER_* codes, usage exit 3, byte-identical) [seed 7023]</code></td><td>61/64 passed</td></tr>
+        <tr><th scope="row">boundary-probe/fuzz024_031 head vs baseline x3 [seed 7023]</th><td><code>fuzz024_031 head vs baseline x3 [seed 7023]</code></td><td>15/36 passed</td></tr>
+        <tr><th scope="row">boundary-probe/request_read (missing/dir/chmod000/non-UTF-8/UTF-16/empty/BOM/huge/symlinks/loop, 6 ops x json+human) [seed 7023]</th><td><code>request_read (missing/dir/chmod000/non-UTF-8/UTF-16/empty/BOM/huge/symlinks/loop, 6 ops x json+human) [seed 7023]</code></td><td>252/252 passed</td></tr>
+        <tr><th scope="row">boundary-probe/endpoint_states (attach plan from_key/from_id, partial re-run) [seed 7023]</th><td><code>endpoint_states (attach plan from_key/from_id, partial re-run) [seed 7023]</code></td><td>17/17 passed</td></tr>
+        <tr><th scope="row">boundary-probe/missing_edges (structured receipt, order, human commands runnable) [seed 7023]</th><td><code>missing_edges (structured receipt, order, human commands runnable) [seed 7023]</code></td><td>22/22 passed</td></tr>
+        <tr><th scope="row">boundary-probe/human_graph_codes (exit parity, bd unchanged, all 10 codes) [seed 7023]</th><td><code>human_graph_codes (exit parity, bd unchanged, all 10 codes) [seed 7023]</code></td><td>34/34 passed</td></tr>
+        <tr><th scope="row">boundary-probe/human_graph_codes_detail (reason/identity in human output) [seed 7023]</th><td><code>human_graph_codes_detail (reason/identity in human output) [seed 7023]</code></td><td>0/33 passed</td></tr>
+        <tr><th scope="row">boundary-probe/json_capability (clap errors with --json, 6 subcommands, parity) [seed 7023]</th><td><code>json_capability (clap errors with --json, 6 subcommands, parity) [seed 7023]</code></td><td>56/56 passed</td></tr>
+        <tr><th scope="row">boundary-probe/alias_relations [seed 7023]</th><td><code>alias_relations [seed 7023]</code></td><td>24/24 passed</td></tr>
+        <tr><th scope="row">boundary-probe/pour_endpoint_states [seed 7023]</th><td><code>pour_endpoint_states [seed 7023]</code></td><td>15/15 passed</td></tr>
+        <tr><th scope="row">boundary-probe/s48611_request_mutation (+ shuffled-key metamorphic) [seed 48611]</th><td><code>s48611_request_mutation (+ shuffled-key metamorphic) [seed 48611]</code></td><td>61/61 passed</td></tr>
+        <tr><th scope="row">boundary-probe/s48611_append [seed 48611]</th><td><code>s48611_append [seed 48611]</code></td><td>50/50 passed</td></tr>
+        <tr><th scope="row">boundary-probe/s48611_paths [seed 48611]</th><td><code>s48611_paths [seed 48611]</code></td><td>40/40 passed</td></tr>
+        <tr><th scope="row">boundary-probe/s48611_relation_table (+first-index) [seed 48611]</th><td><code>s48611_relation_table (+first-index) [seed 48611]</code></td><td>77/86 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-041</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula &#x27;rel&#x27; with steps build/verify/publish</code></dd>
+        <dt>Input</dt><dd><code>relations [{&quot;from&quot;:&quot;bead:&lt;parent&gt;&quot;,&quot;to&quot;:&quot;bead:&lt;parent&gt;&quot;,&quot;type&quot;:&quot;related&quot;}] (also bead:&lt;parent&gt; &lt;-&gt; bead:&lt;X&gt;)</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Relation validation table (lines 488-491): from == to -&gt; self_edge; both endpoints bead: -&gt; no_step; parent_pair is only &#x27;between a step and bead:&lt;parent&gt;&#x27;.</dd>
+        <dt>Observed</dt><dd>Refused BEADS_GRAPH_RELATION_INVALID with reason parent_pair (&#x27;invalid graph relation 0: parent_pair&#x27;). Coordinator 3/3.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Relation validation</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>The parent check runs before the self_edge/no_step checks in the relation loop.</dd>
+        <dt>Recommended fix</dt><dd>Check self_edge and no_step before parent_pair.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-043</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>&#x27;{&quot;a&quot;:&#x27;*128 + &#x27;1&#x27; + &#x27;}&#x27;*128  (valid JSON, 128 levels)</code></dd>
+        <dt>Input</dt><dd><code>no variables</code></dd>
+        <dt>Expected</dt><dd>FR (requirements.md line 183): ERR_RENDER_JSON_MALFORMED is for malformed rendered JSON; the body is valid JSON (Python parses it).</dd>
+        <dt>Observed</dt><dd>exit 2 ERR_RENDER_JSON_MALFORMED &#x27;rendered JSON is invalid at line 1, column 636&#x27;; 127 levels pass. Coordinator 3/3; baseline identical.</dd>
+        <dt>Requirement / ADR</dt><dd>requirements.md render JSON check; FR-7 render --append</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>serde_json default recursion limit (128) reported as malformed input.</dd>
+        <dt>Recommended fix</dt><dd>Disable/raise the recursion limit (serde_stacker) or emit a distinct depth-limit diagnostic and document it.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
