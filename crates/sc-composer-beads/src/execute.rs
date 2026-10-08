@@ -397,7 +397,7 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
     Ok(parent.join(name))
 }
 
-fn public_path_display(path: &Path) -> String {
+pub(crate) fn public_path_display(path: &Path) -> String {
     let displayed = path.to_string_lossy();
     displayed
         .strip_prefix(r"\\?\")
@@ -420,7 +420,7 @@ fn is_formula_path(path: &Path) -> bool {
 fn cook_args(rendered_formula: &Path, request: &BeadComposeRequest) -> Vec<String> {
     let mut args = vec![
         String::from("cook"),
-        rendered_formula.to_string_lossy().into_owned(),
+        public_path_display(rendered_formula),
         String::from("--dry-run"),
         String::from("--json"),
     ];
@@ -683,6 +683,17 @@ pub(crate) mod tests {
             public_path_display(Path::new("plain.formula.toml")),
             "plain.formula.toml"
         );
+    }
+
+    #[test]
+    fn cook_arguments_use_the_same_public_path_as_receipts() {
+        let root = workspace();
+        let request = request(&root, BeadOperation::Validate);
+        let path = Path::new(r"\\?\C:\Users\test\example.formula.toml");
+        let args = super::cook_args(path, &request);
+        assert_eq!(args[1], public_path_display(path));
+        assert_eq!(args[1], r"C:\Users\test\example.formula.toml");
+        fs::remove_dir_all(root).expect("cleanup");
     }
 
     #[derive(Default)]
