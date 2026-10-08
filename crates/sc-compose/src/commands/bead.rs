@@ -3,8 +3,8 @@
 use std::fs;
 
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadOperation, BeadOutcome,
-    BeadStageOutcome, execute_bead_request, parse_request,
+    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadNodeAction, BeadOperation,
+    BeadOutcome, BeadPourMode, BeadStageOutcome, execute_bead_request, parse_request,
 };
 
 use crate::CommandError;
@@ -18,7 +18,11 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         BeadSubcommand::Render(args) => (&args.request, BeadOperation::Render, args.json),
         BeadSubcommand::Validate(args) => (&args.request, BeadOperation::Validate, args.json),
         BeadSubcommand::PreviewPour(args) => (&args.request, BeadOperation::PreviewPour, args.json),
+        BeadSubcommand::PreviewAttach(args) => {
+            (&args.request, BeadOperation::PreviewAttach, args.json)
+        }
         BeadSubcommand::Pour(args) => (&args.request, BeadOperation::Pour, args.json),
+        BeadSubcommand::Attach(args) => (&args.request, BeadOperation::Attach, args.json),
     };
     let input = match fs::read_to_string(request_path) {
         Ok(input) => input,
@@ -117,6 +121,14 @@ fn print_bead_error(
 
 fn print_human_receipt(receipt: &BeadComposeReceipt) {
     println!("rendered_formula: {}", receipt.rendered_formula.display());
+    if let Some(mode) = receipt.pour_mode {
+        let mode = match mode {
+            BeadPourMode::Registry => "registry",
+            BeadPourMode::Graph => "graph",
+            _ => "unknown",
+        };
+        println!("pour_mode: {mode}");
+    }
     println!("outcome: {}", outcome_summary(&receipt.outcome));
     for stage in &receipt.stages {
         let state = match &stage.outcome {
@@ -125,6 +137,36 @@ fn print_human_receipt(receipt: &BeadComposeReceipt) {
             BeadStageOutcome::Failed { code } => format!("failed ({code})"),
         };
         println!("stage {:?}: {state}", stage.stage);
+        if matches!(&stage.outcome, BeadStageOutcome::Failed { code } if code == "BEADS_GRAPH_EDGE_MISSING")
+        {
+            for command in stage.stderr_excerpt.split("bd dep add ").skip(1) {
+                let args = command.split([';', '\n']).next().unwrap_or_default().trim();
+                println!("bd dep add {args}");
+            }
+        }
+    }
+    if let Some(graph) = &receipt.graph {
+        for node in &graph.nodes {
+            let action = match node.action {
+                BeadNodeAction::Create => "create",
+                BeadNodeAction::Created => "created",
+                BeadNodeAction::Existing => "existing",
+                _ => "unknown",
+            };
+            let step = node
+                .step
+                .as_ref()
+                .map_or("_root", sc_composer_beads::StepId::as_str);
+            let id = node
+                .id
+                .as_ref()
+                .map_or("pending", sc_composer_beads::BeadId::as_str);
+            println!("{action}: {step} -> {id}");
+        }
+        println!("edges: {}", graph.edges.len());
+        if let Some(plan_path) = &graph.plan_path {
+            println!("plan_path: {}", plan_path.display());
+        }
     }
 }
 

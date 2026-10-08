@@ -65,6 +65,7 @@ fn initialize_beads_workspace(root: &Path, bd: &Path) {
             "--skip-hooks",
         ])
         .env("BEADS_NO_DAEMON", "1")
+        .env("BEADS_DIR", root.join(".beads"))
         .current_dir(root)
         .output()
         .expect("start pinned bd init");
@@ -428,6 +429,7 @@ fn pinned_bd_validates_the_canonical_cli_fixture_when_configured() {
         .arg(&request)
         .arg("--json")
         .env("BEADS_NO_DAEMON", "1")
+        .env("BEADS_DIR", fixture.path.join(".beads"))
         .output()
         .expect("run pinned bd validation");
 
@@ -487,4 +489,285 @@ fn malformed_relation_endpoint_has_stable_request_code_before_side_effects() {
     );
     assert!(!output.exists());
     assert!(!trace.exists());
+}
+
+struct GraphCliWorkspace {
+    fixture: TempFixture,
+    bd: PathBuf,
+    beads_dir: PathBuf,
+}
+
+impl GraphCliWorkspace {
+    fn new(bd: PathBuf) -> Self {
+        let fixture = TempFixture::new("bead-graph-e2e");
+        let beads_dir = fixture.path.join(".beads");
+        let workspace = Self {
+            fixture,
+            bd,
+            beads_dir,
+        };
+        workspace.bd_output(&[
+            "init",
+            "--non-interactive",
+            "--quiet",
+            "--skip-agents",
+            "--skip-hooks",
+            "--prefix",
+            "cli",
+        ]);
+        fs::create_dir_all(workspace.fixture.path.join("build")).expect("build directory");
+        workspace
+    }
+
+    fn bd_output(&self, args: &[&str]) -> String {
+        let output = Command::new(&self.bd)
+            .args(args)
+            .current_dir(&self.fixture.path)
+            .env("BEADS_DIR", &self.beads_dir)
+            .env("BEADS_NO_DAEMON", "1")
+            .output()
+            .expect("fixture bd");
+        assert!(output.status.success(), "{args:?}: {output:?}");
+        String::from_utf8(output.stdout).expect("bd UTF-8")
+    }
+
+    fn bd_json(&self, args: &[&str]) -> serde_json::Value {
+        serde_json::from_str(&self.bd_output(args)).expect("fixture bd JSON")
+    }
+
+    fn snapshot(&self) -> serde_json::Value {
+        let beads = self.bd_json(&["list", "--all", "-n", "0", "--json"]);
+        let mut edges = std::collections::BTreeMap::new();
+        for bead in beads.as_array().expect("beads") {
+            let id = bead["id"].as_str().expect("id");
+            edges.insert(id, self.bd_json(&["dep", "list", id, "--json"]));
+        }
+        json!({"beads": beads, "edges": edges})
+    }
+
+    fn cli(
+        &self,
+        operation: &str,
+        request: &Path,
+        json_output: bool,
+        code: i32,
+    ) -> std::process::Output {
+        let mut command = sc_compose();
+        command
+            .args(["bead", operation, "--request"])
+            .arg(request)
+            .current_dir(&self.fixture.path)
+            .env("BEADS_DIR", &self.beads_dir)
+            .env("BEADS_NO_DAEMON", "1");
+        if json_output {
+            command.arg("--json");
+        }
+        let output = command.output().expect("bead CLI");
+        assert_eq!(output.status.code(), Some(code), "{operation}: {output:?}");
+        output
+    }
+
+    fn write_request(&self, value: &serde_json::Value) -> PathBuf {
+        let path = self.fixture.path.join("request.json");
+        write_file(
+            &path,
+            &serde_json::to_string_pretty(value).expect("request JSON"),
+        );
+        path
+    }
+}
+
+#[test]
+fn pinned_bd_graph_pour_and_attach_run_the_release_example_with_text_and_exit_contracts() {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        eprintln!("skipping graph CLI integration: BD_EXECUTABLE is not configured");
+        return;
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let example =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/beads/release-under-epic");
+    fs::copy(
+        example.join("release.formula.toml.j2"),
+        root.join("release.formula.toml.j2"),
+    )
+    .expect("example template");
+    let mut request: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(example.join("request.json")).expect("example request"),
+    )
+    .expect("example JSON");
+    request["working_directory"] = json!(fs::canonicalize(root).expect("canonical workspace"));
+    request["rendered_formula"] = json!(root.join("build/release.formula.toml"));
+    request["bd_executable"] = json!(workspace.bd);
+    let parent = workspace.bd_json(&["create", "Release 1.6.1", "--type", "epic", "--json"])["id"]
+        .as_str()
+        .expect("epic id")
+        .to_owned();
+    request["parent"] = json!(parent);
+
+    assert_by_path_pour(&workspace, &request);
+    assert_attach_exit_codes(&workspace, &request);
+    assert_attach_and_repeat(&workspace, &request, &parent);
+    assert_missing_edge_recovery(&workspace, &request, &parent);
+    let help = sc_compose()
+        .args(["help", "bead"])
+        .output()
+        .expect("help bead");
+    assert!(help.status.success());
+    assert!(String::from_utf8_lossy(&help.stdout).contains("Release under an epic"));
+}
+
+fn assert_by_path_pour(workspace: &GraphCliWorkspace, request: &serde_json::Value) {
+    let mut pour = request.clone();
+    pour["operation"] = json!("pour");
+    pour.as_object_mut().expect("request").remove("parent");
+    pour.as_object_mut().expect("request").remove("ref");
+    let path = workspace.write_request(&pour);
+    assert!(!workspace.beads_dir.join("formulas").exists());
+    let before = workspace.snapshot();
+    let preview = workspace.cli("preview-pour", &path, false, 0);
+    let text = String::from_utf8(preview.stdout).expect("preview text");
+    assert!(text.contains("pour_mode: graph"));
+    assert!(text.contains("create: _root -> pending"));
+    assert!(text.contains("create: build -> pending"));
+    assert!(text.contains("edges: 5"));
+    assert!(text.contains("plan_path: "));
+    assert_eq!(
+        workspace.snapshot(),
+        before,
+        "pour preview writes no beads or edges"
+    );
+    let poured = workspace.cli("pour", &path, true, 0);
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&poured.stdout).expect("pour envelope");
+    assert_eq!(envelope["payload"]["pour_mode"], "graph");
+    assert_eq!(
+        envelope["payload"]["graph"]["ids"]
+            .as_object()
+            .expect("ids")
+            .len(),
+        3
+    );
+    assert!(
+        !workspace.beads_dir.join("formulas").exists(),
+        "by-path pour never creates a registry"
+    );
+}
+
+fn assert_attach_exit_codes(workspace: &GraphCliWorkspace, request: &serde_json::Value) {
+    for operation in ["preview-attach", "attach"] {
+        let mut invalid = request.clone();
+        invalid.as_object_mut().expect("request").remove("parent");
+        let path = workspace.write_request(&invalid);
+        let output = workspace.cli(operation, &path, true, 3);
+        let envelope: serde_json::Value =
+            serde_json::from_slice(&output.stdout).expect("request error envelope");
+        assert_eq!(
+            envelope["payload"]["error"]["code"],
+            "BEADS_REQUEST_DESERIALIZATION_FAILED"
+        );
+        let mut missing = request.clone();
+        missing["parent"] = json!("cli-missing");
+        let path = workspace.write_request(&missing);
+        let before = workspace.snapshot();
+        let output = workspace.cli(operation, &path, true, 2);
+        let envelope: serde_json::Value =
+            serde_json::from_slice(&output.stdout).expect("refusal envelope");
+        assert_eq!(
+            envelope["payload"]["outcome"]["refused"]["code"],
+            "BEADS_GRAPH_PARENT_NOT_FOUND"
+        );
+        assert_eq!(workspace.snapshot(), before);
+    }
+}
+
+fn assert_attach_and_repeat(
+    workspace: &GraphCliWorkspace,
+    request: &serde_json::Value,
+    parent: &str,
+) {
+    let path = workspace.write_request(request);
+    let before = workspace.snapshot();
+    let preview = workspace.cli("preview-attach", &path, false, 0);
+    let text = String::from_utf8(preview.stdout).expect("attach preview text");
+    for step in ["build", "verify", "publish"] {
+        assert!(
+            text.contains(&format!("create: {step} -> {parent}.release-{step}")),
+            "{text}"
+        );
+    }
+    assert!(text.contains("edges: 5"));
+    assert!(text.contains("plan_path: "));
+    assert_eq!(workspace.snapshot(), before);
+    let attached = workspace.cli("attach", &path, false, 0);
+    let text = String::from_utf8(attached.stdout).expect("attach text");
+    for step in ["build", "verify", "publish"] {
+        assert!(
+            text.contains(&format!("created: {step} -> {parent}.release-{step}")),
+            "{text}"
+        );
+    }
+    let before = workspace.snapshot();
+    let repeated = workspace.cli("attach", &path, true, 0);
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&repeated.stdout).expect("repeat envelope");
+    let graph = &envelope["payload"]["graph"];
+    assert!(graph.get("plan_path").is_none());
+    assert_eq!(graph["parent"], parent);
+    for step in ["build", "verify", "publish"] {
+        assert_eq!(graph["ids"][step], format!("{parent}.release-{step}"));
+    }
+    assert!(
+        graph["nodes"]
+            .as_array()
+            .expect("nodes")
+            .iter()
+            .all(|node| node["action"] == "existing")
+    );
+    assert!(
+        graph["edges"]
+            .as_array()
+            .expect("edges")
+            .iter()
+            .all(|edge| edge["action"] == "existing")
+    );
+    assert_eq!(
+        workspace.snapshot(),
+        before,
+        "repeat writes no beads or edges"
+    );
+    let repeated = workspace.cli("attach", &path, false, 0);
+    let text = String::from_utf8(repeated.stdout).expect("repeat text");
+    assert!(text.contains(&format!("existing: build -> {parent}.release-build")));
+    assert!(!text.contains("plan_path:"));
+}
+
+fn assert_missing_edge_recovery(
+    workspace: &GraphCliWorkspace,
+    request: &serde_json::Value,
+    parent: &str,
+) {
+    let path = workspace.write_request(request);
+    for (from, to) in [("verify", "build"), ("publish", "verify")] {
+        workspace.bd_output(&[
+            "dep",
+            "remove",
+            &format!("{parent}.release-{from}"),
+            &format!("{parent}.release-{to}"),
+        ]);
+    }
+    let before = workspace.snapshot();
+    let refusal = workspace.cli("attach", &path, false, 2);
+    let text = String::from_utf8(refusal.stdout).expect("repair text");
+    assert!(text.contains("BEADS_GRAPH_EDGE_MISSING"), "{text}");
+    for (from, to) in [("verify", "build"), ("publish", "verify")] {
+        assert!(
+            text.lines().any(|line| line
+                == format!(
+                    "bd dep add {parent}.release-{from} {parent}.release-{to} --type blocks"
+                )),
+            "{text}"
+        );
+    }
+    assert_eq!(workspace.snapshot(), before, "repair advice writes nothing");
 }
