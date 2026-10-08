@@ -350,13 +350,16 @@ mod tests {
             .unwrap()
             .strip_suffix(" --type 'blocks'")
             .unwrap();
-        let output = std::process::Command::new("bash")
-            .args(["-c", &format!("printf '%s\\0' {arguments}")])
-            .env("LC_ALL", "C.UTF-8")
-            .output()
-            .expect("isolated Bash printf");
-        assert!(output.status.success(), "{output:?}");
-        assert_eq!(output.stdout, format!("{from}\0{to}\0").into_bytes());
+        #[cfg(unix)]
+        {
+            let output = std::process::Command::new("bash")
+                .args(["-c", &format!("printf '%s\\0' {arguments}")])
+                .env("LC_ALL", "C.UTF-8")
+                .output()
+                .expect("isolated Bash printf");
+            assert!(output.status.success(), "{output:?}");
+            assert_eq!(output.stdout, format!("{from}\0{to}\0").into_bytes());
+        }
     }
 
     #[test]
