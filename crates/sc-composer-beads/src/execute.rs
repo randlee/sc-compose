@@ -564,20 +564,20 @@ pub(crate) fn run_stage_with_output(
 }
 
 fn present_snapshot_paths(stages: &mut [BeadStageReceipt], snapshot: &Path, source: &Path) {
-    let snapshot = snapshot.to_string_lossy();
-    let source = source.to_string_lossy().into_owned();
+    let snapshot = public_path_display(snapshot);
+    let source = public_path_display(source);
     for stage in stages {
         for argument in &mut stage.argv {
-            if argument == snapshot.as_ref() {
+            if argument == snapshot.as_str() {
                 argument.clone_from(&source);
             }
         }
         stage.stderr_excerpt = stage
             .stderr_excerpt
-            .replace(snapshot.as_ref(), source.as_ref());
+            .replace(snapshot.as_str(), source.as_ref());
         stage.stdout_excerpt = stage
             .stdout_excerpt
-            .replace(snapshot.as_ref(), source.as_ref());
+            .replace(snapshot.as_str(), source.as_ref());
     }
 }
 

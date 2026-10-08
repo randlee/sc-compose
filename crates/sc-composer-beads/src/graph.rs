@@ -98,6 +98,7 @@ pub(crate) fn execute(
             }
         }
         stage.stderr_excerpt = stage.stderr_excerpt.replace(snapshot.as_str(), &source);
+        stage.stdout_excerpt = stage.stdout_excerpt.replace(snapshot.as_str(), &source);
     }
     Ok(result)
 }

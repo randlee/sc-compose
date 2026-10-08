@@ -1557,7 +1557,9 @@ fn fuzz_042_parent_file_and_relative_output_are_typed() {
     assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID");
     assert!(!error.to_string().contains("``"), "{error}");
     assert!(
-        error.to_string().contains("missing-dir/out.formula.toml"),
+        error.to_string().contains(&public_path(
+            &w.root.join("missing-dir").join("out.formula.toml")
+        )),
         "{error}"
     );
 }
@@ -1685,7 +1687,11 @@ fn assert_fuzz_055_cook_failure(
     );
     let evidence = serde_json::to_string(&receipt).expect("receipt JSON");
     let source = public_path(&w.req.rendered_formula);
-    assert!(evidence.contains(source.as_str()), "{evidence}");
+    let encoded_source = serde_json::to_string(&source).expect("encoded source");
+    assert!(
+        evidence.contains(encoded_source.trim_matches('"')),
+        "{evidence}"
+    );
     assert!(!evidence.contains(".sc-compose-input-"), "{evidence}");
     let diagnostic = &receipt
         .stages
@@ -1797,7 +1803,8 @@ fn fuzz_055_r3_create_failures_and_preview_receipts_name_public_graph_plan() {
             let public = w.req.rendered_formula.with_extension("toml.graph.json");
             let public_display = public_path(&public);
             let wire = serde_json::to_string(&receipt).expect("receipt");
-            assert!(wire.contains(&public_display), "{wire}");
+            let encoded_public = serde_json::to_string(&public_display).expect("encoded path");
+            assert!(wire.contains(encoded_public.trim_matches('"')), "{wire}");
             assert!(!wire.contains(".sc-compose-input-"), "{wire}");
             let create = receipt
                 .stages
