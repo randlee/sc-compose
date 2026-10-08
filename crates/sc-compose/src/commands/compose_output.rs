@@ -195,15 +195,34 @@ fn append_json_record(
         .map_err(|error| CommandError::render_write(anyhow!(error)))?;
     if let Err(error) = file.write_all(line.as_bytes()).and_then(|()| file.flush()) {
         let rollback = file.set_len(original_len);
-        let message = match rollback {
-            Ok(()) => anyhow!(error).context("failed to append JSON record; restored append target"),
-            Err(rollback_error) => anyhow!(error).context(format!(
-                "failed to append JSON record; rollback also failed ({rollback_error}); a partial last line may remain; inspect the append target"
-            )),
-        };
-        return Err(CommandError::render_write(message));
+        return Err(append_failure(path, error, rollback));
     }
     Ok(line.len())
+}
+
+/// Map a failed append write, and the result of rolling the file back, to the
+/// command error. A failed rollback may leave a partial last line, so it names
+/// the append target and carries an inspect-path recovery hint.
+fn append_failure(
+    path: &Path,
+    error: std::io::Error,
+    rollback: std::io::Result<()>,
+) -> CommandError {
+    match rollback {
+        Ok(()) => CommandError::render_write(
+            anyhow!(error).context("failed to append JSON record; restored append target"),
+        ),
+        Err(rollback_error) => CommandError::render_append(
+            anyhow!(error).context(format!(
+                "failed to append JSON record; rollback also failed ({rollback_error}); a partial last line may remain; inspect and restore the append target {}",
+                path.display()
+            )),
+            DiagnosticCode::ErrRenderWrite,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
+                path: path.to_path_buf(),
+            })],
+        ),
+    }
 }
 
 /// Compact already validated JSON without parsing numeric or string lexemes again.
@@ -314,4 +333,44 @@ fn strip_j2_suffix(path: &Path) -> PathBuf {
     let mut rebuilt = path.to_path_buf();
     rebuilt.set_file_name(stripped);
     rebuilt
+}
+
+#[cfg(test)]
+mod append_failure_tests {
+    use super::append_failure;
+    use sc_composer::{DiagnosticCode, RecoveryHint, RecoveryHintKind};
+    use std::io::{Error, ErrorKind};
+    use std::path::Path;
+
+    #[test]
+    fn failed_rollback_names_the_target_and_hints_inspect_path() {
+        let path = Path::new("out/records.jsonl");
+        let error = append_failure(
+            path,
+            Error::new(ErrorKind::StorageFull, "disk full"),
+            Err(Error::other("truncate failed")),
+        );
+        assert_eq!(error.diagnostic_code, Some(DiagnosticCode::ErrRenderWrite));
+        assert_eq!(
+            error.recovery_hints,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
+                path: path.to_path_buf()
+            })]
+        );
+        let message = format!("{:#}", error.error);
+        assert!(message.contains("out/records.jsonl"), "{message}");
+        assert!(message.contains("rollback also failed"), "{message}");
+        assert!(error.diagnostics[0].message.contains("out/records.jsonl"));
+    }
+
+    #[test]
+    fn restored_target_needs_no_recovery_hint() {
+        let error = append_failure(
+            Path::new("out/records.jsonl"),
+            Error::new(ErrorKind::StorageFull, "disk full"),
+            Ok(()),
+        );
+        assert!(error.recovery_hints.is_empty());
+        assert!(format!("{:#}", error.error).contains("restored append target"));
+    }
 }
