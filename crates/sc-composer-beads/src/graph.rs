@@ -89,15 +89,15 @@ pub(crate) fn execute(
     result.graph = graph;
     result.missing_edges = missing_edges;
     result.pour_mode = (!attach).then_some(BeadPourMode::Graph);
-    let snapshot = formula_input.path().to_string_lossy();
+    let snapshot = public_path_display(formula_input.path());
     let source = public_path_display(&normalized.rendered_formula);
     for stage in &mut result.stages {
         for argument in &mut stage.argv {
-            if argument == snapshot.as_ref() {
+            if argument == snapshot.as_str() {
                 argument.clone_from(&source);
             }
         }
-        stage.stderr_excerpt = stage.stderr_excerpt.replace(snapshot.as_ref(), &source);
+        stage.stderr_excerpt = stage.stderr_excerpt.replace(snapshot.as_str(), &source);
     }
     Ok(result)
 }
