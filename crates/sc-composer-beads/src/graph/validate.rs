@@ -237,14 +237,16 @@ fn validate_relations(
             {
                 return Err(invalid(Invalid::UnknownStep));
             }
+        }
+        if relation.from == relation.to {
+            return Err(invalid(Invalid::SelfEdge));
+        }
+        for endpoint in [&relation.from, &relation.to] {
             if let BeadEndpoint::Bead(id) = endpoint
                 && req.parent.as_ref() == Some(id)
             {
                 return Err(invalid(Invalid::ParentPair));
             }
-        }
-        if relation.from == relation.to {
-            return Err(invalid(Invalid::SelfEdge));
         }
         if matches!(
             (&relation.from, &relation.to),
