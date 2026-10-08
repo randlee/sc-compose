@@ -60,13 +60,7 @@ pub(crate) fn execute_pour(
         if let Some(refusal) = refuse_outside_workspace(request, &normalized, &stages) {
             return Ok(refusal);
         }
-        return Ok(crate::graph::execute(
-            request,
-            runner,
-            &normalized,
-            bd,
-            stages,
-        ));
+        return crate::graph::execute(request, runner, &normalized, bd, stages);
     }
     if !request.relations.is_empty() {
         return Ok(refuse_registry_relations(request, normalized, stages));

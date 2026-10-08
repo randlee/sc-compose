@@ -82,13 +82,7 @@ pub fn execute_bead_request_with_runner(
         .clone()
         .unwrap_or_else(|| PathBuf::from("bd"));
     if crate::graph::is_attach(request.operation) {
-        return Ok(crate::graph::execute(
-            request,
-            runner,
-            &normalized,
-            bd,
-            stages,
-        ));
+        return crate::graph::execute(request, runner, &normalized, bd, stages);
     }
     let cook = CommandSpec {
         executable: bd.clone(),
