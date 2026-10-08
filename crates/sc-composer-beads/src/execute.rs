@@ -397,12 +397,31 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
     Ok(parent.join(name))
 }
 
+#[cfg(windows)]
 pub(crate) fn public_path_display(path: &Path) -> String {
-    let displayed = path.to_string_lossy();
-    displayed
-        .strip_prefix(r"\\?\")
-        .unwrap_or(displayed.as_ref())
-        .to_owned()
+    use std::path::{Component, Prefix};
+
+    let mut displayed = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => match prefix.kind() {
+                Prefix::VerbatimDisk(drive) => displayed.push(format!("{}:", drive as char)),
+                Prefix::VerbatimUNC(server, share) => {
+                    displayed.push(std::path::MAIN_SEPARATOR_STR);
+                    displayed.push(server);
+                    displayed.push(share);
+                }
+                _ => displayed.push(prefix.as_os_str()),
+            },
+            component => displayed.push(component.as_os_str()),
+        }
+    }
+    displayed.to_string_lossy().into_owned()
+}
+
+#[cfg(not(windows))]
+pub(crate) fn public_path_display(path: &Path) -> String {
+    path.to_string_lossy().into_owned()
 }
 
 fn valid_bead_key(key: &str) -> bool {
@@ -673,18 +692,37 @@ pub(crate) mod tests {
 
     static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+    #[cfg(windows)]
     #[test]
-    fn public_path_display_strips_windows_verbatim_prefix_on_all_platforms() {
+    fn public_path_display_strips_windows_verbatim_prefix() {
         assert_eq!(
             public_path_display(Path::new(r"\\?\C:\Users\test\sample.formula.toml")),
             r"C:\Users\test\sample.formula.toml"
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn public_path_display_converts_verbatim_unc_to_unc() {
+        let separator = std::path::MAIN_SEPARATOR;
+        let path = format!(
+            "{separator}{separator}?{separator}UNC{separator}server{separator}share{separator}f"
+        );
+        assert_eq!(
+            public_path_display(Path::new(&path)),
+            format!("{separator}{separator}server{separator}share{separator}f")
+        );
+    }
+
+    #[test]
+    fn public_path_display_preserves_non_verbatim_paths() {
         assert_eq!(
             public_path_display(Path::new("plain.formula.toml")),
             "plain.formula.toml"
         );
     }
 
+    #[cfg(windows)]
     #[test]
     fn cook_arguments_use_the_same_public_path_as_receipts() {
         let root = workspace();
