@@ -22,6 +22,7 @@ const BD_COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
 const PIPE_DRAIN_TEST_TIMEOUT: Duration = Duration::from_secs(10);
 const PIPE_DRAIN_TEST_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_PIPE_DRAIN_CHILD";
 const PIPE_DRAIN_TEST_OUTPUT_BYTES: usize = 256 * 1024;
+const WORKSPACE_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_WORKSPACE_CHILD";
 const FORMULA: &str = "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build {{literal}}\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\nneeds = [\"build\"]\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\nneeds = [\"verify\"]\n";
 struct Workspace {
     root: PathBuf,
@@ -267,10 +268,74 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
         eprintln!("skipping graph integration: BD_EXECUTABLE not configured");
         return;
     };
+    if let Some(root) = std::env::var_os(WORKSPACE_CHILD_ENV) {
+        let root = PathBuf::from(root);
+        let beads_dir = root.join(".beads");
+        assert_eq!(
+            std::env::var_os("BEADS_DIR"),
+            Some(beads_dir.clone().into())
+        );
+        assert_eq!(std::env::var("BEADS_NO_DAEMON").as_deref(), Ok("1"));
+        test(&Workspace {
+            root: fs::canonicalize(root).expect("canonical child root"),
+            beads_dir,
+            bd: PathBuf::from(binary),
+        });
+        return;
+    }
+    assert!(
+        std::env::var_os("BEADS_DIR").is_none(),
+        "graph integration refuses ambient BEADS_DIR; unset it before running"
+    );
     let _guard = SERIAL
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
-    test(&Workspace::new(Path::new(&binary)));
+    let workspace = Workspace::new(Path::new(&binary));
+    let thread = std::thread::current();
+    let name = thread.name().expect("libtest test name");
+    let mut child = Command::new(std::env::current_exe().expect("test executable"));
+    // The child environment isolates both helper commands and engine-launched bd.
+    // Use the original temp path: canonical paths have a verbatim prefix on Windows.
+    child
+        .args(["--exact", name, "--nocapture"])
+        .env(
+            WORKSPACE_CHILD_ENV,
+            workspace.beads_dir.parent().expect("root"),
+        )
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1");
+    let output = run_command_with_timeout(&mut child, &[name], BD_COMMAND_TIMEOUT);
+    assert!(
+        output.status.success(),
+        "isolated {name}: {}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn graph_integration_refuses_ambient_beads_dir_before_launching_bd() {
+    let mut child = Command::new(std::env::current_exe().expect("test executable"));
+    child
+        .args([
+            "--exact",
+            "uc1_render_and_pour_outside_registry",
+            "--nocapture",
+        ])
+        .env_remove(WORKSPACE_CHILD_ENV)
+        .env("BD_EXECUTABLE", "must-not-be-launched")
+        .env("BEADS_DIR", "must-not-be-used");
+    let output = run_command_with_timeout(
+        &mut child,
+        &["ambient BEADS_DIR guard"],
+        PIPE_DRAIN_TEST_TIMEOUT,
+    );
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains("graph integration refuses ambient BEADS_DIR"),
+        "{output:?}"
+    );
 }
 #[test]
 fn uc1_render_and_pour_outside_registry() {
@@ -292,6 +357,15 @@ fn uc1_render_and_pour_outside_registry() {
             "--json",
         ]);
         assert_eq!(root[0]["issue_type"], "molecule");
+        let persisted = w.json(&["list", "--all", "-n", "0", "--json"]);
+        let persisted = persisted.as_array().expect("workspace beads");
+        assert_eq!(persisted.len(), graph.ids.len() + 1);
+        for id in graph.ids.values() {
+            assert!(
+                persisted.iter().any(|bead| bead["id"] == id.as_str()),
+                "engine-created {id} must land in the workspace database"
+            );
+        }
         assert_persisted_graph(w, &graph);
     });
 }
