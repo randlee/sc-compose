@@ -9,9 +9,8 @@ use crate::contract::{
     BeadStageReceipt, GraphDependencyType,
 };
 use crate::error::{BeadComposeError, short_cause};
-use crate::execute::{
-    NormalizedRequest, process_receipt, public_path_buf, public_path_display, receipt,
-};
+use crate::execute::{NormalizedRequest, process_receipt, receipt};
+use crate::paths::{public_path_buf, public_path_display};
 use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
 use crate::snapshot::InputSnapshot;
 use plan::{GraphPlan, GraphReader, PendingCreate, PlanKey};

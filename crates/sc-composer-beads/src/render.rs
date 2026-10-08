@@ -10,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::Map;
 
 use crate::error::BeadComposeError;
-use crate::execute::public_path_buf;
+use crate::paths::public_path_buf;
 
 const OPEN_DELIMITER: &str = "{{{";
 const CLOSE_DELIMITER: &str = "}}}";

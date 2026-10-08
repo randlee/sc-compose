@@ -5,9 +5,10 @@ use crate::contract::{
 };
 use crate::error::BeadComposeError;
 use crate::execute::{
-    NormalizedRequest, StageFailure, append_variables, failed_last_stage_receipt, public_path_buf,
-    receipt, run_stage, run_stage_with_output,
+    NormalizedRequest, StageFailure, append_variables, failed_last_stage_receipt, receipt,
+    run_stage, run_stage_with_output,
 };
+use crate::paths::public_path_buf;
 use crate::runner::{CommandSpec, ProcessRunner};
 use crate::snapshot::InputSnapshot;
 use serde_json::Value;
@@ -206,8 +207,9 @@ fn refuse_registry_relations(
 
 #[cfg(test)]
 mod tests {
+    use crate::execute::execute_bead_request_with_runner;
     use crate::execute::tests::{FakeRunner, request, success, where_output, workspace};
-    use crate::execute::{execute_bead_request_with_runner, public_path_display};
+    use crate::paths::public_path_display;
     use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
     use crate::{BeadComposeError, BeadOperation, BeadOutcome, BeadStage, PourAuthorization};
     use std::fs;

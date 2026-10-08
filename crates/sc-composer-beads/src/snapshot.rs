@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::error::BeadComposeError;
-use crate::execute::public_path_buf;
+use crate::paths::public_path_buf;
 
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
