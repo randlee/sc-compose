@@ -187,6 +187,69 @@ fn fuzz_014_graph_is_built_from_this_requests_rendered_text() {
     assert_eq!(ids(&raced), ids(&clean), "{raced:#?}");
 }
 
+/// Models another request replacing the legacy shared plan before bd opens its argv path.
+/// Overwrite only the legacy path so a future per-request path can pass this regression.
+struct PlanRewritingRunner {
+    inner: FakeRunner,
+    shared_plan: PathBuf,
+    plans: Mutex<Option<(Value, Value)>>,
+}
+
+impl ProcessRunner for PlanRewritingRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args.first().is_some_and(|arg| arg == "create") {
+            let graph_index = spec
+                .args
+                .iter()
+                .position(|arg| arg == "--graph")
+                .expect("graph argument");
+            let actual_path = &spec.args[graph_index + 1];
+            let expected: Value =
+                serde_json::from_slice(&fs::read(actual_path).expect("original plan"))
+                    .expect("plan JSON");
+            let mut competing = expected.clone();
+            competing["nodes"][0]["id"] = json!("proj-1.other-build");
+            fs::write(
+                &self.shared_plan,
+                serde_json::to_vec(&competing).expect("competing JSON"),
+            )
+            .expect("overwrite shared plan");
+            let consumed =
+                serde_json::from_slice(&fs::read(actual_path).expect("bd reads argv path"))
+                    .expect("consumed plan JSON");
+            *self.plans.lock().expect("plans") = Some((expected, consumed));
+        }
+        self.inner.run(spec)
+    }
+}
+
+// FUZZ-014: bd must consume this request's graph plan despite another request's overwrite.
+#[test]
+#[ignore = "FUZZ-014"]
+fn fuzz_014_graph_create_reads_this_requests_plan() {
+    let w = Workspace::new();
+    let runner = PlanRewritingRunner {
+        inner: FakeRunner::new([ok(COOKED), parent(), ok("{}")]),
+        shared_plan: w.req.rendered_formula.with_extension("toml.graph.json"),
+        plans: Mutex::new(None),
+    };
+    let receipt =
+        execute_bead_request_with_runner(&w.req, &runner).expect("request must yield receipt");
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+    let plans = runner.plans.lock().expect("plans");
+    let (expected, consumed) = plans.as_ref().expect("bd create must read a graph plan");
+    assert_eq!(expected["nodes"][0]["id"], "proj-1.chain-build");
+    let graph = receipt.graph.expect("graph receipt");
+    assert_eq!(
+        graph.ids[&StepId::new("build").expect("step")].as_str(),
+        "proj-1.chain-build"
+    );
+    assert_eq!(
+        consumed, expected,
+        "bd consumed another request's replacement at the shared plan path"
+    );
+}
+
 // FUZZ-015: a 40-step attach re-run is not capped by existing-bead output.
 #[cfg(unix)]
 #[test]
@@ -242,40 +305,107 @@ fn fuzz_015_rerun_of_a_40_step_attach_is_not_capped_by_the_output_limit() {
     );
 }
 
-// FUZZ-016: option-like bead IDs reach bd as IDs, not options.
-#[test]
-#[ignore = "FUZZ-016"]
-fn fuzz_016_option_like_bead_ids_are_never_parsed_as_bd_options() {
-    let mut w = Workspace::new();
-    w.req.parent = Some(BeadId::new("--db=/elsewhere").expect("valid bead id"));
-    let runner = FakeRunner::new([
-        ok(COOKED),
-        out(
-            Some(1),
-            r#"{"error":"no issues found matching the provided IDs"}"#,
-        ),
-    ]);
-    let receipt = execute_bead_request_with_runner(&w.req, &runner);
-    for call in runner.calls() {
-        let separator = call.args.iter().position(|arg| arg == "--");
-        for (index, arg) in call.args.iter().enumerate() {
-            if arg.starts_with("--db=") {
-                assert!(
-                    separator.is_some_and(|position| position < index),
-                    "{:?}",
+const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
+
+fn option_id_argument_errors(calls: &[CommandSpec], ids: &[&str]) -> Vec<String> {
+    let mut checked = 0;
+    let mut errors = Vec::new();
+    for call in calls {
+        for id in ids {
+            if call.args.iter().any(|arg| arg == id) {
+                checked += 1;
+                // --json can also be a real option before the separator;
+                // require its distinct positional occurrence after the separator.
+                let safely_positional =
                     call.args
-                );
+                        .iter()
+                        .position(|arg| arg == "--")
+                        .is_some_and(|separator| {
+                            call.args[separator + 1..].iter().any(|arg| arg == id)
+                        });
+                if !safely_positional {
+                    errors.push(format!(
+                        "option-like ID {id:?} must follow -- in {:?}",
+                        call.args
+                    ));
+                }
             }
         }
     }
-    if let Ok(receipt) = receipt {
+    assert!(checked > 0, "no option-like ID reached bd: {calls:?}");
+    errors
+}
+
+// FUZZ-016: option-like parent IDs reach bd show as IDs, not options.
+#[test]
+#[ignore = "FUZZ-016"]
+fn fuzz_016_option_like_bead_ids_are_never_parsed_as_bd_options() {
+    let mut argument_errors = Vec::new();
+    for id in OPTION_LIKE_IDS {
+        let mut w = Workspace::new();
+        w.req.parent = Some(BeadId::new(id).expect("valid bead id"));
+        let runner = FakeRunner::new([
+            ok(COOKED),
+            out(
+                Some(1),
+                r#"{"error":"no issues found matching the provided IDs"}"#,
+            ),
+        ]);
+        let receipt = execute_bead_request_with_runner(&w.req, &runner)
+            .expect("option-like parent must yield a receipt");
         assert_eq!(
             receipt.outcome,
             BeadOutcome::Refused {
                 code: "BEADS_GRAPH_PARENT_NOT_FOUND".into()
-            }
+            },
+            "{id}: {receipt:#?}"
         );
+        let calls = runner.calls();
+        assert_eq!(calls.len(), 2, "parent refusal must stop after cook/show");
+        assert_eq!(calls[1].args[0], "show");
+        let child = format!("{id}.chain-build");
+        argument_errors.extend(option_id_argument_errors(&calls, &[id, &child]));
     }
+    assert!(argument_errors.is_empty(), "{}", argument_errors.join("\n"));
+}
+
+// FUZZ-016: existing option-like relation sources reach both show and dep list safely.
+#[test]
+#[ignore = "FUZZ-016"]
+fn fuzz_016_option_like_relation_sources_are_not_dep_list_options() {
+    let mut argument_errors = Vec::new();
+    for id in OPTION_LIKE_IDS {
+        let mut w = Workspace::new();
+        w.req.relations.push(BeadRelation {
+            from: BeadEndpoint::Bead(BeadId::new(id).expect("source")),
+            to: BeadEndpoint::Step(StepId::new("build").expect("step")),
+            kind: BeadDependencyType::Blocks,
+        });
+        let runner = FakeRunner::new([
+            ok(COOKED),
+            ok(&json!([{"id":"proj-1"}, {"id":id}]).to_string()),
+            ok("[]"),
+            ok("{}"),
+        ]);
+        let receipt = execute_bead_request_with_runner(&w.req, &runner)
+            .expect("option-like source must yield a receipt");
+        assert_eq!(
+            receipt.outcome,
+            BeadOutcome::Succeeded,
+            "{id}: {receipt:#?}"
+        );
+        let calls = runner.calls();
+        assert_eq!(calls.len(), 4, "cook/show/dep list/create are required");
+        assert_eq!(calls[1].args[0], "show");
+        assert_eq!(&calls[2].args[..2], ["dep", "list"]);
+        assert!(
+            calls[2].args.iter().any(|arg| arg == id),
+            "dep list must inspect the option-like source"
+        );
+        argument_errors.extend(option_id_argument_errors(&calls[2..3], &[id]));
+        argument_errors.extend(option_id_argument_errors(&calls[1..2], &[id]));
+    }
+    assert!(argument_errors.is_empty(), "{}", argument_errors.join("\n"));
 }
 
 // FUZZ-020: apply failures preserve bd's error text.
