@@ -30,6 +30,21 @@ pub enum BeadOperation {
     Attach,
 }
 
+impl BeadOperation {
+    /// Return the operation's stable serde wire name.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Render => "render",
+            Self::Validate => "validate",
+            Self::PreviewPour => "preview_pour",
+            Self::Pour => "pour",
+            Self::PreviewAttach => "preview_attach",
+            Self::Attach => "attach",
+        }
+    }
+}
+
 /// Explicit authorization required for a persistent pour.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum PourAuthorization {
@@ -178,6 +193,22 @@ pub enum BeadStage {
     Attach,
 }
 
+impl BeadStage {
+    /// Return the stage's stable serde wire name.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Render => "render",
+            Self::Validate => "validate",
+            Self::ResolveActiveRegistry => "resolve_active_registry",
+            Self::PreviewPour => "preview_pour",
+            Self::Pour => "pour",
+            Self::PreviewAttach => "preview_attach",
+            Self::Attach => "attach",
+        }
+    }
+}
+
 /// Outcome of a stage.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -191,6 +222,18 @@ pub enum BeadStageOutcome {
         /// Stable `BEADS_*` error code.
         code: String,
     },
+}
+
+impl BeadStageOutcome {
+    /// Return the outcome variant's stable serde wire name.
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Succeeded => "succeeded",
+            Self::Skipped => "skipped",
+            Self::Failed { .. } => "failed",
+        }
+    }
 }
 
 /// Bounded diagnostic evidence for an attempted stage.
@@ -228,6 +271,18 @@ pub enum BeadOutcome {
         /// Stable `BEADS_*` error code.
         code: String,
     },
+}
+
+impl BeadOutcome {
+    /// Return the outcome variant's stable serde wire name.
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Succeeded => "succeeded",
+            Self::Refused { .. } => "refused",
+            Self::Failed { .. } => "failed",
+        }
+    }
 }
 
 /// Metadata key identifying graphs constructed by sc-compose (ADR-0023).
