@@ -199,7 +199,7 @@ fn attach_preview_and_apply_have_only_the_authorized_argv() {
         assert_eq!(calls[2].args, expected);
         for (input, suffix) in [(&calls[0].args[1], "toml"), (&calls[2].args[2], "json")] {
             let input = std::path::Path::new(input);
-            assert_eq!(input.parent(), Some(public_path(&w.root).as_path()));
+            assert_eq!(input.parent().map(public_path), Some(public_path(&w.root)));
             assert_eq!(input.extension().and_then(|ext| ext.to_str()), Some(suffix));
             assert!(
                 input
