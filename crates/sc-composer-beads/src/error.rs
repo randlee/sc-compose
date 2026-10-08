@@ -20,6 +20,12 @@ pub enum BeadComposeError {
         /// Serializer diagnostic retained for callers and logs.
         message: String,
     },
+    /// A relation endpoint omitted its recognized step or bead prefix.
+    #[error("endpoint `{value}` must have a step: or bead: prefix (ADR-0023)")]
+    RelationEndpointInvalid {
+        /// Endpoint string with an unrecognized or missing prefix.
+        value: String,
+    },
     /// The request selected an unsupported protocol schema.
     #[error("unsupported Beads composition schema `{actual}`")]
     UnknownSchema {
@@ -262,6 +268,7 @@ impl BeadComposeError {
     pub const fn code(&self) -> &'static str {
         match self {
             Self::RequestDeserializationFailed { .. } => Self::REQUEST_DESERIALIZATION_FAILED_CODE,
+            Self::RelationEndpointInvalid { .. } => "BEADS_RELATION_ENDPOINT_INVALID",
             Self::UnknownSchema { .. } => "BEADS_UNKNOWN_SCHEMA",
             Self::FormulaPathNotFile { .. } => "BEADS_FORMULA_NOT_FILE",
             Self::FormulaExtensionUnsupported { .. } => "BEADS_FORMULA_EXTENSION_UNSUPPORTED",

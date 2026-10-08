@@ -459,3 +459,32 @@ fn invalid_pour_authorization_returns_its_code_before_render_or_bd() {
     assert!(!trace.exists(), "authorization error starts no bd process");
     assert!(!output.exists(), "authorization error writes no formula");
 }
+
+#[test]
+#[cfg(unix)]
+fn malformed_relation_endpoint_has_stable_request_code_before_side_effects() {
+    let fixture = TempFixture::new("bead-invalid-endpoint");
+    let root = &fixture.path;
+    let template = copy_canonical_template(root, "toml-workflow.formula.toml.j2");
+    let output = root.join("output.formula.toml");
+    let (bd, trace) = write_fake_bd(root, 0, 0);
+    let request = write_request(root, &template, &output, &bd, None);
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&request).unwrap()).unwrap();
+    value["relations"] = json!([{"from":"build","to":"bead:parent","type":"blocks"}]);
+    write_file(&request, &value.to_string());
+    let result = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(request)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert_eq!(result.status.code(), Some(3));
+    let envelope: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(
+        envelope["payload"]["error"]["code"],
+        "BEADS_RELATION_ENDPOINT_INVALID"
+    );
+    assert!(!output.exists());
+    assert!(!trace.exists());
+}

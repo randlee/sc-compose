@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use serde::de::{Error as _, MapAccess, Visitor};
+use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 
@@ -11,9 +11,6 @@ use crate::error::BeadComposeError;
 
 /// Stable schema identifier for the Beads composition protocol.
 pub const BEADS_SCHEMA_V1: &str = "sc-compose/beads/v1";
-
-const DUPLICATE_BEAD_VARIABLE_PREFIX: &str = "duplicate Beads variable key \u{1f}";
-const INVALID_POUR_AUTHORIZATION: &str = "invalid Beads pour authorization \u{1f}";
 
 /// Requested Beads composition operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -60,7 +57,7 @@ impl<'de> Deserialize<'de> for PourAuthorization {
         value
             .as_str()
             .and_then(|value| Self::try_from(value).ok())
-            .ok_or_else(|| D::Error::custom(INVALID_POUR_AUTHORIZATION))
+            .ok_or_else(|| D::Error::custom(BeadComposeError::PourAuthorizationInvalid))
     }
 }
 
@@ -105,32 +102,13 @@ fn deserialize_unique_bead_variables<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    struct UniqueBeadVariables;
-
-    impl<'de> Visitor<'de> for UniqueBeadVariables {
-        type Value = BTreeMap<String, String>;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            formatter.write_str("a JSON object with unique Beads variable keys")
-        }
-
-        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-        where
-            A: MapAccess<'de>,
-        {
-            let mut variables = BTreeMap::new();
-            while let Some((key, value)) = map.next_entry::<String, String>()? {
-                if variables.insert(key.clone(), value).is_some() {
-                    return Err(A::Error::custom(format!(
-                        "{DUPLICATE_BEAD_VARIABLE_PREFIX}{key}"
-                    )));
-                }
-            }
-            Ok(variables)
-        }
+    let parsed = crate::request::BeadVariables::deserialize(deserializer)?;
+    match parsed.duplicate {
+        Some(key) => Err(D::Error::custom(
+            BeadComposeError::BeadVariableKeyDuplicate { key },
+        )),
+        None => Ok(parsed.values),
     }
-
-    deserializer.deserialize_map(UniqueBeadVariables)
 }
 
 /// Parse a JSON request into the stable Beads composition contract.
@@ -138,34 +116,25 @@ where
 /// This boundary preserves duplicate runtime-variable keys as
 /// [`BeadComposeError::BeadVariableKeyDuplicate`] instead of exposing a
 /// serializer-specific error to adapters. Invalid authorization sentinels return
-/// [`BeadComposeError::PourAuthorizationInvalid`].
+/// [`BeadComposeError::PourAuthorizationInvalid`]; unrecognized relation endpoint
+/// prefixes return [`BeadComposeError::RelationEndpointInvalid`].
 ///
 /// # Errors
 ///
 /// Returns a stable [`BeadComposeError`] when the input is malformed or does
 /// not deserialize into the v1 request contract.
 pub fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
-    serde_json::from_str(input).map_err(|error| {
-        let message = error.to_string();
-        if message.starts_with(INVALID_POUR_AUTHORIZATION) {
-            return BeadComposeError::PourAuthorizationInvalid;
-        }
-        duplicate_bead_variable_key(&message).map_or_else(
-            || BeadComposeError::RequestDeserializationFailed { message },
-            |key| BeadComposeError::BeadVariableKeyDuplicate { key },
-        )
-    })
+    crate::request::parse_request(input)
 }
 
-fn duplicate_bead_variable_key(message: &str) -> Option<String> {
-    message
-        .strip_prefix(DUPLICATE_BEAD_VARIABLE_PREFIX)
-        .map(|key_with_location| {
-            key_with_location
-                .split_once(" at line ")
-                .map_or(key_with_location, |(key, _)| key)
-                .to_owned()
-        })
+/// Parse relation JSON using the same stable endpoint errors as requests.
+///
+/// # Errors
+///
+/// Returns [`BeadComposeError::RelationEndpointInvalid`] for an unrecognized
+/// endpoint prefix, or a request-deserialization error for other malformed data.
+pub fn parse_relations(value: Value) -> Result<Vec<BeadRelation>, BeadComposeError> {
+    crate::request::parse_relations(value)
 }
 
 /// Completed host-neutral Beads composition operation.
@@ -446,9 +415,7 @@ impl TryFrom<String> for BeadEndpoint {
         if let Some(id) = value.strip_prefix("bead:") {
             return BeadId::new(id).map(Self::Bead);
         }
-        Err(BeadComposeError::RequestDeserializationFailed {
-            message: format!("endpoint `{value}` must have a step: or bead: prefix (ADR-0023)"),
-        })
+        Err(BeadComposeError::RelationEndpointInvalid { value })
     }
 }
 

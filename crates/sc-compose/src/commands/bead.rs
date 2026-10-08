@@ -63,6 +63,7 @@ fn print_bead_error(
 ) -> Result<i32, CommandError> {
     let exit_code = match &error {
         BeadComposeError::RequestDeserializationFailed { .. }
+        | BeadComposeError::RelationEndpointInvalid { .. }
         | BeadComposeError::UnknownSchema { .. }
         | BeadComposeError::FormulaPathNotFile { .. }
         | BeadComposeError::FormulaExtensionUnsupported { .. }
