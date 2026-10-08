@@ -7,6 +7,7 @@ use crate::contract::{
     MissingEdge, PROVENANCE_KEY, StepId,
 };
 use crate::error::{BeadComposeError, GraphConflictReason, GraphRelationInvalidReason};
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -26,8 +27,30 @@ pub(super) enum GraphPlan {
 pub(super) struct PendingCreate {
     pub(super) graph: BeadGraph,
     pub(super) payload: Value,
-    pub(super) keys: BTreeMap<String, Option<StepId>>,
+    pub(super) keys: BTreeMap<PlanKey, Option<StepId>>,
     pub(super) endpoints: Vec<(PlannedEndpoint, PlannedEndpoint)>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub(super) struct PlanKey(String);
+
+impl PlanKey {
+    fn root() -> Self {
+        Self("_root".to_owned())
+    }
+
+    fn step(step: &StepId, attach: bool) -> Self {
+        if attach {
+            Self(step.to_string())
+        } else {
+            Self(crate::contract::GraphEndpoint::Step(step.clone()).encoded())
+        }
+    }
+
+    fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 /// Keep identities until apply returns ids; receipt strings are only presentation.
@@ -48,7 +71,7 @@ impl PlannedEndpoint {
 
 struct Endpoint {
     display: GraphEndpoint,
-    key: Option<String>,
+    key: Option<PlanKey>,
     id: Option<BeadId>,
 }
 
@@ -69,17 +92,9 @@ fn endpoint(
                 || GraphEndpoint::Step(step.clone()),
                 |id| GraphEndpoint::Bead(id.clone()),
             ),
-            key: missing.contains(step).then(|| step_key(step, attach)),
+            key: missing.contains(step).then(|| PlanKey::step(step, attach)),
             id: ids.get(step).cloned(),
         },
-    }
-}
-
-fn step_key(step: &StepId, attach: bool) -> String {
-    if attach {
-        step.to_string()
-    } else {
-        format!("step:{step}")
     }
 }
 
@@ -192,8 +207,9 @@ fn create_nodes(
     let mut nodes = Vec::new();
     let mut keys = BTreeMap::new();
     if !attach {
-        nodes.push(json!({"key":"_root","type":"molecule","title":v.formula,"description":v.description,"metadata":{PROVENANCE_KEY:v.provenance(None)}}));
-        keys.insert("_root".into(), None);
+        let root_key = PlanKey::root();
+        nodes.push(json!({"key":root_key.as_str(),"type":"molecule","title":v.formula,"description":v.description,"metadata":{PROVENANCE_KEY:v.provenance(None)}}));
+        keys.insert(root_key, None);
         graph.nodes.push(BeadGraphNode {
             step: None,
             id: None,
@@ -213,8 +229,8 @@ fn create_nodes(
         });
         if create {
             let mut fields = step.fields.clone();
-            let key = step_key(&step.id, attach);
-            fields.insert("key".into(), json!(key));
+            let key = PlanKey::step(&step.id, attach);
+            fields.insert("key".into(), json!(key.as_str()));
             if let Some(id) = ids.get(&step.id) {
                 fields.insert("id".into(), json!(id));
             }
@@ -276,7 +292,7 @@ fn plan_edges(
             let mut edge = serde_json::Map::new();
             for (prefix, ep) in [("from", from), ("to", to)] {
                 if let Some(key) = ep.key {
-                    edge.insert(format!("{prefix}_key"), json!(key));
+                    edge.insert(format!("{prefix}_key"), json!(key.as_str()));
                 } else {
                     edge.insert(
                         format!("{prefix}_id"),
@@ -302,7 +318,7 @@ fn plan_edges(
                 .parent
                 .as_ref()
                 .map_or(GraphEndpoint::Root, |id| GraphEndpoint::Bead(id.clone())),
-            key: (!attach).then(|| "_root".into()),
+            key: (!attach).then(PlanKey::root),
             id: v.parent.clone(),
         };
         let existing = check_edge(

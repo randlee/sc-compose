@@ -477,8 +477,8 @@ impl TryFrom<String> for BeadEndpoint {
 impl From<BeadEndpoint> for String {
     fn from(endpoint: BeadEndpoint) -> Self {
         match endpoint {
-            BeadEndpoint::Step(id) => format!("step:{id}"),
-            BeadEndpoint::Bead(id) => format!("bead:{id}"),
+            BeadEndpoint::Bead(id) => encode_endpoint("bead:", id.as_str()),
+            BeadEndpoint::Step(id) => encode_endpoint("step:", id.as_str()),
         }
     }
 }
@@ -560,13 +560,23 @@ impl TryFrom<String> for GraphEndpoint {
     }
 }
 
+impl GraphEndpoint {
+    pub(crate) fn encoded(&self) -> String {
+        match self {
+            Self::Bead(id) => encode_endpoint("", id.as_str()),
+            Self::Step(id) => encode_endpoint("step:", id.as_str()),
+            Self::Root => "_root".to_owned(),
+        }
+    }
+}
+
+fn encode_endpoint(prefix: &str, id: &str) -> String {
+    format!("{prefix}{id}")
+}
+
 impl std::fmt::Display for GraphEndpoint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Bead(id) => id.fmt(f),
-            Self::Step(id) => write!(f, "step:{id}"),
-            Self::Root => f.write_str("_root"),
-        }
+        f.write_str(&self.encoded())
     }
 }
 

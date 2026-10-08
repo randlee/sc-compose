@@ -11,7 +11,7 @@ use crate::contract::{
 use crate::error::{BeadComposeError, short_cause};
 use crate::execute::{NormalizedRequest, process_receipt, receipt};
 use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
-use plan::{GraphPlan, GraphReader, PendingCreate};
+use plan::{GraphPlan, GraphReader, PendingCreate, PlanKey};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fs;
@@ -402,7 +402,7 @@ impl PendingCreate {
         }
         let value: Value = serde_json::from_str(&output.stdout)
             .map_err(|error| failure(short_cause(&error.to_string())))?;
-        let assigned: BTreeMap<String, BeadId> = serde_json::from_value(
+        let assigned: BTreeMap<PlanKey, BeadId> = serde_json::from_value(
             value
                 .get("ids")
                 .cloned()

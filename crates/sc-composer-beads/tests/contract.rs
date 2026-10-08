@@ -826,6 +826,19 @@ fn graph_edge_types_validate_strings_without_changing_wire_format() {
             .to_string()
             .ends_with("bd dep add proj-42 proj-3 --type custom-audit_1")
     );
+
+    let step = BeadEndpoint::Step(StepId::new("build").expect("valid step"));
+    let bead = BeadEndpoint::Bead(BeadId::new("proj-42").expect("valid bead"));
+    assert_eq!(String::from(step), "step:build");
+    assert_eq!(String::from(bead), "bead:proj-42");
+    assert_eq!(
+        GraphEndpoint::Step(StepId::new("build").unwrap()).to_string(),
+        "step:build"
+    );
+    assert_eq!(
+        GraphEndpoint::Bead(BeadId::new("proj-42").unwrap()).to_string(),
+        "proj-42"
+    );
 }
 
 #[test]
