@@ -576,3 +576,11 @@ fn missing_edge_commands(edges: &[MissingEdge]) -> String {
         .collect::<Vec<_>>()
         .join("; ")
 }
+
+impl GraphIdField {
+    /// Return the grammar rule an identifier of this field must satisfy.
+    #[must_use]
+    pub fn rule(self) -> &'static str {
+        graph_id_rule(self)
+    }
+}

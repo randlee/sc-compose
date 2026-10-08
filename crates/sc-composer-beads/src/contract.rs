@@ -425,6 +425,35 @@ impl FormulaName {
     pub(crate) fn legacy(value: String) -> Self {
         Self(value)
     }
+
+    /// Resolve a request's `formula_name` under the operation-aware
+    /// compatibility boundary shared by the JSON parser and foreign adapters.
+    ///
+    /// Attach operations require the portable grammar. Every other operation
+    /// keeps the Phase R behaviour: a name outside the grammar is preserved
+    /// as-is (ADR-0023 Decision 1), and an empty name means no formula name.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BeadComposeError::GraphIdInvalid`] for a name outside the
+    /// portable grammar on an attach operation.
+    pub fn for_operation(
+        operation: BeadOperation,
+        value: String,
+    ) -> Result<Option<Self>, BeadComposeError> {
+        match Self::new(value.clone()) {
+            Ok(name) => Ok(Some(name)),
+            Err(_)
+                if !matches!(
+                    operation,
+                    BeadOperation::Attach | BeadOperation::PreviewAttach
+                ) =>
+            {
+                Ok((!value.is_empty()).then(|| Self::legacy(value)))
+            }
+            Err(error) => Err(error),
+        }
+    }
 }
 
 graph_string!(

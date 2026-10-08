@@ -193,6 +193,47 @@ fn fuzz_013_phase_r_operations_keep_accepting_legacy_formula_names() {
     }
 }
 
+// pe-f5: adapters share the JSON parser's operation-aware formula-name boundary.
+#[test]
+fn formula_name_boundary_matches_json_parser_for_every_operation() {
+    for operation in [
+        "render",
+        "validate",
+        "preview_pour",
+        "pour",
+        "preview_attach",
+        "attach",
+    ] {
+        let wire = serde_json::from_value::<BeadOperation>(json!(operation)).expect("operation");
+        for name in ["café", "re g0", "a+b", "workflow", ""] {
+            let attach = matches!(operation, "attach" | "preview_attach");
+            let mut request = json!({
+                "schema": BEADS_SCHEMA_V1,
+                "operation": operation,
+                "working_directory": "/work",
+                "template": "f.formula.toml.j2",
+                "rendered_formula": "/work/build/f.formula.toml",
+                "formula_name": name,
+                "compose_variables": {},
+                "bead_variables": {}
+            });
+            if attach {
+                request["parent"] = json!("proj-1");
+                request["ref"] = json!("valid");
+            }
+            let shared = FormulaName::for_operation(wire, name.to_owned());
+            let parsed = parse_request(&request.to_string());
+            match (shared, parsed) {
+                (Ok(expected), Ok(request)) => {
+                    assert_eq!(request.formula_name, expected, "{operation} {name:?}");
+                }
+                (Err(_), Err(_)) => {}
+                (shared, parsed) => panic!("{operation} {name:?}: {shared:?} vs {parsed:?}"),
+            }
+        }
+    }
+}
+
 // FUZZ-014: graph planning uses this request's rendered text.
 #[test]
 fn fuzz_014_graph_is_built_from_this_requests_rendered_text() {

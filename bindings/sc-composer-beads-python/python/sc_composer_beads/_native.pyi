@@ -77,6 +77,7 @@ class BeadComposeReceipt:
     outcome: BeadOutcome
     pour_mode: str | None
     graph: Any | None
+    missing_edges: list[dict[str, str]]
 
 
 class BeadComposeRequest:

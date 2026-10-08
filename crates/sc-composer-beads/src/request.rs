@@ -288,8 +288,9 @@ fn deserialize_request(input: &str) -> Result<BeadComposeRequest, BeadComposeErr
                 // Report the original typed parse error, not the retry's.
                 let mut request: BeadComposeRequest =
                     serde_json::from_value(value).map_err(|_retry| request_error(&error))?;
-                if let Some(name) = legacy_name.filter(|name| !name.is_empty()) {
-                    request.formula_name = Some(crate::FormulaName::legacy(name));
+                if let Some(name) = legacy_name {
+                    request.formula_name =
+                        crate::FormulaName::for_operation(request.operation, name)?;
                 }
                 return Ok(request);
             }

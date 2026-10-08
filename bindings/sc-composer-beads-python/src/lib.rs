@@ -151,6 +151,7 @@ fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyE
         let details = BTreeMap::from([
             ("field".to_owned(), field.as_str().to_owned()),
             ("value".to_owned(), value.clone()),
+            ("rule".to_owned(), field.rule().to_owned()),
         ]);
         return PyErr::from_type(
             py.get_type::<PyBeadComposeError>(),
@@ -368,6 +369,10 @@ struct PyBeadComposeReceipt {
     pour_mode: Option<String>,
     #[pyo3(get)]
     graph: Option<Py<PyAny>>,
+    /// Edges to repair after a `BEADS_GRAPH_EDGE_MISSING` refusal, each a
+    /// `{"from", "to", "type"}` mapping; empty otherwise.
+    #[pyo3(get)]
+    missing_edges: Py<PyAny>,
 }
 
 #[pymethods]
@@ -448,6 +453,9 @@ impl PyBeadComposeReceipt {
                 json_to_py(py, &value)
             })
             .transpose()?;
+        let missing_edges = serde_json::to_value(&inner.missing_edges)
+            .map_err(|error| request_error(py, error.to_string()))?;
+        let missing_edges = json_to_py(py, &missing_edges)?;
         Ok(Self {
             wire,
             schema: inner.schema,
@@ -457,6 +465,7 @@ impl PyBeadComposeReceipt {
             outcome: outcome(&inner.outcome),
             pour_mode: inner.pour_mode.map(serde_variant_name),
             graph,
+            missing_edges,
         })
     }
 }
@@ -508,18 +517,21 @@ impl PyBeadComposeRequest {
             .map(PourAuthorization::try_from)
             .transpose()
             .map_err(|error| rust_error_to_pyerr(py, &error))?;
+        let operation = operation_from_str(py, operation)?;
+        let formula_name = formula_name
+            .map(|name| sc_composer_beads::FormulaName::for_operation(operation, name))
+            .transpose()
+            .map_err(|error| rust_error_to_pyerr(py, &error))?
+            .flatten();
         Ok(Self {
             inner: BeadComposeRequest {
                 schema: schema.to_owned(),
-                operation: operation_from_str(py, operation)?,
+                operation,
                 working_directory: coerce_path(py, working_directory, "working_directory")?,
                 template: coerce_path(py, template, "template")?,
                 rendered_formula: coerce_path(py, rendered_formula, "rendered_formula")?,
                 compose_variables,
-                formula_name: formula_name
-                    .map(sc_composer_beads::FormulaName::new)
-                    .transpose()
-                    .map_err(|error| request_error(py, error.to_string()))?,
+                formula_name,
                 bead_variables: parse_bead_variables(py, bead_variables)?,
                 bd_executable: bd_executable
                     .map(|value| coerce_path(py, value, "bd_executable"))

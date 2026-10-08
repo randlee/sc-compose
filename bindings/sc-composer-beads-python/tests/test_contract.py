@@ -472,10 +472,10 @@ def test_attach_request_rejects_invalid_parent_and_ref(
     assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
     assert raised.value.stage == "validate"
     if parent != "proj-100":
-        assert raised.value.details == {"field": "bead", "value": parent}
+        assert raised.value.details == {"field": "bead", "value": parent, "rule": "bead ids are non-empty without whitespace"}
         assert "bead ids are non-empty without whitespace" in str(raised.value)
     else:
-        assert raised.value.details == {"field": "ref", "value": reference}
+        assert raised.value.details == {"field": "ref", "value": reference, "rule": "ref is [A-Za-z0-9_-]{1,32}"}
 
 
 
@@ -573,3 +573,50 @@ def test_identifier_refused_receipt_accepts_additive_canonical_error() -> None:
     receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
     assert receipt.to_json()["outcome"] == fixture["outcome"]
     assert receipt.outcome.code == beads.BEADS_GRAPH_ID_INVALID
+
+
+@pytest.mark.parametrize("operation", ["render", "validate", "preview_pour", "pour"])
+@pytest.mark.parametrize("name", ["café", "re g0", "a+b", "workflow"])
+def test_constructor_keeps_legacy_formula_names_for_non_attach(tmp_path, operation, name) -> None:
+    request = beads.BeadComposeRequest(
+        tmp_path, tmp_path / "f.formula.toml.j2", tmp_path / "f.formula.toml", {},
+        operation=operation, formula_name=name,
+    )
+    assert request.formula_name == name
+
+
+@pytest.mark.parametrize("operation", ["render", "validate", "preview_pour", "pour"])
+def test_constructor_treats_empty_formula_name_as_absent_for_non_attach(tmp_path, operation) -> None:
+    request = beads.BeadComposeRequest(
+        tmp_path, tmp_path / "f.formula.toml.j2", tmp_path / "f.formula.toml", {},
+        operation=operation, formula_name="",
+    )
+    assert request.formula_name is None
+
+
+@pytest.mark.parametrize("operation", ["attach", "preview_attach"])
+@pytest.mark.parametrize("name", ["café", "a+b", ""])
+def test_constructor_requires_portable_formula_name_for_attach(tmp_path, operation, name) -> None:
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path, tmp_path / "f.formula.toml.j2", tmp_path / "f.formula.toml", {},
+            operation=operation, parent="proj-1", ref="valid", formula_name=name,
+        )
+    assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
+    assert raised.value.details["field"] == "formula"
+    assert raised.value.details["value"] == name
+    assert raised.value.details["rule"]
+
+
+def test_receipt_exposes_missing_edges_without_to_json() -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-edge-missing.json").read_text(encoding="utf-8"))
+    edges = [
+        {"from": "proj-1.release-verify", "to": "proj-1.release-build", "type": "blocks"},
+        {"from": "proj-1.release-publish", "to": "proj-1.release-verify", "type": "validates"},
+    ]
+    fixture["missing_edges"] = edges
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+    assert receipt.missing_edges == edges
+    assert receipt.to_json()["missing_edges"] == edges
+    registry = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
+    assert beads.BeadComposeReceipt.from_json(json.dumps(registry)).missing_edges == []
