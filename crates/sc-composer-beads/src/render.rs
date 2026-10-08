@@ -196,44 +196,64 @@ pub(crate) fn replace_output(temporary: &Path, path: &Path) -> Result<(), BeadCo
 
 #[cfg(windows)]
 pub(crate) fn replace_output(temporary: &Path, path: &Path) -> Result<(), BeadComposeError> {
-    // Windows cannot atomically replace an existing destination with
-    // `std::fs::rename`. Rechecking and removing the final component still
-    // prevents following a symbolic link; a racing replacement causes rename
-    // to fail instead of redirecting the temporary file write.
+    // `std::fs::rename` replaces an existing destination on Windows
+    // (`MOVEFILE_REPLACE_EXISTING`), so the old output is never unlinked
+    // first: a failed or interrupted replace leaves the previous bytes intact.
+    // Rechecking the final component still prevents following a symbolic
+    // link; a racing replacement causes rename to fail instead of redirecting
+    // the temporary file write.
     validate_output_destination(path)?;
-    match retry_delete_pending(|| fs::remove_file(path)) {
-        Ok(()) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => return Err(render_error(&error)),
-    }
     retry_delete_pending(|| fs::rename(temporary, path)).map_err(|error| render_error(&error))
 }
 
-/// Retry a file operation that Windows refuses while a concurrent writer's
-/// removal of the same path is still pending.
+/// `ERROR_ACCESS_DENIED`: the path's delete is pending until the last handle
+/// closes.
+#[cfg(any(windows, test))]
+const WINDOWS_ACCESS_DENIED: i32 = 5;
+/// `ERROR_SHARING_VIOLATION`: another handle holds the file without sharing.
+#[cfg(any(windows, test))]
+const WINDOWS_SHARING_VIOLATION: i32 = 32;
+
+/// Whether `error` is a transient Windows refusal worth retrying.
 ///
-/// Windows reports `ERROR_ACCESS_DENIED` for a path whose delete is pending
-/// until the last handle closes, which a concurrent pour publishing the same
-/// output triggers between its `remove_file` and `rename`. The window is
-/// short, so a bounded retry resolves it; any other error, or a denial that
-/// persists, is returned unchanged.
-#[cfg(windows)]
-fn retry_delete_pending<T>(
+/// Only the delete-pending and sharing OS errors qualify; every other
+/// `PermissionDenied` (a read-only destination, a real ACL denial) is final.
+#[cfg(any(windows, test))]
+fn is_transient_replace_error(error: &std::io::Error) -> bool {
+    matches!(
+        error.raw_os_error(),
+        Some(WINDOWS_ACCESS_DENIED | WINDOWS_SHARING_VIOLATION)
+    )
+}
+
+/// Run `operation`, retrying up to `attempts` times with `delay` between
+/// tries while the failure is [`is_transient_replace_error`].
+#[cfg(any(windows, test))]
+fn retry_transient<T>(
+    attempts: u32,
+    delay: std::time::Duration,
     mut operation: impl FnMut() -> std::io::Result<T>,
 ) -> std::io::Result<T> {
-    const ATTEMPTS: u32 = 50;
     let mut attempt = 1;
     loop {
         match operation() {
-            Err(error)
-                if error.kind() == std::io::ErrorKind::PermissionDenied && attempt < ATTEMPTS =>
-            {
+            Err(error) if is_transient_replace_error(&error) && attempt < attempts => {
                 attempt += 1;
-                std::thread::sleep(std::time::Duration::from_millis(10));
+                std::thread::sleep(delay);
             }
             result => return result,
         }
     }
+}
+
+/// Retry a file operation that Windows refuses while a concurrent writer's
+/// replacement of the same path is still settling.
+///
+/// The window is short, so a bounded retry resolves it; any other error, or a
+/// refusal that persists, is returned unchanged.
+#[cfg(windows)]
+fn retry_delete_pending<T>(operation: impl FnMut() -> std::io::Result<T>) -> std::io::Result<T> {
+    retry_transient(50, std::time::Duration::from_millis(10), operation)
 }
 
 #[cfg(not(windows))]
@@ -312,6 +332,70 @@ mod tests {
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&rendered).expect("valid JSON"),
             json!({ "title": "fallback", "owner": "ada" })
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn only_delete_pending_and_sharing_errors_are_retried() {
+        use std::io::{Error, ErrorKind};
+        assert!(super::is_transient_replace_error(
+            &Error::from_raw_os_error(5)
+        ));
+        assert!(super::is_transient_replace_error(
+            &Error::from_raw_os_error(32)
+        ));
+        assert!(!super::is_transient_replace_error(
+            &Error::from_raw_os_error(2)
+        ));
+        assert!(!super::is_transient_replace_error(&Error::from(
+            ErrorKind::PermissionDenied
+        )));
+    }
+
+    #[test]
+    fn retry_is_bounded_and_skips_non_transient_errors() {
+        use std::io::Error;
+        use std::time::Duration;
+        let mut calls = 0;
+        let result: std::io::Result<()> = super::retry_transient(3, Duration::ZERO, || {
+            calls += 1;
+            Err(Error::from_raw_os_error(32))
+        });
+        assert!(result.is_err());
+        assert_eq!(calls, 3, "a persistent transient error stops at the bound");
+
+        let mut calls = 0;
+        let result: std::io::Result<()> = super::retry_transient(3, Duration::ZERO, || {
+            calls += 1;
+            Err(Error::from_raw_os_error(2))
+        });
+        assert!(result.is_err());
+        assert_eq!(calls, 1, "other errors are not retried");
+
+        let mut calls = 0;
+        let result = super::retry_transient(3, Duration::ZERO, || {
+            calls += 1;
+            if calls < 2 {
+                Err(Error::from_raw_os_error(5))
+            } else {
+                Ok(calls)
+            }
+        });
+        assert_eq!(result.expect("second attempt succeeds"), 2);
+    }
+
+    #[test]
+    fn failed_replace_preserves_the_previous_output() {
+        let root = temporary_directory();
+        let output = root.join("kept.formula.json");
+        fs::write(&output, "previous bytes").expect("write previous output");
+        let missing_temporary = root.join("missing.tmp");
+        super::replace_output(&missing_temporary, &output)
+            .expect_err("replacing from a missing temporary must fail");
+        assert_eq!(
+            fs::read_to_string(&output).expect("read output"),
+            "previous bytes"
         );
         fs::remove_dir_all(root).expect("cleanup");
     }
