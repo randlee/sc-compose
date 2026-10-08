@@ -277,3 +277,20 @@ def test_installed_wheel_runs_the_pinned_beads_fixture(tmp_path: Path, monkeypat
         "resolve_active_registry",
         "preview_pour",
     ]
+
+
+def test_invalid_authorization_uses_stable_error_code(tmp_path: Path) -> None:
+    output = tmp_path / "output.formula.toml"
+    with pytest.raises(beads.BeadComposeError) as caught:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.formula.toml.j2",
+            output,
+            {},
+            operation="pour",
+            formula_name="workflow",
+            pour_authorization="invalid",
+        )
+    assert caught.value.code == "BEADS_POUR_AUTH_INVALID"
+    assert caught.value.stage == "request"
+    assert not output.exists()

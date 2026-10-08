@@ -690,3 +690,54 @@ fn formula_names_are_validated_in_requests_and_graph_metadata() {
         .expect_err("provenance name validated");
     }
 }
+
+#[test]
+fn invalid_authorization_emits_the_stable_code_from_real_parsing() {
+    use serde_json::{Value, json};
+    let original: Value =
+        serde_json::from_str(include_str!("fixtures/beads/request.json")).expect("request");
+    for value in [
+        json!("invalid"),
+        json!(""),
+        json!("createpersistentbeads"),
+        json!(true),
+        json!(1),
+        json!([]),
+        json!({"CreatePersistentBeads":null}),
+    ] {
+        let mut request = original.clone();
+        request["pour_authorization"] = value;
+        let error = parse_request(&request.to_string()).expect_err("invalid authorization");
+        assert!(matches!(error, BeadComposeError::PourAuthorizationInvalid));
+        assert_eq!(error.code(), "BEADS_POUR_AUTH_INVALID");
+    }
+    let mut request = original;
+    request["pour_authorization"] = json!("CreatePersistentBeads");
+    assert_eq!(
+        parse_request(&request.to_string())
+            .expect("authorized")
+            .pour_authorization,
+        Some(sc_composer_beads::PourAuthorization::CreatePersistentBeads)
+    );
+    request["pour_authorization"] = Value::Null;
+    assert_eq!(
+        parse_request(&request.to_string())
+            .expect("absent sentinel")
+            .pour_authorization,
+        None
+    );
+    request
+        .as_object_mut()
+        .expect("object")
+        .remove("pour_authorization");
+    assert_eq!(
+        parse_request(&request.to_string())
+            .expect("omitted sentinel")
+            .pour_authorization,
+        None
+    );
+    assert!(matches!(
+        sc_composer_beads::PourAuthorization::try_from("invalid"),
+        Err(BeadComposeError::PourAuthorizationInvalid)
+    ));
+}

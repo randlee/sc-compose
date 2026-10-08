@@ -13,6 +13,7 @@ use crate::error::BeadComposeError;
 pub const BEADS_SCHEMA_V1: &str = "sc-compose/beads/v1";
 
 const DUPLICATE_BEAD_VARIABLE_PREFIX: &str = "duplicate Beads variable key \u{1f}";
+const INVALID_POUR_AUTHORIZATION: &str = "invalid Beads pour authorization \u{1f}";
 
 /// Requested Beads composition operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -33,10 +34,34 @@ pub enum BeadOperation {
 }
 
 /// Explicit authorization required for a persistent pour.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum PourAuthorization {
     /// Permit exactly one persistent Beads creation operation.
     CreatePersistentBeads,
+}
+
+impl TryFrom<&str> for PourAuthorization {
+    type Error = BeadComposeError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "CreatePersistentBeads" => Ok(Self::CreatePersistentBeads),
+            _ => Err(BeadComposeError::PourAuthorizationInvalid),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for PourAuthorization {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = Value::deserialize(deserializer)?;
+        value
+            .as_str()
+            .and_then(|value| Self::try_from(value).ok())
+            .ok_or_else(|| D::Error::custom(INVALID_POUR_AUTHORIZATION))
+    }
 }
 
 /// Request for one host-neutral Beads composition operation.
@@ -112,7 +137,8 @@ where
 ///
 /// This boundary preserves duplicate runtime-variable keys as
 /// [`BeadComposeError::BeadVariableKeyDuplicate`] instead of exposing a
-/// serializer-specific error to adapters.
+/// serializer-specific error to adapters. Invalid authorization sentinels return
+/// [`BeadComposeError::PourAuthorizationInvalid`].
 ///
 /// # Errors
 ///
@@ -121,6 +147,9 @@ where
 pub fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
     serde_json::from_str(input).map_err(|error| {
         let message = error.to_string();
+        if message.starts_with(INVALID_POUR_AUTHORIZATION) {
+            return BeadComposeError::PourAuthorizationInvalid;
+        }
         duplicate_bead_variable_key(&message).map_or_else(
             || BeadComposeError::RequestDeserializationFailed { message },
             |key| BeadComposeError::BeadVariableKeyDuplicate { key },

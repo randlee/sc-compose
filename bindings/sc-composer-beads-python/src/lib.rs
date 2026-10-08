@@ -473,16 +473,10 @@ impl PyBeadComposeRequest {
             .as_object()
             .cloned()
             .ok_or_else(|| request_error(py, "compose_variables must be a string-keyed mapping"))?;
-        let pour_authorization = match pour_authorization {
-            None => None,
-            Some("CreatePersistentBeads") => Some(PourAuthorization::CreatePersistentBeads),
-            Some(_) => {
-                return Err(request_error(
-                    py,
-                    "pour_authorization must be CreatePersistentBeads when supplied",
-                ));
-            }
-        };
+        let pour_authorization = pour_authorization
+            .map(PourAuthorization::try_from)
+            .transpose()
+            .map_err(|error| rust_error_to_pyerr(py, &error))?;
         Ok(Self {
             inner: BeadComposeRequest {
                 schema: schema.to_owned(),
