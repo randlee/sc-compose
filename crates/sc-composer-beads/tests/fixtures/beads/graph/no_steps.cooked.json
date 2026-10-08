@@ -1,0 +1,8 @@
+{
+  "description": "Graph parser contract",
+  "formula": "no_steps",
+  "schema_version": 1,
+  "source": "<workspace>/no_steps.formula.json",
+  "type": "workflow",
+  "version": 1
+}

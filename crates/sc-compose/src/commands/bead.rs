@@ -86,7 +86,17 @@ fn print_bead_error(
         | BeadComposeError::FormulaOutsideActiveRegistry { .. }
         | BeadComposeError::FormulaRegistryAmbiguous { .. }
         | BeadComposeError::PreviewPourFailed { .. }
-        | BeadComposeError::PourFailed { .. } => exit_codes::VALIDATION_OR_RENDER_FAIL,
+        | BeadComposeError::PourFailed { .. }
+        | BeadComposeError::GraphParentNotFound { .. }
+        | BeadComposeError::GraphIdInvalid { .. }
+        | BeadComposeError::GraphScopeMismatch { .. }
+        | BeadComposeError::GraphFormulaUnsupported { .. }
+        | BeadComposeError::GraphRelationInvalid { .. }
+        | BeadComposeError::GraphConflict { .. }
+        | BeadComposeError::GraphEdgeConflict { .. }
+        | BeadComposeError::GraphEdgeMissing { .. }
+        | BeadComposeError::GraphReadFailed { .. }
+        | BeadComposeError::GraphApplyFailed { .. } => exit_codes::VALIDATION_OR_RENDER_FAIL,
     };
     if json {
         print_json(

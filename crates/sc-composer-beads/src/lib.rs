@@ -10,6 +10,7 @@ pub mod contract;
 pub mod error;
 /// Render-to-`bd` operation staging.
 pub mod execute;
+mod pour;
 /// Fixed-delimiter formula rendering.
 pub mod render;
 /// Injectable direct-process runner abstraction.
@@ -17,11 +18,17 @@ pub mod runner;
 
 #[doc(inline)]
 pub use contract::{
-    BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage,
-    BeadStageOutcome, BeadStageReceipt, PourAuthorization, parse_request,
+    BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadDependencyType, BeadEdgeAction,
+    BeadEndpoint, BeadGraph, BeadGraphEdge, BeadGraphMode, BeadGraphNode, BeadGraphProvenance,
+    BeadId, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadRelation, BeadStage,
+    BeadStageOutcome, BeadStageReceipt, GraphRef, MissingEdge, PROVENANCE_KEY, PourAuthorization,
+    Sha256Digest, StepId, parse_request,
 };
 #[doc(inline)]
-pub use error::BeadComposeError;
+pub use error::{
+    BeadComposeError, GraphConflictReason, GraphFormulaUnsupportedReason,
+    GraphRelationInvalidReason,
+};
 #[doc(inline)]
 pub use execute::{execute_bead_request, execute_bead_request_with_runner};
 #[doc(inline)]

@@ -1,0 +1,14 @@
+{
+  "description": "Graph parser contract",
+  "formula": "expand",
+  "schema_version": 1,
+  "source": "<workspace>/expand.formula.json",
+  "steps": [
+    {
+      "id": "build.check",
+      "title": "Check build"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

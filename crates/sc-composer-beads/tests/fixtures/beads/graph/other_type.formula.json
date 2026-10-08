@@ -1,0 +1,12 @@
+{
+  "formula": "other_type",
+  "description": "Graph parser contract",
+  "version": 1,
+  "type": "convoy",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ]
+}

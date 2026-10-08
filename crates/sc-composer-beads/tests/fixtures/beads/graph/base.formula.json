@@ -1,0 +1,11 @@
+{
+  "formula": "base",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "prepare",
+      "title": "Prepare"
+    }
+  ]
+}

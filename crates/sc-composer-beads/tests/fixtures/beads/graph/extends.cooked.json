@@ -1,0 +1,18 @@
+{
+  "description": "Graph parser contract",
+  "formula": "extends",
+  "schema_version": 1,
+  "source": "<workspace>/extends.formula.json",
+  "steps": [
+    {
+      "id": "prepare",
+      "title": "Prepare"
+    },
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}
