@@ -81,15 +81,17 @@ fn graph_errors_preserve_typed_details_and_recovery() {
             Error::GraphReadFailed {
                 command: vec!["bd".into(), "show".into(), "parent.build".into()],
                 status: Some(7),
+                cause: "malformed JSON".into(),
             },
-            json!({"command":["bd","show","parent.build"],"status":7}),
+            json!({"command":["bd","show","parent.build"],"status":7,"cause":"malformed JSON"}),
         ),
         (
             Error::GraphApplyFailed {
                 command: vec!["bd".into(), "create".into(), "--graph".into()],
                 status: None,
+                cause: "bd rejected the graph".into(),
             },
-            json!({"command":["bd","create","--graph"],"status":null}),
+            json!({"command":["bd","create","--graph"],"status":null,"cause":"bd rejected the graph"}),
         ),
     ];
     for (error, details) in cases {

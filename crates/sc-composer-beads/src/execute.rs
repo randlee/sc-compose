@@ -8,7 +8,7 @@ use crate::contract::{
     BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage,
     BeadStageOutcome, BeadStageReceipt, PourAuthorization,
 };
-use crate::error::BeadComposeError;
+use crate::error::{BeadComposeError, short_cause};
 use crate::render::{render_formula, validate_output_destination};
 use crate::runner::{
     CommandSpec, PROCESS_OUTPUT_LIMIT_BYTES, ProcessOutput, ProcessRunner, StdProcessRunner,
@@ -93,7 +93,10 @@ pub fn execute_bead_request_with_runner(
         runner,
         BeadStage::Validate,
         &cook,
-        BeadComposeError::CookFailed { exit_status: None },
+        BeadComposeError::CookFailed {
+            exit_status: None,
+            cause: String::new(),
+        },
         &mut stages,
     )? {
         return Ok(receipt(
@@ -141,22 +144,7 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     {
         return Err(BeadComposeError::PourAuthorizationRequired);
     }
-    let attach = crate::graph::is_attach(request.operation);
-    let bad_shape = if attach {
-        request.parent.is_none() || request.ref_.is_none() || !request.bead_variables.is_empty()
-    } else {
-        request.parent.is_some()
-            || request.ref_.is_some()
-            || (matches!(
-                request.operation,
-                BeadOperation::Render | BeadOperation::Validate
-            ) && !request.relations.is_empty())
-    };
-    if bad_shape {
-        return Err(BeadComposeError::RequestDeserializationFailed {
-            message: "attach requires parent/ref and no bead_variables; other operations forbid parent/ref; render/validate forbid relations".into(),
-        });
-    }
+    validate_request_shape(request)?;
     for key in request.bead_variables.keys() {
         if !valid_bead_key(key) {
             return Err(BeadComposeError::BeadVariableKeyInvalid { key: key.clone() });
@@ -216,6 +204,41 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
         template,
         rendered_formula,
     })
+}
+
+fn validate_request_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {
+    let attach = crate::graph::is_attach(request.operation);
+    let shape_error = if attach {
+        if request.parent.is_none() {
+            Some("attach requires parent")
+        } else if request.ref_.is_none() {
+            Some("attach requires ref")
+        } else if !request.bead_variables.is_empty() {
+            Some("attach forbids bead_variables")
+        } else {
+            None
+        }
+    } else {
+        if request.parent.is_some() {
+            Some("non-attach operations forbid parent")
+        } else if request.ref_.is_some() {
+            Some("non-attach operations forbid ref")
+        } else if matches!(
+            request.operation,
+            BeadOperation::Render | BeadOperation::Validate
+        ) && !request.relations.is_empty()
+        {
+            Some("render and validate forbid relations")
+        } else {
+            None
+        }
+    };
+    if let Some(message) = shape_error {
+        return Err(BeadComposeError::RequestDeserializationFailed {
+            message: message.to_owned(),
+        });
+    }
+    Ok(())
 }
 
 fn validate_utf8_path(path: &Path) -> Result<(), BeadComposeError> {
@@ -306,7 +329,12 @@ pub(crate) fn run_stage_with_output(
         }
     })?;
     let successful = output.exit_status == Some(0);
-    let code = error_with_status(template_error, output.exit_status)
+    let diagnostic = if output.stderr.trim().is_empty() {
+        &output.stdout
+    } else {
+        &output.stderr
+    };
+    let code = error_with_status(template_error, output.exit_status, diagnostic)
         .code()
         .to_owned();
     stages.push(process_receipt(
@@ -326,9 +354,16 @@ pub(crate) fn run_stage_with_output(
     }
 }
 
-fn error_with_status(error: BeadComposeError, exit_status: Option<i32>) -> BeadComposeError {
+fn error_with_status(
+    error: BeadComposeError,
+    exit_status: Option<i32>,
+    cause: &str,
+) -> BeadComposeError {
     match error {
-        BeadComposeError::CookFailed { .. } => BeadComposeError::CookFailed { exit_status },
+        BeadComposeError::CookFailed { .. } => BeadComposeError::CookFailed {
+            exit_status,
+            cause: short_cause(cause),
+        },
         BeadComposeError::ActiveRegistryResolutionFailed { .. } => {
             BeadComposeError::ActiveRegistryResolutionFailed { exit_status }
         }
