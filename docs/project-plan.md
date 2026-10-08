@@ -21,6 +21,11 @@ It is an additive adapter track: it does not reopen or redefine this release
 plan's core renderer contract. ADR-0021 and the Phase R pre-source boundary
 gate are authoritative for that work.
 
+## Phase T — Beads Attach and By-Path Pour
+
+The Phase T sprint sequence and dependencies, including `t-7`, are tracked in
+[phase-t.jsonl](phase-t.jsonl).
+
 ## Release Rules
 
 - `requirements.md`, `architecture.md`, and this plan are the release source of
