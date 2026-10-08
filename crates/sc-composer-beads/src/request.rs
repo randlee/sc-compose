@@ -187,7 +187,16 @@ fn request_shape(
             }
         }
     }
-    deserialize_request(&shape.to_string(), operation)
+    // The placeholder copy is compact JSON, so serde's line and column would
+    // point into text the caller never wrote. Parse the original first; use the
+    // copy only to look past an identifier-grammar failure, and when both fail
+    // report the original's error with source locations.
+    match deserialize_request(input, operation) {
+        Ok(request) => Ok(request),
+        Err(original) => {
+            deserialize_request(&shape.to_string(), operation).map_err(|_compact| original)
+        }
+    }
 }
 
 pub(crate) fn parse_request_with_outcome(

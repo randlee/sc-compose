@@ -285,6 +285,36 @@ fn formula_name_boundary_matches_json_parser_for_every_operation() {
     }
 }
 
+// pe-f12 (DIFF5-01): request JSON errors report the caller's line and column,
+// never a location in an internal compact re-serialization.
+#[test]
+fn request_json_errors_report_source_line_and_column() {
+    let request = json!({
+        "schema": BEADS_SCHEMA_V1,
+        "operation": "render",
+        "working_directory": "/work",
+        "template": "f.formula.toml.j2",
+        "rendered_formula": "/work/build/f.formula.toml",
+        "compose_variables": [],
+        "bead_variables": {}
+    });
+    let pretty = serde_json::to_string_pretty(&request).unwrap();
+    let line = pretty
+        .lines()
+        .position(|line| line.contains("compose_variables"))
+        .map(|index| index + 1)
+        .unwrap();
+    assert!(line > 1, "the request must span several lines");
+    let error = parse_request(&pretty)
+        .expect_err("array compose_variables")
+        .to_string();
+    assert!(
+        error.contains(&format!("line {line} ")),
+        "expected source line {line}: {error}"
+    );
+    assert!(!error.contains("line 1 "), "{error}");
+}
+
 // FUZZ-014: graph planning uses this request's rendered text.
 #[test]
 fn fuzz_014_graph_is_built_from_this_requests_rendered_text() {
