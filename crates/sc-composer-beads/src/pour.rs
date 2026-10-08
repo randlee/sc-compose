@@ -5,8 +5,8 @@ use crate::contract::{
 };
 use crate::error::BeadComposeError;
 use crate::execute::{
-    NormalizedRequest, append_variables, failed_last_stage_receipt, receipt, run_stage,
-    run_stage_with_output,
+    NormalizedRequest, StageFailure, append_variables, failed_last_stage_receipt, receipt,
+    run_stage, run_stage_with_output,
 };
 use crate::runner::{CommandSpec, ProcessRunner};
 use serde_json::Value;
@@ -31,9 +31,8 @@ pub(crate) fn execute_pour(
     };
     let where_output = match run_stage_with_output(
         runner,
-        BeadStage::ResolveActiveRegistry,
+        StageFailure::ResolveActiveRegistry,
         &where_spec,
-        BeadComposeError::ActiveRegistryResolutionFailed { exit_status: None },
         &mut stages,
     )? {
         Ok(output) => output,
@@ -84,17 +83,12 @@ pub(crate) fn execute_pour(
         args: pour_args(formula_name, request, preview),
         working_directory: normalized.working_directory,
     };
-    let stage = if preview {
-        BeadStage::PreviewPour
+    let failure = if preview {
+        StageFailure::PreviewPour
     } else {
-        BeadStage::Pour
+        StageFailure::Pour
     };
-    let failed_error = if preview {
-        BeadComposeError::PreviewPourFailed { exit_status: None }
-    } else {
-        BeadComposeError::PourFailed { exit_status: None }
-    };
-    if let Some(failed) = run_stage(runner, stage, &pour, failed_error, &mut stages)? {
+    if let Some(failed) = run_stage(runner, failure, &pour, &mut stages)? {
         return Ok(receipt(
             request,
             normalized.rendered_formula,
