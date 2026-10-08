@@ -1379,13 +1379,14 @@ mod fuzz_055_tests {
     fn fuzz_055_snapshot_paths_are_not_exposed_in_stage_evidence() {
         let snapshot = Path::new("/work/.sc-compose-input-1.formula.toml");
         let source = Path::new("/work/rendered.formula.toml");
+        let snapshot_display = public_path_display(snapshot);
         let mut stages = vec![BeadStageReceipt {
             stage: BeadStage::Validate,
-            argv: vec!["cook".into(), snapshot.display().to_string()],
+            argv: vec!["cook".into(), snapshot_display.clone()],
             exit_status: Some(7),
             elapsed_ms: 0,
-            stdout_excerpt: snapshot.display().to_string(),
-            stderr_excerpt: format!("failed {}", snapshot.display()),
+            stdout_excerpt: snapshot_display.clone(),
+            stderr_excerpt: format!("failed {snapshot_display}"),
             outcome: BeadStageOutcome::Failed {
                 code: "BEADS_COOK_FAILED".into(),
             },
