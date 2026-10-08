@@ -188,11 +188,10 @@ fn human_error_fields(envelope: &serde_json::Value) -> String {
             output.push('\n');
             output.push_str(name);
             output.push_str(": ");
-            if let Some(text) = value.as_str() {
-                output.push_str(text);
-            } else {
-                output.push_str(&value.to_string());
-            }
+            let text = value
+                .as_str()
+                .map_or_else(|| value.to_string(), str::to_owned);
+            output.push_str(&escape_human_text(&text));
         }
     }
     output
@@ -220,7 +219,11 @@ fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::
         {
             println!("stage {:?}: {state}", stage.stage);
         } else {
-            println!("stage {:?}: {state}: {}", stage.stage, stage.stderr_excerpt);
+            println!(
+                "stage {:?}: {state}: {}",
+                stage.stage,
+                escape_human_text(&stage.stderr_excerpt)
+            );
         }
     }
     for diagnostic in diagnostics {
