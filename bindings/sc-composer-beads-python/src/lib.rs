@@ -817,7 +817,7 @@ mod tests {
         fs::copy(
             concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/../../crates/sc-composer-beads/tests/fixtures/beads/toml-workflow.formula.toml.j2"
+                "/tests/fixtures/toml-workflow.formula.toml.j2"
             ),
             &template,
         )

@@ -22,7 +22,7 @@ python-extension = ["pyo3/extension-module"]
 
 [dependencies]
 pyo3 = "0.29"
-sc-composer-beads = { path = "../../crates/sc-composer-beads", version = "1.6.1" }
+sc-composer-beads.workspace = true
 serde_json.workspace = true
 
 [lints]

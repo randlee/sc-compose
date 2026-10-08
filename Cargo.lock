@@ -718,6 +718,7 @@ dependencies = [
  "clap",
  "glob",
  "mimalloc",
+ "sc-compose-test-support",
  "sc-composer",
  "sc-composer-beads",
  "sc-observability",
@@ -741,6 +742,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sc-compose-test-support"
+version = "1.6.1"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "sc-composer"
 version = "1.6.1"
 dependencies = [
@@ -761,6 +769,7 @@ name = "sc-composer-beads"
 version = "1.6.1"
 dependencies = [
  "process-wrap",
+ "sc-compose-test-support",
  "sc-composer",
  "serde",
  "serde_json",

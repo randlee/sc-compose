@@ -14,15 +14,17 @@ static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COOKED: &str =
     r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#;
 
+#[cfg(windows)]
 fn public_path(path: &Path) -> PathBuf {
-    #[cfg(windows)]
-    {
-        let value = path.to_string_lossy();
-        return PathBuf::from(value.strip_prefix("\\\\?\\").unwrap_or(value.as_ref()));
-    }
-    #[cfg(not(windows))]
+    let value = path.to_string_lossy();
+    PathBuf::from(value.strip_prefix("\\\\?\\").unwrap_or(value.as_ref()))
+}
+
+#[cfg(not(windows))]
+fn public_path(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
+
 struct Workspace {
     root: PathBuf,
     req: BeadComposeRequest,

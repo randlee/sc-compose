@@ -303,13 +303,8 @@ fn missing_edge_recovery_commands(
 
 #[cfg(test)]
 mod tests {
-    mod shell_literal {
-        include!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../test-support/shell_literal.rs"
-        ));
-    }
     use super::{human_bead_error, missing_edge_recovery_commands};
+    use sc_compose_test_support as shell_literal;
     use sc_composer_beads::{
         BeadComposeError, BeadComposeReceipt, BeadId, GraphConflictReason, GraphDependencyType,
         GraphIdField, MissingEdge,

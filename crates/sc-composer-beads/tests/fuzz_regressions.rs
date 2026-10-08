@@ -1,11 +1,6 @@
 //! Regression tests promoted from the Phase T adversarial fuzz campaign.
 
-mod shell_literal {
-    include!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../test-support/shell_literal.rs"
-    ));
-}
+use sc_compose_test_support as shell_literal;
 
 use sc_composer_beads::*;
 use serde_json::{Value, json};
@@ -23,19 +18,20 @@ static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COOKED: &str =
     r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#;
 
+#[cfg(windows)]
 fn public_path(path: &Path) -> String {
-    #[cfg(windows)]
-    {
-        let value = path.to_string_lossy();
-        if let Some(unc) = value.strip_prefix("\\\\?\\UNC\\") {
-            return format!("\\\\{unc}");
-        }
-        return value
-            .strip_prefix("\\\\?\\")
-            .unwrap_or(value.as_ref())
-            .to_owned();
+    let value = path.to_string_lossy();
+    if let Some(unc) = value.strip_prefix("\\\\?\\UNC\\") {
+        return format!("\\\\{unc}");
     }
-    #[cfg(not(windows))]
+    value
+        .strip_prefix("\\\\?\\")
+        .unwrap_or(value.as_ref())
+        .to_owned()
+}
+
+#[cfg(not(windows))]
+fn public_path(path: &Path) -> String {
     path.to_string_lossy().into_owned()
 }
 

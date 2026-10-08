@@ -70,6 +70,12 @@ fn decode(arguments: &str) -> Result<Vec<Vec<u8>>, String> {
         .map_err(|error| format!("invalid decoder bytes: {error}"))
 }
 
+/// Assert that a shell-quoted argument string decodes to exactly `expected`.
+///
+/// # Panics
+///
+/// Panics when an expected argument contains NUL, the quoted text is rejected
+/// by the literal decoder, or the decoded arguments differ from `expected`.
 pub fn assert_round_trip(arguments: &str, expected: &[&str]) {
     assert!(
         expected.iter().all(|argument| !argument.contains('\0')),

@@ -1,0 +1,21 @@
+formula = "toml-workflow"
+description = "Rendered Beads TOML workflow"
+version = 1
+type = "workflow"
+
+[vars.release_name]
+required = true
+
+[[steps]]
+id = "prepare"
+title = "Prepare {{{ project.name }}} for {{ release_name }}"
+description = """{{{ project.notes }}}"""
+type = "task"
+
+{% for reviewer in reviewers %}
+[[steps]]
+id = "review-{{{ reviewer.id }}}"
+title = "Review {{{ reviewer.name }}} for {{ release_name }}"
+description = "Keep the Beads placeholder: {{ release_name }}"
+type = "task"
+{% endfor %}

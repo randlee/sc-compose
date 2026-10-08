@@ -24,13 +24,16 @@ mimalloc = { version = "0.1" }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
-sc-composer = { path = "../sc-composer", version = "1.6.1" }
-sc-composer-beads = { path = "../sc-composer-beads", version = "1.6.1" }
+sc-composer.workspace = true
+sc-composer-beads.workspace = true
 sc-observability.workspace = true
 sc-observability-types.workspace = true
 time.workspace = true
 toml.workspace = true
 ulid.workspace = true
+
+[dev-dependencies]
+sc-compose-test-support.workspace = true
 
 [lints]
 workspace = true

@@ -22,6 +22,7 @@ fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::pat
     request
 }
 
+#[cfg(unix)]
 fn json_contains_controls(value: &serde_json::Value, controls: &str) -> bool {
     match value {
         serde_json::Value::String(text) => controls.chars().all(|control| text.contains(control)),
