@@ -402,17 +402,20 @@ pub(crate) fn public_path_display(path: &Path) -> String {
     use std::path::{Component, Prefix};
 
     let mut displayed = PathBuf::new();
+    let mut skip_root = false;
     for component in path.components() {
         match component {
             Component::Prefix(prefix) => match prefix.kind() {
                 Prefix::VerbatimDisk(drive) => displayed.push(format!("{}:", drive as char)),
                 Prefix::VerbatimUNC(server, share) => {
-                    displayed.push(std::path::MAIN_SEPARATOR_STR);
-                    displayed.push(server);
-                    displayed.push(share);
+                    let separator = std::path::MAIN_SEPARATOR;
+                    displayed =
+                        PathBuf::from(format!("{separator}{separator}{server}{separator}{share}"));
+                    skip_root = true;
                 }
                 _ => displayed.push(prefix.as_os_str()),
             },
+            Component::RootDir if skip_root => skip_root = false,
             component => displayed.push(component.as_os_str()),
         }
     }
