@@ -249,6 +249,101 @@ def test_compose_variables_reject_non_string_object_keys(tmp_path: Path) -> None
     assert raised.value.message == "compose_variables object keys must be strings"
 
 
+def test_attach_request_fields_reach_the_rust_graph_plan(tmp_path: Path) -> None:
+    cooked = {
+        "schema_version": 1,
+        "formula": "release",
+        "type": "workflow",
+        "steps": [
+            {"id": "build", "title": "Build"},
+            {"id": "verify", "title": "Verify"},
+        ],
+    }
+    responses = {
+        "cook": cooked,
+        "show": [{"id": "proj-100"}, {"id": "proj-200"}],
+        "create": {},
+    }
+    if os.name == "nt":
+        executable = tmp_path / "fake-graph-bd.cmd"
+        executable.write_text(
+            "@echo off\r\n"
+            + "".join(
+                f'if /I "%~1"=="{command}" (echo {json.dumps(response)} & exit /b 0)\r\n'
+                for command, response in responses.items()
+            )
+            + "exit /b 1\r\n",
+            encoding="utf-8",
+            newline="",
+        )
+    else:
+        executable = tmp_path / "fake-graph-bd"
+        executable.write_text(
+            '#!/bin/sh\ncase "$1" in\n'
+            + "".join(
+                f"{command}) printf '%s\\n' '{json.dumps(response)}';;\n"
+                for command, response in responses.items()
+            )
+            + "*) exit 1;;\nesac\n",
+            encoding="utf-8",
+        )
+        executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
+    template = tmp_path / "release.formula.json.j2"
+    template.write_text(json.dumps(cooked), encoding="utf-8")
+    request = beads.BeadComposeRequest(
+        tmp_path,
+        template,
+        tmp_path / "release.formula.json",
+        {},
+        operation="preview_attach",
+        parent="proj-100",
+        ref="release_1",
+        relations=[
+            {"from": "step:verify", "to": "step:build", "type": "blocks"},
+            {"from": "step:build", "to": "bead:proj-200", "type": "related"},
+        ],
+        bd_executable=executable,
+    )
+
+    receipt = beads.execute(request)
+
+    assert receipt.operation == "preview_attach"
+    assert receipt.outcome.kind == "succeeded"
+    assert receipt.graph["parent"] == "proj-100"
+    assert receipt.graph["ref"] == "release_1"
+    assert receipt.graph["ids"] == {
+        "build": "proj-100.release_1-build",
+        "verify": "proj-100.release_1-verify",
+    }
+    edges = {(edge["from"], edge["to"], edge["type"]) for edge in receipt.graph["edges"]}
+    assert ("proj-100.release_1-verify", "proj-100.release_1-build", "blocks") in edges
+    assert ("proj-100.release_1-build", "proj-200", "related") in edges
+    assert receipt.stages[-1].argv[1] == "create"
+    assert "--dry-run" in receipt.stages[-1].argv
+
+
+@pytest.mark.parametrize(
+    ("parent", "reference"),
+    [("invalid parent", "release_1"), ("proj-100", "invalid.ref")],
+)
+def test_attach_request_rejects_invalid_parent_and_ref(
+    tmp_path: Path, parent: str, reference: str
+) -> None:
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.toml.j2",
+            tmp_path / "output.toml",
+            {},
+            operation="preview_attach",
+            parent=parent,
+            ref=reference,
+        )
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+
+
 @pytest.mark.parametrize(
     "relation, expected_code",
     [
