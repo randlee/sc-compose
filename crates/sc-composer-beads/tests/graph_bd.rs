@@ -34,10 +34,9 @@ impl Workspace {
             SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(root.join("build")).expect("workspace");
-        let bd = wrapper(&root, binary);
         let ws = Self {
             root: fs::canonicalize(root).expect("canonical root"),
-            bd,
+            bd: binary.to_path_buf(),
         };
         ws.command(&[
             "init",
@@ -55,6 +54,8 @@ impl Workspace {
         let mut child = Command::new(&self.bd)
             .args(args)
             .current_dir(&self.root)
+            .env("BEADS_NO_DAEMON", "1")
+            .env("BEADS_DIR", self.root.join(".beads"))
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -139,29 +140,6 @@ impl Workspace {
         );
         assert_eq!(self.snapshot(), before, "refusal changes no beads or edges");
     }
-}
-#[cfg(unix)]
-fn wrapper(root: &Path, binary: &Path) -> PathBuf {
-    use std::os::unix::fs::PermissionsExt;
-    let path = root.join("bd-isolated");
-    let quote = |p: &Path| format!("'{}'", p.to_string_lossy().replace('\'', "'\\''"));
-    fs::write(
-        &path,
-        format!(
-            "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexport BEADS_DIR={}\nexec {} \"$@\"\n",
-            quote(&root.join(".beads")),
-            quote(binary)
-        ),
-    )
-    .expect("wrapper");
-    fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("executable");
-    path
-}
-#[cfg(windows)]
-fn wrapper(root: &Path, binary: &Path) -> PathBuf {
-    let path = root.join("bd-isolated.cmd");
-    fs::write(&path,format!("@echo off\r\nsetlocal\r\nset \"BEADS_NO_DAEMON=1\"\r\nset \"BEADS_DIR={}\"\r\n\"{}\" %*\r\nexit /b %ERRORLEVEL%\r\n",root.join(".beads").display(),binary.display())).expect("wrapper");
-    path
 }
 fn with_workspace(test: impl FnOnce(&Workspace)) {
     let Some(binary) = std::env::var_os("BD_EXECUTABLE") else {
