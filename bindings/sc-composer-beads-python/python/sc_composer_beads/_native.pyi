@@ -15,6 +15,8 @@ class BeadOperation:
     VALIDATE: str
     PREVIEW_POUR: str
     POUR: str
+    PREVIEW_ATTACH: str
+    ATTACH: str
 
 
 class PourAuthorization:
@@ -27,6 +29,8 @@ class BeadStage:
     RESOLVE_ACTIVE_REGISTRY: str
     PREVIEW_POUR: str
     POUR: str
+    PREVIEW_ATTACH: str
+    ATTACH: str
 
 
 class BeadStageOutcome:
@@ -55,6 +59,8 @@ class BeadComposeReceipt:
     rendered_formula: str
     stages: list[BeadStageReceipt]
     outcome: BeadOutcome
+    pour_mode: str | None
+    graph: Any | None
 
 
 class BeadComposeRequest:
@@ -70,6 +76,9 @@ class BeadComposeRequest:
         bead_variables: Mapping[str, str] | None = None,
         bd_executable: str | PathLike[str] | None = None,
         pour_authorization: str | None = None,
+        parent: str | None = None,
+        ref: str | None = None,
+        relations: list[Mapping[str, str]] | None = None,
         schema: str = BEADS_SCHEMA_V1,
     ) -> None: ...
 
