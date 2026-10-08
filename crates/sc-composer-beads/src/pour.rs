@@ -84,12 +84,11 @@ pub(crate) fn execute_pour(
         &normalized.rendered_formula,
         &active_beads_dir,
     ) {
-        return Ok(failed_last_stage_receipt(
-            request,
-            normalized.rendered_formula,
-            stages,
-            &error,
-        ));
+        // Registry mode is selected by now, so the failure receipt names it.
+        let mut result =
+            failed_last_stage_receipt(request, normalized.rendered_formula, stages, &error);
+        result.pour_mode = Some(crate::BeadPourMode::Registry);
+        return Ok(result);
     }
     // `bd mol pour` reads the formula by name from the registry.
     if normalized.defers_publish(request.operation) {
@@ -108,12 +107,9 @@ pub(crate) fn execute_pour(
         StageFailure::Pour
     };
     if let Some(failed) = run_stage(runner, failure, &pour, &mut stages)? {
-        return Ok(receipt(
-            request,
-            normalized.rendered_formula,
-            stages,
-            failed,
-        ));
+        let mut result = receipt(request, normalized.rendered_formula, stages, failed);
+        result.pour_mode = Some(crate::BeadPourMode::Registry);
+        return Ok(result);
     }
     let mut result = receipt(
         request,
@@ -316,6 +312,57 @@ mod tests {
     }
 
     #[test]
+    fn failed_registry_preview_and_pour_receipts_keep_registry_mode() {
+        for operation in [BeadOperation::PreviewPour, BeadOperation::Pour] {
+            let root = workspace();
+            let other = workspace();
+            let active_beads_dir = other.join(".beads");
+            let registry = active_beads_dir.join("formulas");
+            fs::create_dir_all(&registry).expect("create active registry");
+            let destination = fs::canonicalize(&registry)
+                .expect("canonical registry")
+                .join("example.formula.toml");
+            let mut request = request(&root, operation);
+            request.rendered_formula = destination;
+            request.pour_authorization = Some(PourAuthorization::CreatePersistentBeads);
+            let mut failed = success("{}");
+            failed.exit_status = Some(1);
+            let runner =
+                FakeRunner::with_outputs([success("{}"), where_output(&active_beads_dir), failed]);
+            let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+            assert!(
+                matches!(receipt.outcome, BeadOutcome::Failed { .. }),
+                "{operation:?}: {:?}",
+                receipt.outcome
+            );
+            assert_eq!(
+                receipt.pour_mode,
+                Some(crate::BeadPourMode::Registry),
+                "{operation:?}"
+            );
+            fs::remove_dir_all(root).expect("cleanup");
+            fs::remove_dir_all(other).expect("cleanup");
+        }
+    }
+
+    #[test]
+    fn pre_classification_failure_leaves_pour_mode_unclassified() {
+        let root = workspace();
+        let request = {
+            let mut request = request(&root, BeadOperation::Pour);
+            request.pour_authorization = Some(PourAuthorization::CreatePersistentBeads);
+            request
+        };
+        let mut failed = success("{}");
+        failed.exit_status = Some(1);
+        let runner = FakeRunner::with_outputs([success("{}"), failed]);
+        let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+        assert!(matches!(receipt.outcome, BeadOutcome::Failed { .. }));
+        assert_eq!(receipt.pour_mode, None);
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
     fn successful_pour_is_never_discarded_by_a_later_write() {
         let root = workspace();
         let active_beads_dir = root.join(".beads");
@@ -479,6 +526,7 @@ mod tests {
                 code: String::from("BEADS_FORMULA_REGISTRY_AMBIGUOUS")
             }
         );
+        assert_eq!(receipt.pour_mode, Some(crate::BeadPourMode::Registry));
         assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
         fs::remove_dir_all(root).expect("cleanup");
     }
