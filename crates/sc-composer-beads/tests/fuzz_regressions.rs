@@ -1341,7 +1341,7 @@ fn fuzz_050_directory_outputs_refuse_attach_before_bd_create() {
                 Err(error) => {
                     assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID", "{error}");
                     assert!(
-                        matches!(&error,BeadComposeError::OutputPathInvalid{path,..} if path==&destination)
+                        matches!(&error,BeadComposeError::OutputPathInvalid{path,..} if path.to_string_lossy()==public_path(&destination))
                     );
                 }
             }

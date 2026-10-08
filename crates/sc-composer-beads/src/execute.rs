@@ -962,6 +962,7 @@ pub(crate) mod tests {
             path.push(".graph.json");
             let path = PathBuf::from(path);
             fs::create_dir(&path).unwrap();
+            let public = super::public_path_buf(&path);
             let runner = FakeRunner::with_outputs([
                 success(
                     r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#,
@@ -970,13 +971,13 @@ pub(crate) mod tests {
             ]);
             let mut diagnostics = Vec::new();
             let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
-                assert!(matches!(error, BeadComposeError::OutputPathInvalid { path: actual, .. } if actual == &path));
+                assert!(matches!(error, BeadComposeError::OutputPathInvalid { path: actual, .. } if actual == &public));
                 diagnostics.push(serde_json::to_value(error).unwrap());
             }).unwrap();
             assert_eq!(diagnostics.len(), 1);
             assert_eq!(
                 diagnostics[0]["details"]["value"],
-                path.to_string_lossy().as_ref()
+                public.to_string_lossy().as_ref()
             );
             assert_eq!(
                 receipt.outcome,
