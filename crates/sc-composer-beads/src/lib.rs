@@ -22,8 +22,8 @@ pub use contract::{
     BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadDependencyType, BeadEdgeAction,
     BeadEndpoint, BeadGraph, BeadGraphEdge, BeadGraphMode, BeadGraphNode, BeadGraphProvenance,
     BeadId, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadRelation, BeadStage,
-    BeadStageOutcome, BeadStageReceipt, GraphRef, MissingEdge, PROVENANCE_KEY, PourAuthorization,
-    Sha256Digest, StepId, parse_request,
+    BeadStageOutcome, BeadStageReceipt, DependencyName, GraphDependencyType, GraphEndpoint,
+    GraphRef, MissingEdge, PROVENANCE_KEY, PourAuthorization, Sha256Digest, StepId, parse_request,
 };
 #[doc(inline)]
 pub use error::{

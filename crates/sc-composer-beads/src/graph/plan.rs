@@ -2,8 +2,9 @@
 
 use super::validate::ValidatedGraph;
 use crate::contract::{
-    BeadEdgeAction, BeadEndpoint, BeadGraph, BeadGraphEdge, BeadGraphMode, BeadGraphNode,
-    BeadGraphProvenance, BeadId, BeadNodeAction, MissingEdge, PROVENANCE_KEY, StepId,
+    BeadDependencyType, BeadEdgeAction, BeadEndpoint, BeadGraph, BeadGraphEdge, BeadGraphMode,
+    BeadGraphNode, BeadGraphProvenance, BeadId, BeadNodeAction, GraphDependencyType, GraphEndpoint,
+    MissingEdge, PROVENANCE_KEY, StepId,
 };
 use crate::error::{BeadComposeError, GraphConflictReason, GraphRelationInvalidReason};
 use serde_json::{Value, json};
@@ -11,7 +12,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) trait GraphReader {
     fn issues(&mut self, ids: &[BeadId]) -> Result<BTreeMap<BeadId, Value>, BeadComposeError>;
-    fn dependencies(&mut self, id: &BeadId) -> Result<Vec<(BeadId, String)>, BeadComposeError>;
+    fn dependencies(
+        &mut self,
+        id: &BeadId,
+    ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError>;
 }
 
 pub(super) enum GraphPlan {
@@ -33,17 +37,17 @@ pub(super) enum PlannedEndpoint {
 }
 
 impl PlannedEndpoint {
-    pub(super) fn resolve(&self, graph: &BeadGraph) -> String {
+    pub(super) fn resolve(&self, graph: &BeadGraph) -> GraphEndpoint {
         match self {
-            Self::Named(BeadEndpoint::Bead(id)) => id.to_string(),
-            Self::Named(BeadEndpoint::Step(step)) => graph.ids[step].to_string(),
-            Self::Root => graph.parent.as_ref().expect("created root").to_string(),
+            Self::Named(BeadEndpoint::Bead(id)) => GraphEndpoint::Bead(id.clone()),
+            Self::Named(BeadEndpoint::Step(step)) => GraphEndpoint::Bead(graph.ids[step].clone()),
+            Self::Root => GraphEndpoint::Bead(graph.parent.as_ref().expect("created root").clone()),
         }
     }
 }
 
 struct Endpoint {
-    display: String,
+    display: GraphEndpoint,
     key: Option<String>,
     id: Option<BeadId>,
 }
@@ -56,14 +60,15 @@ fn endpoint(
 ) -> Endpoint {
     match ep {
         BeadEndpoint::Bead(id) => Endpoint {
-            display: id.to_string(),
+            display: GraphEndpoint::Bead(id.clone()),
             key: None,
             id: Some(id.clone()),
         },
         BeadEndpoint::Step(step) => Endpoint {
-            display: ids
-                .get(step)
-                .map_or_else(|| format!("step:{step}"), ToString::to_string),
+            display: ids.get(step).map_or_else(
+                || GraphEndpoint::Step(step.clone()),
+                |id| GraphEndpoint::Bead(id.clone()),
+            ),
             key: missing.contains(step).then(|| step_key(step, attach)),
             id: ids.get(step).cloned(),
         },
@@ -296,15 +301,21 @@ fn plan_edges(
             display: v
                 .parent
                 .as_ref()
-                .map_or_else(|| "_root".into(), ToString::to_string),
+                .map_or(GraphEndpoint::Root, |id| GraphEndpoint::Bead(id.clone())),
             key: (!attach).then(|| "_root".into()),
             id: v.parent.clone(),
         };
-        let existing = check_edge(&from, &to, "parent-child", &existing_edges, &mut absent)?;
+        let existing = check_edge(
+            &from,
+            &to,
+            &GraphDependencyType::ParentChild,
+            &existing_edges,
+            &mut absent,
+        )?;
         pending.graph.edges.push(BeadGraphEdge {
             from: from.display,
             to: to.display,
-            kind: "parent-child".into(),
+            kind: GraphDependencyType::ParentChild,
             action: if existing {
                 BeadEdgeAction::Existing
             } else {
@@ -318,8 +329,8 @@ fn plan_edges(
     Ok(edges)
 }
 
-type PlannedEdges = Vec<(BeadEndpoint, BeadEndpoint, String)>;
-type ExistingEdges = BTreeMap<(BeadId, BeadId), String>;
+type PlannedEdges = Vec<(BeadEndpoint, BeadEndpoint, GraphDependencyType)>;
+type ExistingEdges = BTreeMap<(BeadId, BeadId), GraphDependencyType>;
 
 fn read_edges(
     v: &ValidatedGraph,
@@ -334,16 +345,12 @@ fn read_edges(
             planned_edges.push((
                 BeadEndpoint::Step(step.id.clone()),
                 BeadEndpoint::Step(dep.clone()),
-                "blocks".to_owned(),
+                BeadDependencyType::Blocks.into(),
             ));
         }
     }
     for relation in &v.relations {
-        let kind = serde_json::to_value(relation.kind)
-            .expect("enum serializes")
-            .as_str()
-            .expect("string enum")
-            .to_owned();
+        let kind = relation.kind.into();
         planned_edges.push((relation.from.clone(), relation.to.clone(), kind));
     }
     let mut existing_edges = BTreeMap::new();
@@ -373,8 +380,8 @@ fn read_edges(
 fn check_edge(
     from: &Endpoint,
     to: &Endpoint,
-    kind: &str,
-    existing: &BTreeMap<(BeadId, BeadId), String>,
+    kind: &GraphDependencyType,
+    existing: &BTreeMap<(BeadId, BeadId), GraphDependencyType>,
     absent: &mut Vec<MissingEdge>,
 ) -> Result<bool, BeadComposeError> {
     if from.key.is_some() || to.key.is_some() {
@@ -390,13 +397,13 @@ fn check_edge(
             from: from.clone(),
             to: to.clone(),
             existing: actual.clone(),
-            requested: kind.into(),
+            requested: kind.clone(),
         }),
         None => {
             absent.push(MissingEdge {
                 from: from.clone(),
                 to: to.clone(),
-                kind: kind.into(),
+                kind: kind.clone(),
             });
             Ok(false)
         }

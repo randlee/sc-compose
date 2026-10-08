@@ -467,16 +467,147 @@ pub struct BeadGraphNode {
     pub action: BeadNodeAction,
 }
 
+/// A graph receipt endpoint, encoded as a bead id, `step:<id>`, or `_root`.
+///
+/// The wire format reserves `step:` and `_root` for unresolved identities.
+/// Construct `Bead` explicitly for an existing bead with either spelling.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+#[serde(try_from = "String", into = "String")]
+pub enum GraphEndpoint {
+    /// A resolved bead id.
+    Bead(BeadId),
+    /// A step whose bead id has not yet been assigned.
+    Step(StepId),
+    /// The unassigned pour root.
+    Root,
+}
+
+impl TryFrom<String> for GraphEndpoint {
+    type Error = BeadComposeError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value == "_root" {
+            Ok(Self::Root)
+        } else if let Some(step) = value.strip_prefix("step:") {
+            StepId::new(step).map(Self::Step)
+        } else {
+            BeadId::new(value).map(Self::Bead)
+        }
+    }
+}
+
+impl std::fmt::Display for GraphEndpoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bead(id) => id.fmt(f),
+            Self::Step(id) => write!(f, "step:{id}"),
+            Self::Root => f.write_str("_root"),
+        }
+    }
+}
+
+impl From<GraphEndpoint> for String {
+    fn from(value: GraphEndpoint) -> Self {
+        value.to_string()
+    }
+}
+
+graph_string!(
+    DependencyName,
+    "dependency_type",
+    "A custom dependency token: an ASCII letter followed by ASCII letters, digits, underscores or hyphens.",
+    |s: &str| s.as_bytes().first().is_some_and(u8::is_ascii_alphabetic)
+        && s.bytes()
+            .all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-')
+);
+
+/// A validated graph dependency kind, including hierarchy and custom bd types.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+#[serde(try_from = "String", into = "String")]
+pub enum GraphDependencyType {
+    /// A well-known user relation kind.
+    Known(BeadDependencyType),
+    /// A generated hierarchy edge, unavailable in request relations.
+    ParentChild,
+    /// A validated custom type observed in existing bd state.
+    Other(DependencyName),
+}
+
+impl TryFrom<String> for GraphDependencyType {
+    type Error = BeadComposeError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value == "parent-child" {
+            return Ok(Self::ParentChild);
+        }
+        if let Ok(kind) =
+            serde_json::from_value::<BeadDependencyType>(serde_json::Value::String(value.clone()))
+        {
+            return Ok(Self::Known(kind));
+        }
+        DependencyName::new(value).map(Self::Other)
+    }
+}
+
+impl From<BeadDependencyType> for GraphDependencyType {
+    fn from(kind: BeadDependencyType) -> Self {
+        Self::Known(kind)
+    }
+}
+
+impl std::fmt::Display for GraphDependencyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Known(kind) => f.write_str(kind.as_str()),
+            Self::ParentChild => f.write_str("parent-child"),
+            Self::Other(name) => name.fmt(f),
+        }
+    }
+}
+
+impl From<GraphDependencyType> for String {
+    fn from(value: GraphDependencyType) -> Self {
+        value.to_string()
+    }
+}
+
+impl BeadDependencyType {
+    /// Return the stable bd wire name for this dependency type.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Blocks => "blocks",
+            Self::ConditionalBlocks => "conditional-blocks",
+            Self::WaitsFor => "waits-for",
+            Self::Related => "related",
+            Self::DiscoveredFrom => "discovered-from",
+            Self::RepliesTo => "replies-to",
+            Self::RelatesTo => "relates-to",
+            Self::Duplicates => "duplicates",
+            Self::Supersedes => "supersedes",
+            Self::AuthoredBy => "authored-by",
+            Self::AssignedTo => "assigned-to",
+            Self::ApprovedBy => "approved-by",
+            Self::Attests => "attests",
+            Self::Tracks => "tracks",
+            Self::Until => "until",
+            Self::CausedBy => "caused-by",
+            Self::Validates => "validates",
+            Self::DelegatedFrom => "delegated-from",
+        }
+    }
+}
+
 /// One planned or applied graph edge.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BeadGraphEdge {
     /// Dependent bead id or unresolved step:<id>.
-    pub from: String,
+    pub from: GraphEndpoint,
     /// Dependency bead id or unresolved step:<id>.
-    pub to: String,
+    pub to: GraphEndpoint,
     /// Dependency type, including generated parent-child edges.
     #[serde(rename = "type")]
-    pub kind: String,
+    pub kind: GraphDependencyType,
     /// Edge action.
     pub action: BeadEdgeAction,
 }
@@ -516,7 +647,7 @@ pub struct MissingEdge {
     pub to: BeadId,
     /// Required dependency type.
     #[serde(rename = "type")]
-    pub kind: String,
+    pub kind: GraphDependencyType,
 }
 
 /// Identity metadata carried by every bead the graph engine creates.

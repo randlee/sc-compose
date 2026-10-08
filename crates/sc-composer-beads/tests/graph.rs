@@ -515,15 +515,24 @@ fn applied_pour_keeps_external_ids_distinct_from_step_and_root_names() {
     assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
     let graph = receipt.graph.expect("graph");
     assert_eq!(
-        (&*graph.edges[0].from, &*graph.edges[0].to),
+        (
+            graph.edges[0].from.to_string().as_str(),
+            graph.edges[0].to.to_string().as_str()
+        ),
         ("proj-child", "_root")
     );
     assert_eq!(
-        (&*graph.edges[1].from, &*graph.edges[1].to),
+        (
+            graph.edges[1].from.to_string().as_str(),
+            graph.edges[1].to.to_string().as_str()
+        ),
         ("step:build", "proj-child")
     );
     assert_eq!(
-        (&*graph.edges[2].from, &*graph.edges[2].to),
+        (
+            graph.edges[2].from.to_string().as_str(),
+            graph.edges[2].to.to_string().as_str()
+        ),
         ("proj-child", "proj-root")
     );
     assert_eq!(runner.calls().len(), 6);
@@ -555,4 +564,23 @@ fn provenance_normalizes_newlines_and_relation_order() {
     }
     assert_eq!(provenance[0], provenance[1]);
     assert_eq!(provenance[0], provenance[2]);
+}
+
+#[test]
+fn dependency_read_rejects_unsafe_type_tokens_before_planning() {
+    let w = Workspace::new();
+    let rows = existing(&w);
+    let before = w.plan();
+    let runner = FakeRunner::new([
+        ok(COOKED),
+        ok(&rows),
+        ok(r#"[{"id":"proj-1","dependency_type":"parent-child; echo injected"}]"#),
+    ]);
+    failed(
+        &w.run(&runner),
+        "BEADS_GRAPH_READ_FAILED",
+        BeadStage::PreviewAttach,
+    );
+    assert_read_only(&runner);
+    assert_eq!(w.plan(), before);
 }

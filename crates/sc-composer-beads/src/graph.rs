@@ -6,7 +6,7 @@ mod validate;
 use crate::contract::{
     BeadComposeReceipt, BeadComposeRequest, BeadEdgeAction, BeadGraph, BeadGraphMode, BeadId,
     BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadStage, BeadStageOutcome,
-    BeadStageReceipt,
+    BeadStageReceipt, GraphDependencyType,
 };
 use crate::error::BeadComposeError;
 use crate::execute::{NormalizedRequest, process_receipt, receipt};
@@ -269,7 +269,10 @@ impl GraphReader for Runtime<'_> {
         Ok(found)
     }
 
-    fn dependencies(&mut self, id: &BeadId) -> Result<Vec<(BeadId, String)>, BeadComposeError> {
+    fn dependencies(
+        &mut self,
+        id: &BeadId,
+    ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError> {
         let output = self
             .invoke(vec![
                 "dep".into(),
@@ -294,7 +297,11 @@ impl GraphReader for Runtime<'_> {
                     .get("dependency_type")
                     .and_then(Value::as_str)
                     .ok_or_else(|| self.read_error(output.exit_status))?;
-                Ok((id, kind.to_owned()))
+                Ok((
+                    id,
+                    GraphDependencyType::try_from(kind.to_owned())
+                        .map_err(|_error| self.read_error(output.exit_status))?,
+                ))
             })
             .collect()
     }
