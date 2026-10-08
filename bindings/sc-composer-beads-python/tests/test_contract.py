@@ -14,6 +14,7 @@ import sc_composer_beads as beads
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_ROOT = REPOSITORY_ROOT / "crates" / "sc-composer-beads" / "tests" / "fixtures" / "beads"
+GRAPH_FIXTURE_ROOT = FIXTURE_ROOT / "graph"
 
 
 def _write_fake_bd(root: Path) -> tuple[Path, Path]:
@@ -76,6 +77,18 @@ def test_import_surface_exposes_versioned_beads_contract() -> None:
     assert beads.BEADS_SCHEMA_V1 == "sc-compose/beads/v1"
     assert beads.BeadOperation.VALIDATE == "validate"
     assert beads.PourAuthorization.CREATE_PERSISTENT_BEADS == "CreatePersistentBeads"
+    assert beads.BeadOperation.PREVIEW_ATTACH == "preview_attach"
+    assert beads.BeadOperation.ATTACH == "attach"
+    assert beads.BEADS_GRAPH_CONFLICT == "BEADS_GRAPH_CONFLICT"
+    assert beads.BEADS_GRAPH_APPLY_FAILED == "BEADS_GRAPH_APPLY_FAILED"
+
+
+def test_graph_receipt_fixtures_remain_json_contracts() -> None:
+    for name in ("receipt-graph-pour.json", "receipt-registry.json", "receipt-conflict.json", "receipt-edge-missing.json"):
+        fixture = json.loads((GRAPH_FIXTURE_ROOT / name).read_text(encoding="utf-8"))
+        receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+
+        assert receipt.to_json() == fixture
 
 
 def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
@@ -199,6 +212,32 @@ def test_compose_variables_reject_non_string_object_keys(tmp_path: Path) -> None
     assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
     assert raised.value.stage == "request"
     assert raised.value.message == "compose_variables object keys must be strings"
+
+
+@pytest.mark.parametrize(
+    "relation",
+    [
+        {"from": "root", "to": "", "type": "blocks"},
+        {"from": "root", "to": "child", "type": "unknown"},
+    ],
+)
+def test_relations_reject_malformed_endpoints_and_unknown_types(
+    tmp_path: Path, relation: dict[str, str]
+) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.toml.j2",
+            tmp_path / "output.toml",
+            {},
+            relations=[relation],
+            bd_executable=executable,
+        )
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
 
 
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])

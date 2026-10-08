@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyFloat, PyList, PyTuple};
+use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
     BeadComposeRequest, BeadOperation, BeadOutcome, BeadRelation, BeadStage, BeadStageOutcome,
@@ -330,6 +330,7 @@ struct PyBeadStageReceipt {
 #[pyclass(name = "BeadComposeReceipt", skip_from_py_object)]
 #[derive(Debug)]
 struct PyBeadComposeReceipt {
+    wire: String,
     #[pyo3(get)]
     schema: String,
     #[pyo3(get)]
@@ -344,6 +345,24 @@ struct PyBeadComposeReceipt {
     pour_mode: Option<String>,
     #[pyo3(get)]
     graph: Option<Py<PyAny>>,
+}
+
+#[pymethods]
+impl PyBeadComposeReceipt {
+    /// Decode a versioned Rust receipt into the Python receipt surface.
+    #[classmethod]
+    fn from_json(class: &Bound<'_, PyType>, receipt_json: &str) -> PyResult<Self> {
+        serde_json::from_str::<BeadComposeReceipt>(receipt_json)
+            .map(Self::from)
+            .map_err(|error| request_error(class.py(), error.to_string()))
+    }
+
+    /// Return the canonical Rust receipt JSON as Python JSON data.
+    fn to_json(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let value = serde_json::from_str(&self.wire)
+            .map_err(|error| request_error(py, error.to_string()))?;
+        json_to_py(py, &value)
+    }
 }
 
 fn stage_outcome(inner: &BeadStageOutcome) -> PyBeadStageOutcome {
@@ -394,7 +413,9 @@ fn outcome(inner: &BeadOutcome) -> PyBeadOutcome {
 
 impl From<BeadComposeReceipt> for PyBeadComposeReceipt {
     fn from(inner: BeadComposeReceipt) -> Self {
+        let wire = serde_json::to_string(&inner).expect("receipt serializes");
         Self {
+            wire,
             schema: inner.schema,
             operation: operation_name(inner.operation).to_owned(),
             rendered_formula: inner.rendered_formula.display().to_string(),
@@ -627,10 +648,47 @@ fn pour(
     execute_with_operation(py, &request, Some(BeadOperation::Pour))
 }
 
+#[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
+fn preview_attach(
+    py: Python<'_>,
+    request: PyRef<'_, PyBeadComposeRequest>,
+) -> PyResult<PyBeadComposeReceipt> {
+    execute_with_operation(py, &request, Some(BeadOperation::PreviewAttach))
+}
+#[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
+fn attach(
+    py: Python<'_>,
+    request: PyRef<'_, PyBeadComposeRequest>,
+) -> PyResult<PyBeadComposeReceipt> {
+    execute_with_operation(py, &request, Some(BeadOperation::Attach))
+}
+
 #[pymodule]
 #[pyo3(name = "_native")]
 fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("BEADS_SCHEMA_V1", BEADS_SCHEMA_V1)?;
+    for code in [
+        "BEADS_GRAPH_PARENT_NOT_FOUND",
+        "BEADS_GRAPH_ID_INVALID",
+        "BEADS_GRAPH_SCOPE_MISMATCH",
+        "BEADS_GRAPH_FORMULA_UNSUPPORTED",
+        "BEADS_GRAPH_RELATION_INVALID",
+        "BEADS_GRAPH_CONFLICT",
+        "BEADS_GRAPH_EDGE_CONFLICT",
+        "BEADS_GRAPH_EDGE_MISSING",
+        "BEADS_GRAPH_READ_FAILED",
+        "BEADS_GRAPH_APPLY_FAILED",
+    ] {
+        module.add(code, code)?;
+    }
     module.add_class::<PyBeadComposeError>()?;
     module.add_class::<PyBeadOperation>()?;
     module.add_class::<PyPourAuthorization>()?;
@@ -645,6 +703,8 @@ fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(validate, module)?)?;
     module.add_function(wrap_pyfunction!(preview_pour, module)?)?;
     module.add_function(wrap_pyfunction!(pour, module)?)?;
+    module.add_function(wrap_pyfunction!(preview_attach, module)?)?;
+    module.add_function(wrap_pyfunction!(attach, module)?)?;
     Ok(())
 }
 
