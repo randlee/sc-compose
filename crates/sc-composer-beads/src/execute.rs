@@ -760,6 +760,61 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn graph_create_diagnostic_names_public_plan_before_truncation() {
+        struct FailingCreate(FakeRunner);
+        impl ProcessRunner for FailingCreate {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                if spec.args[0] == "create" {
+                    assert!(spec.args[2].contains(".sc-compose-input-"));
+                    assert!(Path::new(&spec.args[2]).is_file());
+                    let mut output = success("{}");
+                    output.exit_status = Some(7);
+                    output.stderr = format!("cannot apply {} ", spec.args[2]).repeat(100);
+                    return Ok(output);
+                }
+                self.0.run(spec)
+            }
+        }
+        for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+            let root = fs::canonicalize(workspace()).unwrap();
+            let mut request = request(&root, operation);
+            request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+            request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+            request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+            request.bead_variables.clear();
+            fs::write(&request.template, "formula = \"example\"\n").unwrap();
+            let runner = FailingCreate(FakeRunner::with_outputs([
+                success(
+                    r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#,
+                ),
+                success(r#"[{"id":"proj-1"}]"#),
+            ]));
+            let mut diagnostics = Vec::new();
+            let receipt =
+                super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+                    assert!(matches!(error, BeadComposeError::GraphApplyFailed { .. }));
+                    assert!(!error.to_string().contains(".sc-compose-input-"));
+                    diagnostics.push(serde_json::to_value(error).unwrap());
+                })
+                .unwrap();
+            let public = format!("{}.graph.json", request.rendered_formula.display());
+            assert_eq!(diagnostics.len(), 1);
+            let error = &diagnostics[0];
+            assert_eq!(error["details"]["command"][3], public);
+            assert!(
+                error["details"]["cause"]
+                    .as_str()
+                    .unwrap()
+                    .contains(&public)
+            );
+            assert!(error["message"].as_str().unwrap().contains(&public));
+            let wire = serde_json::to_string(&(receipt, diagnostics)).unwrap();
+            assert!(!wire.contains(".sc-compose-input-"), "{wire}");
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
     fn attach_output_refusal_retains_exact_path_in_typed_diagnostic() {
         for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
             let root = fs::canonicalize(workspace()).unwrap();

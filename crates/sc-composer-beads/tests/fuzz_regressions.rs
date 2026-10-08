@@ -1666,3 +1666,111 @@ fn assert_fuzz_055_cook_failure(
             .any(|call| matches!(call.args[0].as_str(), "create" | "mol"))
     );
 }
+
+struct GraphPlanSourceRunner {
+    inner: FakeRunner,
+    fail_create: bool,
+}
+
+impl ProcessRunner for GraphPlanSourceRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args[0] == "create" {
+            let index = spec
+                .args
+                .iter()
+                .position(|arg| arg == "--graph")
+                .expect("graph")
+                + 1;
+            let private = &spec.args[index];
+            assert!(private.contains(".sc-compose-input-"), "{spec:#?}");
+            let _: Value = serde_json::from_slice(&fs::read(private)?).expect("own live plan");
+            self.inner.calls.lock().expect("calls").push(spec.clone());
+            return Ok(ProcessOutput {
+                stderr: if self.fail_create {
+                    format!("cannot apply graph {private}")
+                } else {
+                    String::new()
+                },
+                ..out(
+                    Some(if self.fail_create { 7 } else { 0 }),
+                    &format!("graph input {private}"),
+                )
+            });
+        }
+        self.inner.run(spec)
+    }
+}
+
+#[test]
+fn fuzz_055_r3_create_failures_and_preview_receipts_name_public_graph_plan() {
+    for operation in [
+        BeadOperation::PreviewPour,
+        BeadOperation::Pour,
+        BeadOperation::PreviewAttach,
+        BeadOperation::Attach,
+    ] {
+        for fail_create in [true, false] {
+            if !fail_create && matches!(operation, BeadOperation::Pour | BeadOperation::Attach) {
+                continue;
+            }
+            let mut w = Workspace::new();
+            w.req.operation = operation;
+            let by_path = matches!(operation, BeadOperation::PreviewPour | BeadOperation::Pour);
+            let registry = w.root.join(".beads");
+            fs::create_dir(&registry).expect("registry");
+            let outputs = if by_path {
+                w.req.parent = None;
+                w.req.ref_ = None;
+                vec![
+                    ok(COOKED),
+                    ok(&json!({"path":registry}).to_string()),
+                    ok(COOKED),
+                ]
+            } else {
+                vec![ok(COOKED), parent()]
+            };
+            let runner = GraphPlanSourceRunner {
+                inner: FakeRunner::new(outputs),
+                fail_create,
+            };
+            let receipt =
+                execute_bead_request_with_runner(&w.req, &runner).expect("actual execution");
+            if fail_create {
+                assert_eq!(
+                    receipt.outcome,
+                    BeadOutcome::Failed {
+                        code: "BEADS_GRAPH_APPLY_FAILED".into()
+                    }
+                );
+                let message = &receipt.stages.last().expect("create stage").stderr_excerpt;
+                assert!(message.contains("cannot apply graph"), "{message}");
+            } else {
+                assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+            }
+            let public = w.req.rendered_formula.with_extension("toml.graph.json");
+            let wire = serde_json::to_string(&receipt).expect("receipt");
+            assert!(wire.contains(public.to_string_lossy().as_ref()), "{wire}");
+            assert!(!wire.contains(".sc-compose-input-"), "{wire}");
+            let create = receipt
+                .stages
+                .iter()
+                .find(|stage| stage.argv.iter().any(|arg| arg == "--graph"))
+                .expect("create");
+            assert!(
+                create
+                    .argv
+                    .iter()
+                    .any(|arg| arg == public.to_string_lossy().as_ref())
+            );
+            let calls = runner.inner.calls();
+            let actual = calls
+                .iter()
+                .find(|call| call.args[0] == "create")
+                .expect("actual create");
+            assert!(
+                !PathBuf::from(&actual.args[2]).exists(),
+                "private plan cleaned"
+            );
+        }
+    }
+}
