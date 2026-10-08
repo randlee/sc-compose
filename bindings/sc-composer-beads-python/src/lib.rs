@@ -511,7 +511,7 @@ impl PyBeadComposeRequest {
                 parent: parent
                     .map(sc_composer_beads::BeadId::new)
                     .transpose()
-                    .map_err(|error| request_error(py, error.to_string()))?,
+                    .map_err(|error| rust_error_to_pyerr(py, &error))?,
                 ref_: r#ref
                     .map(sc_composer_beads::GraphRef::new)
                     .transpose()

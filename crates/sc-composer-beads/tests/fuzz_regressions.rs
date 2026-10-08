@@ -804,3 +804,57 @@ fn graph_private_inputs_are_cleaned_after_failed_reads_and_apply() {
         );
     }
 }
+
+#[test]
+fn invalid_parent_and_relation_bead_ids_keep_native_typed_errors() {
+    for operation in [
+        "render",
+        "validate",
+        "attach",
+        "preview_attach",
+        "pour",
+        "preview_pour",
+    ] {
+        for invalid in [
+            "",
+            " ",
+            "invalid parent",
+            "bad\tparent",
+            "bad\nparent",
+            "bad\rparent",
+        ] {
+            let mut request = json!({
+                "schema": BEADS_SCHEMA_V1, "operation": operation,
+                "working_directory": "/work", "template": "sample.formula.toml.j2",
+                "rendered_formula": "/work/sample.formula.toml", "compose_variables": {},
+                "bead_variables": {}, "parent": invalid, "ref": "valid"
+            });
+            let error = parse_request(&request.to_string()).expect_err("invalid parent");
+            assert_native_bead_id_error(&error, invalid);
+            request["parent"] = json!("proj-1");
+            for field in ["from", "to"] {
+                let mut relation =
+                    json!({"from":"step:build", "to":"bead:proj-1", "type":"blocks"});
+                relation[field] = json!(format!("bead:{invalid}"));
+                request["relations"] = json!([relation]);
+                let error = parse_request(&request.to_string()).expect_err("invalid relation bead");
+                assert_native_bead_id_error(&error, invalid);
+            }
+        }
+    }
+}
+
+fn assert_native_bead_id_error(error: &BeadComposeError, invalid: &str) {
+    assert_eq!(error.code(), "BEADS_GRAPH_ID_INVALID");
+    assert!(
+        matches!(error, BeadComposeError::GraphIdInvalid { field: GraphIdField::Bead, value } if value == invalid)
+    );
+    let wire = serde_json::to_value(error).unwrap();
+    assert_eq!(wire["details"], json!({"field":"bead", "value":invalid}));
+    assert!(
+        wire["message"]
+            .as_str()
+            .unwrap()
+            .contains("bead ids are non-empty without whitespace")
+    );
+}
