@@ -1,7 +1,5 @@
-use std::path::PathBuf;
-use std::sync::LazyLock;
-
 use serde_json::{Map, Value, json};
+use std::sync::LazyLock;
 
 use crate::observability::validated_service_name;
 use crate::path_utils::to_forward_slash;
@@ -15,10 +13,7 @@ use sc_observability::{
     OBSERVATION_ENVELOPE_VERSION, OutcomeLabel, ProcessIdentity, Remediation, SchemaVersion,
     ServiceName, TargetCategory, Timestamp,
 };
-use sc_observability_types::{
-    DiagnosticSummary, LoggingHealthState, QueryHealthReport, QueryHealthState,
-    ValueValidationError, WriterState,
-};
+use sc_observability_types::ValueValidationError;
 
 const FALLBACK_TARGET: &str = "compose.observability";
 const FALLBACK_ACTION: &str = "degraded";
@@ -130,48 +125,33 @@ pub(crate) trait CommandLifecycleObserver {
 }
 
 pub(crate) struct CliObserver {
-    logger: Option<LoggerOrStopped>,
+    logger: Logger,
+    stopped: bool,
     service: ServiceName,
-}
-
-enum LoggerOrStopped {
-    Running(Logger),
-    Stopped(Logger),
 }
 
 impl CliObserver {
     pub fn new(logger: Logger) -> Self {
         initialize_event_labels();
         Self {
-            logger: Some(LoggerOrStopped::Running(logger)),
+            logger,
+            stopped: false,
             service: service_name(),
         }
     }
 
     pub fn health(&self) -> LoggingHealthReport {
-        match self.logger.as_ref() {
-            Some(LoggerOrStopped::Running(logger) | LoggerOrStopped::Stopped(logger)) => {
-                logger.health()
-            }
-            None => unavailable_health_report("cli observer logger state unavailable"),
-        }
+        self.logger.health()
     }
 
     pub fn shutdown(&mut self) {
-        let Some(state) = self.logger.take() else {
+        if self.stopped {
             return;
-        };
-        let running = match state {
-            LoggerOrStopped::Running(logger) => logger,
-            LoggerOrStopped::Stopped(logger) => {
-                self.logger = Some(LoggerOrStopped::Stopped(logger));
-                return;
-            }
-        };
+        }
         // Shutdown failures are recorded in logger health; command completion
         // remains infallible and retains the logger for health inspection.
-        let _ = running.shutdown();
-        self.logger = Some(LoggerOrStopped::Stopped(running));
+        let _ = self.logger.shutdown();
+        self.stopped = true;
     }
 
     fn emit_record(&self, record: LogRecord) {
@@ -202,8 +182,8 @@ impl CliObserver {
             fields,
         };
 
-        if let Some(LoggerOrStopped::Running(logger)) = &self.logger {
-            let _ignored = logger.log(event);
+        if !self.stopped {
+            let _ignored = self.logger.log(event);
         }
     }
 }
@@ -612,35 +592,6 @@ fn normalize_event_labels(
     (normalized_target, normalized_action, normalized_outcome)
 }
 
-fn unavailable_health_report(message: &str) -> LoggingHealthReport {
-    let summary = DiagnosticSummary {
-        code: None,
-        message: message.to_owned(),
-        at: Timestamp::now_utc(),
-    };
-    LoggingHealthReport {
-        state: LoggingHealthState::Unavailable,
-        dropped_events_total: 0,
-        flush_errors_total: 0,
-        active_log_path: PathBuf::from(".sc-compose")
-            .join("logs")
-            .join("sc-compose.log.jsonl"),
-        sink_statuses: Vec::new(),
-        queue_depth: 0,
-        queue_capacity: 0,
-        queue_high_water_mark: 0,
-        queue_full_drops_total: 0,
-        writer_state: WriterState::Stopped,
-        last_writer_error: Some(summary.clone()),
-        query: Some(QueryHealthReport {
-            state: QueryHealthState::Unavailable,
-            last_error: Some(summary.clone()),
-        }),
-        maintenance: None,
-        last_error: Some(summary),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -654,7 +605,7 @@ mod tests {
         SinkRegistration, Timestamp, error_codes,
     };
     use sc_observability_types::{
-        ErrorContext, LoggingHealthState, QueryHealthState, Remediation, SinkName, WriterState,
+        ErrorContext, QueryHealthState, Remediation, SinkName, WriterState,
     };
     use serde_json::Map;
 
@@ -750,29 +701,47 @@ mod tests {
     }
 
     #[test]
-    fn cli_observer_health_degrades_when_logger_state_is_missing() {
-        let root = temp_root("observer-health-missing-state");
+    fn cli_observer_shutdown_is_idempotent_and_suppresses_later_events() {
+        let root = temp_root("observer-stopped-events");
         let mut config = LoggerConfig::default_for(service_name(), root);
         config.enable_console_sink = false;
-        let logger = match Logger::builder(config) {
-            Ok(builder) => builder.build().expect("logger build"),
-            Err(error) => panic!("logger builder: {error}"),
-        };
+        let logger = Logger::builder(config)
+            .expect("logger builder")
+            .build()
+            .expect("logger build");
         let mut observer = CliObserver::new(logger);
-        observer.logger = None;
+        observer.on_command_start(&CommandStartEvent {
+            command_name: "before-shutdown".into(),
+            json_output: true,
+        });
+        observer.shutdown();
+        let stopped_health = observer.health();
+        assert_eq!(stopped_health.writer_state, WriterState::Stopped);
+        let log_before = read_log_lines(&stopped_health.active_log_path);
+        assert_eq!(log_before.len(), 1);
+        assert_eq!(log_before[0]["fields"]["command"], "before-shutdown");
 
-        let health = observer.health();
+        observer.shutdown();
+        observer.on_command_start(&CommandStartEvent {
+            command_name: "after-shutdown".into(),
+            json_output: true,
+        });
+        observer.on_command_end(&CommandEndEvent {
+            command_name: "after-shutdown".into(),
+            exit_code: 0,
+            success: true,
+            elapsed_ms: 1,
+            json_output: true,
+            diagnostic_code: None,
+            diagnostic_message: None,
+        });
+        observer.shutdown();
 
-        assert_eq!(health.state, LoggingHealthState::Unavailable);
-        assert_eq!(health.writer_state, WriterState::Stopped);
         assert_eq!(
-            match health.query {
-                Some(query) => query.state,
-                None => panic!("query health present"),
-            },
-            QueryHealthState::Unavailable
+            serde_json::to_value(observer.health()).expect("current health"),
+            serde_json::to_value(&stopped_health).expect("stopped health")
         );
-        assert!(health.last_error.is_some());
+        assert_eq!(read_log_lines(&stopped_health.active_log_path), log_before);
     }
 
     #[test]
