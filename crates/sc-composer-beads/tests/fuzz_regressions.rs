@@ -253,16 +253,43 @@ fn fuzz_014_graph_create_reads_this_requests_plan() {
 // FUZZ-015: a 40-step attach re-run is not capped by existing-bead output.
 #[cfg(unix)]
 #[test]
-#[ignore = "FUZZ-015"]
 fn fuzz_015_rerun_of_a_40_step_attach_is_not_capped_by_the_output_limit() {
+    scalable_attach_roundtrip(40, false);
+}
+
+#[cfg(unix)]
+#[test]
+fn fuzz_015_first_attach_and_rerun_of_500_steps_have_bounded_graph_output() {
+    scalable_attach_roundtrip(500, true);
+}
+
+#[cfg(unix)]
+fn scalable_attach_roundtrip(count: usize, apply: bool) {
     use std::os::unix::fs::PermissionsExt;
 
     let mut w = Workspace::new();
-    let steps: Vec<Value> = (1..=40)
-        .map(|index| json!({"id": format!("item_{index}"), "title": format!("Item {index}")}))
+    if apply {
+        w.req.operation = BeadOperation::Attach;
+    }
+    let steps: Vec<Value> = (1..=count)
+        .map(|index| json!({"id": format!("item_{index}"), "title": format!("Item {index}"), "description": "x".repeat(1900)}))
         .collect();
     let cooked = w.root.join("cooked.json");
     let shown = w.root.join("show.json");
+    let created = w.root.join("created.json");
+    let ids: serde_json::Map<String, Value> = (1..=count)
+        .map(|index| {
+            (
+                format!("item_{index}"),
+                json!(format!("proj-1.chain-item_{index}")),
+            )
+        })
+        .collect();
+    fs::write(
+        &created,
+        json!({"ids": ids, "diagnostic": "x".repeat(70_000)}).to_string(),
+    )
+    .unwrap();
     fs::write(
         &cooked,
         json!({"formula": "sample", "type": "workflow", "steps": steps}).to_string(),
@@ -273,9 +300,10 @@ fn fuzz_015_rerun_of_a_40_step_attach_is_not_capped_by_the_output_limit() {
     fs::write(
         &bd,
         format!(
-            "#!/bin/sh\ncase \"$1\" in\n  cook) cat '{}' ;;\n  show) cat '{}' ;;\n  dep) printf '%s' '[{{\"id\":\"proj-1\",\"dependency_type\":\"parent-child\"}}]' ;;\n  *) printf '{{}}' ;;\nesac\n",
+            "#!/bin/sh\ncase \"$1\" in\n  cook) cat '{}' ;;\n  show) cat '{}' ;;\n  dep) printf '%s' '[{{\"id\":\"proj-1\",\"dependency_type\":\"parent-child\"}}]' ;;\n  create) cat '{}' ;;\n  *) printf '{{}}' ;;\nesac\n",
             cooked.display(),
-            shown.display()
+            shown.display(),
+            created.display()
         ),
     )
     .expect("fake bd");
@@ -283,6 +311,20 @@ fn fuzz_015_rerun_of_a_40_step_attach_is_not_capped_by_the_output_limit() {
     w.req.bd_executable = Some(bd);
     let first = execute_bead_request(&w.req).expect("first preview");
     assert_eq!(first.outcome, BeadOutcome::Succeeded, "{first:#?}");
+    assert_eq!(first.graph.as_ref().unwrap().nodes.len(), count);
+    if apply {
+        assert!(
+            first
+                .graph
+                .as_ref()
+                .unwrap()
+                .nodes
+                .iter()
+                .all(|node| node.action == BeadNodeAction::Created)
+        );
+        assert!(fs::metadata(&cooked).unwrap().len() > 64 * 1024);
+        assert!(fs::metadata(&created).unwrap().len() > 64 * 1024);
+    }
     let mut rows = vec![json!({"id": "proj-1"})];
     for node in w.plan()["nodes"].as_array().expect("plan nodes") {
         rows.push(json!({
@@ -293,10 +335,13 @@ fn fuzz_015_rerun_of_a_40_step_attach_is_not_capped_by_the_output_limit() {
         }));
     }
     fs::write(&shown, Value::Array(rows).to_string()).expect("existing rows");
+    let shown_bytes = fs::metadata(&shown).unwrap().len();
+    assert!(shown_bytes > 64 * 1024);
+    assert!(shown_bytes < sc_composer_beads::runner::GRAPH_OUTPUT_LIMIT_BYTES as u64);
     let rerun = execute_bead_request(&w.req).expect("re-run must yield a receipt");
     assert_eq!(rerun.outcome, BeadOutcome::Succeeded, "{rerun:#?}");
     let graph = rerun.graph.expect("graph");
-    assert_eq!(graph.nodes.len(), 40);
+    assert_eq!(graph.nodes.len(), count);
     assert!(
         graph
             .nodes
@@ -433,4 +478,41 @@ fn fuzz_020_apply_failure_cause_is_bds_error_text() {
                 .contains("graph contains a blocking dependency cycle involving node \"build\""),
         "{evidence}"
     );
+}
+
+#[cfg(unix)]
+#[test]
+fn graph_capture_overflow_reports_the_actual_stream_limit() {
+    use sc_composer_beads::runner::{GRAPH_OUTPUT_LIMIT_BYTES, PROCESS_OUTPUT_LIMIT_BYTES};
+    use std::os::unix::fs::PermissionsExt;
+    for (limit, redirect) in [
+        (GRAPH_OUTPUT_LIMIT_BYTES, ""),
+        (PROCESS_OUTPUT_LIMIT_BYTES, " >&2"),
+    ] {
+        let mut w = Workspace::new();
+        let output = w.root.join("oversized-output");
+        fs::write(&output, vec![b'x'; limit + 1]).unwrap();
+        let bd = w.root.join("fake-bd");
+        fs::write(
+            &bd,
+            format!(
+                "#!/bin/sh\ncat '{}'{redirect}\nsleep 60\n",
+                output.display()
+            ),
+        )
+        .unwrap();
+        fs::set_permissions(&bd, fs::Permissions::from_mode(0o755)).unwrap();
+        w.req.bd_executable = Some(bd);
+        let error = execute_bead_request(&w.req).unwrap_err();
+        assert_eq!(error.code(), "BEADS_PROCESS_OUTPUT_LIMIT");
+        assert!(
+            matches!(error, BeadComposeError::ProcessOutputLimitExceeded { stage: BeadStage::Validate, limit_bytes } if limit_bytes == limit)
+        );
+        assert!(
+            !w.req
+                .rendered_formula
+                .with_extension("toml.graph.json")
+                .exists()
+        );
+    }
 }

@@ -315,7 +315,12 @@ bead to itself, two `bead:` endpoints, a duplicate of another relation or a
 Every operation returns a `sc-compose/beads/v1` receipt: `outcome`
 (`succeeded`, `refused` or `failed`), and one entry per stage with the `bd`
 argv, exit status, elapsed time and bounded output excerpts. Graph pour and
-attach add a `graph` block:
+attach add a `graph` block. Graph JSON commands retain at most 16 MiB of stdout
+and 64 KiB of stderr; other Beads commands retain at most 64 KiB per stream.
+Exceeding either applicable limit terminates the process tree and reports
+`BEADS_PROCESS_OUTPUT_LIMIT` with the actual limit.
+
+Graph block:
 
 ```json
 "graph": {

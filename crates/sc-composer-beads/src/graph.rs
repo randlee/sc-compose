@@ -168,7 +168,7 @@ impl Runtime<'_> {
             args,
             working_directory: self.normalized.working_directory.clone(),
         };
-        let attempted = self.runner.run(&spec);
+        let attempted = self.runner.run_graph(&spec);
         if let Err(error) = &attempted {
             self.stages.push(process_receipt(
                 self.stage,
@@ -183,10 +183,10 @@ impl Runtime<'_> {
             ));
         }
         let output = attempted.map_err(|error| {
-            if crate::runner::is_process_output_limit_error(&error) {
+            if let Some(limit_bytes) = crate::runner::output_limit_bytes(&error) {
                 BeadComposeError::ProcessOutputLimitExceeded {
                     stage: self.stage,
-                    limit_bytes: crate::runner::PROCESS_OUTPUT_LIMIT_BYTES,
+                    limit_bytes,
                 }
             } else if error.kind() == std::io::ErrorKind::InvalidInput {
                 BeadComposeError::ProcessArgumentInvalid {

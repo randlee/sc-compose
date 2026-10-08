@@ -152,6 +152,7 @@ pub enum BeadComposeError {
 evidence. Each child stream is capped at 64 KiB; an over-limit stage terminates
 its process tree and returns `ProcessOutputLimitExceeded` rather than
 consuming unbounded memory or waiting for a normal pipe-inheriting descendant.
+Graph JSON commands alone permit bounded stdout up to 16 MiB, retaining the 64 KiB stderr cap and the same termination policy.
 The runner uses `process-wrap`: Unix children lead a dedicated process group
 and Windows children are created suspended, assigned to a Job Object, then
 resumed. Cap termination kills that group or Job Object respectively.
