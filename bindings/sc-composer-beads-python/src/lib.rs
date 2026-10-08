@@ -8,8 +8,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
-    BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome, BeadStageReceipt,
-    PourAuthorization, execute_bead_request,
+    BeadComposeRequest, BeadOperation, BeadOutcome, BeadPourMode, BeadStage, BeadStageOutcome,
+    BeadStageReceipt, PourAuthorization, execute_bead_request,
 };
 use serde_json::Value;
 
@@ -419,9 +419,7 @@ impl From<BeadComposeReceipt> for PyBeadComposeReceipt {
             rendered_formula: inner.rendered_formula.display().to_string(),
             stages: inner.stages.iter().map(stage_receipt).collect(),
             outcome: outcome(&inner.outcome),
-            pour_mode: inner
-                .pour_mode
-                .map(|mode| format!("{mode:?}").to_lowercase()),
+            pour_mode: inner.pour_mode.map(serde_variant_name),
             graph: Python::attach(|py| {
                 inner
                     .graph
@@ -434,6 +432,14 @@ impl From<BeadComposeReceipt> for PyBeadComposeReceipt {
             }),
         }
     }
+}
+
+fn serde_variant_name(mode: BeadPourMode) -> String {
+    serde_json::to_value(mode)
+        .expect("serializing a serde enum to a JSON value must succeed")
+        .as_str()
+        .expect("serde enum representation must be a string")
+        .to_owned()
 }
 
 #[pyclass(name = "BeadComposeRequest", skip_from_py_object)]
@@ -710,6 +716,23 @@ mod tests {
 
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn serde_variant_name_matches_contract_wire_values() {
+        for (mode, expected) in [
+            (BeadPourMode::Registry, "registry"),
+            (BeadPourMode::Graph, "graph"),
+        ] {
+            let serde_value = serde_json::to_value(mode).expect("pour mode serializes");
+            assert_eq!(
+                serde_variant_name(mode),
+                serde_value
+                    .as_str()
+                    .expect("pour mode serializes as a string")
+            );
+            assert_eq!(serde_value.as_str(), Some(expected));
+        }
+    }
 
     fn temporary_root() -> PathBuf {
         let nonce = SystemTime::now()
