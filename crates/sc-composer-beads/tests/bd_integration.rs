@@ -432,7 +432,9 @@ fn request(
                 ]),
             ),
         ]),
-        formula_name: Some(formula_name.to_owned()),
+        formula_name: Some(
+            sc_composer_beads::FormulaName::new(formula_name).expect("formula name"),
+        ),
         bead_variables: BTreeMap::from([(String::from("release_name"), String::from("1.5.0"))]),
         bd_executable: Some(bd.into()),
         pour_authorization: None,

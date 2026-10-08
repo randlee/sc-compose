@@ -41,7 +41,9 @@ impl Workspace {
                 template,
                 rendered_formula: root.join("sample.formula.toml"),
                 compose_variables: serde_json::Map::new(),
-                formula_name: Some("sample".into()),
+                formula_name: Some(
+                    sc_composer_beads::FormulaName::new("sample").expect("formula name"),
+                ),
                 bead_variables: BTreeMap::new(),
                 bd_executable: Some(PathBuf::from("fake-bd")),
                 pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
@@ -411,7 +413,7 @@ fn each_captured_grammar_row_is_checked_at_validate() {
             name,
             "allowed_top" | "allowed_step" | "needs_depends_on" | "extends"
         );
-        w.req.formula_name = Some(name.into());
+        w.req.formula_name = Some(sc_composer_beads::FormulaName::new(name).expect("formula name"));
         let mut outputs = vec![out(Some(status), &cooked)];
         if accepted {
             outputs.extend([parent(), ok("{}")]);

@@ -136,7 +136,7 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     if matches!(
         request.operation,
         BeadOperation::PreviewPour | BeadOperation::Pour
-    ) && request.formula_name.as_deref().is_none_or(str::is_empty)
+    ) && request.formula_name.is_none()
     {
         return Err(BeadComposeError::FormulaNameRequired);
     }
@@ -547,7 +547,7 @@ pub(crate) mod tests {
             template,
             rendered_formula: root.join("example.formula.toml"),
             compose_variables: Map::from_iter([(String::from("people"), json!([{"name": "Ada"}]))]),
-            formula_name: Some(String::from("example")),
+            formula_name: Some(crate::FormulaName::new("example").expect("formula name")),
             bead_variables: BTreeMap::from([
                 (String::from("zebra"), String::from("last")),
                 (String::from("alpha"), String::from("first")),

@@ -143,7 +143,13 @@ fn canonical_cli_request_fixture_is_a_complete_v1_request() {
 
     assert_eq!(request.schema, BEADS_SCHEMA);
     assert_eq!(request.operation, BeadOperation::Validate);
-    assert_eq!(request.formula_name.as_deref(), Some("toml-workflow"));
+    assert_eq!(
+        request
+            .formula_name
+            .as_ref()
+            .map(sc_composer_beads::FormulaName::as_str),
+        Some("toml-workflow")
+    );
     assert_eq!(
         request
             .bead_variables

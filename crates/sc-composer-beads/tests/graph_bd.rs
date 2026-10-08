@@ -98,7 +98,9 @@ impl Workspace {
             template: self.root.join("release.formula.toml.j2"),
             rendered_formula: self.root.join("build/release.formula.toml"),
             compose_variables: serde_json::Map::new(),
-            formula_name: Some("release".into()),
+            formula_name: Some(
+                sc_composer_beads::FormulaName::new("release").expect("formula name"),
+            ),
             bead_variables: BTreeMap::new(),
             bd_executable: Some(self.bd.clone()),
             pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
