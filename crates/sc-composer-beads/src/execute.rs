@@ -118,9 +118,17 @@ fn execute_rendered_request(
     if crate::graph::is_attach(request.operation) {
         return crate::graph::execute(request, runner, &normalized, formula_input, bd, stages);
     }
+    let cook_input = if matches!(
+        request.operation,
+        BeadOperation::PreviewPour | BeadOperation::Pour
+    ) {
+        formula_input.path()
+    } else {
+        normalized.rendered_formula.as_path()
+    };
     let cook = CommandSpec {
         executable: bd.clone(),
-        args: cook_args(&normalized.rendered_formula, request),
+        args: cook_args(cook_input, request),
         working_directory: normalized.working_directory.clone(),
     };
     if let Some(failed) = run_stage(runner, StageFailure::Cook, &cook, &mut stages)? {

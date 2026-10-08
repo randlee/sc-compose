@@ -213,8 +213,9 @@ fn refuse_outside_workspace(
 mod tests {
     use crate::execute::execute_bead_request_with_runner;
     use crate::execute::tests::{FakeRunner, request, success, where_output, workspace};
-    use crate::{BeadOperation, BeadOutcome};
+    use crate::{BeadOperation, BeadOutcome, BeadStage};
     use std::fs;
+    use std::path::Path;
 
     #[test]
     fn malformed_where_output_marks_the_attempted_stage_failed() {
@@ -262,6 +263,43 @@ mod tests {
         assert_eq!(receipt.stages.len(), 4);
         let calls = runner.calls.lock().expect("calls lock");
         assert_eq!(calls.len(), 3);
+        assert_eq!(
+            receipt
+                .stages
+                .iter()
+                .map(|stage| stage.stage)
+                .collect::<Vec<_>>(),
+            [
+                BeadStage::Render,
+                BeadStage::Validate,
+                BeadStage::ResolveActiveRegistry,
+                BeadStage::PreviewPour
+            ]
+        );
+        assert_eq!(
+            calls
+                .iter()
+                .map(|call| call.args[0].as_str())
+                .collect::<Vec<_>>(),
+            ["cook", "where", "mol"]
+        );
+        let cook_input = Path::new(&calls[0].args[1]);
+        let canonical_registry = fs::canonicalize(&registry).expect("canonical registry");
+        assert_eq!(cook_input.parent(), Some(canonical_registry.as_path()));
+        assert!(cook_input.to_string_lossy().ends_with(".formula.toml"));
+        assert_ne!(cook_input, request.rendered_formula);
+        assert_eq!(
+            &calls[0].args[2..],
+            [
+                "--dry-run",
+                "--json",
+                "--var",
+                "alpha=first",
+                "--var",
+                "zebra=last"
+            ]
+        );
+        assert_eq!(calls[1].args, ["where", "--json"]);
         assert_eq!(
             calls[2].args,
             vec![

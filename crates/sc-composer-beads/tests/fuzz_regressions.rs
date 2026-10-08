@@ -858,3 +858,202 @@ fn assert_native_bead_id_error(error: &BeadComposeError, invalid: &str) {
             .contains("bead ids are non-empty without whitespace")
     );
 }
+
+struct ByPathConcurrentRunner {
+    peer: std::sync::mpsc::Sender<&'static str>,
+    ready: Mutex<std::sync::mpsc::Receiver<&'static str>>,
+    registry: PathBuf,
+    label: &'static str,
+    cooked: Mutex<Vec<Value>>,
+    calls: Mutex<Vec<CommandSpec>>,
+}
+
+impl ProcessRunner for ByPathConcurrentRunner {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        self.calls.lock().expect("calls").push(spec.clone());
+        match spec.args[0].as_str() {
+            "cook" => {
+                self.peer.send("cook").expect("peer alive");
+                assert_eq!(
+                    self.ready
+                        .lock()
+                        .expect("ready")
+                        .recv_timeout(Duration::from_secs(10))
+                        .expect("peer cook"),
+                    "cook"
+                );
+                let path = std::path::Path::new(&spec.args[1]);
+                let text = fs::read_to_string(path).expect("cook input");
+                let formula: Value = if path.extension().is_some_and(|ext| ext == "json") {
+                    serde_json::from_str(&text).expect("JSON formula")
+                } else {
+                    serde_json::to_value(
+                        toml::from_str::<toml::Value>(&text).expect("TOML formula"),
+                    )
+                    .expect("formula JSON")
+                };
+                self.cooked.lock().expect("cooked").push(formula.clone());
+                Ok(ok(&formula.to_string()))
+            }
+            "where" => Ok(ok(&json!({"path":self.registry}).to_string())),
+            "create" => {
+                let plan: Value =
+                    serde_json::from_slice(&fs::read(&spec.args[2]).expect("graph input"))
+                        .expect("plan");
+                let ids: serde_json::Map<String, Value> = plan["nodes"]
+                    .as_array()
+                    .expect("nodes")
+                    .iter()
+                    .map(|node| {
+                        let key = node["key"].as_str().expect("key");
+                        let id = if key == "_root" {
+                            format!("root-{}", self.label)
+                        } else {
+                            format!("root-{}.{}", self.label, self.label)
+                        };
+                        (key.into(), json!(id))
+                    })
+                    .collect();
+                Ok(ok(&json!({"ids":ids}).to_string()))
+            }
+            other => panic!("unexpected by-path command {other}"),
+        }
+    }
+}
+
+#[test]
+#[allow(
+    clippy::too_many_lines,
+    reason = "Keep both cook-input and receipt-stage oracles beside the concurrent requests for both pour modes and formats."
+)]
+fn fuzz_014b_concurrent_bypath_pours_validate_their_own_initial_cook_inputs() {
+    for operation in [BeadOperation::PreviewPour, BeadOperation::Pour] {
+        for suffix in ["toml", "json"] {
+            let mut w = Workspace::new();
+            w.req.operation = operation;
+            w.req.parent = None;
+            w.req.ref_ = None;
+            w.req.template = w.root.join(format!("sample.formula.{suffix}.j2"));
+            w.req.rendered_formula = w.root.join(format!("sample.formula.{suffix}"));
+            fs::write(&w.req.template, if suffix == "toml" {
+                "formula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\n"
+            } else {
+                r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}"}]}"#
+            }).expect("template");
+            let registry = w.root.join(".beads");
+            fs::create_dir(&registry).expect("registry");
+            let (tx_a, rx_a) = std::sync::mpsc::channel();
+            let (tx_b, rx_b) = std::sync::mpsc::channel();
+            let runners = [
+                ByPathConcurrentRunner {
+                    peer: tx_b,
+                    ready: Mutex::new(rx_a),
+                    registry: registry.clone(),
+                    label: "alpha",
+                    cooked: Mutex::new(Vec::new()),
+                    calls: Mutex::new(Vec::new()),
+                },
+                ByPathConcurrentRunner {
+                    peer: tx_a,
+                    ready: Mutex::new(rx_b),
+                    registry,
+                    label: "beta",
+                    cooked: Mutex::new(Vec::new()),
+                    calls: Mutex::new(Vec::new()),
+                },
+            ];
+            let requests: Vec<_> = ["alpha", "beta"]
+                .into_iter()
+                .map(|step| {
+                    let mut request = w.req.clone();
+                    request.compose_variables = serde_json::Map::from_iter([
+                        ("step".into(), json!(step)),
+                        ("title".into(), json!(format!("{step} own title"))),
+                    ]);
+                    request
+                })
+                .collect();
+            let receipts = std::thread::scope(|scope| {
+                let a = scope.spawn(|| {
+                    execute_bead_request_with_runner(&requests[0], &runners[0])
+                        .expect("first request")
+                });
+                let b = scope.spawn(|| {
+                    execute_bead_request_with_runner(&requests[1], &runners[1])
+                        .expect("second request")
+                });
+                [
+                    a.join().expect("first thread"),
+                    b.join().expect("second thread"),
+                ]
+            });
+            for (runner, receipt) in runners.iter().zip(&receipts) {
+                assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+                let expected = json!({"formula":"sample","type":"workflow","steps":[{"id":runner.label,"title":format!("{} own title",runner.label)}]});
+                let cooked = runner.cooked.lock().expect("cooked");
+                assert_eq!(cooked.len(), 2, "both initial and graph cooks must run");
+                assert_eq!(
+                    cooked[0], expected,
+                    "initial Phase R cook must validate this request's complete content"
+                );
+                assert_eq!(cooked[1], expected, "graph cook must use the same content");
+                let calls = runner.calls.lock().expect("calls");
+                assert_eq!(
+                    calls
+                        .iter()
+                        .map(|call| call.args[0].as_str())
+                        .collect::<Vec<_>>(),
+                    ["cook", "where", "cook", "create"]
+                );
+                assert_eq!(&calls[0].args[2..], ["--dry-run", "--json"]);
+                assert_eq!(calls[1].args, ["where", "--json"]);
+                assert_eq!(&calls[2].args[2..], ["--json"]);
+                assert_eq!(
+                    calls[0].args[1], calls[2].args[1],
+                    "both cooks must use the same private snapshot"
+                );
+                assert_ne!(calls[0].args[1], w.req.rendered_formula.to_string_lossy());
+                let graph_stage = if operation == BeadOperation::Pour {
+                    BeadStage::Pour
+                } else {
+                    BeadStage::PreviewPour
+                };
+                assert_eq!(
+                    receipt
+                        .stages
+                        .iter()
+                        .map(|stage| stage.stage)
+                        .collect::<Vec<_>>(),
+                    [
+                        BeadStage::Render,
+                        BeadStage::Validate,
+                        BeadStage::ResolveActiveRegistry,
+                        graph_stage,
+                        graph_stage
+                    ]
+                );
+                assert_eq!(receipt.pour_mode, Some(BeadPourMode::Graph));
+                assert_eq!(receipt.rendered_formula, w.req.rendered_formula);
+                let graph = receipt.graph.as_ref().expect("graph");
+                assert_eq!(graph.nodes.len(), 2);
+                assert_eq!(
+                    graph.nodes[1].step.as_ref().expect("step").as_str(),
+                    runner.label
+                );
+                if operation == BeadOperation::Pour {
+                    assert_eq!(
+                        graph.ids[&StepId::new(runner.label).expect("step")].as_str(),
+                        format!("root-{}.{}", runner.label, runner.label)
+                    );
+                }
+            }
+            assert!(!fs::read_dir(&w.root).expect("directory").any(|entry| {
+                entry
+                    .expect("entry")
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(".sc-compose")
+            }));
+        }
+    }
+}
