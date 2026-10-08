@@ -205,12 +205,74 @@ fn render_append_keeps_destination_unchanged_for_missing_variables() {
             "--file",
             "record.json.j2",
             "--strict",
+            "--unknown-var-mode",
+            "error",
             "--append",
             destination.to_str().unwrap(),
         ])
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
+    assert_eq!(fs::read_to_string(destination).unwrap(), "{\"old\":true}\n");
+}
+
+#[test]
+fn render_append_keeps_destination_unchanged_for_invalid_variables() {
+    let root = temp_root("append-invalid-variable");
+    write_file(&root.join("record.json.j2"), "{\"name\": {{ name }}}");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--var",
+            "name=\"Ada\"",
+            "--var",
+            "unexpected=true",
+            "--strict",
+            "--unknown-var-mode",
+            "error",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_VAL_EXTRA_INPUT"));
+    assert_eq!(fs::read_to_string(destination).unwrap(), "{\"old\":true}\n");
+}
+
+#[test]
+fn render_append_reports_write_error_for_read_only_destination() {
+    let root = temp_root("append-read-only");
+    write_file(&root.join("record.json.j2"), "{\"ok\":true}");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let mut permissions = fs::metadata(&destination).unwrap().permissions();
+    permissions.set_readonly(true);
+    fs::set_permissions(&destination, permissions).unwrap();
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_RENDER_WRITE"));
     assert_eq!(fs::read_to_string(destination).unwrap(), "{\"old\":true}\n");
 }
 
