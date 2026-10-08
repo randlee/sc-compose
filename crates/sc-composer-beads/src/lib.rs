@@ -30,7 +30,7 @@ pub use contract::{
 };
 #[doc(inline)]
 pub use error::{
-    BeadComposeError, GraphConflictReason, GraphFormulaUnsupportedReason,
+    BeadComposeError, GraphConflictReason, GraphFormulaUnsupportedReason, GraphIdField,
     GraphRelationInvalidReason,
 };
 #[doc(inline)]

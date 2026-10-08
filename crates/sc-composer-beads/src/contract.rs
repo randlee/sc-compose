@@ -7,7 +7,7 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 
-use crate::error::BeadComposeError;
+use crate::error::{BeadComposeError, GraphIdField};
 
 /// Stable schema identifier for the Beads composition protocol.
 pub const BEADS_SCHEMA_V1: &str = "sc-compose/beads/v1";
@@ -290,7 +290,7 @@ pub const PROVENANCE_KEY: &str = "sc_compose_graph";
 
 // The macro keeps validation identical at the Rust and serde boundaries.
 macro_rules! graph_string {
-    ($name:ident, $field:literal, $rule:literal, $valid:expr) => {
+    ($name:ident, $field:path, $rule:literal, $valid:expr) => {
         #[doc = $rule]
         #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
         #[serde(try_from = "String", into = "String")]
@@ -307,7 +307,7 @@ macro_rules! graph_string {
                     Ok(Self(value))
                 } else {
                     Err(BeadComposeError::GraphIdInvalid {
-                        field: $field.to_owned(),
+                        field: $field,
                         value,
                     })
                 }
@@ -343,7 +343,7 @@ macro_rules! graph_string {
 
 graph_string!(
     FormulaName,
-    "formula",
+    GraphIdField::Formula,
     "A portable formula name: ASCII letters, digits, underscores, dots and hyphens; no leading dot/hyphen or consecutive dots.",
     |s: &str| s
         .as_bytes()
@@ -356,13 +356,13 @@ graph_string!(
 
 graph_string!(
     BeadId,
-    "bead",
+    GraphIdField::Bead,
     "A non-empty bead id containing no whitespace.",
     |s: &str| !s.is_empty() && !s.chars().any(char::is_whitespace)
 );
 graph_string!(
     GraphRef,
-    "ref",
+    GraphIdField::Ref,
     "An attachment reference matching `[A-Za-z0-9_-]{1,32}`.",
     |s: &str| (1..=32).contains(&s.len())
         && s.bytes()
@@ -370,14 +370,14 @@ graph_string!(
 );
 graph_string!(
     StepId,
-    "step",
+    GraphIdField::Step,
     "A step id matching `[A-Za-z0-9_]{1,64}`; hyphens are forbidden.",
     |s: &str| (1..=64).contains(&s.len())
         && s.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_')
 );
 graph_string!(
     Sha256Digest,
-    "digest",
+    GraphIdField::Digest,
     "A `sha256:` prefix followed by exactly 64 lowercase hexadecimal digits.",
     |s: &str| s.strip_prefix("sha256:").is_some_and(|hex| hex.len() == 64
         && hex
@@ -578,7 +578,7 @@ impl From<GraphEndpoint> for String {
 
 graph_string!(
     DependencyName,
-    "dependency_type",
+    GraphIdField::DependencyType,
     "A custom dependency token: an ASCII letter followed by ASCII letters, digits, underscores or hyphens.",
     |s: &str| s.as_bytes().first().is_some_and(u8::is_ascii_alphabetic)
         && s.bytes()

@@ -5,7 +5,7 @@ use crate::contract::{
     GraphRef, PROVENANCE_KEY, Sha256Digest, StepId,
 };
 use crate::error::{
-    BeadComposeError, GraphFormulaUnsupportedReason as Unsupported,
+    BeadComposeError, GraphFormulaUnsupportedReason as Unsupported, GraphIdField,
     GraphRelationInvalidReason as Invalid,
 };
 use sc_composer::{HashInput, calculate_hash};
@@ -81,14 +81,18 @@ pub(super) fn unsupported(reason: Unsupported) -> BeadComposeError {
 
 pub(super) fn scope(req: &BeadComposeRequest) -> Result<(), BeadComposeError> {
     for (field, expected) in [
-        ("parent", req.parent.as_ref().map(BeadId::as_str)),
-        ("ref", req.ref_.as_ref().map(GraphRef::as_str)),
+        (
+            GraphIdField::Parent,
+            req.parent.as_ref().map(BeadId::as_str),
+        ),
+        (GraphIdField::Ref, req.ref_.as_ref().map(GraphRef::as_str)),
     ] {
-        if let (Some(expected), Some(actual)) = (expected, req.compose_variables.get(field))
+        if let (Some(expected), Some(actual)) =
+            (expected, req.compose_variables.get(field.as_str()))
             && actual.as_str() != Some(expected)
         {
             return Err(BeadComposeError::GraphScopeMismatch {
-                field: field.into(),
+                field,
                 value: actual.to_string(),
             });
         }

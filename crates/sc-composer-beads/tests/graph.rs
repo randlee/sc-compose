@@ -323,17 +323,27 @@ fn graph_apply_parse_failure_keeps_the_parser_cause() {
 }
 #[test]
 fn scope_mismatch_precedes_every_bd_call() {
-    let mut w = Workspace::new();
-    w.req
-        .compose_variables
-        .insert("parent".into(), json!("proj-2"));
-    let runner = FakeRunner::new([]);
-    refused(
-        &w.run(&runner),
-        "BEADS_GRAPH_SCOPE_MISMATCH",
-        BeadStage::Validate,
-    );
-    assert!(runner.calls().is_empty());
+    for field in [
+        sc_composer_beads::GraphIdField::Parent,
+        sc_composer_beads::GraphIdField::Ref,
+    ] {
+        let mut w = Workspace::new();
+        w.req
+            .compose_variables
+            .insert(field.to_string(), json!("other"));
+        let runner = FakeRunner::new([]);
+        let receipt = w.run(&runner);
+        refused(&receipt, "BEADS_GRAPH_SCOPE_MISMATCH", BeadStage::Validate);
+        assert!(
+            receipt
+                .stages
+                .last()
+                .expect("scope refusal stage")
+                .stderr_excerpt
+                .contains(&format!("graph scope {field} disagrees"))
+        );
+        assert!(runner.calls().is_empty());
+    }
 }
 #[test]
 fn parent_absence_is_distinct_from_read_failure() {
