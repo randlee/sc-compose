@@ -798,7 +798,7 @@ fn assert_missing_edge_recovery(
         assert!(
             text.lines().any(|line| line
                 == format!(
-                    "bd dep add {parent}.release-{from} {parent}.release-{to} --type blocks"
+                    "bd dep add '{parent}.release-{from}' '{parent}.release-{to}' --type 'blocks'"
                 )),
             "{text}"
         );
