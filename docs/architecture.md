@@ -1845,9 +1845,16 @@ Architecture rules:
   provide their own implementations.
 - `sc-observe` and `sc-observability-otlp` are not part of this initial
   release architecture.
-- The current CLI uplift targets `sc-observability` `1.2.0` directly and does
+- The current CLI uplift targets `sc-observability` `1.5.0` directly and does
   not add the `sc-observe` facade because `sc-compose` still owns concrete
   logger construction and sink registration at this seam.
+
+Both observability dependencies are pinned to crates.io `=1.5.0` with
+`default-features = false`; the CLI uses `sc_observability::v2::Logger` and
+`sc_observability::v2::LogSink` with `SinkRegistration::typed(...)`. Both
+`Logger::builder(...)` and `.build()` failures map to `CommandError::usage`
+(exit 3), including the configured log root in the error context. Health querying
+remains infallible and JSON serialization retains its fallback (ADR-0001).
 
 ### 19.1 Dependency Graph
 
@@ -1868,9 +1875,9 @@ sc-observability -----> sc-observability-types
   `QueryHealthReport`, and `QueryHealthState` through its public re-export
   surface.
 - `sc-compose` depends on both `sc-composer` and `sc-observability`.
-- `sc-compose` adapts to the `Logger<Running>` / `Logger<Stopped>` typestate by
-  keeping the CLI observer responsible for the shutdown-state transition while
-  preserving post-shutdown health inspection.
+- The v2 logger uses shared-reference shutdown rather than logger typestates.
+  The CLI observer tracks its own running/stopped state and retains the logger
+  for post-shutdown health inspection; shutdown failures remain in health.
 - The CLI observer adapter now routes direct lifecycle logging through
   `Logger::log(...)`; `Logger::emit(...)` remains only as an upstream
   compatibility path and is not the primary `sc-compose` call surface.
@@ -1948,7 +1955,7 @@ Required library behavior:
 
 ### 19.3 CLI Wiring
 
-`sc-compose` constructs `sc-observability::Logger` during CLI startup, wraps it
+`sc-compose` constructs `sc-observability::v2::Logger` during CLI startup, wraps it
 in a CLI-owned adapter that implements `sc_composer::observer::ObservationSink`
 or `sc_composer::observer::CompositionObserver`, then passes that adapter into
 `compose_with_observer(...)`.

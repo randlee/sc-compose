@@ -3,8 +3,10 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use sc_observability::{
-    ConsoleSink, Logger, LoggerConfig, RetainedLogPolicy, ServiceName, SinkRegistration,
+    ConsoleSink, LoggerConfig, RetainedLogPolicy, ServiceName, SinkRegistration,
 };
+
+use sc_observability::v2::Logger;
 
 use crate::CommandError;
 use crate::observability::SERVICE_NAME;
@@ -19,13 +21,25 @@ pub(crate) fn build_logger_for_root(
     log_root: PathBuf,
     wants_json: bool,
 ) -> Result<Logger, CommandError> {
-    let mut builder = Logger::builder(build_logger_config(log_root)?).map_err(|error| {
-        CommandError::usage(anyhow!(error).context("failed to initialize observability logger"))
-    })?;
+    build_logger_with_config(build_logger_config(log_root)?, wants_json)
+}
+
+pub(super) fn build_logger_with_config(
+    config: LoggerConfig,
+    wants_json: bool,
+) -> Result<Logger, CommandError> {
+    let context = format!(
+        "failed to initialize observability logger for log root {}",
+        config.log_root.display()
+    );
+    let mut builder = Logger::builder(config)
+        .map_err(|error| CommandError::usage(anyhow!(error).context(context.clone())))?;
     if !wants_json {
-        builder.register_sink(SinkRegistration::new(Arc::new(ConsoleSink::stderr())));
+        builder.register_sink(SinkRegistration::typed(Arc::new(ConsoleSink::stderr())));
     }
-    Ok(builder.build())
+    builder
+        .build()
+        .map_err(|error| CommandError::usage(anyhow!(error).context(context)))
 }
 
 fn default_log_root() -> Result<PathBuf, CommandError> {
@@ -42,7 +56,7 @@ pub(super) fn build_logger_config(log_root: PathBuf) -> Result<LoggerConfig, Com
     let mut config = LoggerConfig::default_for(build_service_name()?, log_root);
     config.enable_console_sink = false;
     // Keep logger-managed retained-log maintenance enabled using
-    // sc-observability 1.2.0 defaults rather than adding a repo-local policy.
+    // sc-observability 1.5.0 defaults rather than adding a repo-local policy.
     config.retained_log_policy = RetainedLogPolicy::default();
     Ok(config)
 }

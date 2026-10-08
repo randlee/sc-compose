@@ -1128,16 +1128,20 @@ same command payloads as `render` and `render --dry-run`.
 - `sc-compose` shall use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
 - The current follow-on observability uplift targets `sc-observability`
-  `1.2.0`.
+  `1.5.0` and `sc-observability-types` `1.5.0`, both pinned exactly from
+  crates.io with `default-features = false` so the v1 facade is disabled.
+- Logger construction shall use `sc_observability::v2::Logger` and typed sink
+  registration. Builder and build failures shall return `CommandError::usage`
+  (exit 3) with context naming the configured log root.
 - The CLI lifecycle adapter shall prefer `Logger::log(...)` for blocking queue
   admission and may use `Logger::try_log(...)` only where non-blocking
   admission is explicitly required.
 - `Logger::emit(...)` remains a deprecated compatibility path only; any
   retained use must carry an explicit compatibility rationale in
   `docs/migration-notes.md`.
-- The CLI shutdown path shall adapt to `Logger::shutdown(self) ->
-  Logger<Stopped>` while preserving post-shutdown health inspection through the
-  stopped logger typestate.
+- The CLI shutdown path shall use the v2 `Logger::shutdown(&self)` result while
+  preserving post-shutdown health inspection on the retained logger. Shutdown
+  failures shall remain visible in health without aborting command completion.
 - `sc-composer` must emit composition pipeline events through its local
   observer/sink hook model.
 - `sc-compose` must emit command lifecycle events through the same local hook

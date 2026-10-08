@@ -104,3 +104,15 @@ fn sample_health() -> LoggingHealthReport {
         last_error: None,
     }
 }
+
+#[test]
+fn logger_build_failure_reports_usage_error_with_log_root() {
+    let root = PathBuf::from("test-log-root");
+    let mut config = build_logger_config(root.clone()).expect("logger config");
+    config.enable_file_sink = false;
+    let error = super::logger::build_logger_with_config(config, true)
+        .err()
+        .expect("building without sinks must fail");
+    assert_eq!(error.exit_code, crate::exit_codes::USAGE_FAIL);
+    assert!(error.to_string().contains("test-log-root"));
+}
