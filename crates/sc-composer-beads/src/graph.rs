@@ -9,7 +9,7 @@ use crate::contract::{
     BeadStageReceipt, GraphDependencyType,
 };
 use crate::error::{BeadComposeError, short_cause};
-use crate::execute::{NormalizedRequest, process_receipt, receipt};
+use crate::execute::{NormalizedRequest, process_receipt, public_path_display, receipt};
 use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
 use crate::snapshot::InputSnapshot;
 use plan::{GraphPlan, GraphReader, PendingCreate, PlanKey};
@@ -90,7 +90,7 @@ pub(crate) fn execute(
     result.missing_edges = missing_edges;
     result.pour_mode = (!attach).then_some(BeadPourMode::Graph);
     let snapshot = formula_input.path().to_string_lossy();
-    let source = normalized.rendered_formula.to_string_lossy().into_owned();
+    let source = public_path_display(&normalized.rendered_formula);
     for stage in &mut result.stages {
         for argument in &mut stage.argv {
             if argument == snapshot.as_ref() {
@@ -123,7 +123,7 @@ fn run(
     validate::digest(&rendered)?;
     let args = vec![
         "cook".into(),
-        formula_input.path().to_string_lossy().into_owned(),
+        public_path_display(formula_input.path()),
         "--json".into(),
     ];
     let output = runtime.invoke(args)?;
@@ -429,7 +429,8 @@ impl PendingCreate {
         let plan_input = InputSnapshot::write(&path, &bytes)
             .map_err(|error| crate::snapshot::output_error(&path, error))?;
         plan_input.publish_copy(&path)?;
-        self.graph.plan_path = Some(path.clone());
+        let public_path = PathBuf::from(public_path_display(&path));
+        self.graph.plan_path = Some(public_path.clone());
         let mut args = vec![
             "create".into(),
             "--graph".into(),
@@ -440,18 +441,18 @@ impl PendingCreate {
         }
         args.push("--json".into());
         let mut presented_args = args.clone();
-        presented_args[2] = path.to_string_lossy().into_owned();
+        presented_args[2] = public_path.to_string_lossy().into_owned();
         let command = CommandSpec {
             executable: runtime.bd.clone(),
             args: presented_args,
             working_directory: runtime.normalized.working_directory.clone(),
         }
         .argv();
-        let output = runtime.invoke_presenting(args, Some((plan_input.path(), &path)))?;
+        let output = runtime.invoke_presenting(args, Some((plan_input.path(), &public_path)))?;
         let present = |text: &str| {
             text.replace(
                 plan_input.path().to_string_lossy().as_ref(),
-                path.to_string_lossy().as_ref(),
+                public_path.to_string_lossy().as_ref(),
             )
         };
         let failure = |cause: String| BeadComposeError::GraphApplyFailed {

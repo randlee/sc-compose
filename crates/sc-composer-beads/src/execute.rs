@@ -354,10 +354,11 @@ fn validate_utf8_path(path: &Path) -> Result<(), BeadComposeError> {
 }
 
 fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
+    let public_path = PathBuf::from(public_path_display(path));
     let parent = path
         .parent()
         .ok_or_else(|| BeadComposeError::OutputPathInvalid {
-            path: path.into(),
+            path: public_path.clone(),
             rule: String::from("an existing parent directory and file name are required"),
         })?;
     let parent = fs::canonicalize(parent).map_err(|error| {
@@ -375,13 +376,13 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
             String::from("parent directory must be resolvable")
         };
         BeadComposeError::OutputPathInvalid {
-            path: path.into(),
+            path: public_path.clone(),
             rule,
         }
     })?;
     if !parent.is_dir() {
         return Err(BeadComposeError::OutputPathInvalid {
-            path: path.into(),
+            path: public_path.clone(),
             rule: format!(
                 "parent `{}` must be a directory",
                 public_path_display(&parent)
@@ -391,7 +392,7 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
     let name = path
         .file_name()
         .ok_or_else(|| BeadComposeError::OutputPathInvalid {
-            path: path.into(),
+            path: public_path.clone(),
             rule: String::from("path must include a file name"),
         })?;
     Ok(parent.join(name))

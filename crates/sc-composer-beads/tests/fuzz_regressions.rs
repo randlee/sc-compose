@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 use std::collections::{BTreeMap, VecDeque};
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{
     Mutex,
     atomic::{AtomicU64, Ordering},
@@ -22,6 +22,22 @@ use std::time::Duration;
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COOKED: &str =
     r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#;
+
+fn public_path(path: &Path) -> String {
+    #[cfg(windows)]
+    {
+        let value = path.to_string_lossy();
+        if let Some(unc) = value.strip_prefix("\\\\?\\UNC\\") {
+            return format!("\\\\{unc}");
+        }
+        return value
+            .strip_prefix("\\\\?\\")
+            .unwrap_or(value.as_ref())
+            .to_owned();
+    }
+    #[cfg(not(windows))]
+    path.to_string_lossy().into_owned()
+}
 
 struct Workspace {
     root: PathBuf,
@@ -890,12 +906,17 @@ fn fuzz_014_concurrent_attaches_keep_complete_inputs_and_receipts() {
                     "description":request.compose_variables["description"],"metadata":{PROVENANCE_KEY:provenance}
                 }]})
             );
-            assert_eq!(receipt.rendered_formula, w.req.rendered_formula);
+            assert_eq!(
+                receipt.rendered_formula,
+                PathBuf::from(public_path(&w.req.rendered_formula))
+            );
             assert_eq!(
                 graph.plan_path.as_ref().expect("public plan"),
-                &w.req
-                    .rendered_formula
-                    .with_extension(format!("{suffix}.graph.json"))
+                &PathBuf::from(public_path(
+                    &w.req
+                        .rendered_formula
+                        .with_extension(format!("{suffix}.graph.json")),
+                ))
             );
         }
         let public_formula =
@@ -1187,8 +1208,9 @@ fn fuzz_014b_concurrent_bypath_pours_validate_their_own_initial_cook_inputs() {
                 assert_eq!(calls[1].args, ["where", "--json"]);
                 assert_eq!(&calls[2].args[2..], ["--json"]);
                 assert_eq!(
-                    calls[0].args[1], calls[2].args[1],
-                    "both cooks must use the same private snapshot"
+                    public_path(Path::new(&calls[0].args[1])),
+                    public_path(Path::new(&calls[2].args[1])),
+                    "both cooks must use the same public snapshot path"
                 );
                 assert_ne!(calls[0].args[1], w.req.rendered_formula.to_string_lossy());
                 let graph_stage = if operation == BeadOperation::Pour {
@@ -1211,7 +1233,10 @@ fn fuzz_014b_concurrent_bypath_pours_validate_their_own_initial_cook_inputs() {
                     ]
                 );
                 assert_eq!(receipt.pour_mode, Some(BeadPourMode::Graph));
-                assert_eq!(receipt.rendered_formula, w.req.rendered_formula);
+                assert_eq!(
+                    receipt.rendered_formula,
+                    PathBuf::from(public_path(&w.req.rendered_formula))
+                );
                 let graph = receipt.graph.as_ref().expect("graph");
                 assert_eq!(graph.nodes.len(), 2);
                 assert_eq!(
@@ -1251,15 +1276,12 @@ fn fuzz_042_missing_rendered_formula_directory_is_typed() {
     let details =
         serde_json::to_value(&error).expect("serialize output-path diagnostic")["details"].clone();
     assert_eq!(details["field"], "rendered_formula");
-    assert_eq!(
-        details["value"],
-        w.req.rendered_formula.to_string_lossy().as_ref()
-    );
+    assert_eq!(details["value"], public_path(&w.req.rendered_formula));
     assert!(
         details["rule"]
             .as_str()
             .expect("rule")
-            .contains(&missing_directory.to_string_lossy().to_string())
+            .contains(&public_path(&missing_directory))
     );
     assert!(
         details["rule"]
@@ -1312,7 +1334,7 @@ fn fuzz_050_directory_outputs_refuse_attach_before_bd_create() {
                     assert!(receipt.graph.is_none());
                     let diagnostic = &receipt.stages.last().expect("stage").stderr_excerpt;
                     assert!(
-                        diagnostic.contains(destination.to_string_lossy().as_ref()),
+                        diagnostic.contains(&public_path(&destination)),
                         "{diagnostic}"
                     );
                 }
@@ -1524,7 +1546,7 @@ fn fuzz_042_parent_file_and_relative_output_are_typed() {
     assert!(
         error
             .to_string()
-            .contains("not-a-directory/out.formula.toml"),
+            .contains(&public_path(&w.req.rendered_formula)),
         "{error}"
     );
 
@@ -1564,7 +1586,7 @@ fn fuzz_012_relative_rendered_formula_is_rooted_at_working_directory() {
         let receipt = w.run(&runner);
         assert_eq!(
             receipt.rendered_formula,
-            w.root.join("nested/out.formula.toml")
+            PathBuf::from(public_path(&w.root.join("nested/out.formula.toml")))
         );
         assert!(receipt.rendered_formula.is_file());
     }
@@ -1657,17 +1679,20 @@ fn assert_fuzz_055_cook_failure(
 ) {
     let receipt = execute_bead_request_with_runner(&w.req, runner).expect("actual execute receipt");
     failed(&receipt, "BEADS_COOK_FAILED", stage);
-    assert_eq!(receipt.rendered_formula, w.req.rendered_formula);
+    assert_eq!(
+        receipt.rendered_formula,
+        PathBuf::from(public_path(&w.req.rendered_formula))
+    );
     let evidence = serde_json::to_string(&receipt).expect("receipt JSON");
-    let source = w.req.rendered_formula.to_string_lossy();
-    assert!(evidence.contains(source.as_ref()), "{evidence}");
+    let source = public_path(&w.req.rendered_formula);
+    assert!(evidence.contains(source.as_str()), "{evidence}");
     assert!(!evidence.contains(".sc-compose-input-"), "{evidence}");
     let diagnostic = &receipt
         .stages
         .last()
         .expect("failed cook stage")
         .stderr_excerpt;
-    assert!(diagnostic.contains(source.as_ref()), "{diagnostic}");
+    assert!(diagnostic.contains(source.as_str()), "{diagnostic}");
     assert!(diagnostic.contains("cannot cook source"), "{diagnostic}");
     assert!(!diagnostic.contains(".sc-compose-input-"), "{diagnostic}");
     let calls = runner.inner.calls();
@@ -1770,20 +1795,16 @@ fn fuzz_055_r3_create_failures_and_preview_receipts_name_public_graph_plan() {
                 assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
             }
             let public = w.req.rendered_formula.with_extension("toml.graph.json");
+            let public_display = public_path(&public);
             let wire = serde_json::to_string(&receipt).expect("receipt");
-            assert!(wire.contains(public.to_string_lossy().as_ref()), "{wire}");
+            assert!(wire.contains(&public_display), "{wire}");
             assert!(!wire.contains(".sc-compose-input-"), "{wire}");
             let create = receipt
                 .stages
                 .iter()
                 .find(|stage| stage.argv.iter().any(|arg| arg == "--graph"))
                 .expect("create");
-            assert!(
-                create
-                    .argv
-                    .iter()
-                    .any(|arg| arg == public.to_string_lossy().as_ref())
-            );
+            assert!(create.argv.iter().any(|arg| arg == &public_display));
             let calls = runner.inner.calls();
             let actual = calls
                 .iter()
