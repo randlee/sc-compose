@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `sc-composer-beads`: a `bd create --graph` that exits 0 but whose response
+  cannot be consumed is now `BeadComposeError::GraphApplyUnconfirmed`
+  (`BEADS_GRAPH_APPLY_UNCONFIRMED`) instead of `GraphApplyFailed`, because
+  beads may already exist; its recovery is to reconcile before pouring again.
+  Exhaustive matches on `BeadComposeError` must add the new variant.
+
 ## [1.6.1] - 2026-08-30
 
 ### Added

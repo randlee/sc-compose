@@ -383,6 +383,7 @@ Refused or failed receipts (exit `2`):
 | `BEADS_GRAPH_EDGE_MISSING` | an edge between two existing beads of this attachment was removed | run the `bd dep add` command the message gives for each edge, then re-run |
 | `BEADS_GRAPH_READ_FAILED` | `bd show` or `bd dep list` failed for a reason other than "not found"; nothing was written | fix the cause shown in the stage output and re-run |
 | `BEADS_GRAPH_APPLY_FAILED` | `bd create --graph` failed; nothing was written | fix the cause shown in the stage output and re-run |
+| `BEADS_GRAPH_APPLY_UNCONFIRMED` | `bd create --graph` exited 0 but its response could not be read or did not match the plan; beads may have been created | before pouring again, run `bd show` on the ids the message lists (or `bd list` for a by-path pour) and reconcile; a retry can create a second molecule |
 
 Earlier codes are unchanged, for example `BEADS_RENDER_FAILED`,
 `BEADS_COOK_FAILED`, `BEADS_PREVIEW_POUR_FAILED`, `BEADS_POUR_FAILED` and

@@ -156,7 +156,8 @@ fn bead_error_exit_code(error: &BeadComposeError) -> i32 {
         | BeadComposeError::GraphEdgeConflict { .. }
         | BeadComposeError::GraphEdgeMissing { .. }
         | BeadComposeError::GraphReadFailed { .. }
-        | BeadComposeError::GraphApplyFailed { .. } => exit_codes::VALIDATION_OR_RENDER_FAIL,
+        | BeadComposeError::GraphApplyFailed { .. }
+        | BeadComposeError::GraphApplyUnconfirmed { .. } => exit_codes::VALIDATION_OR_RENDER_FAIL,
     }
 }
 

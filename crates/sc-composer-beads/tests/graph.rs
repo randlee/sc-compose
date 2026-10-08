@@ -337,7 +337,7 @@ fn graph_apply_parse_failure_keeps_the_parser_cause() {
 
     let receipt = w.run(&runner);
 
-    failed(&receipt, "BEADS_GRAPH_APPLY_FAILED", BeadStage::Attach);
+    failed(&receipt, "BEADS_GRAPH_APPLY_UNCONFIRMED", BeadStage::Attach);
     assert!(
         receipt
             .stages
@@ -884,5 +884,64 @@ fn missing_relation_retains_typed_reason_with_nonempty_bd_stderr() {
         assert_eq!(failed_stage.exit_status, Some(0));
         assert_eq!(runner.calls().len(), 2);
         assert_read_only(&runner);
+    }
+}
+
+fn assert_unconfirmed(receipt: &BeadComposeReceipt, stage: BeadStage, reconcile: &str) {
+    failed(receipt, "BEADS_GRAPH_APPLY_UNCONFIRMED", stage);
+    let evidence = &receipt.stages.last().expect("stage").stderr_excerpt;
+    assert!(
+        evidence.contains("beads may have been created") && evidence.contains(reconcile),
+        "{evidence}"
+    );
+    assert!(!evidence.contains("nothing was written"), "{evidence}");
+}
+
+#[test]
+fn attach_apply_exit_zero_with_unusable_response_is_unconfirmed() {
+    for response in [
+        "not-json",
+        "{}",
+        r#"{"ids":{"wrong":"proj-9"}}"#,
+        r#"{"ids":{"step:build":"proj-9"}}"#,
+    ] {
+        let mut w = Workspace::new();
+        w.req.operation = BeadOperation::Attach;
+        let runner = FakeRunner::new([ok(COOKED), parent(), ok(response)]);
+
+        let receipt = w.run(&runner);
+
+        assert_unconfirmed(
+            &receipt,
+            BeadStage::Attach,
+            "reconcile with bd show 'proj-1' 'proj-1.chain-build' before pouring again",
+        );
+        assert!(receipt.graph.is_none(), "{response}: {receipt:#?}");
+    }
+}
+
+#[test]
+fn pour_apply_exit_zero_with_unusable_response_is_unconfirmed() {
+    for response in ["not-json", r#"{"ids":{}}"#] {
+        let mut w = Workspace::new();
+        w.req.operation = BeadOperation::Pour;
+        w.req.parent = None;
+        w.req.ref_ = None;
+        let registry = w.root.join(".beads");
+        fs::create_dir(&registry).expect("registry");
+        let runner = FakeRunner::new([
+            ok(COOKED),
+            ok(&json!({ "path": registry }).to_string()),
+            ok(COOKED),
+            ok(response),
+        ]);
+
+        let receipt = w.run(&runner);
+
+        assert_unconfirmed(
+            &receipt,
+            BeadStage::Pour,
+            "find the molecule with bd list and reconcile before pouring again",
+        );
     }
 }

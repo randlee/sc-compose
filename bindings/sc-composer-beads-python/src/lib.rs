@@ -109,6 +109,7 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
         | RustBeadComposeError::GraphEdgeMissing { .. }
         | RustBeadComposeError::GraphReadFailed { .. }
         | RustBeadComposeError::GraphApplyFailed { .. }
+        | RustBeadComposeError::GraphApplyUnconfirmed { .. }
         | RustBeadComposeError::RelationEndpointInvalid { .. }
         | RustBeadComposeError::RequestReadFailed { .. }
         | RustBeadComposeError::RequestDeserializationFailed { .. }
@@ -744,6 +745,7 @@ fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
         "BEADS_GRAPH_EDGE_MISSING",
         "BEADS_GRAPH_READ_FAILED",
         "BEADS_GRAPH_APPLY_FAILED",
+        "BEADS_GRAPH_APPLY_UNCONFIRMED",
     ] {
         module.add(code, code)?;
     }

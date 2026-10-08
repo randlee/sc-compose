@@ -347,6 +347,14 @@ fn every_advertised_error_has_its_stable_code() {
             },
             "BEADS_GRAPH_APPLY_FAILED",
         ),
+        (
+            BeadComposeError::GraphApplyUnconfirmed {
+                command: vec!["bd".into(), "create".into(), "--graph".into()],
+                cause: "missing ids".to_owned(),
+                ids: vec![bead("proj-42")],
+            },
+            "BEADS_GRAPH_APPLY_UNCONFIRMED",
+        ),
     ];
 
     for (error, expected_code) in examples {

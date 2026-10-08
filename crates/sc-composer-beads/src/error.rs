@@ -344,6 +344,22 @@ pub enum BeadComposeError {
         /// Short diagnostic for the process, parse, or response-shape failure.
         cause: String,
     },
+    /// `ApplyUnconfirmed` condition from ADR-0023: `bd create --graph` exited
+    /// 0, so its transaction may have committed, but its response could not
+    /// be consumed.
+    #[error(
+        "graph apply unconfirmed: {cause}; {command:?}; bd exited 0, so beads may have been created; {}",
+        unconfirmed_apply_reconcile(.ids)
+    )]
+    GraphApplyUnconfirmed {
+        /// Attempted bd argv.
+        command: Vec<String>,
+        /// Short diagnostic for the response-shape or id-mapping failure.
+        cause: String,
+        /// Known bead ids to inspect: the attach parent and planned step ids.
+        /// Empty for a by-path pour, whose root id only bd assigns.
+        ids: Vec<BeadId>,
+    },
 }
 
 pub(crate) fn short_cause(message: &str) -> String {
@@ -409,6 +425,7 @@ impl BeadComposeError {
             Self::GraphEdgeMissing { .. } => "BEADS_GRAPH_EDGE_MISSING",
             Self::GraphReadFailed { .. } => "BEADS_GRAPH_READ_FAILED",
             Self::GraphApplyFailed { .. } => "BEADS_GRAPH_APPLY_FAILED",
+            Self::GraphApplyUnconfirmed { .. } => "BEADS_GRAPH_APPLY_UNCONFIRMED",
         }
     }
 }
@@ -560,6 +577,18 @@ pub fn escape_human_text(text: &str) -> String {
         }
     }
     escaped
+}
+
+fn unconfirmed_apply_reconcile(ids: &[BeadId]) -> String {
+    if ids.is_empty() {
+        return String::from("find the molecule with bd list and reconcile before pouring again");
+    }
+    let ids = ids
+        .iter()
+        .map(|id| shell_quote(id.as_str()))
+        .collect::<Vec<_>>()
+        .join(" ");
+    format!("reconcile with bd show {ids} before pouring again")
 }
 
 fn missing_edge_commands(edges: &[MissingEdge]) -> String {

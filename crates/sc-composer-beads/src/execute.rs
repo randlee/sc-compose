@@ -952,6 +952,44 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn exit_zero_apply_with_unusable_response_retains_unconfirmed_diagnostic() {
+        let root = fs::canonicalize(workspace()).unwrap();
+        let mut request = request(&root, BeadOperation::Attach);
+        request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+        request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+        request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+        request.bead_variables.clear();
+        fs::write(&request.template, "formula = \"example\"\n").unwrap();
+        let runner = FakeRunner::with_outputs([
+            success(r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#),
+            success(r#"[{"id":"proj-1"}]"#),
+            success("not-json"),
+        ]);
+        let mut diagnostics = Vec::new();
+        let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+            diagnostics.push(serde_json::to_value(error).unwrap());
+        })
+        .unwrap();
+        assert_eq!(
+            receipt.outcome,
+            BeadOutcome::Failed {
+                code: "BEADS_GRAPH_APPLY_UNCONFIRMED".into()
+            }
+        );
+        assert_eq!(diagnostics.len(), 1);
+        let error = &diagnostics[0];
+        assert_eq!(error["code"], "BEADS_GRAPH_APPLY_UNCONFIRMED");
+        assert_eq!(error["details"]["ids"], json!(["proj-1", "proj-1.chain-a"]));
+        assert!(
+            error["recovery"]
+                .as_str()
+                .unwrap()
+                .contains("Reconcile before pouring again")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn attach_output_refusal_retains_exact_path_in_typed_diagnostic() {
         for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
             let root = fs::canonicalize(workspace()).unwrap();

@@ -169,3 +169,36 @@ fn output_path_invalid_serializes_non_utf8_path_lossily() {
             .contains("out-")
     );
 }
+
+#[test]
+fn unconfirmed_apply_never_promises_nothing_was_written() {
+    for ids in [vec![BeadId::new("parent").unwrap()], Vec::new()] {
+        let ids_json = serde_json::to_value(&ids).unwrap();
+        let error = Error::GraphApplyUnconfirmed {
+            command: vec!["bd".into(), "create".into(), "--graph".into()],
+            cause: "bd create --graph response is missing ids".into(),
+            ids,
+        };
+        let serialized = serde_json::to_value(&error).unwrap();
+        assert_eq!(serialized["code"], "BEADS_GRAPH_APPLY_UNCONFIRMED");
+        assert_eq!(serialized["message"], error.to_string());
+        assert_eq!(
+            serialized["details"],
+            json!({
+                "command": ["bd", "create", "--graph"],
+                "cause": "bd create --graph response is missing ids",
+                "ids": ids_json,
+            })
+        );
+        let message = serialized["message"].as_str().unwrap();
+        let recovery = serialized["recovery"].as_str().unwrap();
+        for text in [message, recovery] {
+            assert!(text.contains("may have been created"), "{text}");
+            assert!(!text.contains("nothing was written"), "{text}");
+        }
+        assert!(
+            recovery.contains("Reconcile before pouring again"),
+            "{recovery}"
+        );
+    }
+}

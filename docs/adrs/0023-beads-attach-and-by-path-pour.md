@@ -305,6 +305,7 @@ that adds only edges, and reporting success would leave the graph incomplete.
 | `GraphEdgeMissing { edges }` | `BEADS_GRAPH_EDGE_MISSING` | refused / 2 (plan) | run the `bd dep add` command the message gives for each edge, then re-run |
 | `GraphReadFailed { command, status }` | `BEADS_GRAPH_READ_FAILED` | failed / 2 (plan) | fix the bd failure and re-run; nothing was written |
 | `GraphApplyFailed { command, status }` | `BEADS_GRAPH_APPLY_FAILED` | failed / 2 (pour or attach) | fix the bd failure and re-run; nothing was written |
+| `GraphApplyUnconfirmed { command, cause, ids }` | `BEADS_GRAPH_APPLY_UNCONFIRMED` | failed / 2 (pour or attach) | bd exited 0, so beads may exist: reconcile with `bd show` on `ids` (`bd list` when `ids` is empty) before pouring again |
 
 Field types: `command` is the bd argv as `Vec<String>`; `status` is
 `Option<i32>` (None when bd was killed by a signal); `edges` is a non-empty
@@ -460,8 +461,13 @@ written and `plan_path` is absent. The plan contains only what is missing:
 Preview runs `bd create --graph <plan> --dry-run --json` and apply runs `bd
 create --graph <plan> --json`. bd validates the whole plan (types, priority,
 ids, cycles, blocking paths through the hierarchy) before writing and applies
-it in one transaction, returning `{"ids": {key: id}}`. A failure of either
-command is `GraphApplyFailed`; bd has written nothing. When every planned node
+it in one transaction, returning `{"ids": {key: id}}`. A non-zero exit of
+either command is `GraphApplyFailed`; bd has written nothing. When apply exits
+0 but its response cannot be consumed (not JSON, `ids` missing, or ids that do
+not match the plan), the transaction may have committed: that is
+`GraphApplyUnconfirmed`, whose `ids` lists the attach parent and planned step
+ids to inspect, and whose recovery is to reconcile before pouring again, since
+a retry can create a second molecule. When every planned node
 and edge already exists with matching provenance, no file and no bd write is
 issued.
 

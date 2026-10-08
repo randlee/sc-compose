@@ -84,6 +84,14 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             json!({ "command": command, "status": status, "cause": cause }),
             "Fix the bd failure and retry; nothing was written.",
         )),
+        BeadComposeError::GraphApplyUnconfirmed {
+            command,
+            cause,
+            ids,
+        } => Some((
+            json!({ "command": command, "cause": cause, "ids": ids }),
+            "bd exited 0, so beads may have been created. Reconcile before pouring again: run bd show on the listed ids (bd list when none are listed); a retry can create a second molecule.",
+        )),
         _ => None,
     };
     let (details, recovery) = match context {
