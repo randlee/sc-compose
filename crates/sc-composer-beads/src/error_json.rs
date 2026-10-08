@@ -22,7 +22,7 @@ impl Serialize for BeadComposeError {
     {
         let context = match self {
             Self::RequestReadFailed { path, source } => Some((
-                json!({ "path": path, "kind": format!("{:?}", source.kind()) }),
+                json!({ "path": path.to_string_lossy(), "kind": format!("{:?}", source.kind()) }),
                 "Check that the request path names an existing UTF-8 JSON file and that you have permission to read it.",
             )),
             Self::OutputPathInvalid { path, rule } => Some((
