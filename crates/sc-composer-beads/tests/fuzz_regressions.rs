@@ -1083,3 +1083,37 @@ fn fuzz_014b_concurrent_bypath_pours_validate_their_own_initial_cook_inputs() {
         }
     }
 }
+// FUZZ-042: a missing rendered_formula parent is an output-path error.
+#[test]
+fn fuzz_042_missing_rendered_formula_directory_is_typed() {
+    let mut w = Workspace::new();
+    let missing_directory = w.root.join("missing_dir");
+    w.req.rendered_formula = missing_directory.join("m.formula.toml");
+    let runner = FakeRunner::new([]);
+
+    let error = execute_bead_request_with_runner(&w.req, &runner)
+        .expect_err("missing output directory must be rejected");
+    assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID");
+    assert!(error.to_string().contains("m.formula.toml"));
+    assert!(error.to_string().contains("missing_dir"));
+    let details =
+        serde_json::to_value(&error).expect("serialize output-path diagnostic")["details"].clone();
+    assert_eq!(details["field"], "rendered_formula");
+    assert_eq!(
+        details["value"],
+        w.req.rendered_formula.to_string_lossy().as_ref()
+    );
+    assert!(
+        details["rule"]
+            .as_str()
+            .expect("rule")
+            .contains(&missing_directory.to_string_lossy().to_string())
+    );
+    assert!(
+        details["rule"]
+            .as_str()
+            .expect("rule")
+            .contains("must exist")
+    );
+    assert!(runner.calls().is_empty(), "{:#?}", runner.calls());
+}

@@ -350,6 +350,8 @@ operation, `relations` on `render` or `validate`),
 `BEADS_RELATION_ENDPOINT_INVALID` (a relation endpoint lacks its `step:` or
 `bead:` prefix; correct that endpoint), `BEADS_UNKNOWN_SCHEMA`, path
 and authorization errors such as `BEADS_POUR_AUTH_REQUIRED`.
+An invalid `rendered_formula` output path uses `BEADS_OUTPUT_PATH_INVALID`;
+its diagnostic identifies the field, supplied path, and parent-directory rule.
 
 A pour only knows whether it is a registry or graph pour after locating the
 registry, so two pour mistakes are refused receipts (exit `2`) instead:

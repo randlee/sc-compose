@@ -169,6 +169,7 @@ codes:
 | `FormulaPathNotFile` | `BEADS_FORMULA_NOT_FILE` | Template or rendered formula path is not a regular file. |
 | `FormulaExtensionUnsupported` | `BEADS_FORMULA_EXTENSION_UNSUPPORTED` | Formula is not `.formula.toml` or `.formula.json`. |
 | `TemplatePathInvalid` | `BEADS_TEMPLATE_PATH_INVALID` | Template path is missing, malformed, or cannot be resolved. |
+| `OutputPathInvalid` | `BEADS_OUTPUT_PATH_INVALID` | `rendered_formula` cannot be normalized because its parent directory is missing or cannot be resolved. |
 | `TemplateOutsideWorkingDirectory` | `BEADS_TEMPLATE_OUTSIDE_WORKING_DIR` | Template escapes `working_directory`. |
 | `OutputOutsideWorkingDirectory` | `BEADS_OUTPUT_OUTSIDE_WORKING_DIR` | Rendered output escapes the permitted working directory. |
 | `OutputPathSymlink` | `BEADS_OUTPUT_PATH_SYMLINK` | Final rendered output component is a symbolic link. |

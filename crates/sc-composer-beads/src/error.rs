@@ -115,8 +115,16 @@ pub enum BeadComposeError {
     /// A template path could not be normalized safely.
     #[error("invalid template path: {path}")]
     TemplatePathInvalid {
-        /// Template or output path that could not be normalized safely.
+        /// Template path that could not be normalized safely.
         path: PathBuf,
+    },
+    /// The rendered-formula output path could not be normalized.
+    #[error("invalid rendered_formula output path `{path}`: {rule}")]
+    OutputPathInvalid {
+        /// Output path supplied by the request.
+        path: PathBuf,
+        /// Rule that the output path failed.
+        rule: String,
     },
     /// A template path escaped the working directory.
     #[error("template path escapes working directory: {path}")]
@@ -369,6 +377,7 @@ impl BeadComposeError {
             Self::FormulaPathNotFile { .. } => "BEADS_FORMULA_NOT_FILE",
             Self::FormulaExtensionUnsupported { .. } => "BEADS_FORMULA_EXTENSION_UNSUPPORTED",
             Self::TemplatePathInvalid { .. } => "BEADS_TEMPLATE_PATH_INVALID",
+            Self::OutputPathInvalid { .. } => "BEADS_OUTPUT_PATH_INVALID",
             Self::TemplateOutsideWorkingDirectory { .. } => "BEADS_TEMPLATE_OUTSIDE_WORKING_DIR",
             Self::OutputOutsideWorkingDirectory { .. } => "BEADS_OUTPUT_OUTSIDE_WORKING_DIR",
             Self::OutputPathSymlink { .. } => "BEADS_OUTPUT_PATH_SYMLINK",
