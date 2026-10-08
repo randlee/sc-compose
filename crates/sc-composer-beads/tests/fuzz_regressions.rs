@@ -1,5 +1,12 @@
 //! Regression tests promoted from the Phase T adversarial fuzz campaign.
 
+mod shell_literal {
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../test-support/shell_literal.rs"
+    ));
+}
+
 use sc_composer_beads::*;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, VecDeque};
@@ -417,7 +424,7 @@ const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 // FUZZ-040: recovery command arguments cannot execute shell syntax or emit controls.
 #[test]
 fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
-    let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}\u{200b}\u{00ad}";
+    let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}\u{200b}\u{00ad}$(literal)$HOME`literal`";
     let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}\u{feff}";
     let error = sc_composer_beads::BeadComposeError::GraphEdgeMissing {
         edges: vec![sc_composer_beads::MissingEdge {
@@ -447,6 +454,7 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
         .unwrap()
         .strip_suffix(" --type 'blocks'")
         .unwrap();
+    shell_literal::assert_round_trip(arguments, &[from, to]);
     #[cfg(unix)]
     assert_bash_round_trip(arguments, format!("{from}\0{to}\0").as_bytes());
 
@@ -454,9 +462,19 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
     let escaped_separators = sc_composer_beads::error::shell_quote(separators);
     assert!(escaped_separators.contains("\\xE2\\x80\\xA8"));
     assert!(escaped_separators.contains("\\xE2\\x80\\xA9"));
+    shell_literal::assert_round_trip(&escaped_separators, &[separators]);
     #[cfg(unix)]
     assert_bash_round_trip(&escaped_separators, format!("{separators}\0").as_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
+    for value in [
+        "",
+        " ",
+        "trailing\\",
+        "a'b",
+        "$(literal);$HOME`literal`*?[]",
+    ] {
+        shell_literal::assert_round_trip(&sc_composer_beads::error::shell_quote(value), &[value]);
+    }
 }
 
 #[cfg(unix)]

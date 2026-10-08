@@ -283,6 +283,12 @@ fn missing_edge_recovery_commands(
 
 #[cfg(test)]
 mod tests {
+    mod shell_literal {
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../test-support/shell_literal.rs"
+        ));
+    }
     use super::{human_bead_error, missing_edge_recovery_commands};
     use sc_composer_beads::{
         BeadComposeError, BeadComposeReceipt, BeadId, GraphConflictReason, GraphDependencyType,
@@ -326,7 +332,7 @@ mod tests {
     }
     #[test]
     fn missing_edge_recovery_commands_escape_controls_and_bidi_for_bash() {
-        let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}";
+        let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}$(literal)$HOME`literal`";
         let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
         let receipt: BeadComposeReceipt = serde_json::from_value(json!({
             "schema": "sc-compose/beads/v1",
@@ -342,7 +348,7 @@ mod tests {
         let command = &commands[0];
         assert!(!command.chars().any(char::is_control), "{command:?}");
         assert!(
-            !command.chars().any(|c| matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{200e}' | '\u{200f}')),
+            !command.chars().any(|c| matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{200e}' | '\u{200f}' | '\u{2028}' | '\u{2029}')),
             "{command:?}"
         );
         let arguments = command
@@ -350,6 +356,11 @@ mod tests {
             .unwrap()
             .strip_suffix(" --type 'blocks'")
             .unwrap();
+        shell_literal::assert_round_trip(arguments, &[from, to]);
+        let separators = "line\u{2028}paragraph\u{2029}end";
+        let escaped = super::shell_quote(separators);
+        assert!(!escaped.contains(['\u{2028}', '\u{2029}']));
+        shell_literal::assert_round_trip(&escaped, &[separators]);
         #[cfg(unix)]
         {
             let output = std::process::Command::new("bash")
