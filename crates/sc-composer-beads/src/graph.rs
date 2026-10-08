@@ -265,6 +265,11 @@ fn process_failure_cause(output: &ProcessOutput) -> String {
     } else {
         &output.stderr
     };
+    if let Ok(value) = serde_json::from_str::<Value>(diagnostic)
+        && let Some(cause) = value.get("error").and_then(Value::as_str)
+    {
+        return short_cause(cause);
+    }
     short_cause(diagnostic)
 }
 

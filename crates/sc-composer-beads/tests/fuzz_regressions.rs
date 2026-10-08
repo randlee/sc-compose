@@ -410,7 +410,6 @@ fn fuzz_016_option_like_relation_sources_are_not_dep_list_options() {
 
 // FUZZ-020: apply failures preserve bd's error text.
 #[test]
-#[ignore = "FUZZ-020"]
 fn fuzz_020_apply_failure_cause_is_bds_error_text() {
     let w = Workspace::new();
     let runner = FakeRunner::new([
@@ -429,6 +428,9 @@ fn fuzz_020_apply_failure_cause_is_bds_error_text() {
     );
     let evidence = &receipt.stages.last().expect("stage").stderr_excerpt;
     assert!(
-        evidence.contains("graph apply failed") && evidence.contains("blocking dependency cycle")
+        evidence.contains("graph apply failed")
+            && evidence
+                .contains("graph contains a blocking dependency cycle involving node \"build\""),
+        "{evidence}"
     );
 }
