@@ -171,6 +171,9 @@ pub struct BeadComposeReceipt {
     /// Graph plan and resulting identities, when using graph construction.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub graph: Option<BeadGraph>,
+    /// Edges to repair after a `GraphEdgeMissing` refusal, independent of stage output.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub missing_edges: Vec<MissingEdge>,
 }
 
 /// One discrete execution stage.

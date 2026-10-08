@@ -394,6 +394,7 @@ pub(crate) fn receipt(
         outcome,
         pour_mode: None,
         graph: None,
+        missing_edges: Vec::new(),
     }
 }
 
