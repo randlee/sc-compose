@@ -220,8 +220,8 @@ fn refuse_outside_workspace(
 
 #[cfg(test)]
 mod tests {
-    use crate::execute::execute_bead_request_with_runner;
     use crate::execute::tests::{FakeRunner, request, success, where_output, workspace};
+    use crate::execute::{execute_bead_request_with_runner, public_path_display};
     use crate::{BeadOperation, BeadOutcome, BeadStage};
     use std::fs;
     use std::path::Path;
@@ -294,7 +294,10 @@ mod tests {
         );
         let cook_input = Path::new(&calls[0].args[1]);
         let canonical_registry = fs::canonicalize(&registry).expect("canonical registry");
-        assert_eq!(cook_input.parent(), Some(canonical_registry.as_path()));
+        assert_eq!(
+            cook_input.parent().map(public_path_display),
+            Some(public_path_display(&canonical_registry))
+        );
         assert!(cook_input.to_string_lossy().ends_with(".formula.toml"));
         assert_ne!(cook_input, request.rendered_formula);
         assert_eq!(

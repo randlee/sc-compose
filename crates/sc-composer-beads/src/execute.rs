@@ -1023,7 +1023,7 @@ pub(crate) mod tests {
             calls[0].args,
             vec![
                 "cook",
-                canonical_output.to_string_lossy().as_ref(),
+                public_path_display(&canonical_output).as_str(),
                 "--dry-run",
                 "--json",
                 "--var",
