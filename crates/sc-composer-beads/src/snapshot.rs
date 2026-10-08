@@ -81,11 +81,6 @@ impl InputSnapshot {
         crate::render::atomic_write(destination, &contents)
             .map_err(|error| output_error(destination, error))
     }
-
-    pub(crate) fn publish(&self, destination: &Path) -> Result<(), BeadComposeError> {
-        crate::render::validate_output_destination(destination)?;
-        crate::render::replace_output(&self.path, destination)
-    }
 }
 
 impl Drop for InputSnapshot {

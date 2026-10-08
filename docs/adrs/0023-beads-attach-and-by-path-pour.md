@@ -353,6 +353,14 @@ formula's parent directory is the active registry (`bd where` then
 rendered formula inside `working_directory` uses the graph engine in pour mode
 (`pour_mode: "graph"`), and `render` no longer requires the registry directory
 to exist. A rendered formula outside `working_directory` is refused as before.
+For every operation that refusal is the request error
+`BEADS_OUTPUT_OUTSIDE_WORKING_DIR` (exit 3), never a receipt. Render, validate
+and attach raise it before any stage; a pour raises it after `bd where`, since
+only the active registry may lie outside `working_directory`. A pour writes
+the rendered formula once: inside `working_directory` in the render stage,
+and in an outside active registry only after that check passes, before
+`bd mol pour`. Nothing writes it after `bd` runs, so a successful pour's
+receipt is never lost.
 
 ### Id rule
 `ref` matches `^[A-Za-z0-9_-]{1,32}$` (no `.`; `-` allowed) and every step id

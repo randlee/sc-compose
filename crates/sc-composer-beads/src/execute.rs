@@ -84,12 +84,13 @@ fn execute_with_runner_and_diagnostics(
             &request.compose_variables,
             &normalized.working_directory,
         )?;
-        // Phase R consumes its named registry path. Graph operations retain
-        // the private input until bd has read it, even when routing by path.
-        if crate::graph::is_attach(request.operation) {
+        // Every operation writes the rendered formula exactly once and keeps
+        // the private input until bd has read it. A pour destination outside
+        // `working_directory` is permitted only in the active registry, which
+        // `bd where` reveals later, so `crate::pour` publishes it after that
+        // check.
+        if !normalized.defers_publish(request.operation) {
             input.publish_copy(&normalized.rendered_formula)?;
-        } else if request.operation != BeadOperation::Render {
-            crate::render::atomic_write(&normalized.rendered_formula, &input.read()?)?;
         }
         Ok::<_, BeadComposeError>(input)
     })();
@@ -119,19 +120,24 @@ fn execute_with_runner_and_diagnostics(
         String::new(),
     ));
 
-    let destination = normalized.rendered_formula.clone();
-    let result = execute_rendered_request(
+    execute_rendered_request(
         request,
         runner,
         normalized,
         &formula_input,
         stages,
         diagnostics,
-    );
-    if !crate::graph::is_attach(request.operation) {
-        formula_input.publish(&destination)?;
+    )
+}
+
+fn is_pour(operation: BeadOperation) -> bool {
+    matches!(operation, BeadOperation::PreviewPour | BeadOperation::Pour)
+}
+
+impl NormalizedRequest {
+    pub(crate) fn defers_publish(&self, operation: BeadOperation) -> bool {
+        is_pour(operation) && !self.rendered_formula.starts_with(&self.working_directory)
     }
-    result
 }
 
 fn execute_rendered_request(
@@ -166,10 +172,7 @@ fn execute_rendered_request(
             diagnostics,
         );
     }
-    let cook_input = if matches!(
-        request.operation,
-        BeadOperation::PreviewPour | BeadOperation::Pour
-    ) {
+    let cook_input = if is_pour(request.operation) {
         formula_input.path()
     } else {
         normalized.rendered_formula.as_path()

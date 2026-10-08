@@ -106,11 +106,14 @@ pub(crate) fn execute(
 }
 
 fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
+    // An output outside `working_directory` is a request error for every
+    // operation, never a receipt.
     matches!(
         error,
         BeadComposeError::BdUnavailable { .. }
             | BeadComposeError::ProcessArgumentInvalid { .. }
             | BeadComposeError::ProcessOutputLimitExceeded { .. }
+            | BeadComposeError::OutputOutsideWorkingDirectory { .. }
     )
 }
 
