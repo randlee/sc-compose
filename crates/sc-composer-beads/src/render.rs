@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::Map;
 
 use crate::error::BeadComposeError;
+use crate::execute::public_path_buf;
 
 static TEMPORARY_OUTPUT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -74,16 +75,18 @@ pub(crate) fn render_formula_in_root(
 pub(crate) fn validate_output_destination(path: &Path) -> Result<(), BeadComposeError> {
     match fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_symlink() => {
-            Err(BeadComposeError::OutputPathSymlink { path: path.into() })
+            Err(BeadComposeError::OutputPathSymlink {
+                path: public_path_buf(path),
+            })
         }
         Ok(metadata) if metadata.is_file() => Ok(()),
         Ok(_) => Err(BeadComposeError::OutputPathInvalid {
-            path: path.into(),
+            path: public_path_buf(path),
             rule: "destination must be a regular file or a nonexistent path".into(),
         }),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(BeadComposeError::OutputPathInvalid {
-            path: path.into(),
+            path: public_path_buf(path),
             rule: format!("cannot inspect output destination: {error}"),
         }),
     }
@@ -113,10 +116,14 @@ pub(crate) fn atomic_write(path: &Path, contents: &[u8]) -> Result<(), BeadCompo
 fn temporary_output_path(path: &Path) -> Result<std::path::PathBuf, BeadComposeError> {
     let parent = path
         .parent()
-        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+        .ok_or_else(|| BeadComposeError::TemplatePathInvalid {
+            path: public_path_buf(path),
+        })?;
     let name = path
         .file_name()
-        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+        .ok_or_else(|| BeadComposeError::TemplatePathInvalid {
+            path: public_path_buf(path),
+        })?;
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|error| BeadComposeError::RenderFailed {

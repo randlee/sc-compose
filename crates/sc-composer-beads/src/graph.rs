@@ -9,7 +9,9 @@ use crate::contract::{
     BeadStageReceipt, GraphDependencyType,
 };
 use crate::error::{BeadComposeError, short_cause};
-use crate::execute::{NormalizedRequest, process_receipt, public_path_display, receipt};
+use crate::execute::{
+    NormalizedRequest, process_receipt, public_path_buf, public_path_display, receipt,
+};
 use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
 use crate::snapshot::InputSnapshot;
 use plan::{GraphPlan, GraphReader, PendingCreate, PlanKey};
@@ -415,22 +417,22 @@ impl PendingCreate {
             .to_os_string();
         path.push(".graph.json");
         let path = PathBuf::from(path);
+        let public_path = public_path_buf(&path);
         let parent = path
             .parent()
             .and_then(|p| fs::canonicalize(p).ok())
             .ok_or_else(|| BeadComposeError::OutputPathInvalid {
-                path: path.clone(),
+                path: public_path.clone(),
                 rule: "output parent must exist and be accessible".into(),
             })?;
         if !parent.starts_with(&runtime.normalized.working_directory) {
-            return Err(BeadComposeError::OutputOutsideWorkingDirectory { path });
+            return Err(BeadComposeError::OutputOutsideWorkingDirectory { path: public_path });
         }
         crate::render::validate_output_destination(&path)?;
         let bytes = serde_json::to_vec(&self.payload).expect("plan JSON serializes");
         let plan_input = InputSnapshot::write(&path, &bytes)
             .map_err(|error| crate::snapshot::output_error(&path, error))?;
         plan_input.publish_copy(&path)?;
-        let public_path = PathBuf::from(public_path_display(&path));
         self.graph.plan_path = Some(public_path.clone());
         let mut args = vec![
             "create".into(),

@@ -7,6 +7,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::error::BeadComposeError;
+use crate::execute::public_path_buf;
 
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -19,7 +20,7 @@ impl InputSnapshot {
         let parent = destination
             .parent()
             .ok_or_else(|| BeadComposeError::TemplatePathInvalid {
-                path: destination.into(),
+                path: public_path_buf(destination),
             })?;
         // bd chooses TOML only for the complete .formula.toml suffix.
         let name = destination
@@ -102,7 +103,7 @@ fn render_error(error: impl std::fmt::Display) -> BeadComposeError {
 pub(crate) fn output_error(destination: &Path, error: BeadComposeError) -> BeadComposeError {
     match error {
         BeadComposeError::RenderFailed { message } => BeadComposeError::OutputPathInvalid {
-            path: destination.into(),
+            path: public_path_buf(destination),
             rule: format!("cannot publish output: {message}"),
         },
         other => other,

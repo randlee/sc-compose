@@ -5,8 +5,8 @@ use crate::contract::{
 };
 use crate::error::BeadComposeError;
 use crate::execute::{
-    NormalizedRequest, StageFailure, append_variables, failed_last_stage_receipt, receipt,
-    run_stage, run_stage_with_output,
+    NormalizedRequest, StageFailure, append_variables, failed_last_stage_receipt, public_path_buf,
+    receipt, run_stage, run_stage_with_output,
 };
 use crate::runner::{CommandSpec, ProcessRunner};
 use crate::snapshot::InputSnapshot;
@@ -158,7 +158,7 @@ fn validate_active_registry_path(
     }
     if rendered_formula != toml && rendered_formula != json {
         return Err(BeadComposeError::FormulaOutsideActiveRegistry {
-            path: rendered_formula.into(),
+            path: public_path_buf(rendered_formula),
         });
     }
     Ok(())
@@ -212,7 +212,7 @@ fn refuse_outside_workspace(
             normalized.rendered_formula.clone(),
             stages.to_vec(),
             &BeadComposeError::OutputOutsideWorkingDirectory {
-                path: normalized.rendered_formula.clone(),
+                path: public_path_buf(&normalized.rendered_formula),
             },
         )
     })

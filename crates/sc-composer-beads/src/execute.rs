@@ -271,10 +271,14 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     validate_utf8_path(&working_directory)?;
     validate_utf8_path(&template)?;
     if !template.is_file() {
-        return Err(BeadComposeError::FormulaPathNotFile { path: template });
+        return Err(BeadComposeError::FormulaPathNotFile {
+            path: public_path_buf(&template),
+        });
     }
     if !template.starts_with(&working_directory) {
-        return Err(BeadComposeError::TemplateOutsideWorkingDirectory { path: template });
+        return Err(BeadComposeError::TemplateOutsideWorkingDirectory {
+            path: public_path_buf(&template),
+        });
     }
     let rendered_formula = normalize_output(&if request.rendered_formula.is_absolute() {
         request.rendered_formula.clone()
@@ -287,7 +291,7 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     }
     if !is_formula_path(&rendered_formula) {
         return Err(BeadComposeError::FormulaExtensionUnsupported {
-            path: rendered_formula,
+            path: public_path_buf(&rendered_formula),
         });
     }
     if matches!(
@@ -299,7 +303,7 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     ) && !rendered_formula.starts_with(&working_directory)
     {
         return Err(BeadComposeError::OutputOutsideWorkingDirectory {
-            path: rendered_formula,
+            path: public_path_buf(&rendered_formula),
         });
     }
     validate_output_destination(&rendered_formula)?;
@@ -349,12 +353,14 @@ fn validate_utf8_path(path: &Path) -> Result<(), BeadComposeError> {
     if path.to_str().is_some() {
         Ok(())
     } else {
-        Err(BeadComposeError::PathNotUtf8 { path: path.into() })
+        Err(BeadComposeError::PathNotUtf8 {
+            path: public_path_buf(path),
+        })
     }
 }
 
 fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
-    let public_path = PathBuf::from(public_path_display(path));
+    let public_path = public_path_buf(path);
     let parent = path
         .parent()
         .ok_or_else(|| BeadComposeError::OutputPathInvalid {
@@ -430,9 +436,32 @@ pub(crate) fn public_path_display(path: &Path) -> String {
     displayed.to_string_lossy().into_owned()
 }
 
-#[cfg(not(windows))]
+/// Owned form of [`public_path_display`] for storing in user-visible errors.
+pub(crate) fn public_path_buf(path: &Path) -> PathBuf {
+    PathBuf::from(public_path_display(path))
+}
+
+#[cfg(all(not(windows), not(test)))]
 pub(crate) fn public_path_display(path: &Path) -> String {
     path.to_string_lossy().into_owned()
+}
+
+/// Test seam: non-Windows canonical paths never carry a verbatim prefix, so a
+/// test can install a marker that `public_path_display` prepends. Any error
+/// path that bypasses `public_path_display` then lacks the marker.
+#[cfg(all(not(windows), test))]
+pub(crate) fn public_path_display(path: &Path) -> String {
+    let displayed = path.to_string_lossy().into_owned();
+    PUBLIC_PATH_MARKER.with(|marker| match marker.borrow().as_deref() {
+        Some(marker) => format!("{marker}{displayed}"),
+        None => displayed,
+    })
+}
+
+#[cfg(all(not(windows), test))]
+thread_local! {
+    pub(crate) static PUBLIC_PATH_MARKER: std::cell::RefCell<Option<String>> =
+        const { std::cell::RefCell::new(None) };
 }
 
 fn valid_bead_key(key: &str) -> bool {
@@ -1395,5 +1424,148 @@ mod fuzz_055_tests {
         let evidence = format!("{:?}", stages[0]);
         assert!(evidence.contains("rendered.formula.toml"));
         assert!(!evidence.contains(".sc-compose-input-"));
+    }
+}
+
+/// t40-f1: every user-visible error path derived from `fs::canonicalize` must
+/// pass through `public_path_display` so Windows never shows `\\?\` paths.
+///
+/// On non-Windows hosts canonical paths have no verbatim prefix, so the tests
+/// install `PUBLIC_PATH_MARKER`, which `public_path_display` prepends. A site
+/// that bypasses `public_path_display` therefore lacks the marker and fails.
+#[cfg(all(test, not(windows)))]
+mod public_path_error_tests {
+    use std::fs;
+
+    use super::tests::{FakeRunner, request, workspace};
+    use super::{PUBLIC_PATH_MARKER, execute_bead_request_with_runner};
+    use crate::{BeadComposeError, BeadOperation};
+
+    const MARKER: &str = "PUBLIC-PATH<>";
+
+    struct MarkerGuard;
+
+    impl MarkerGuard {
+        fn install() -> Self {
+            PUBLIC_PATH_MARKER.with(|marker| *marker.borrow_mut() = Some(MARKER.to_owned()));
+            Self
+        }
+    }
+
+    impl Drop for MarkerGuard {
+        fn drop(&mut self) {
+            PUBLIC_PATH_MARKER.with(|marker| *marker.borrow_mut() = None);
+        }
+    }
+
+    fn assert_public(error: &BeadComposeError, code: &str) {
+        assert_eq!(error.code(), code);
+        let display = error.to_string();
+        let json = serde_json::to_string(error).expect("error JSON");
+        for text in [&display, &json] {
+            assert!(
+                text.contains(MARKER),
+                "path bypassed public_path_display: {text}"
+            );
+            assert!(!text.contains(r"\\?\"), "verbatim prefix leaked: {text}");
+        }
+    }
+
+    fn run(request: &crate::BeadComposeRequest) -> BeadComposeError {
+        execute_bead_request_with_runner(request, &FakeRunner::default())
+            .expect_err("request must be rejected")
+    }
+
+    #[test]
+    fn formula_path_not_file_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.template = root.join("directory.formula.toml.j2");
+        fs::create_dir(&request.template).expect("template directory");
+        assert_public(&run(&request), "BEADS_FORMULA_NOT_FILE");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn template_outside_working_directory_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let other = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.template = other.join("outside.formula.toml.j2");
+        fs::write(&request.template, "x = 1\n").expect("outside template");
+        assert_public(&run(&request), "BEADS_TEMPLATE_OUTSIDE_WORKING_DIR");
+        fs::remove_dir_all(root).expect("cleanup");
+        fs::remove_dir_all(other).expect("cleanup");
+    }
+
+    #[test]
+    fn formula_extension_unsupported_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula = root.join("example.invalid");
+        assert_public(&run(&request), "BEADS_FORMULA_EXTENSION_UNSUPPORTED");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn output_outside_working_directory_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let other = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula = other.join("outside.formula.toml");
+        assert_public(&run(&request), "BEADS_OUTPUT_OUTSIDE_WORKING_DIR");
+        fs::remove_dir_all(root).expect("cleanup");
+        fs::remove_dir_all(other).expect("cleanup");
+    }
+
+    #[test]
+    fn output_destination_directory_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let request = request(&root, BeadOperation::Render);
+        fs::create_dir(&request.rendered_formula).expect("destination directory");
+        assert_public(&run(&request), "BEADS_OUTPUT_PATH_INVALID");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn output_destination_symlink_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let request = request(&root, BeadOperation::Render);
+        std::os::unix::fs::symlink(&request.template, &request.rendered_formula)
+            .expect("destination symlink");
+        assert_public(&run(&request), "BEADS_OUTPUT_PATH_SYMLINK");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn non_utf8_path_uses_public_path() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula =
+            root.join(OsString::from_vec(b"output-\xff.formula.toml".to_vec()));
+        assert_public(&run(&request), "BEADS_PATH_NOT_UTF8");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn snapshot_output_error_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let error = crate::snapshot::output_error(
+            std::path::Path::new("/work/rendered.formula.toml"),
+            BeadComposeError::RenderFailed {
+                message: String::from("boom"),
+            },
+        );
+        assert_public(&error, "BEADS_OUTPUT_PATH_INVALID");
     }
 }
