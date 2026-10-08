@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 use std::collections::{BTreeMap, VecDeque};
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{
     Mutex,
     atomic::{AtomicU64, Ordering},
@@ -13,6 +13,16 @@ use std::time::Duration;
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COOKED: &str =
     r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#;
+
+fn public_path(path: &Path) -> PathBuf {
+    #[cfg(windows)]
+    {
+        let value = path.to_string_lossy();
+        return PathBuf::from(value.strip_prefix("\\\\?\\").unwrap_or(value.as_ref()));
+    }
+    #[cfg(not(windows))]
+    path.to_path_buf()
+}
 struct Workspace {
     root: PathBuf,
     req: BeadComposeRequest,
@@ -189,7 +199,7 @@ fn attach_preview_and_apply_have_only_the_authorized_argv() {
         assert_eq!(calls[2].args, expected);
         for (input, suffix) in [(&calls[0].args[1], "toml"), (&calls[2].args[2], "json")] {
             let input = std::path::Path::new(input);
-            assert_eq!(input.parent(), Some(w.root.as_path()));
+            assert_eq!(input.parent(), Some(public_path(&w.root).as_path()));
             assert_eq!(input.extension().and_then(|ext| ext.to_str()), Some(suffix));
             assert!(
                 input
