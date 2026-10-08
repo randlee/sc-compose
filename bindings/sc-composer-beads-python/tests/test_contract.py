@@ -89,6 +89,8 @@ def test_graph_receipt_fixtures_remain_json_contracts() -> None:
         receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
 
         assert receipt.to_json() == fixture
+        assert receipt.pour_mode == fixture.get("pour_mode")
+        assert receipt.graph == fixture.get("graph")
 
 
 def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
