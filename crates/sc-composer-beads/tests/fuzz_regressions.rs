@@ -150,7 +150,6 @@ impl ProcessRunner for RewritingRunner {
 
 // FUZZ-013: Phase R requests parse unchanged (ADR-0023 Decision 1).
 #[test]
-#[ignore = "FUZZ-013"]
 fn fuzz_013_phase_r_render_request_keeps_accepting_its_formula_name() {
     for name in ["café", "re g0"] {
         let request = json!({
