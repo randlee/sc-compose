@@ -80,7 +80,6 @@ fn fuzz_017_render_append_keeps_exact_number_values() {
 
 // FUZZ-018: bead render expands sc-compose @<path> includes.
 #[test]
-#[ignore = "FUZZ-018"]
 fn fuzz_018_bead_render_expands_at_path_includes() {
     let root = std::fs::canonicalize(temp_root("fuzz-018-bead-include")).unwrap();
     write_file(

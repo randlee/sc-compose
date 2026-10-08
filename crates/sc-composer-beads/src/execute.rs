@@ -9,7 +9,7 @@ use crate::contract::{
     BeadStageOutcome, BeadStageReceipt, PourAuthorization,
 };
 use crate::error::{BeadComposeError, short_cause};
-use crate::render::{render_formula, validate_output_destination};
+use crate::render::{render_formula_in_root, validate_output_destination};
 use crate::runner::{
     CommandSpec, PROCESS_OUTPUT_LIMIT_BYTES, ProcessOutput, ProcessRunner, StdProcessRunner,
     is_process_output_limit_error,
@@ -46,10 +46,11 @@ pub fn execute_bead_request_with_runner(
     let normalized = validate_request(request)?;
     let mut stages = Vec::new();
     let render_started = Instant::now();
-    if let Err(error) = render_formula(
+    if let Err(error) = render_formula_in_root(
         &normalized.template,
         &normalized.rendered_formula,
         &request.compose_variables,
+        &normalized.working_directory,
     ) {
         stages.push(render_receipt(
             render_started,
