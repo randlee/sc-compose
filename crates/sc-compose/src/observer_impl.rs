@@ -622,6 +622,19 @@ mod tests {
     };
 
     #[test]
+    fn static_schema_and_fallback_labels_satisfy_released_validation() {
+        sc_observability::SchemaVersion::new(super::OBSERVATION_ENVELOPE_VERSION)
+            .expect("valid schema version constant");
+        sc_observability::TargetCategory::new(super::FALLBACK_TARGET)
+            .expect("valid fallback target constant");
+        sc_observability::ActionName::new(super::FALLBACK_ACTION)
+            .expect("valid fallback action constant");
+        sc_observability::OutcomeLabel::new(super::FALLBACK_OUTCOME)
+            .expect("valid fallback outcome constant");
+        crate::observability::validated_service_name().expect("valid service name constant");
+    }
+
+    #[test]
     fn cli_observer_emits_command_and_pipeline_events_to_logger() {
         let root = temp_root("observer-events");
         let mut config = LoggerConfig::default_for(service_name(), root.clone());
