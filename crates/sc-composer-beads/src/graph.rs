@@ -235,9 +235,10 @@ impl Runtime<'_> {
         stage.outcome = BeadStageOutcome::Failed {
             code: error.code().into(),
         };
-        if stage.stderr_excerpt.is_empty() {
-            stage.stderr_excerpt = error.to_string();
+        if !stage.stderr_excerpt.is_empty() {
+            stage.stderr_excerpt.push('\n');
         }
+        stage.stderr_excerpt.push_str(&error.to_string());
     }
 }
 

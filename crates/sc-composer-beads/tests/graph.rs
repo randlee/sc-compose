@@ -715,3 +715,44 @@ fn dependency_read_rejects_unsafe_type_tokens_before_planning() {
     assert_read_only(&runner);
     assert_eq!(w.plan(), before);
 }
+
+#[test]
+fn missing_relation_retains_typed_reason_with_nonempty_bd_stderr() {
+    for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+        let mut workspace = Workspace::new();
+        workspace.req.operation = operation;
+        workspace.req.relations = serde_json::from_value(json!([
+            {"from": "step:build", "to": "bead:proj-2", "type": "related"}
+        ]))
+        .expect("relation");
+        let stderr = "Issue proj-2 not found\n";
+        let mut missing_relation = parent();
+        missing_relation.stderr = stderr.into();
+        let runner = FakeRunner::new([ok(COOKED), missing_relation]);
+
+        let receipt = workspace.run(&runner);
+        let stage = if operation == BeadOperation::Attach {
+            BeadStage::Attach
+        } else {
+            BeadStage::PreviewAttach
+        };
+        refused_with_reason(
+            &receipt,
+            "BEADS_GRAPH_RELATION_INVALID",
+            stage,
+            "bead_not_found",
+        );
+        let failed_stage = receipt.stages.last().expect("failed stage");
+        assert_eq!(
+            failed_stage.outcome,
+            BeadStageOutcome::Failed {
+                code: "BEADS_GRAPH_RELATION_INVALID".into()
+            }
+        );
+        assert!(failed_stage.stderr_excerpt.contains(stderr));
+        assert_eq!(failed_stage.stdout_excerpt, "[{\"id\":\"proj-1\"}]");
+        assert_eq!(failed_stage.exit_status, Some(0));
+        assert_eq!(runner.calls().len(), 2);
+        assert_read_only(&runner);
+    }
+}
