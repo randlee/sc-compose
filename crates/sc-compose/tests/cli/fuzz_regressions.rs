@@ -108,7 +108,6 @@ fn fuzz_018_bead_render_expands_at_path_includes() {
 
 // FUZZ-019: failed bead renders retain template diagnostics.
 #[test]
-#[ignore = "FUZZ-019"]
 fn fuzz_019_bead_render_failure_reports_the_template_error() {
     let root = std::fs::canonicalize(temp_root("fuzz-019-bead-render-message")).unwrap();
     write_file(&root.join("bad.formula.toml.j2"), "{% if %}\n");
@@ -125,10 +124,21 @@ fn fuzz_019_bead_render_failure_reports_the_template_error() {
     let receipt = parse_stdout(&output);
     let stage = &receipt["payload"]["stages"][0];
     assert_eq!(stage["outcome"]["failed"]["code"], "BEADS_RENDER_FAILED");
-    assert!(
-        !stage["stderr_excerpt"]
-            .as_str()
-            .unwrap_or_default()
-            .is_empty()
-    );
+    let diagnostic = stage["stderr_excerpt"].as_str().unwrap();
+    let cause = diagnostic
+        .strip_prefix("formula rendering failed:")
+        .expect("render diagnostic prefix");
+    assert!(!cause.trim().is_empty(), "{diagnostic}");
+
+    let output = sc_compose()
+        .current_dir(&root)
+        .args(["bead", "render", "--request"])
+        .arg(&request)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let human = String::from_utf8(output.stdout).unwrap();
+    assert!(human.contains(&format!(
+        "stage Render: failed (BEADS_RENDER_FAILED): {diagnostic}"
+    )));
 }
