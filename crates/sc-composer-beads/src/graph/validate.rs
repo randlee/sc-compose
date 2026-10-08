@@ -189,8 +189,8 @@ pub(super) fn validate(
     let mut relations = req.relations.clone();
     relations.sort_by_cached_key(|r| {
         (
-            String::from(r.from.clone()),
-            String::from(r.to.clone()),
+            r.from.to_string(),
+            r.to.to_string(),
             serde_json::to_string(&r.kind).expect("enum serializes"),
         )
     });
@@ -252,10 +252,7 @@ fn validate_relations(
         ) {
             return Err(invalid(Invalid::NoStep));
         }
-        let pair = (
-            String::from(relation.from.clone()),
-            String::from(relation.to.clone()),
-        );
+        let pair = (relation.from.to_string(), relation.to.to_string());
         if !pairs.insert(pair) {
             return Err(invalid(Invalid::Duplicate));
         }
