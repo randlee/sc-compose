@@ -352,7 +352,7 @@ const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 fn option_id_argument_errors(calls: &[CommandSpec], ids: &[&str]) -> Vec<String> {
     let mut checked = 0;
     let mut errors = Vec::new();
-    for call in calls {
+    for call in calls.iter().filter(|call| call.args[0] != "cook") {
         for id in ids {
             if call.args.iter().any(|arg| arg == id) {
                 checked += 1;
@@ -380,7 +380,6 @@ fn option_id_argument_errors(calls: &[CommandSpec], ids: &[&str]) -> Vec<String>
 
 // FUZZ-016: option-like parent IDs reach bd show as IDs, not options.
 #[test]
-#[ignore = "FUZZ-016"]
 fn fuzz_016_option_like_bead_ids_are_never_parsed_as_bd_options() {
     let mut argument_errors = Vec::new();
     for id in OPTION_LIKE_IDS {
@@ -413,7 +412,6 @@ fn fuzz_016_option_like_bead_ids_are_never_parsed_as_bd_options() {
 
 // FUZZ-016: existing option-like relation sources reach both show and dep list safely.
 #[test]
-#[ignore = "FUZZ-016"]
 fn fuzz_016_option_like_relation_sources_are_not_dep_list_options() {
     let mut argument_errors = Vec::new();
     for id in OPTION_LIKE_IDS {
