@@ -135,6 +135,65 @@ sc-compose reports finalize          # materialize metadata
 sc-compose reports publish-manifest  # CI handoff manifest
 ```
 
+### Beads Workflows from Templates
+
+`sc-compose bead` turns templates into [Beads](https://github.com/gastownhall/beads)
+(`bd`) work. Loops, conditionals and includes run in sc-compose at render
+time, so `bd` receives a flat, fully-resolved formula and only validates and
+creates it.
+
+```toml
+# release.formula.toml.j2 — sc-compose values use triple braces
+formula = "release"
+version = 1
+type = "workflow"
+
+{% for stage in ["build", "verify", "publish"] %}
+[[steps]]
+id = "{{{ stage }}}"
+title = "{{{ stage | capitalize }}} {{{ version }}}"
+{% if not loop.first %}
+needs = ["{{{ loop.previtem }}}"]
+{% endif %}
+{% endfor %}
+```
+
+```bash
+sc-compose bead render         --request req.json  # write the formula only
+sc-compose bead validate       --request req.json  # + bd cook --dry-run
+sc-compose bead preview-attach --request req.json --json  # plan; writes nothing
+sc-compose bead attach         --request req.json --json  # create under an existing bead
+```
+
+| Goal | Operations |
+|------|------------|
+| Produce the formula file | `render` |
+| Check that `bd` accepts it | `validate` |
+| Create a new workflow (new root bead plus steps) | `preview-pour`, then `pour` |
+| Add steps under a bead that already exists | `preview-attach`, then `attach` |
+
+- **One request, one receipt.** Each command takes a complete
+  `sc-compose/beads/v1` JSON request (template, output path, variables,
+  `parent`/`ref` for attach) and returns a receipt listing every bead and edge
+  as `created` or `existing`.
+- **Safe to re-run.** `attach` never edits existing beads; a repeat run reports
+  the same ids as `existing`, and a missing edge comes back as a ready-to-run
+  `bd dep add` command. All beads and edges are created in one
+  `bd create --graph` transaction.
+- **No registry needed.** A rendered formula anywhere in the workspace is
+  poured as a graph; formulas in the Beads `formulas/` registry still pour by
+  name with Beads `vars`, `loop` and `gate` support.
+- **Writes are opt-in.** `pour` and `attach` require
+  `"pour_authorization": "CreatePersistentBeads"`; previews never write.
+- **Missing inputs fail.** An unset `{{{ variable }}}` with no frontmatter
+  default is refused with `BEADS_RENDER_FAILED` before anything is written.
+
+The same contract is available as the `sc-composer-beads` Rust crate and
+Python package (`pip install sc-composer-beads`; `from sc_composer_beads import
+BeadComposeRequest, attach`). Requires `bd` 1.3.1 on `PATH`. Full guide:
+`sc-compose help bead` ([manual](crates/sc-compose/docs/manual/bead.md)), and a
+runnable recipe in [`examples/beads/release-under-epic`](examples/beads/release-under-epic/README.md).
+
 ### Python Bindings
 
 ```python
@@ -173,8 +232,10 @@ handoff requirements.
 | Windows | Scoop | `scoop bucket add randlee https://github.com/randlee/scoop-bucket`<br>`scoop install sc-compose` |
 | Any (Rust) | crates.io | `cargo install sc-compose` |
 | Any (Python) | PyPI | `pip install sc-compose` |
+| Any (Python) | PyPI | `pip install sc-composer-beads` (Beads composition) |
 | Any (source) | cargo | `cargo build --release -p sc-compose` |
-| Rust lib | Cargo.toml | `sc-composer = "1.6.1"` |
+| Rust lib | Cargo.toml | `sc-composer = "1.7.0"` |
+| Rust lib (Beads) | Cargo.toml | `sc-composer-beads = "1.7.0"` |
 
 Bundled examples are guaranteed in Homebrew, Scoop, Winget, and GitHub Release
 installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
@@ -186,11 +247,11 @@ examples.
 
 | | |
 |---|---|
-| Version | 1.6.1 |
+| Version | 1.7.0 |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
-| Stability | stable 1.6 release line |
+| Stability | stable 1.7 release line |
 
 ---
 
@@ -203,6 +264,8 @@ examples.
 - [docs/git-workflows.md](docs/git-workflows.md) — branching and review rules
 - [docs/cross-platform-guidelines.md](docs/cross-platform-guidelines.md) — platform testing rules
 - [docs/atm-adapter-notes.md](docs/atm-adapter-notes.md) — adapter boundary and integration
+- [crates/sc-compose/docs/manual/bead.md](crates/sc-compose/docs/manual/bead.md) — Beads workflow composition guide (`sc-compose help bead`)
+- [docs/adrs/0023-beads-attach-and-by-path-pour.md](docs/adrs/0023-beads-attach-and-by-path-pour.md) — attach and graph pour design
 - [crates/sc-compose/docs/manual/README.md](crates/sc-compose/docs/manual/README.md) — bundled CLI feature manuals, also available via `sc-compose help <topic>`
 - [RELEASING.md](RELEASING.md) — step-by-step release checklist
 - [docs/repowise/README.md](docs/repowise/README.md) — code health analysis pipeline and regeneration
@@ -256,6 +319,9 @@ system.
 | `reports index` | Summarize current latest report artifacts |
 | `reports verify` | Verify required report evidence is present |
 | `reports publish-manifest` | Write machine-readable publish handoff manifest |
+| `bead render` / `validate` | Render a Beads formula template; `validate` also runs `bd cook --dry-run` |
+| `bead preview-pour` / `pour` | Plan, then create a new Beads workflow from a rendered formula |
+| `bead preview-attach` / `attach` | Plan, then add a workflow under an existing bead (re-runnable) |
 
 Key flags:
 
@@ -272,6 +338,7 @@ Key flags:
 | `--guidance <text>` / `--guidance-file <path>` | Append guidance block |
 | `--prompt <text>` / `--prompt-file <path>` | Append user prompt block |
 | `--output <path>` | Write rendered output to file |
+| `--append <path>` | Append the rendered JSON object as one line to a JSON-lines file |
 | `--dry-run` | Report without modifying files |
 | `--json` | Machine-readable output with diagnostics envelope |
 | `--strict` | Fail on undeclared referenced variables |

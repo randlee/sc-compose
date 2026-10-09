@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-08
+
 ### Added
 
 - `sc-compose bead attach` and `preview-attach`: attach the steps of a rendered
@@ -32,7 +34,7 @@ All notable changes to this project will be documented in this file.
 
 ### Library API changes (`sc-composer-beads`)
 
-No version bump: the crate has no external users yet.
+No major version bump: the crate has no external users yet.
 
 - `BeadComposeRequest.formula_name` is now `Option<FormulaName>` (required only
   for registry `pour` and `preview-pour`). Only attach operations require the
@@ -60,6 +62,11 @@ No version bump: the crate has no external users yet.
 
 ### Changed
 
+- Bumped the Rust workspace (`sc-sha`, `sc-composer`, `sc-composer-beads`,
+  `sc-compose`) and the Python distributions (`sc-sha`, `sc-compose`,
+  `sc-composer-beads`) to `1.7.0`.
+- README: new "Beads Workflows from Templates" section, `bead` commands and
+  `--append` in the CLI reference, and `sc-composer-beads` install rows.
 - `sc-composer-beads`: a `bd create --graph` that exits 0 but whose response
   cannot be consumed is now `BeadComposeError::GraphApplyUnconfirmed`
   (`BEADS_GRAPH_APPLY_UNCONFIRMED`) instead of `GraphApplyFailed`, because
@@ -72,8 +79,8 @@ No version bump: the crate has no external users yet.
   and take codes from the new `BeadComposeError::*_CODE` constants and
   `BeadComposeError::GRAPH_CODES`. `PourAuthorization::as_str()` returns the
   wire token. The Python `BeadComposeRequest.pour_authorization` getter now
-  returns the stored token. No version bump: the crate has no external users
-  yet.
+  returns the stored token. No major version bump: the crate has no external
+  users yet.
 
 ### Fixed
 
@@ -87,6 +94,24 @@ No version bump: the crate has no external users yet.
   expression; `if`/`is defined` tests, loop locals and globals such as
   `range` are unaffected. Bead rendering uses it. The default renderer stays
   lenient.
+- `sc-compose bead` (every operation, including the 1.6 `render`, `validate`,
+  `preview-pour` and `pour`):
+  - Template frontmatter is honored: declared `required` variables are
+    enforced and `default` values apply.
+  - `@` includes in formula templates expand, confined to
+    `working_directory`.
+  - Relative `template` and `rendered_formula` paths resolve against
+    `working_directory`, not the process's current directory.
+  - An unusable `rendered_formula` path (missing parent directory, no file
+    name) is reported as the new `BEADS_OUTPUT_PATH_INVALID`, naming the
+    field and rule, instead of `BEADS_TEMPLATE_PATH_INVALID`.
+  - A failed `bd cook` keeps `bd`'s cause in the receipt and `--json`
+    diagnostics instead of a bare exit status.
+  - Non-UTF-8 request paths are reported in diagnostics instead of failing to
+    serialize.
+  - Windows: rendered output replaces an existing file without deleting it
+    first, retrying briefly on sharing violations; UNC roots are preserved
+    and diagnostics show public paths.
 
 ## [1.6.1] - 2026-08-30
 
