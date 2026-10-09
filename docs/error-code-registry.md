@@ -176,3 +176,70 @@ minimum logical structure:
 - Renames are forbidden once a code is used in snapshots or released CLI JSON.
 - Deprecation must leave the old code documented until a full compatibility
   review removes it.
+
+### Render, Include and JSON Codes Added After Phase H
+
+| Code | Error family | Severity | Trigger condition | Expected primary emitter |
+| --- | --- | --- | --- | --- |
+| `ERR_RENDER_JSON_DEPTH_LIMIT` | `OutputCheckError` | error | the rendered JSON nests deeper than the output checker allows, so it is refused before any write | `render --append` output check |
+| `ERR_RENDER_JSON_MALFORMED` | `OutputCheckError` | error | the checked body of an `--append` template is not one JSON value | CLI `render --append` |
+| `ERR_INCLUDE_PERMISSION_DENIED` | `IncludeError` | error | an include target exists but the operating system denies reading it | include engine, resolver |
+| `ERR_INCLUDE_IS_A_DIRECTORY` | `IncludeError` | error | an include target is a directory, not a file | include engine |
+| `ERR_INCLUDE_FILESYSTEM_LOOP` | `IncludeError` | error | resolving an include path hits a filesystem symlink loop | include engine, resolver |
+| `ERR_JSON_ESCAPE_MODE_NON_JSON` | `ValidationError` | error | a JSON escape mode is declared for a template that is not a JSON template | validation pipeline |
+| `ERR_JSON_LEGACY_NON_STRING` | `ValidationError` | error | legacy JSON escape mode requires a string value for a quoted placeholder and the bound value is not a string | validation pipeline |
+
+### Beads Composition Codes
+
+`BEADS_*` codes identify `sc-composer-beads` conditions (`BeadComposeError::code()`),
+carried by `sc-compose bead` receipts and error envelopes and by the Python
+adapter. The class column is `BeadComposeError::class()`: a **request** error is
+returned before any receipt exists and exits `3` ([ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md));
+an **execution** condition appears in a receipt and exits `2` (refused or failed).
+One exception: the CLI reports `BEADS_GRAPH_ID_INVALID` found while parsing a
+request file as a request error (exit `3`). Codes are stable; exhaustive
+matches on `BeadComposeError` need a wildcard arm because the enum is
+`#[non_exhaustive]`.
+
+| Code | Class | Trigger condition | Expected primary emitter |
+| --- | --- | --- | --- |
+| `BEADS_REQUEST_READ_FAILED` | request | the request file cannot be read as UTF-8 | request loader, CLI `bead` |
+| `BEADS_REQUEST_DESERIALIZATION_FAILED` | request | the request JSON is malformed or has the wrong shape (line and column refer to the request file) | request parser |
+| `BEADS_RELATION_ENDPOINT_INVALID` | request | a relation endpoint lacks the `step:` or `bead:` prefix (a prefixed id that fails its grammar is `BEADS_GRAPH_ID_INVALID`) | request parser |
+| `BEADS_UNKNOWN_SCHEMA` | request | the request `schema` is not `sc-compose/beads/v1` | request parser |
+| `BEADS_FORMULA_NOT_FILE` | request | the formula path is not a regular file | path normalization |
+| `BEADS_FORMULA_EXTENSION_UNSUPPORTED` | request | the rendered formula extension is not `.formula.toml` or `.formula.json` | path normalization |
+| `BEADS_TEMPLATE_PATH_INVALID` | request | the template path is invalid | path normalization |
+| `BEADS_OUTPUT_PATH_INVALID` | request | `rendered_formula` violates a path rule (named in the message) | path normalization |
+| `BEADS_TEMPLATE_OUTSIDE_WORKING_DIR` | request | the template resolves outside `working_directory` | path normalization |
+| `BEADS_OUTPUT_OUTSIDE_WORKING_DIR` | request | the output resolves outside `working_directory` (only the active registry may sit outside) | path normalization, pour |
+| `BEADS_OUTPUT_PATH_SYMLINK` | request | the rendered output path is a symbolic link | path normalization |
+| `BEADS_PATH_NOT_UTF8` | request | a path in the request is not valid UTF-8 | path normalization |
+| `BEADS_VARIABLE_KEY_INVALID` | request | a bead variable key violates the key grammar | request parser |
+| `BEADS_VARIABLE_KEY_DUPLICATE` | request | a bead variable key appears twice | request parser |
+| `BEADS_VARIABLE_VALUE_INVALID` | request | a bead variable value is not a permitted scalar | request parser |
+| `BEADS_FORMULA_NAME_REQUIRED` | request | a registry `pour` or `preview_pour` request has no `formula_name` | request validation |
+| `BEADS_POUR_AUTH_REQUIRED` | request | persistent bead creation was requested without `pour_authorization` | request validation |
+| `BEADS_POUR_AUTH_INVALID` | request | `pour_authorization` is not the accepted token | request validation |
+| `BEADS_BD_UNAVAILABLE` | execution | the `bd` executable cannot be started | process runner |
+| `BEADS_PROCESS_ARGUMENT_INVALID` | execution | an argument cannot be passed to `bd` | process runner |
+| `BEADS_PROCESS_OUTPUT_LIMIT` | execution | `bd` output exceeds the capture limit | process runner |
+| `BEADS_RENDER_FAILED` | execution | the formula cannot be rendered, including a `{{{ variable }}}` with no caller value and no frontmatter default | formula renderer |
+| `BEADS_COOK_FAILED` | execution | `bd cook` rejects the rendered formula; the cause names the public formula path, never the private snapshot | validate stage, graph cook |
+| `BEADS_WHERE_FAILED` | execution | `bd where` fails or returns unusable output when resolving the active registry | registry resolution |
+| `BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY` | execution | a registry pour names a formula outside the active registry | registry pour |
+| `BEADS_FORMULA_REGISTRY_AMBIGUOUS` | execution | the active registry has both a TOML and a JSON formula of the same name | registry pour |
+| `BEADS_PREVIEW_POUR_FAILED` | execution | `bd mol pour --dry-run` fails | preview_pour stage |
+| `BEADS_POUR_FAILED` | execution | `bd mol pour` fails | pour stage |
+| `BEADS_GRAPH_PARENT_NOT_FOUND` | execution | the graph parent bead does not exist | attach and by-path pour |
+| `BEADS_GRAPH_ID_INVALID` | execution | a parent, ref or step id violates the ADR-0023 grammar (named in the message) | attach and by-path pour; request parse in the CLI exits `3` |
+| `BEADS_GRAPH_SCOPE_MISMATCH` | execution | `compose_variables` parent or ref disagrees with the top-level scope | attach and by-path pour |
+| `BEADS_GRAPH_FORMULA_UNSUPPORTED` | execution | the cooked formula uses a construct graph planning cannot express (reason is a stable token) | graph planning |
+| `BEADS_GRAPH_RELATION_INVALID` | execution | a request relation is invalid (its index is named) | graph planning |
+| `BEADS_GRAPH_CONFLICT` | execution | a planned bead already exists with different content; existing beads are never edited | graph planning |
+| `BEADS_GRAPH_EDGE_CONFLICT` | execution | an existing edge has a different type than requested | graph planning |
+| `BEADS_GRAPH_EDGE_MISSING` | execution | planned edges are absent; the receipt carries `missing_edges` and recovery `bd dep add` commands | graph planning, attach |
+| `BEADS_GRAPH_READ_FAILED` | execution | reading existing beads with `bd show` failed; large id sets are read in batches | graph planning |
+| `BEADS_GRAPH_APPLY_FAILED` | execution | `bd create --graph` failed; nothing was written | graph apply |
+| `BEADS_GRAPH_APPLY_UNCONFIRMED` | execution | `bd create --graph` exited 0 but its response cannot be consumed, so beads may exist; reconcile with `bd show` before pouring again | graph apply |
+| `BEADS_RECEIPT_DESERIALIZATION_FAILED` | adapter | a receipt document cannot be parsed back; an adapter-level code (`BeadComposeError::RECEIPT_DESERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |

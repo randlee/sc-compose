@@ -1,11 +1,6 @@
 //! Regression tests promoted from the Phase T adversarial fuzz campaign.
 
-mod shell_literal {
-    include!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../test-support/shell_literal.rs"
-    ));
-}
+use sc_compose_test_support as shell_literal;
 
 use sc_composer_beads::*;
 use serde_json::{Value, json};
@@ -23,19 +18,20 @@ static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COOKED: &str =
     r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#;
 
+#[cfg(windows)]
 fn public_path(path: &Path) -> String {
-    #[cfg(windows)]
-    {
-        let value = path.to_string_lossy();
-        if let Some(unc) = value.strip_prefix("\\\\?\\UNC\\") {
-            return format!("\\\\{unc}");
-        }
-        return value
-            .strip_prefix("\\\\?\\")
-            .unwrap_or(value.as_ref())
-            .to_owned();
+    let value = path.to_string_lossy();
+    if let Some(unc) = value.strip_prefix("\\\\?\\UNC\\") {
+        return format!("\\\\{unc}");
     }
-    #[cfg(not(windows))]
+    value
+        .strip_prefix("\\\\?\\")
+        .unwrap_or(value.as_ref())
+        .to_owned()
+}
+
+#[cfg(not(windows))]
+fn public_path(path: &Path) -> String {
     path.to_string_lossy().into_owned()
 }
 
@@ -172,6 +168,61 @@ impl ProcessRunner for RewritingRunner {
     }
 }
 
+// TMPL5-02: every bead route refuses an undefined composition variable in a
+// TOML or JSON formula template before writing the formula or calling bd.
+#[test]
+fn tmpl5_02_every_route_refuses_an_undefined_variable_without_frontmatter() {
+    for (template, body) in [
+        ("sample.formula.toml.j2", "formula = \"{{{ title }}}\"\n"),
+        (
+            "sample.formula.json.j2",
+            "{ \"formula\": \"{{{ title }}}\" }",
+        ),
+    ] {
+        for operation in [
+            BeadOperation::Render,
+            BeadOperation::Validate,
+            BeadOperation::PreviewPour,
+            BeadOperation::Pour,
+            BeadOperation::PreviewAttach,
+            BeadOperation::Attach,
+        ] {
+            let mut w = Workspace::new();
+            w.req.operation = operation;
+            if !matches!(
+                operation,
+                BeadOperation::PreviewAttach | BeadOperation::Attach
+            ) {
+                w.req.parent = None;
+                w.req.ref_ = None;
+            }
+            if !matches!(operation, BeadOperation::Pour | BeadOperation::Attach) {
+                w.req.pour_authorization = None;
+            }
+            w.req.template = w.root.join(template);
+            w.req.rendered_formula = w.root.join(template.trim_end_matches(".j2"));
+            fs::write(&w.req.template, body).expect("template");
+            let runner = FakeRunner::new([]);
+            let receipt = w.run(&runner);
+            failed(&receipt, "BEADS_RENDER_FAILED", BeadStage::Render);
+            assert!(
+                receipt
+                    .stages
+                    .last()
+                    .expect("stage")
+                    .stderr_excerpt
+                    .contains("title"),
+                "{operation:?} {template}: {receipt:#?}"
+            );
+            assert!(runner.calls().is_empty(), "{operation:?} {template}");
+            assert!(
+                !w.req.rendered_formula.exists(),
+                "{operation:?} {template}: nothing is written"
+            );
+        }
+    }
+}
+
 // FUZZ-013: Phase R requests parse unchanged (ADR-0023 Decision 1).
 #[test]
 fn fuzz_013_phase_r_operations_keep_accepting_legacy_formula_names() {
@@ -191,6 +242,77 @@ fn fuzz_013_phase_r_operations_keep_accepting_legacy_formula_names() {
             assert!(parsed.is_ok(), "{operation} {name}: {:?}", parsed.err());
         }
     }
+}
+
+// pe-f5: adapters share the JSON parser's operation-aware formula-name boundary.
+#[test]
+fn formula_name_boundary_matches_json_parser_for_every_operation() {
+    for operation in [
+        "render",
+        "validate",
+        "preview_pour",
+        "pour",
+        "preview_attach",
+        "attach",
+    ] {
+        let wire = serde_json::from_value::<BeadOperation>(json!(operation)).expect("operation");
+        for name in ["café", "re g0", "a+b", "workflow", ""] {
+            let attach = matches!(operation, "attach" | "preview_attach");
+            let mut request = json!({
+                "schema": BEADS_SCHEMA_V1,
+                "operation": operation,
+                "working_directory": "/work",
+                "template": "f.formula.toml.j2",
+                "rendered_formula": "/work/build/f.formula.toml",
+                "formula_name": name,
+                "compose_variables": {},
+                "bead_variables": {}
+            });
+            if attach {
+                request["parent"] = json!("proj-1");
+                request["ref"] = json!("valid");
+            }
+            let shared = FormulaName::for_operation(wire, name.to_owned());
+            let parsed = parse_request(&request.to_string());
+            match (shared, parsed) {
+                (Ok(expected), Ok(request)) => {
+                    assert_eq!(request.formula_name, expected, "{operation} {name:?}");
+                }
+                (Err(_), Err(_)) => {}
+                (shared, parsed) => panic!("{operation} {name:?}: {shared:?} vs {parsed:?}"),
+            }
+        }
+    }
+}
+
+// pe-f12 (DIFF5-01): request JSON errors report the caller's line and column,
+// never a location in an internal compact re-serialization.
+#[test]
+fn request_json_errors_report_source_line_and_column() {
+    let request = json!({
+        "schema": BEADS_SCHEMA_V1,
+        "operation": "render",
+        "working_directory": "/work",
+        "template": "f.formula.toml.j2",
+        "rendered_formula": "/work/build/f.formula.toml",
+        "compose_variables": [],
+        "bead_variables": {}
+    });
+    let pretty = serde_json::to_string_pretty(&request).unwrap();
+    let line = pretty
+        .lines()
+        .position(|line| line.contains("compose_variables"))
+        .map(|index| index + 1)
+        .unwrap();
+    assert!(line > 1, "the request must span several lines");
+    let error = parse_request(&pretty)
+        .expect_err("array compose_variables")
+        .to_string();
+    assert!(
+        error.contains(&format!("line {line} ")),
+        "expected source line {line}: {error}"
+    );
+    assert!(!error.contains("line 1 "), "{error}");
 }
 
 // FUZZ-014: graph planning uses this request's rendered text.
@@ -456,10 +578,10 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
         assert!(!message.contains(raw), "{message:?}");
     }
     for escaped in [
-        "\\xE2\\x80\\x8B",
-        "\\xEF\\xBB\\xBF",
-        "\\xC2\\xAD",
-        "\\xE2\\x80\\xAE",
+        "\\342\\200\\213",
+        "\\357\\273\\277",
+        "\\302\\255",
+        "\\342\\200\\256",
     ] {
         assert!(message.contains(escaped), "{message:?}");
     }
@@ -471,17 +593,16 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
         .unwrap()
         .strip_suffix(" --type 'blocks'")
         .unwrap();
-    shell_literal::assert_round_trip(arguments, &[from, to]);
+    assert!(!arguments.contains("$'"), "{arguments}");
     #[cfg(unix)]
-    assert_bash_round_trip(arguments, format!("{from}\0{to}\0").as_bytes());
+    assert_sh_round_trip(arguments, format!("{from}\0{to}\0").as_bytes());
 
     let separators = "line\u{2028}paragraph\u{2029}end";
     let escaped_separators = sc_composer_beads::error::shell_quote(separators);
-    assert!(escaped_separators.contains("\\xE2\\x80\\xA8"));
-    assert!(escaped_separators.contains("\\xE2\\x80\\xA9"));
-    shell_literal::assert_round_trip(&escaped_separators, &[separators]);
+    assert!(escaped_separators.contains("\\342\\200\\250"));
+    assert!(escaped_separators.contains("\\342\\200\\251"));
     #[cfg(unix)]
-    assert_bash_round_trip(&escaped_separators, format!("{separators}\0").as_bytes());
+    assert_sh_round_trip(&escaped_separators, format!("{separators}\0").as_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
     for value in [
         "",
@@ -494,25 +615,49 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
     }
 }
 
+// Control and format characters are spelled with POSIX `printf` escapes, so the
+// word must evaluate to the same bytes under every POSIX shell available here.
 #[cfg(unix)]
-fn assert_bash_round_trip(arguments: &str, expected: &[u8]) {
+fn assert_sh_round_trip(arguments: &str, expected: &[u8]) {
     let mut tested_shell = false;
-    for shell in ["/bin/bash", "bash"] {
+    for shell in ["/bin/sh", "/bin/dash", "/bin/bash"] {
+        if !Path::new(shell).exists() {
+            continue;
+        }
         let output = std::process::Command::new(shell)
             .args(["-c", &format!("printf '%s\\0' {arguments}")])
             .env("LC_ALL", "C.UTF-8")
-            .output();
-        let Ok(output) = output else {
-            continue;
-        };
+            .output()
+            .expect("shell starts");
         tested_shell = true;
         assert!(output.status.success(), "{shell}: {output:?}");
         assert_eq!(output.stdout, expected, "{shell}");
     }
-    assert!(
-        tested_shell,
-        "neither /bin/bash nor bash from PATH is available"
-    );
+    assert!(tested_shell, "no POSIX shell is available");
+}
+
+// pe-f10 r2: the escaped word is portable POSIX, keeps interior newlines, and
+// shows only a final newline as visible text.
+#[cfg(unix)]
+#[test]
+fn shell_quote_control_characters_round_trip_under_posix_shells() {
+    for value in [
+        "a\nb",
+        "\nleading",
+        "\u{1b}[2Jforged",
+        "tab\there'quote",
+        "100%\u{7}%s\\n",
+        "\r\n\r\nx",
+        "\u{200b}",
+    ] {
+        let quoted = sc_composer_beads::error::shell_quote(value);
+        assert!(!quoted.contains("$'"), "{quoted:?}");
+        assert!(!quoted.chars().any(char::is_control), "{quoted:?}");
+        assert_sh_round_trip(&quoted, format!("{value}\0").as_bytes());
+    }
+    let quoted = sc_composer_beads::error::shell_quote("end\n");
+    assert!(!quoted.chars().any(char::is_control), "{quoted:?}");
+    assert_sh_round_trip(&quoted, "end\\u{000A}\0".as_bytes());
 }
 
 fn option_id_argument_errors(calls: &[CommandSpec], ids: &[&str]) -> Vec<String> {

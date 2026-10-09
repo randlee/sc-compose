@@ -5,9 +5,10 @@ use crate::contract::{
 };
 use crate::error::BeadComposeError;
 use crate::execute::{
-    NormalizedRequest, StageFailure, append_variables, failed_last_stage_receipt, public_path_buf,
-    receipt, run_stage, run_stage_with_output,
+    NormalizedRequest, StageFailure, append_variables, failed_last_stage_receipt, receipt,
+    run_stage, run_stage_with_output,
 };
+use crate::paths::public_path_buf;
 use crate::runner::{CommandSpec, ProcessRunner};
 use crate::snapshot::InputSnapshot;
 use serde_json::Value;
@@ -59,8 +60,12 @@ pub(crate) fn execute_pour(
         ));
     };
     if normalized.rendered_formula.parent() != Some(active_beads_dir.join("formulas").as_path()) {
-        if let Some(refusal) = refuse_outside_workspace(request, &normalized, &stages) {
-            return Ok(refusal);
+        // Only the active registry may sit outside `working_directory`; any
+        // other destination is refused before it is written.
+        if normalized.defers_publish(request.operation) {
+            return Err(BeadComposeError::OutputOutsideWorkingDirectory {
+                path: public_path_buf(&normalized.rendered_formula),
+            });
         }
         return crate::graph::execute(
             request,
@@ -80,12 +85,15 @@ pub(crate) fn execute_pour(
         &normalized.rendered_formula,
         &active_beads_dir,
     ) {
-        return Ok(failed_last_stage_receipt(
-            request,
-            normalized.rendered_formula,
-            stages,
-            &error,
-        ));
+        // Registry mode is selected by now, so the failure receipt names it.
+        let mut result =
+            failed_last_stage_receipt(request, normalized.rendered_formula, stages, &error);
+        result.pour_mode = Some(crate::BeadPourMode::Registry);
+        return Ok(result);
+    }
+    // `bd mol pour` reads the formula by name from the registry.
+    if normalized.defers_publish(request.operation) {
+        formula_input.publish_copy(&normalized.rendered_formula)?;
     }
 
     let preview = request.operation == BeadOperation::PreviewPour;
@@ -100,12 +108,9 @@ pub(crate) fn execute_pour(
         StageFailure::Pour
     };
     if let Some(failed) = run_stage(runner, failure, &pour, &mut stages)? {
-        return Ok(receipt(
-            request,
-            normalized.rendered_formula,
-            stages,
-            failed,
-        ));
+        let mut result = receipt(request, normalized.rendered_formula, stages, failed);
+        result.pour_mode = Some(crate::BeadPourMode::Registry);
+        return Ok(result);
     }
     let mut result = receipt(
         request,
@@ -151,7 +156,9 @@ fn validate_active_registry_path(
     let json = active_beads_dir
         .join("formulas")
         .join(format!("{formula_name}.formula.json"));
-    if toml.is_file() && json.is_file() {
+    // A deferred destination is not written yet; count it as present.
+    if (rendered_formula == toml || toml.is_file()) && (rendered_formula == json || json.is_file())
+    {
         return Err(BeadComposeError::FormulaRegistryAmbiguous {
             formula_name: formula_name.to_string(),
         });
@@ -198,33 +205,203 @@ fn refuse_registry_relations(
     result
 }
 
-fn refuse_outside_workspace(
-    request: &BeadComposeRequest,
-    normalized: &NormalizedRequest,
-    stages: &[BeadStageReceipt],
-) -> Option<BeadComposeReceipt> {
-    (!normalized
-        .rendered_formula
-        .starts_with(&normalized.working_directory))
-    .then(|| {
-        failed_last_stage_receipt(
-            request,
-            normalized.rendered_formula.clone(),
-            stages.to_vec(),
-            &BeadComposeError::OutputOutsideWorkingDirectory {
-                path: public_path_buf(&normalized.rendered_formula),
-            },
-        )
-    })
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::execute::execute_bead_request_with_runner;
     use crate::execute::tests::{FakeRunner, request, success, where_output, workspace};
-    use crate::execute::{execute_bead_request_with_runner, public_path_display};
-    use crate::{BeadOperation, BeadOutcome, BeadStage};
+    use crate::paths::public_path_display;
+    use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
+    use crate::{BeadComposeError, BeadOperation, BeadOutcome, BeadStage, PourAuthorization};
     use std::fs;
+    use std::io;
     use std::path::Path;
+
+    /// Runs `hook` before each fake bd command.
+    struct HookRunner<F> {
+        inner: FakeRunner,
+        hook: F,
+    }
+
+    impl<F: Fn(&CommandSpec) + Sync> ProcessRunner for HookRunner<F> {
+        fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+            (self.hook)(spec);
+            self.inner.run(spec)
+        }
+    }
+
+    fn private_inputs(directory: &Path) -> usize {
+        fs::read_dir(directory)
+            .expect("read directory")
+            .filter(|entry| {
+                entry
+                    .as_ref()
+                    .expect("directory entry")
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(".sc-compose-input-")
+            })
+            .count()
+    }
+
+    #[test]
+    fn pour_outside_working_directory_is_a_request_error_before_any_write() {
+        for operation in [BeadOperation::PreviewPour, BeadOperation::Pour] {
+            let root = workspace();
+            let other = workspace();
+            let active_beads_dir = root.join(".beads");
+            fs::create_dir_all(&active_beads_dir).expect("create active beads dir");
+            let outside = other.join("victim.formula.toml");
+            fs::write(&outside, "original").expect("write outside file");
+            let mut request = request(&root, operation);
+            request.rendered_formula = outside.clone();
+            request.bead_variables.clear();
+            request.pour_authorization = Some(PourAuthorization::CreatePersistentBeads);
+            let runner = FakeRunner::with_outputs([success("{}"), where_output(&active_beads_dir)]);
+
+            let error = execute_bead_request_with_runner(&request, &runner)
+                .expect_err("outside output is a request error");
+            assert!(
+                matches!(
+                    error,
+                    BeadComposeError::OutputOutsideWorkingDirectory { .. }
+                ),
+                "{error:?}"
+            );
+            assert_eq!(error.code(), "BEADS_OUTPUT_OUTSIDE_WORKING_DIR");
+            assert_eq!(fs::read_to_string(&outside).expect("outside"), "original");
+            assert_eq!(private_inputs(&other), 0);
+            assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
+            fs::remove_dir_all(root).expect("cleanup");
+            fs::remove_dir_all(other).expect("cleanup");
+        }
+    }
+
+    #[test]
+    fn redirected_registry_outside_working_directory_is_written_once_before_pour() {
+        let root = workspace();
+        let other = workspace();
+        let active_beads_dir = other.join(".beads");
+        let registry = active_beads_dir.join("formulas");
+        fs::create_dir_all(&registry).expect("create active registry");
+        let destination = fs::canonicalize(&registry)
+            .expect("canonical registry")
+            .join("example.formula.toml");
+        let mut request = request(&root, BeadOperation::Pour);
+        request.rendered_formula = destination.clone();
+        request.pour_authorization = Some(PourAuthorization::CreatePersistentBeads);
+        let runner = HookRunner {
+            inner: FakeRunner::with_outputs([
+                success("{}"),
+                where_output(&active_beads_dir),
+                success("{}"),
+            ]),
+            hook: |spec: &CommandSpec| match spec.args[0].as_str() {
+                "cook" | "where" => assert!(!destination.exists(), "written before bd where"),
+                _ => assert!(
+                    fs::read_to_string(&destination)
+                        .expect("published before pour")
+                        .contains("Ada")
+                ),
+            },
+        };
+
+        let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+        assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+        assert_eq!(receipt.pour_mode, Some(crate::BeadPourMode::Registry));
+        assert!(destination.is_file());
+        fs::remove_dir_all(root).expect("cleanup");
+        fs::remove_dir_all(other).expect("cleanup");
+    }
+
+    #[test]
+    fn failed_registry_preview_and_pour_receipts_keep_registry_mode() {
+        for operation in [BeadOperation::PreviewPour, BeadOperation::Pour] {
+            let root = workspace();
+            let other = workspace();
+            let active_beads_dir = other.join(".beads");
+            let registry = active_beads_dir.join("formulas");
+            fs::create_dir_all(&registry).expect("create active registry");
+            let destination = fs::canonicalize(&registry)
+                .expect("canonical registry")
+                .join("example.formula.toml");
+            let mut request = request(&root, operation);
+            request.rendered_formula = destination;
+            request.pour_authorization = Some(PourAuthorization::CreatePersistentBeads);
+            let mut failed = success("{}");
+            failed.exit_status = Some(1);
+            let runner =
+                FakeRunner::with_outputs([success("{}"), where_output(&active_beads_dir), failed]);
+            let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+            assert!(
+                matches!(receipt.outcome, BeadOutcome::Failed { .. }),
+                "{operation:?}: {:?}",
+                receipt.outcome
+            );
+            assert_eq!(
+                receipt.pour_mode,
+                Some(crate::BeadPourMode::Registry),
+                "{operation:?}"
+            );
+            fs::remove_dir_all(root).expect("cleanup");
+            fs::remove_dir_all(other).expect("cleanup");
+        }
+    }
+
+    #[test]
+    fn pre_classification_failure_leaves_pour_mode_unclassified() {
+        let root = workspace();
+        let request = {
+            let mut request = request(&root, BeadOperation::Pour);
+            request.pour_authorization = Some(PourAuthorization::CreatePersistentBeads);
+            request
+        };
+        let mut failed = success("{}");
+        failed.exit_status = Some(1);
+        let runner = FakeRunner::with_outputs([success("{}"), failed]);
+        let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+        assert!(matches!(receipt.outcome, BeadOutcome::Failed { .. }));
+        assert_eq!(receipt.pour_mode, None);
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn successful_pour_is_never_discarded_by_a_later_write() {
+        let root = workspace();
+        let active_beads_dir = root.join(".beads");
+        let registry = active_beads_dir.join("formulas");
+        fs::create_dir_all(&registry).expect("create active registry");
+        let mut request = request(&root, BeadOperation::Pour);
+        request.rendered_formula = registry.join("example.formula.toml");
+        request.pour_authorization = Some(PourAuthorization::CreatePersistentBeads);
+        let destination = request.rendered_formula.clone();
+        // After bd pours, the destination becomes unwritable; the pour already
+        // created beads, so its receipt must survive.
+        let runner = HookRunner {
+            inner: FakeRunner::with_outputs([
+                success("{}"),
+                where_output(&active_beads_dir),
+                success(r#"{"new_epic_id":"proj-1"}"#),
+            ]),
+            hook: |spec: &CommandSpec| {
+                if spec.args[0] == "mol" {
+                    fs::remove_file(&destination).expect("remove destination");
+                    fs::create_dir(&destination).expect("block destination");
+                }
+            },
+        };
+
+        let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+        assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+        assert_eq!(
+            receipt.stages.last().map(|s| s.stage),
+            Some(BeadStage::Pour)
+        );
+        assert!(
+            destination.is_dir(),
+            "nothing rewrote the destination after pour"
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
 
     #[test]
     fn malformed_where_output_marks_the_attempted_stage_failed() {
@@ -351,6 +528,7 @@ mod tests {
                 code: String::from("BEADS_FORMULA_REGISTRY_AMBIGUOUS")
             }
         );
+        assert_eq!(receipt.pour_mode, Some(crate::BeadPourMode::Registry));
         assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
         fs::remove_dir_all(root).expect("cleanup");
     }

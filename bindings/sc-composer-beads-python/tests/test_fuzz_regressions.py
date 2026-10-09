@@ -10,7 +10,7 @@ def test_fuzz_021_invalid_ref_has_typed_validate_error(tmp_path, reference, oper
         beads.BeadComposeRequest(tmp_path, tmp_path / "f.formula.toml.j2", tmp_path / "f.formula.toml", {}, operation=operation, parent="proj-1", ref=reference)
     assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
     assert raised.value.stage == "validate"
-    assert raised.value.details == {"field": "ref", "value": reference}
+    assert raised.value.details == {"field": "ref", "value": reference, "rule": "ref is [A-Za-z0-9_-]{1,32}"}
     assert "[A-Za-z0-9_-]" in str(raised.value)
 
 
@@ -22,7 +22,7 @@ def test_fuzz_021_invalid_relation_step_has_typed_validate_error(tmp_path, endpo
         beads.BeadComposeRequest(tmp_path, tmp_path / "f.formula.toml.j2", tmp_path / "f.formula.toml", {}, operation="preview_attach", parent="proj-1", ref="valid", relations=[relation])
     assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
     assert raised.value.stage == "validate"
-    assert raised.value.details == {"field": "step", "value": "bad.step"}
+    assert raised.value.details == {"field": "step", "value": "bad.step", "rule": "step is [A-Za-z0-9_]{1,64}; hyphens are forbidden"}
 
 
 @pytest.mark.parametrize("invalid", ["", " ", "invalid parent", "bad\tparent", "bad\nparent", "bad\rparent"])
@@ -38,5 +38,5 @@ def test_invalid_relation_bead_preserves_native_typed_error(tmp_path, invalid, e
         )
     assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
     assert raised.value.stage == "validate"
-    assert raised.value.details == {"field": "bead", "value": invalid}
+    assert raised.value.details == {"field": "bead", "value": invalid, "rule": "bead ids are non-empty without whitespace"}
     assert "bead ids are non-empty without whitespace" in str(raised.value)

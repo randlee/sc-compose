@@ -293,6 +293,10 @@ A planned edge between two beads that both already exist, absent in bd
 that adds only edges, and reporting success would leave the graph incomplete.
 
 ### Errors (`BeadComposeError`, additive)
+`BeadComposeError` is `#[non_exhaustive]`. Adapters classify an error with its
+library accessors (`code()`, `stage()`, and `class()`, which is request or
+execution, CLI exit 3 or 2) and a fallback arm, never variant by variant.
+
 | Variant | Code | Outcome / exit | Recovery |
 |---|---|---|---|
 | `GraphParentNotFound { parent }` | `BEADS_GRAPH_PARENT_NOT_FOUND` | refused / 2 | create the parent or name an existing one |
@@ -305,6 +309,7 @@ that adds only edges, and reporting success would leave the graph incomplete.
 | `GraphEdgeMissing { edges }` | `BEADS_GRAPH_EDGE_MISSING` | refused / 2 (plan) | run the `bd dep add` command the message gives for each edge, then re-run |
 | `GraphReadFailed { command, status }` | `BEADS_GRAPH_READ_FAILED` | failed / 2 (plan) | fix the bd failure and re-run; nothing was written |
 | `GraphApplyFailed { command, status }` | `BEADS_GRAPH_APPLY_FAILED` | failed / 2 (pour or attach) | fix the bd failure and re-run; nothing was written |
+| `GraphApplyUnconfirmed { command, cause, ids }` | `BEADS_GRAPH_APPLY_UNCONFIRMED` | failed / 2 (pour or attach) | bd exited 0, so beads may exist: reconcile with `bd show` on `ids` (`bd list` when `ids` is empty) before pouring again |
 
 Field types: `command` is the bd argv as `Vec<String>`; `status` is
 `Option<i32>` (None when bd was killed by a signal); `edges` is a non-empty
@@ -353,6 +358,14 @@ formula's parent directory is the active registry (`bd where` then
 rendered formula inside `working_directory` uses the graph engine in pour mode
 (`pour_mode: "graph"`), and `render` no longer requires the registry directory
 to exist. A rendered formula outside `working_directory` is refused as before.
+For every operation that refusal is the request error
+`BEADS_OUTPUT_OUTSIDE_WORKING_DIR` (exit 3), never a receipt. Render, validate
+and attach raise it before any stage; a pour raises it after `bd where`, since
+only the active registry may lie outside `working_directory`. A pour writes
+the rendered formula once: inside `working_directory` in the render stage,
+and in an outside active registry only after that check passes, before
+`bd mol pour`. Nothing writes it after `bd` runs, so a successful pour's
+receipt is never lost.
 
 ### Id rule
 `ref` matches `^[A-Za-z0-9_-]{1,32}$` (no `.`; `-` allowed) and every step id
@@ -452,14 +465,20 @@ written and `plan_path` is absent. The plan contains only what is missing:
 Preview runs `bd create --graph <plan> --dry-run --json` and apply runs `bd
 create --graph <plan> --json`. bd validates the whole plan (types, priority,
 ids, cycles, blocking paths through the hierarchy) before writing and applies
-it in one transaction, returning `{"ids": {key: id}}`. A failure of either
-command is `GraphApplyFailed`; bd has written nothing. When every planned node
+it in one transaction, returning `{"ids": {key: id}}`. A non-zero exit of
+either command is `GraphApplyFailed`; bd has written nothing. When apply exits
+0 but its response cannot be consumed (not JSON, `ids` missing, or ids that do
+not match the plan), the transaction may have committed: that is
+`GraphApplyUnconfirmed`, whose `ids` lists the attach parent and planned step
+ids to inspect, and whose recovery is to reconcile before pouring again, since
+a retry can create a second molecule. When every planned node
 and edge already exists with matching provenance, no file and no bd write is
 issued.
 
 ### Conflict rules (plan stage, before any write)
 The plan stage reads the parent, each planned id and each `bead:` relation
-endpoint with one `bd show <id>... --json`, and the edges of each existing
+endpoint with `bd show <id>... --json` (in batches of 64 ids, so a large plan
+issues more than one), and the edges of each existing
 planned bead with `bd dep list <id> --json`. A bead is absent only on bd's
 not-found response: the id is missing from a list that `bd show` returned with
 exit 0, or `bd show` exits 1 with JSON `error` equal to `no issues found
@@ -490,7 +509,8 @@ show`; existence of `bead:` endpoints is checked in the plan stage.
 
 | Case | Result |
 |---|---|
-| endpoint string without `step:` / `bead:` prefix, or unknown `type` | `RequestDeserializationFailed` (exit 3) |
+| endpoint string without `step:` / `bead:` prefix | `RelationEndpointInvalid` (`BEADS_RELATION_ENDPOINT_INVALID`, exit 3) |
+| unknown relation `type` | `RequestDeserializationFailed` (exit 3) |
 | `step:` endpoint naming no step in the formula | `GraphRelationInvalid` (`unknown_step`) |
 | `from` equals `to` | `GraphRelationInvalid` (`self_edge`) |
 | both endpoints `bead:` | `GraphRelationInvalid` (`no_step`) |
@@ -521,6 +541,35 @@ The only mutating bd command sc-compose issues for these operations is one
 reopen`, `bd delete`, `bd dep add`, `bd mol pour` or `bd mol bond` for them,
 and never `bd cook --persist`, so no existing bead changes and no proto is
 created.
+
+## Errata (Phase T readiness)
+
+These corrections bring the text above in line with the shipped behaviour.
+
+- **Relation endpoint error.** A relation endpoint without a `step:` or
+  `bead:` prefix is `RelationEndpointInvalid`
+  (`BEADS_RELATION_ENDPOINT_INVALID`, exit 3), not
+  `RequestDeserializationFailed`. A prefixed endpoint whose id fails its
+  grammar is `GraphIdInvalid`. Request JSON errors report the line and column
+  of the request file.
+- **Batched `bd show`.** Reads of existing beads are batched, 64 ids per
+  `bd show`; the not-found rules apply to each batch.
+- **Isolated cook snapshot.** Every `bd cook` (the validate stage and the graph
+  cook) reads a private snapshot of the rendered text, named
+  `.sc-compose-input-*` beside the output, not the requested path, so the text
+  that is validated is the text that is planned and published. Receipts and
+  diagnostics present the public `rendered_formula` path in place of the
+  snapshot. "Unchanged" argv in the Stages table therefore means the same
+  command and flags with that substitution. The snapshot is removed when the
+  run ends; a crash can leave it behind (see the manual).
+- **Error codes and classes.** Every `BEADS_*` code is listed in
+  `docs/error-code-registry.md`, including the request-level codes
+  (`BEADS_REQUEST_READ_FAILED`, `BEADS_RELATION_ENDPOINT_INVALID`, ...) and
+  the execution codes of registry pour. `GraphIdInvalid` found while parsing a
+  request file is a request error (exit 3).
+- **`formula_name`.** It is required only for registry `pour` and
+  `preview_pour`; attach and by-path graph pour take it as optional input, and
+  the portable grammar applies only to attach operations.
 
 ## Issue coverage
 

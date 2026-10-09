@@ -144,6 +144,11 @@ fn render_json_append_missing_final_newline_reports_failure_code() {
     assert_envelope(&value);
     assert_first_code(&value, "ERR_RENDER_APPEND_NO_FINAL_NEWLINE");
     assert_eq!(
+        value["diagnostics"][0]["path"],
+        serde_json::json!(destination.to_string_lossy()),
+        "the inspect-path recovery target must be in the JSON envelope"
+    );
+    assert_eq!(
         fs::read_to_string(destination).unwrap(),
         "{\"existing\":true}"
     );

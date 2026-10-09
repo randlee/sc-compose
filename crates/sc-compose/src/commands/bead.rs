@@ -4,9 +4,10 @@ use std::fs;
 
 use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadNodeAction,
-    BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome, RefusedBeadComposeReceipt,
-    RequestParseOutcome, execute_bead_request_with_diagnostics, parse_request_with_outcome,
+    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadErrorClass,
+    BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome,
+    RefusedBeadComposeReceipt, RequestParseOutcome, execute_bead_request_with_diagnostics,
+    parse_request_for_operation,
 };
 
 use crate::CommandError;
@@ -36,11 +37,17 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
             return print_bead_error(&error, operation, json);
         }
     };
-    let mut request = match parse_request_with_outcome(&input) {
+    let mut request = match parse_request_for_operation(&input, operation) {
         Ok(RequestParseOutcome::Ready(request)) => request,
         Ok(RequestParseOutcome::Refused(mut receipt)) => {
             receipt.receipt.operation = operation;
             return print_refused_receipt(receipt, json);
+        }
+        // An identifier error that survives parsing is outside the attach
+        // family (attach identifiers become refused receipts): ADR-0023 calls
+        // it a request error, exit 3, keeping the native typed error.
+        Err(error @ BeadComposeError::GraphIdInvalid { .. }) => {
+            return print_bead_error_with_exit(&error, operation, json, exit_codes::USAGE_FAIL);
         }
         Err(error) => return print_bead_error(&error, operation, json),
     };
@@ -107,46 +114,24 @@ fn print_bead_error(
     operation: BeadOperation,
     json: bool,
 ) -> Result<i32, CommandError> {
-    let exit_code = match &error {
-        BeadComposeError::RequestReadFailed { .. }
-        | BeadComposeError::RequestDeserializationFailed { .. }
-        | BeadComposeError::RelationEndpointInvalid { .. }
-        | BeadComposeError::UnknownSchema { .. }
-        | BeadComposeError::FormulaPathNotFile { .. }
-        | BeadComposeError::FormulaExtensionUnsupported { .. }
-        | BeadComposeError::TemplatePathInvalid { .. }
-        | BeadComposeError::OutputPathInvalid { .. }
-        | BeadComposeError::TemplateOutsideWorkingDirectory { .. }
-        | BeadComposeError::OutputOutsideWorkingDirectory { .. }
-        | BeadComposeError::OutputPathSymlink { .. }
-        | BeadComposeError::PathNotUtf8 { .. }
-        | BeadComposeError::BeadVariableKeyInvalid { .. }
-        | BeadComposeError::BeadVariableKeyDuplicate { .. }
-        | BeadComposeError::BeadVariableValueInvalid { .. }
-        | BeadComposeError::FormulaNameRequired
-        | BeadComposeError::PourAuthorizationRequired
-        | BeadComposeError::PourAuthorizationInvalid => exit_codes::USAGE_FAIL,
-        BeadComposeError::BdUnavailable { .. }
-        | BeadComposeError::ProcessArgumentInvalid { .. }
-        | BeadComposeError::ProcessOutputLimitExceeded { .. }
-        | BeadComposeError::RenderFailed { .. }
-        | BeadComposeError::CookFailed { .. }
-        | BeadComposeError::ActiveRegistryResolutionFailed { .. }
-        | BeadComposeError::FormulaOutsideActiveRegistry { .. }
-        | BeadComposeError::FormulaRegistryAmbiguous { .. }
-        | BeadComposeError::PreviewPourFailed { .. }
-        | BeadComposeError::PourFailed { .. }
-        | BeadComposeError::GraphParentNotFound { .. }
-        | BeadComposeError::GraphIdInvalid { .. }
-        | BeadComposeError::GraphScopeMismatch { .. }
-        | BeadComposeError::GraphFormulaUnsupported { .. }
-        | BeadComposeError::GraphRelationInvalid { .. }
-        | BeadComposeError::GraphConflict { .. }
-        | BeadComposeError::GraphEdgeConflict { .. }
-        | BeadComposeError::GraphEdgeMissing { .. }
-        | BeadComposeError::GraphReadFailed { .. }
-        | BeadComposeError::GraphApplyFailed { .. } => exit_codes::VALIDATION_OR_RENDER_FAIL,
-    };
+    let exit_code = bead_error_exit_code(error);
+    print_bead_error_with_exit(error, operation, json, exit_code)
+}
+
+fn bead_error_exit_code(error: &BeadComposeError) -> i32 {
+    match error.class() {
+        BeadErrorClass::Request => exit_codes::USAGE_FAIL,
+        // An execution failure, or a class added by a newer library.
+        _ => exit_codes::VALIDATION_OR_RENDER_FAIL,
+    }
+}
+
+fn print_bead_error_with_exit(
+    error: &BeadComposeError,
+    operation: BeadOperation,
+    json: bool,
+    exit_code: i32,
+) -> Result<i32, CommandError> {
     if json {
         print_json(
             serde_json::json!({
@@ -198,7 +183,10 @@ fn human_error_fields(envelope: &serde_json::Value) -> String {
 }
 
 fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::Value]) {
-    println!("rendered_formula: {}", receipt.rendered_formula.display());
+    println!(
+        "rendered_formula: {}",
+        escape_human_text(&receipt.rendered_formula.display().to_string())
+    );
     if let Some(mode) = receipt.pour_mode {
         let mode = match mode {
             BeadPourMode::Registry => "registry",
@@ -255,7 +243,10 @@ fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::
         }
         println!("edges: {}", graph.edges.len());
         if let Some(plan_path) = &graph.plan_path {
-            println!("plan_path: {}", plan_path.display());
+            println!(
+                "plan_path: {}",
+                escape_human_text(&plan_path.display().to_string())
+            );
         }
     }
 }
@@ -283,12 +274,6 @@ fn missing_edge_recovery_commands(
 
 #[cfg(test)]
 mod tests {
-    mod shell_literal {
-        include!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../test-support/shell_literal.rs"
-        ));
-    }
     use super::{human_bead_error, missing_edge_recovery_commands};
     use sc_composer_beads::{
         BeadComposeError, BeadComposeReceipt, BeadId, GraphConflictReason, GraphDependencyType,
@@ -331,7 +316,7 @@ mod tests {
         }
     }
     #[test]
-    fn missing_edge_recovery_commands_escape_controls_and_bidi_for_bash() {
+    fn missing_edge_recovery_commands_escape_controls_and_bidi_for_posix_sh() {
         let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}$(literal)$HOME`literal`";
         let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
         let receipt: BeadComposeReceipt = serde_json::from_value(json!({
@@ -356,18 +341,18 @@ mod tests {
             .unwrap()
             .strip_suffix(" --type 'blocks'")
             .unwrap();
-        shell_literal::assert_round_trip(arguments, &[from, to]);
         let separators = "line\u{2028}paragraph\u{2029}end";
         let escaped = super::shell_quote(separators);
         assert!(!escaped.contains(['\u{2028}', '\u{2029}']));
-        shell_literal::assert_round_trip(&escaped, &[separators]);
+        assert!(!arguments.contains("$'"), "{arguments}");
         #[cfg(unix)]
         {
-            let output = std::process::Command::new("bash")
+            // The word is POSIX: the system sh must read it back exactly.
+            let output = std::process::Command::new("/bin/sh")
                 .args(["-c", &format!("printf '%s\\0' {arguments}")])
                 .env("LC_ALL", "C.UTF-8")
                 .output()
-                .expect("isolated Bash printf");
+                .expect("POSIX sh printf");
             assert!(output.status.success(), "{output:?}");
             assert_eq!(output.stdout, format!("{from}\0{to}\0").into_bytes());
         }
@@ -429,6 +414,14 @@ mod tests {
             human_bead_error(&error).unwrap(),
             format!("{}: {error}", error.code())
         );
+    }
+
+    #[test]
+    fn human_receipt_paths_escape_terminal_controls() {
+        let hostile = "out\u{1b}[2Jforged: line\u{202e}.toml";
+        let escaped = super::escape_human_text(hostile);
+        assert!(!escaped.chars().any(char::is_control), "{escaped:?}");
+        assert!(escaped.contains("\\u{001B}"), "{escaped:?}");
     }
 
     #[test]

@@ -53,8 +53,6 @@ impl<'de> Deserialize<'de> for BeadVariables {
 #[derive(Deserialize)]
 struct RequestPreflight {
     #[serde(default)]
-    operation: Value,
-    #[serde(default)]
     parent: Value,
     #[serde(default, rename = "ref")]
     reference: Value,
@@ -100,6 +98,15 @@ fn duplicate_top_level_key(input: &str) -> Result<Option<String>, BeadComposeErr
 }
 
 pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
+    parse_request_as(input, None)
+}
+
+/// Parse with `operation` (the CLI subcommand) overriding the request file's
+/// own `operation` for every operation-dependent check.
+pub(crate) fn parse_request_as(
+    input: &str,
+    operation: Option<BeadOperation>,
+) -> Result<BeadComposeRequest, BeadComposeError> {
     // Finish parsing the JSON before classifying semantic errors. The captured
     // duplicate is an exact decoded key, independent of serde's display format.
     if let Some(key) = duplicate_top_level_key(input)? {
@@ -120,16 +127,16 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
         PourAuthorization::try_from(token)?;
     }
     // Request shape and authorization take precedence over identifier grammar.
-    let shape = request_shape(input)?;
+    let shape = request_shape_as(input, operation)?;
+    let attach_family = matches!(
+        shape.operation,
+        BeadOperation::Attach | BeadOperation::PreviewAttach
+    );
     let identifiers = (|| {
         if let Some(parent) = preflight.parent.as_str() {
             BeadId::new(parent)?;
         }
-        if matches!(
-            preflight.operation.as_str(),
-            Some("attach" | "preview_attach")
-        ) && let Some(reference) = preflight.reference.as_str()
-        {
+        if attach_family && let Some(reference) = preflight.reference.as_str() {
             GraphRef::new(reference)?;
         }
         validate_endpoint_prefixes(&preflight.relations)
@@ -143,10 +150,28 @@ pub(crate) fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadCompo
         }
         return Err(error);
     }
-    deserialize_request(input)
+    let mut request = deserialize_request(input, operation)?;
+    if let Some(operation) = operation {
+        request.operation = operation;
+    }
+    Ok(request)
 }
 
-fn request_shape(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
+fn request_shape_as(
+    input: &str,
+    operation: Option<BeadOperation>,
+) -> Result<BeadComposeRequest, BeadComposeError> {
+    let mut shape = request_shape(input, operation)?;
+    if let Some(operation) = operation {
+        shape.operation = operation;
+    }
+    Ok(shape)
+}
+
+fn request_shape(
+    input: &str,
+    operation: Option<BeadOperation>,
+) -> Result<BeadComposeRequest, BeadComposeError> {
     let mut shape: Value = serde_json::from_str(input).map_err(|error| request_error(&error))?;
     for field in ["parent", "ref"] {
         if let Some(value) = shape.get_mut(field).filter(|value| value.is_string()) {
@@ -162,19 +187,29 @@ fn request_shape(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
             }
         }
     }
-    deserialize_request(&shape.to_string())
+    // The placeholder copy is compact JSON, so serde's line and column would
+    // point into text the caller never wrote. Parse the original first; use the
+    // copy only to look past an identifier-grammar failure, and when both fail
+    // report the original's error with source locations.
+    match deserialize_request(input, operation) {
+        Ok(request) => Ok(request),
+        Err(original) => {
+            deserialize_request(&shape.to_string(), operation).map_err(|_compact| original)
+        }
+    }
 }
 
 pub(crate) fn parse_request_with_outcome(
     input: &str,
+    operation: Option<BeadOperation>,
 ) -> Result<RequestParseOutcome, BeadComposeError> {
-    match parse_request(input) {
+    match parse_request_as(input, operation) {
         Ok(request) => Ok(RequestParseOutcome::Ready(request)),
         Err(error) => {
             let Some(diagnostic) = BeadDiagnostic::graph_id_invalid(&error) else {
                 return Err(error);
             };
-            let shape = request_shape(input)?;
+            let shape = request_shape_as(input, operation)?;
             if !matches!(
                 shape.operation,
                 BeadOperation::Attach | BeadOperation::PreviewAttach
@@ -239,12 +274,40 @@ fn refused_formula_path(
     Ok(normalized)
 }
 
-fn deserialize_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
-    match serde_json::from_str(input) {
+/// Deserialize a request under its effective operation: the caller's
+/// `operation` (the CLI subcommand) when given, else the request file's own.
+///
+/// Operation-dependent contract checks (attach `parent`/`ref`, relation
+/// placement) and the legacy `formula_name` tolerance all key on the effective
+/// operation. A file whose own `operation` is missing or unknown is left
+/// untouched so it still fails as a malformed request. When the effective
+/// operation equals the file's, the original text is parsed so serde keeps its
+/// line and column locations.
+fn deserialize_request(
+    input: &str,
+    operation: Option<BeadOperation>,
+) -> Result<BeadComposeRequest, BeadComposeError> {
+    let overridden = operation.and_then(|operation| {
+        let mut value: Value = serde_json::from_str(input).ok()?;
+        let file_operation = value.get("operation").and_then(Value::as_str)?;
+        serde_json::from_value::<BeadOperation>(Value::String(file_operation.to_owned())).ok()?;
+        if file_operation == operation.as_str() {
+            return None;
+        }
+        *value.get_mut("operation")? = Value::String(operation.as_str().to_owned());
+        Some(value)
+    });
+    let first = match &overridden {
+        Some(value) => serde_json::from_value(value.clone()),
+        None => serde_json::from_str(input),
+    };
+    match first {
         Ok(request) => Ok(request),
         Err(error) => {
-            let mut value: Value =
-                serde_json::from_str(input).map_err(|_reparse| request_error(&error))?;
+            let mut value = match overridden {
+                Some(value) => value,
+                None => serde_json::from_str(input).map_err(|_reparse| request_error(&error))?,
+            };
             let formula_name = value.get("formula_name");
             if formula_name.is_some_and(|name| !name.is_string()) {
                 return Err(BeadComposeError::RequestDeserializationFailed {
@@ -252,10 +315,15 @@ fn deserialize_request(input: &str) -> Result<BeadComposeRequest, BeadComposeErr
                 });
             }
             let legacy_name = formula_name.and_then(Value::as_str).map(str::to_owned);
-            if legacy_name.is_some()
+            let effective = operation.or_else(|| {
+                value
+                    .get("operation")
+                    .and_then(|name| serde_json::from_value(name.clone()).ok())
+            });
+            if let (Some(name), Some(effective)) = (legacy_name, effective)
                 && !matches!(
-                    value.get("operation").and_then(Value::as_str),
-                    Some("attach" | "preview_attach")
+                    effective,
+                    BeadOperation::Attach | BeadOperation::PreviewAttach
                 )
             {
                 value
@@ -265,9 +333,7 @@ fn deserialize_request(input: &str) -> Result<BeadComposeRequest, BeadComposeErr
                 // Report the original typed parse error, not the retry's.
                 let mut request: BeadComposeRequest =
                     serde_json::from_value(value).map_err(|_retry| request_error(&error))?;
-                if let Some(name) = legacy_name.filter(|name| !name.is_empty()) {
-                    request.formula_name = Some(crate::FormulaName::legacy(name));
-                }
+                request.formula_name = crate::FormulaName::for_operation(effective, name)?;
                 return Ok(request);
             }
             Err(request_error(&error))

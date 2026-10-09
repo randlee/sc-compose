@@ -12,6 +12,7 @@ BEADS_GRAPH_EDGE_CONFLICT: str
 BEADS_GRAPH_EDGE_MISSING: str
 BEADS_GRAPH_READ_FAILED: str
 BEADS_GRAPH_APPLY_FAILED: str
+BEADS_GRAPH_APPLY_UNCONFIRMED: str
 
 
 class BeadComposeError(Exception):
@@ -77,6 +78,7 @@ class BeadComposeReceipt:
     outcome: BeadOutcome
     pour_mode: str | None
     graph: Any | None
+    missing_edges: list[dict[str, str]]
 
 
 class BeadComposeRequest:

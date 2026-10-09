@@ -181,7 +181,7 @@ codes:
 | `PourAuthorizationInvalid` | `BEADS_POUR_AUTH_INVALID` | Authorization is present but is not `CreatePersistentBeads`. |
 | `BdUnavailable` | `BEADS_BD_UNAVAILABLE` | The configured `bd` executable cannot be started. |
 | `ProcessOutputLimitExceeded` | `BEADS_PROCESS_OUTPUT_LIMIT` | A `bd` stage exceeded the per-stream output capture limit and was terminated. |
-| `RenderFailed` | `BEADS_RENDER_FAILED` | Formula rendering failed before `bd` validation. |
+| `RenderFailed` | `BEADS_RENDER_FAILED` | Formula rendering failed before `bd` validation, including a composition variable with no caller value and no frontmatter default. |
 | `CookFailed` | `BEADS_COOK_FAILED` | `bd cook --dry-run` failed. |
 | `ActiveRegistryResolutionFailed` | `BEADS_WHERE_FAILED` | `bd where --json` failed or returned unusable registry data. |
 | `FormulaOutsideActiveRegistry` | `BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY` | Formula path is not the active registry path for its name and extension. |

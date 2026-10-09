@@ -190,6 +190,12 @@ fn render_append_rejects_incomplete_destination_without_changing_it() {
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_RENDER_APPEND_NO_FINAL_NEWLINE"));
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains(&format!("recovery: inspect {}", destination.display())),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert_eq!(fs::read_to_string(&destination).unwrap(), "{\"old\":true}");
 }
 

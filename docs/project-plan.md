@@ -26,6 +26,21 @@ gate are authoritative for that work.
 The Phase T sprint sequence and dependencies, including `t-7`, are tracked in
 [phase-t.jsonl](phase-t.jsonl).
 
+### Phase T deliverables
+
+| Sprint | Deliverable |
+| --- | --- |
+| t-1 | Beads attach contract: request and receipt types, `BEADS_GRAPH_*` codes, formula grammar and id rules ([ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md)) |
+| t-2 | Attach engine in `sc-composer-beads`: cook, plan, conflict rules, one `bd create --graph` apply, by-path graph pour |
+| t-3 | Python adapter: attach and graph-pour request/receipt surface in `sc-composer-beads-python` |
+| t-4 | `sc-compose bead attach` / `preview-attach` and graph-mode `pour` CLI integration, exit-code contract (request errors exit 3, refused or failed receipts exit 2) |
+| t-5 | `sc-compose render --append`: one compact JSON line appended to a JSON-lines file, with rollback on a failed write |
+| t-20 | Upgrade to the `sc-observability` v2 API |
+| t-7 | Phase fuzz campaign and its promoted regression tests |
+| phase-end | Review and readiness fixes: error-code registry, ADR-0023 errata, release notes, diagnostics presentation, portable recovery commands |
+
+Library API changes are listed in the `CHANGELOG.md` Unreleased section.
+
 ## Release Rules
 
 - `requirements.md`, `architecture.md`, and this plan are the release source of

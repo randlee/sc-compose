@@ -9,9 +9,8 @@ use crate::contract::{
     BeadStageReceipt, GraphDependencyType,
 };
 use crate::error::{BeadComposeError, short_cause};
-use crate::execute::{
-    NormalizedRequest, process_receipt, public_path_buf, public_path_display, receipt,
-};
+use crate::execute::{NormalizedRequest, process_receipt, receipt};
+use crate::paths::{public_path_buf, public_path_display};
 use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
 use crate::snapshot::InputSnapshot;
 use plan::{GraphPlan, GraphReader, PendingCreate, PlanKey};
@@ -69,6 +68,7 @@ pub(crate) fn execute(
                 error,
                 BeadComposeError::GraphReadFailed { .. }
                     | BeadComposeError::GraphApplyFailed { .. }
+                    | BeadComposeError::GraphApplyUnconfirmed { .. }
                     | BeadComposeError::CookFailed { .. }
                     | BeadComposeError::RenderFailed { .. }
             );
@@ -106,11 +106,14 @@ pub(crate) fn execute(
 }
 
 fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
+    // An output outside `working_directory` is a request error for every
+    // operation, never a receipt.
     matches!(
         error,
         BeadComposeError::BdUnavailable { .. }
             | BeadComposeError::ProcessArgumentInvalid { .. }
             | BeadComposeError::ProcessOutputLimitExceeded { .. }
+            | BeadComposeError::OutputOutsideWorkingDirectory { .. }
     )
 }
 
@@ -130,16 +133,23 @@ fn run(
         "--json".into(),
     ];
     let output = runtime.invoke(args)?;
+    // Map the private snapshot path to its public source before the typed
+    // cause exists; the raw output is only parsed, never reported.
+    let snapshot = public_path_display(formula_input.path());
+    let source = public_path_display(&runtime.normalized.rendered_formula);
     if output.exit_status != Some(0) {
+        let mut presented = output.clone();
+        presented.stdout = presented.stdout.replace(snapshot.as_str(), &source);
+        presented.stderr = presented.stderr.replace(snapshot.as_str(), &source);
         return Err(BeadComposeError::CookFailed {
             exit_status: output.exit_status,
-            cause: process_failure_cause(&output),
+            cause: process_failure_cause(&presented),
         });
     }
     let cooked =
         serde_json::from_str(&output.stdout).map_err(|error| BeadComposeError::CookFailed {
             exit_status: output.exit_status,
-            cause: short_cause(&error.to_string()),
+            cause: short_cause(&error.to_string().replace(snapshot.as_str(), &source)),
         })?;
     let mode = if is_attach(request.operation) {
         BeadGraphMode::Attach
@@ -472,25 +482,44 @@ impl PendingCreate {
         if preview {
             return Ok(self.graph);
         }
-        let value: Value =
-            serde_json::from_str(&output.stdout).map_err(|error| failure(error.to_string()))?;
+        // bd exited 0: its transaction may have committed, so from here on a
+        // failure must not claim that nothing was written.
+        let reconcile_ids: Vec<BeadId> = self
+            .graph
+            .parent
+            .iter()
+            .chain(self.graph.ids.values())
+            .cloned()
+            .collect();
+        self.record_created(&output.stdout).map_err(|cause| {
+            BeadComposeError::GraphApplyUnconfirmed {
+                command,
+                cause: short_cause(&present(&cause)),
+                ids: reconcile_ids,
+            }
+        })?;
+        Ok(self.graph)
+    }
+
+    /// Consume an exit-0 apply response, returning the cause it is unusable.
+    fn record_created(&mut self, stdout: &str) -> Result<(), String> {
+        let value: Value = serde_json::from_str(stdout).map_err(|error| error.to_string())?;
         let assigned: BTreeMap<PlanKey, BeadId> = serde_json::from_value(
             value
                 .get("ids")
                 .cloned()
-                .ok_or_else(|| failure("bd create --graph response is missing ids".to_owned()))?,
+                .ok_or("bd create --graph response is missing ids")?,
         )
-        .map_err(|error| failure(error.to_string()))?;
+        .map_err(|error| error.to_string())?;
         if assigned.len() != self.keys.len() || self.keys.keys().any(|k| !assigned.contains_key(k))
         {
-            return Err(failure(
-                "bd create --graph response ids do not match the planned steps".to_owned(),
-            ));
+            return Err("bd create --graph response ids do not match the planned steps".into());
         }
         for (key, step) in &self.keys {
-            let id = assigned.get(key).cloned().ok_or_else(|| {
-                failure("bd create --graph response is missing a planned key".to_owned())
-            })?;
+            let id = assigned
+                .get(key)
+                .cloned()
+                .ok_or("bd create --graph response is missing a planned key")?;
             if let Some(step) = step {
                 if self
                     .graph
@@ -498,20 +527,19 @@ impl PendingCreate {
                     .get(step)
                     .is_some_and(|expected| *expected != id)
                 {
-                    return Err(failure(
-                        "bd create --graph assigned an id different from the planned id".to_owned(),
-                    ));
+                    return Err(
+                        "bd create --graph assigned an id different from the planned id".into(),
+                    );
                 }
                 self.graph.ids.insert(step.clone(), id);
             } else {
                 self.graph.parent = Some(id);
             }
         }
-        self.mark_created()?;
-        Ok(self.graph)
+        self.mark_created().map_err(str::to_owned)
     }
 
-    fn mark_created(&mut self) -> Result<(), BeadComposeError> {
+    fn mark_created(&mut self) -> Result<(), &'static str> {
         for node in &mut self.graph.nodes {
             if node.action == BeadNodeAction::Create {
                 node.action = BeadNodeAction::Created;
@@ -527,20 +555,12 @@ impl PendingCreate {
             .endpoints
             .iter()
             .map(|(from, to)| {
-                let from = from.resolve(&self.graph).ok_or_else(|| {
-                    BeadComposeError::GraphApplyFailed {
-                        command: vec!["resolve created graph edge source".into()],
-                        status: None,
-                        cause: "planned edge source did not resolve".into(),
-                    }
-                })?;
-                let to =
-                    to.resolve(&self.graph)
-                        .ok_or_else(|| BeadComposeError::GraphApplyFailed {
-                            command: vec!["resolve created graph edge destination".into()],
-                            status: None,
-                            cause: "planned edge destination did not resolve".into(),
-                        })?;
+                let from = from
+                    .resolve(&self.graph)
+                    .ok_or("planned edge source did not resolve")?;
+                let to = to
+                    .resolve(&self.graph)
+                    .ok_or("planned edge destination did not resolve")?;
                 Ok((from, to))
             })
             .collect::<Result<Vec<_>, _>>()?;

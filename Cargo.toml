@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/sc-composer", "crates/sc-composer-beads", "crates/sc-compose", "crates/sc-sha", "bindings/python", "bindings/sc-composer-beads-python", "bindings/sc-sha-python", "bindings/sc-sha-go"]
+members = ["crates/sc-composer", "crates/sc-composer-beads", "crates/sc-compose", "crates/sc-sha", "crates/test-support", "bindings/python", "bindings/sc-composer-beads-python", "bindings/sc-sha-python", "bindings/sc-sha-go"]
 resolver = "2"
 
 [workspace.package]
@@ -26,6 +26,8 @@ serde_yaml = "0.9"
 quick-xml = "0.41"
 sc-sha = { path = "crates/sc-sha", version = "1.6.1" }
 sc-composer = { path = "crates/sc-composer", version = "1.6.1" }
+sc-composer-beads = { path = "crates/sc-composer-beads", version = "1.6.1" }
+sc-compose-test-support = { path = "crates/test-support" }
 sha2 = "0.10"
 similar = "2"
 time = { version = "0.3", features = ["formatting", "macros"] }

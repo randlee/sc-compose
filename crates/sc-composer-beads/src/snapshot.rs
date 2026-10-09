@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::error::BeadComposeError;
-use crate::execute::public_path_buf;
+use crate::paths::public_path_buf;
 
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -80,11 +80,6 @@ impl InputSnapshot {
             .map_err(|error| output_error(destination, error))?;
         crate::render::atomic_write(destination, &contents)
             .map_err(|error| output_error(destination, error))
-    }
-
-    pub(crate) fn publish(&self, destination: &Path) -> Result<(), BeadComposeError> {
-        crate::render::validate_output_destination(destination)?;
-        crate::render::replace_output(&self.path, destination)
     }
 }
 

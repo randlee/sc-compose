@@ -9,6 +9,9 @@ ignore = []
 [bans]
 multiple-versions = "allow"
 wildcards = "deny"
+# Private path dev-dependencies (publish = false test-support) carry no version.
+# Registry dependencies keep the wildcard ban.
+allow-wildcard-paths = true
 highlight = "all"
 
 [sources]

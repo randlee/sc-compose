@@ -9,6 +9,7 @@ use crate::contract::{
     BeadStageOutcome, BeadStageReceipt, PourAuthorization,
 };
 use crate::error::{BeadComposeError, short_cause};
+use crate::paths::{public_path_buf, public_path_display};
 use crate::render::{render_formula_in_root, validate_output_destination};
 use crate::runner::{
     CommandSpec, PROCESS_OUTPUT_LIMIT_BYTES, ProcessOutput, ProcessRunner, StdProcessRunner,
@@ -58,90 +59,53 @@ pub fn execute_bead_request_with_runner(
     execute_with_runner_and_diagnostics(request, runner, &mut |_| {})
 }
 
-#[allow(
-    clippy::too_many_lines,
-    reason = "The receipt-producing progression remains visible in one ordered function."
-)]
 fn execute_with_runner_and_diagnostics(
     request: &BeadComposeRequest,
     runner: &dyn ProcessRunner,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
-    let normalized = validate_request(request)?;
-    let mut stages = Vec::new();
-    let render_started = Instant::now();
-    let rendered = (|| {
-        let input = InputSnapshot::reserve(&normalized.rendered_formula).map_err(|error| {
-            if crate::graph::is_attach(request.operation) {
-                crate::snapshot::output_error(&normalized.rendered_formula, error)
-            } else {
-                error
-            }
-        })?;
-        render_formula_in_root(
-            &normalized.template,
-            input.path(),
-            &request.compose_variables,
-            &normalized.working_directory,
-        )?;
-        // Phase R consumes its named registry path. Graph operations retain
-        // the private input until bd has read it, even when routing by path.
-        if crate::graph::is_attach(request.operation) {
-            input.publish_copy(&normalized.rendered_formula)?;
-        } else if request.operation != BeadOperation::Render {
-            crate::render::atomic_write(&normalized.rendered_formula, &input.read()?)?;
-        }
-        Ok::<_, BeadComposeError>(input)
-    })();
-    let formula_input = match rendered {
-        Ok(input) => input,
-        Err(error) => {
-            stages.push(render_receipt(
-                render_started,
-                BeadStageOutcome::Failed {
-                    code: error.code().to_owned(),
-                },
-                excerpt(&error.to_string()),
-            ));
-            return Ok(receipt(
-                request,
-                normalized.rendered_formula,
-                stages,
-                BeadOutcome::Failed {
-                    code: error.code().to_owned(),
-                },
-            ));
-        }
-    };
-    stages.push(render_receipt(
-        render_started,
-        BeadStageOutcome::Succeeded,
-        String::new(),
-    ));
-
-    let destination = normalized.rendered_formula.clone();
-    let result = execute_rendered_request(
-        request,
-        runner,
-        normalized,
-        &formula_input,
-        stages,
-        diagnostics,
-    );
-    if !crate::graph::is_attach(request.operation) {
-        formula_input.publish(&destination)?;
+    if crate::graph::is_attach(request.operation) {
+        execute_attach(request, runner, diagnostics)
+    } else {
+        execute_formula(request, runner, diagnostics)
     }
-    result
 }
 
-fn execute_rendered_request(
+/// `preview-attach` and `attach`: render, then build the graph.
+fn execute_attach(
     request: &BeadComposeRequest,
     runner: &dyn ProcessRunner,
-    normalized: NormalizedRequest,
-    formula_input: &InputSnapshot,
-    mut stages: Vec<BeadStageReceipt>,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
+    let normalized = validate_request(request, validate_attach_shape)?;
+    let (formula_input, stages) =
+        match render_stage(request, &normalized, crate::snapshot::output_error) {
+            Ok(rendered) => rendered,
+            Err(failed) => return Ok(*failed),
+        };
+    crate::graph::execute(
+        request,
+        runner,
+        &normalized,
+        &formula_input,
+        bd_executable(request),
+        stages,
+        diagnostics,
+    )
+}
+
+/// `render`, `validate`, `preview-pour` and `pour`.
+fn execute_formula(
+    request: &BeadComposeRequest,
+    runner: &dyn ProcessRunner,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    let normalized = validate_request(request, validate_formula_shape)?;
+    let (formula_input, mut stages) =
+        match render_stage(request, &normalized, |_destination, error| error) {
+            Ok(rendered) => rendered,
+            Err(failed) => return Ok(*failed),
+        };
     if request.operation == BeadOperation::Render {
         return Ok(receipt(
             request,
@@ -151,25 +115,8 @@ fn execute_rendered_request(
         ));
     }
 
-    let bd = request
-        .bd_executable
-        .clone()
-        .unwrap_or_else(|| PathBuf::from("bd"));
-    if crate::graph::is_attach(request.operation) {
-        return crate::graph::execute(
-            request,
-            runner,
-            &normalized,
-            formula_input,
-            bd,
-            stages,
-            diagnostics,
-        );
-    }
-    let cook_input = if matches!(
-        request.operation,
-        BeadOperation::PreviewPour | BeadOperation::Pour
-    ) {
+    let bd = bd_executable(request);
+    let cook_input = if is_pour(request.operation) {
         formula_input.path()
     } else {
         normalized.rendered_formula.as_path()
@@ -206,11 +153,84 @@ fn execute_rendered_request(
         request,
         runner,
         normalized,
-        formula_input,
+        &formula_input,
         bd,
         stages,
         diagnostics,
     )
+}
+
+/// Render the formula into a private input and record the render stage.
+///
+/// `reserve_error` maps a failure to reserve the private input beside the
+/// destination; attach reports it as an output-path error. A render failure
+/// is returned as the finished failed receipt.
+fn render_stage(
+    request: &BeadComposeRequest,
+    normalized: &NormalizedRequest,
+    reserve_error: fn(&Path, BeadComposeError) -> BeadComposeError,
+) -> Result<(InputSnapshot, Vec<BeadStageReceipt>), Box<BeadComposeReceipt>> {
+    let render_started = Instant::now();
+    let rendered = (|| {
+        let input = InputSnapshot::reserve(&normalized.rendered_formula)
+            .map_err(|error| reserve_error(&normalized.rendered_formula, error))?;
+        render_formula_in_root(
+            &normalized.template,
+            input.path(),
+            &request.compose_variables,
+            &normalized.working_directory,
+        )?;
+        // Every operation writes the rendered formula exactly once and keeps
+        // the private input until bd has read it. A pour destination outside
+        // `working_directory` is permitted only in the active registry, which
+        // `bd where` reveals later, so `crate::pour` publishes it after that
+        // check.
+        if !normalized.defers_publish(request.operation) {
+            input.publish_copy(&normalized.rendered_formula)?;
+        }
+        Ok::<_, BeadComposeError>(input)
+    })();
+    match rendered {
+        Ok(input) => Ok((
+            input,
+            vec![render_receipt(
+                render_started,
+                BeadStageOutcome::Succeeded,
+                String::new(),
+            )],
+        )),
+        Err(error) => Err(Box::new(receipt(
+            request,
+            normalized.rendered_formula.clone(),
+            vec![render_receipt(
+                render_started,
+                BeadStageOutcome::Failed {
+                    code: error.code().to_owned(),
+                },
+                excerpt(&error.to_string()),
+            )],
+            BeadOutcome::Failed {
+                code: error.code().to_owned(),
+            },
+        ))),
+    }
+}
+
+fn bd_executable(request: &BeadComposeRequest) -> PathBuf {
+    request
+        .bd_executable
+        .clone()
+        .unwrap_or_else(|| PathBuf::from("bd"))
+}
+
+fn is_pour(operation: BeadOperation) -> bool {
+    matches!(operation, BeadOperation::PreviewPour | BeadOperation::Pour)
+}
+
+impl NormalizedRequest {
+    pub(crate) fn defers_publish(&self, operation: BeadOperation) -> bool {
+        is_pour(operation) && !self.rendered_formula.starts_with(&self.working_directory)
+    }
 }
 
 pub(crate) struct NormalizedRequest {
@@ -219,7 +239,10 @@ pub(crate) struct NormalizedRequest {
     pub(crate) rendered_formula: PathBuf,
 }
 
-fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, BeadComposeError> {
+fn validate_request(
+    request: &BeadComposeRequest,
+    validate_shape: fn(&BeadComposeRequest) -> Result<(), BeadComposeError>,
+) -> Result<NormalizedRequest, BeadComposeError> {
     if request.schema != BEADS_SCHEMA_V1 {
         return Err(BeadComposeError::UnknownSchema {
             actual: request.schema.clone(),
@@ -239,7 +262,7 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     {
         return Err(BeadComposeError::PourAuthorizationRequired);
     }
-    validate_request_shape(request)?;
+    validate_shape(request)?;
     for key in request.bead_variables.keys() {
         if !valid_bead_key(key) {
             return Err(BeadComposeError::BeadVariableKeyInvalid { key: key.clone() });
@@ -314,39 +337,43 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     })
 }
 
-fn validate_request_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {
-    let attach = crate::graph::is_attach(request.operation);
-    let shape_error = if attach {
-        if request.parent.is_none() {
-            Some("attach requires parent")
-        } else if request.ref_.is_none() {
-            Some("attach requires ref")
-        } else if !request.bead_variables.is_empty() {
-            Some("attach forbids bead_variables")
-        } else {
-            None
-        }
+fn validate_attach_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {
+    let shape_error = if request.parent.is_none() {
+        Some("attach requires parent")
+    } else if request.ref_.is_none() {
+        Some("attach requires ref")
+    } else if !request.bead_variables.is_empty() {
+        Some("attach forbids bead_variables")
     } else {
-        if request.parent.is_some() {
-            Some("non-attach operations forbid parent")
-        } else if request.ref_.is_some() {
-            Some("non-attach operations forbid ref")
-        } else if matches!(
-            request.operation,
-            BeadOperation::Render | BeadOperation::Validate
-        ) && !request.relations.is_empty()
-        {
-            Some("render and validate forbid relations")
-        } else {
-            None
-        }
+        None
     };
-    if let Some(message) = shape_error {
-        return Err(BeadComposeError::RequestDeserializationFailed {
+    shape_result(shape_error)
+}
+
+fn validate_formula_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {
+    let shape_error = if request.parent.is_some() {
+        Some("non-attach operations forbid parent")
+    } else if request.ref_.is_some() {
+        Some("non-attach operations forbid ref")
+    } else if matches!(
+        request.operation,
+        BeadOperation::Render | BeadOperation::Validate
+    ) && !request.relations.is_empty()
+    {
+        Some("render and validate forbid relations")
+    } else {
+        None
+    };
+    shape_result(shape_error)
+}
+
+fn shape_result(shape_error: Option<&str>) -> Result<(), BeadComposeError> {
+    match shape_error {
+        Some(message) => Err(BeadComposeError::RequestDeserializationFailed {
             message: message.to_owned(),
-        });
+        }),
+        None => Ok(()),
     }
-    Ok(())
 }
 
 fn validate_utf8_path(path: &Path) -> Result<(), BeadComposeError> {
@@ -402,66 +429,6 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
             rule: String::from("path must include a file name"),
         })?;
     Ok(parent.join(name))
-}
-
-#[cfg(windows)]
-pub(crate) fn public_path_display(path: &Path) -> String {
-    use std::{
-        ffi::OsString,
-        path::{Component, Prefix},
-    };
-
-    let mut displayed = PathBuf::new();
-    let mut skip_root = false;
-    for component in path.components() {
-        match component {
-            Component::Prefix(prefix) => match prefix.kind() {
-                Prefix::VerbatimDisk(drive) => displayed.push(format!("{}:", drive as char)),
-                Prefix::VerbatimUNC(server, share) => {
-                    let separator = std::path::MAIN_SEPARATOR_STR;
-                    let mut base = OsString::from(separator);
-                    base.push(separator);
-                    base.push(server);
-                    base.push(separator);
-                    base.push(share);
-                    displayed = PathBuf::from(base);
-                    skip_root = true;
-                }
-                _ => displayed.push(prefix.as_os_str()),
-            },
-            Component::RootDir if skip_root => skip_root = false,
-            component => displayed.push(component.as_os_str()),
-        }
-    }
-    displayed.to_string_lossy().into_owned()
-}
-
-/// Owned form of [`public_path_display`] for storing in user-visible errors.
-pub(crate) fn public_path_buf(path: &Path) -> PathBuf {
-    PathBuf::from(public_path_display(path))
-}
-
-#[cfg(all(not(windows), not(test)))]
-pub(crate) fn public_path_display(path: &Path) -> String {
-    path.to_string_lossy().into_owned()
-}
-
-/// Test seam: non-Windows canonical paths never carry a verbatim prefix, so a
-/// test can install a marker that `public_path_display` prepends. Any error
-/// path that bypasses `public_path_display` then lacks the marker.
-#[cfg(all(not(windows), test))]
-pub(crate) fn public_path_display(path: &Path) -> String {
-    let displayed = path.to_string_lossy().into_owned();
-    PUBLIC_PATH_MARKER.with(|marker| match marker.borrow().as_deref() {
-        Some(marker) => format!("{marker}{displayed}"),
-        None => displayed,
-    })
-}
-
-#[cfg(all(not(windows), test))]
-thread_local! {
-    pub(crate) static PUBLIC_PATH_MARKER: std::cell::RefCell<Option<String>> =
-        const { std::cell::RefCell::new(None) };
 }
 
 fn valid_bead_key(key: &str) -> bool {
@@ -722,45 +689,16 @@ pub(crate) mod tests {
 
     use serde_json::{Map, json};
 
-    use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner, public_path_display};
+    use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner};
     #[cfg(unix)]
     use crate::StdProcessRunner;
+    use crate::paths::public_path_display;
     use crate::{
         BeadComposeError, BeadComposeRequest, BeadOperation, BeadOutcome, CommandSpec,
         ProcessOutput, ProcessRunner,
     };
 
     static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
-
-    #[cfg(windows)]
-    #[test]
-    fn public_path_display_strips_windows_verbatim_prefix() {
-        assert_eq!(
-            public_path_display(Path::new(r"\\?\C:\Users\test\sample.formula.toml")),
-            r"C:\Users\test\sample.formula.toml"
-        );
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn public_path_display_converts_verbatim_unc_to_unc() {
-        let separator = std::path::MAIN_SEPARATOR;
-        let path = format!(
-            "{separator}{separator}?{separator}UNC{separator}server{separator}share{separator}f"
-        );
-        assert_eq!(
-            public_path_display(Path::new(&path)),
-            format!("{separator}{separator}server{separator}share{separator}f")
-        );
-    }
-
-    #[test]
-    fn public_path_display_preserves_non_verbatim_paths() {
-        assert_eq!(
-            public_path_display(Path::new("plain.formula.toml")),
-            "plain.formula.toml"
-        );
-    }
 
     #[cfg(windows)]
     #[test]
@@ -891,6 +829,46 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn graph_cook_failure_diagnostic_names_public_source_not_private_snapshot() {
+        struct FailingCook;
+        impl ProcessRunner for FailingCook {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                assert_eq!(spec.args[0], "cook");
+                assert!(spec.args[1].contains(".sc-compose-input-"));
+                let mut output = success("");
+                output.exit_status = Some(3);
+                output.stderr = format!("cannot cook {}\n", spec.args[1]);
+                Ok(output)
+            }
+        }
+        let root = fs::canonicalize(workspace()).unwrap();
+        let mut request = request(&root, BeadOperation::PreviewAttach);
+        request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+        request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+        request.bead_variables.clear();
+        fs::write(&request.template, "formula = \"example\"\n").unwrap();
+        let mut diagnostics = Vec::new();
+        let receipt =
+            super::execute_with_runner_and_diagnostics(&request, &FailingCook, &mut |error| {
+                assert!(!error.to_string().contains(".sc-compose-input-"));
+                diagnostics.push(serde_json::to_value(error).unwrap());
+            })
+            .unwrap();
+        let public = public_path_display(&request.rendered_formula);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0]["code"], "BEADS_COOK_FAILED");
+        assert!(
+            diagnostics[0]["message"]
+                .as_str()
+                .unwrap()
+                .contains(&public)
+        );
+        let wire = serde_json::to_string(&(receipt, diagnostics)).unwrap();
+        assert!(!wire.contains(".sc-compose-input-"), "{wire}");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn graph_create_diagnostic_names_public_plan_before_truncation() {
         struct FailingCreate(FakeRunner);
         impl ProcessRunner for FailingCreate {
@@ -949,6 +927,44 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn exit_zero_apply_with_unusable_response_retains_unconfirmed_diagnostic() {
+        let root = fs::canonicalize(workspace()).unwrap();
+        let mut request = request(&root, BeadOperation::Attach);
+        request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+        request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+        request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+        request.bead_variables.clear();
+        fs::write(&request.template, "formula = \"example\"\n").unwrap();
+        let runner = FakeRunner::with_outputs([
+            success(r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#),
+            success(r#"[{"id":"proj-1"}]"#),
+            success("not-json"),
+        ]);
+        let mut diagnostics = Vec::new();
+        let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+            diagnostics.push(serde_json::to_value(error).unwrap());
+        })
+        .unwrap();
+        assert_eq!(
+            receipt.outcome,
+            BeadOutcome::Failed {
+                code: "BEADS_GRAPH_APPLY_UNCONFIRMED".into()
+            }
+        );
+        assert_eq!(diagnostics.len(), 1);
+        let error = &diagnostics[0];
+        assert_eq!(error["code"], "BEADS_GRAPH_APPLY_UNCONFIRMED");
+        assert_eq!(error["details"]["ids"], json!(["proj-1", "proj-1.chain-a"]));
+        assert!(
+            error["recovery"]
+                .as_str()
+                .unwrap()
+                .contains("Reconcile before pouring again")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn attach_output_refusal_retains_exact_path_in_typed_diagnostic() {
         for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
             let root = fs::canonicalize(workspace()).unwrap();
@@ -962,7 +978,7 @@ pub(crate) mod tests {
             path.push(".graph.json");
             let path = PathBuf::from(path);
             fs::create_dir(&path).unwrap();
-            let public = super::public_path_buf(&path);
+            let public = crate::paths::public_path_buf(&path);
             let runner = FakeRunner::with_outputs([
                 success(
                     r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#,
@@ -1438,8 +1454,9 @@ mod fuzz_055_tests {
 mod public_path_error_tests {
     use std::fs;
 
+    use super::execute_bead_request_with_runner;
     use super::tests::{FakeRunner, request, workspace};
-    use super::{PUBLIC_PATH_MARKER, execute_bead_request_with_runner};
+    use crate::paths::PUBLIC_PATH_MARKER;
     use crate::{BeadComposeError, BeadOperation};
 
     const MARKER: &str = "PUBLIC-PATH<>";

@@ -12,6 +12,7 @@ mod error_json;
 /// Render-to-`bd` operation staging.
 pub mod execute;
 mod graph;
+mod paths;
 mod pour;
 /// Fixed-delimiter formula rendering.
 pub mod render;
@@ -28,12 +29,12 @@ pub use contract::{
     BeadRelation, BeadStage, BeadStageOutcome, BeadStageReceipt, DependencyName, FormulaName,
     GraphDependencyType, GraphEndpoint, GraphRef, MissingEdge, PROVENANCE_KEY, PourAuthorization,
     RefusedBeadComposeReceipt, RequestParseOutcome, Sha256Digest, StepId, parse_relations,
-    parse_request, parse_request_with_outcome,
+    parse_request, parse_request_for_operation, parse_request_with_outcome,
 };
 #[doc(inline)]
 pub use error::{
-    BeadComposeError, GraphConflictReason, GraphFormulaUnsupportedReason, GraphIdField,
-    GraphRelationInvalidReason,
+    BeadComposeError, BeadErrorClass, GraphConflictReason, GraphFormulaUnsupportedReason,
+    GraphIdField, GraphRelationInvalidReason,
 };
 #[doc(inline)]
 pub use execute::{

@@ -52,13 +52,25 @@ pub enum PourAuthorization {
     CreatePersistentBeads,
 }
 
+impl PourAuthorization {
+    /// Stable wire token for this authorization.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::CreatePersistentBeads => "CreatePersistentBeads",
+        }
+    }
+}
+
 impl TryFrom<&str> for PourAuthorization {
     type Error = BeadComposeError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            "CreatePersistentBeads" => Ok(Self::CreatePersistentBeads),
-            _ => Err(BeadComposeError::PourAuthorizationInvalid),
+        let authorization = Self::CreatePersistentBeads;
+        if value == authorization.as_str() {
+            Ok(authorization)
+        } else {
+            Err(BeadComposeError::PourAuthorizationInvalid)
         }
     }
 }
@@ -147,7 +159,22 @@ pub fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError
 /// # Errors
 /// Request-shape and authorization errors retain [`parse_request`]'s errors.
 pub fn parse_request_with_outcome(input: &str) -> Result<RequestParseOutcome, BeadComposeError> {
-    crate::request::parse_request_with_outcome(input)
+    crate::request::parse_request_with_outcome(input, None)
+}
+
+/// Parse a request whose operation is decided by the caller, not the file.
+///
+/// Every operation-dependent check (authorization precedence, reference
+/// grammar, identifier error class) uses `operation`; the returned request
+/// carries it. Duplicate-field and source-location handling are unchanged.
+///
+/// # Errors
+/// Request-shape and authorization errors retain [`parse_request`]'s errors.
+pub fn parse_request_for_operation(
+    input: &str,
+    operation: BeadOperation,
+) -> Result<RequestParseOutcome, BeadComposeError> {
+    crate::request::parse_request_with_outcome(input, Some(operation))
 }
 
 /// A valid request or an attach identifier validation refusal.
@@ -409,6 +436,35 @@ impl FormulaName {
     /// Preserve a Phase R registry formula name that predates graph validation.
     pub(crate) fn legacy(value: String) -> Self {
         Self(value)
+    }
+
+    /// Resolve a request's `formula_name` under the operation-aware
+    /// compatibility boundary shared by the JSON parser and foreign adapters.
+    ///
+    /// Attach operations require the portable grammar. Every other operation
+    /// keeps the Phase R behaviour: a name outside the grammar is preserved
+    /// as-is (ADR-0023 Decision 1), and an empty name means no formula name.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BeadComposeError::GraphIdInvalid`] for a name outside the
+    /// portable grammar on an attach operation.
+    pub fn for_operation(
+        operation: BeadOperation,
+        value: String,
+    ) -> Result<Option<Self>, BeadComposeError> {
+        match Self::new(value.clone()) {
+            Ok(name) => Ok(Some(name)),
+            Err(_)
+                if !matches!(
+                    operation,
+                    BeadOperation::Attach | BeadOperation::PreviewAttach
+                ) =>
+            {
+                Ok((!value.is_empty()).then(|| Self::legacy(value)))
+            }
+            Err(error) => Err(error),
+        }
     }
 }
 
