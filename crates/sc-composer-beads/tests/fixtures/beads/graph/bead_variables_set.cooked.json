@@ -1,0 +1,14 @@
+{
+  "description": "Graph parser contract",
+  "formula": "bead_variables_set",
+  "schema_version": 1,
+  "source": "<workspace>/bead_variables_set.formula.json",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

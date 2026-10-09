@@ -100,6 +100,26 @@ fn bead_manual_documents_the_versioned_request_protocol() {
 }
 
 #[test]
+fn bead_manual_documents_all_subcommands_and_human_graph_output() {
+    assert_topic_contains(
+        "bead",
+        &[
+            "sc-compose bead render ",
+            "sc-compose bead validate ",
+            "sc-compose bead preview-pour ",
+            "sc-compose bead pour ",
+            "sc-compose bead preview-attach ",
+            "sc-compose bead attach ",
+            "## JSON output and human output",
+            "Human output includes `pour_mode`",
+            "`<action>: <step> -> <id>` line per graph node",
+            "the edge count, and `plan_path`",
+            "`bd dep add` recovery command on its own line",
+        ],
+    );
+}
+
+#[test]
 fn observability_health_manual_documents_process_local_health() {
     assert_topic_contains(
         "observability-health",

@@ -17,4 +17,5 @@ features = ["python-extension"]
 include = [
   { path = "python/sc_composer_beads/_native.pyi", format = ["sdist", "wheel"] },
   { path = "python/sc_composer_beads/py.typed", format = ["sdist", "wheel"] },
+  { path = "tests/fixtures/**/*", format = "sdist" },
 ]

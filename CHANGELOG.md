@@ -4,6 +4,90 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `sc-compose bead attach` and `preview-attach`: attach the steps of a rendered
+  Beads formula under an existing bead with one `bd create --graph`
+  transaction. Requires `parent`, `ref` and `pour_authorization`
+  (`CreatePersistentBeads`). Existing beads are never edited; a re-run
+  classifies each planned bead and edge as created or existing, and missing
+  edges are reported with `bd dep add` recovery commands. Relations between
+  steps and existing beads are supported. Receipts carry `pour_mode`, `graph`
+  and `missing_edges`. See ADR-0023 and the `bead` manual.
+- By-path graph `pour` and `preview-pour`: when the rendered formula is outside
+  the active Beads registry, the pour is planned and applied as a graph instead
+  of requiring a copy in `formulas/`. Registry pour is unchanged.
+- `sc-compose render --append <file>`: appends the rendered JSON object as one
+  compact line to a JSON-lines file, refusing non-objects and files without a
+  final newline, and rolling back a failed write. A failed rollback names the
+  target and carries an inspect-path recovery hint, in the `--json` envelope as
+  `diagnostics[].path`.
+- The `sc-composer-beads` Python adapter exposes attach and graph pour,
+  including `missing_edges` on receipts.
+- The CLI moves to the `sc-observability` v2 logger; the observability
+  contract (FR-9 to FR-11) is unchanged.
+- New error codes are registered in `docs/error-code-registry.md`: every
+  `BEADS_*` code and `ERR_RENDER_JSON_DEPTH_LIMIT`,
+  `ERR_RENDER_JSON_MALFORMED` and other previously unlisted `ERR_*` codes.
+
+### Library API changes (`sc-composer-beads`)
+
+No version bump: the crate has no external users yet.
+
+- `BeadComposeRequest.formula_name` is now `Option<FormulaName>` (required only
+  for registry `pour` and `preview-pour`). Only attach operations require the
+  portable name grammar. `FormulaName::for_operation` applies the same rule as
+  the JSON parser.
+- New public request fields `parent`, `ref_` and `relations`; new receipt
+  fields `pour_mode`, `graph` and `missing_edges`.
+- New enums and variants: `BeadOperation::{PreviewAttach, Attach}`,
+  `BeadPourMode`, the graph node and edge action types, and `BeadErrorClass`.
+- 13 new `BeadComposeError` variants: `RequestReadFailed`,
+  `RelationEndpointInvalid` and the eleven graph variants
+  (`GraphParentNotFound`, `GraphIdInvalid`, `GraphScopeMismatch`,
+  `GraphFormulaUnsupported`, `GraphRelationInvalid`, `GraphConflict`,
+  `GraphEdgeConflict`, `GraphEdgeMissing`, `GraphReadFailed`,
+  `GraphApplyFailed`, `GraphApplyUnconfirmed`). The enum is
+  `#[non_exhaustive]`.
+- `parse_request_for_operation` lets an adapter parse a request under the
+  subcommand's operation, which decides `formula_name` tolerance and how an
+  invalid id is classified.
+- Request JSON errors report the line and column of the request file.
+- Failed registry receipts after mode selection keep `pour_mode`; cook and
+  other diagnostics name the public formula path, never the private
+  `.sc-compose-input-*` snapshot; `shell_quote` recovery commands are POSIX
+  `sh` words.
+
+### Changed
+
+- `sc-composer-beads`: a `bd create --graph` that exits 0 but whose response
+  cannot be consumed is now `BeadComposeError::GraphApplyUnconfirmed`
+  (`BEADS_GRAPH_APPLY_UNCONFIRMED`) instead of `GraphApplyFailed`, because
+  beads may already exist; its recovery is to reconcile before pouring again.
+  Exhaustive matches on `BeadComposeError` must add the new variant.
+- `sc-composer-beads`: `BeadComposeError` is now `#[non_exhaustive]`; match
+  it with a wildcard arm. Adapters classify errors through the new
+  `BeadComposeError::stage()` and `BeadComposeError::class()`
+  (`BeadErrorClass::{Request, Execution}`, mapped by the CLI to exit 3 and 2),
+  and take codes from the new `BeadComposeError::*_CODE` constants and
+  `BeadComposeError::GRAPH_CODES`. `PourAuthorization::as_str()` returns the
+  wire token. The Python `BeadComposeRequest.pour_authorization` getter now
+  returns the stored token. No version bump: the crate has no external users
+  yet.
+
+### Fixed
+
+- Bead rendering (`sc-composer-beads` and `sc-compose bead`, every
+  operation) now refuses a `{{{ variable }}}` that has no caller value and no
+  frontmatter default with `BEADS_RENDER_FAILED` naming the variable, and
+  writes nothing. It previously rendered as `""` in TOML and `"null"` in JSON
+  formulas. Core `sc-compose render` semantics are unchanged.
+- `sc-composer`: new opt-in `Renderer::refusing_undefined()` fails a render
+  that prints an undefined value with `ErrValUnboundVariable` naming the
+  expression; `if`/`is defined` tests, loop locals and globals such as
+  `range` are unaffected. Bead rendering uses it. The default renderer stays
+  lenient.
+
 ## [1.6.1] - 2026-08-30
 
 ### Added

@@ -738,7 +738,8 @@ All other commands, including `template-init`, continue to use only `0`, `2`,
 and `3`.
 
 `render --append` failures exit `2`: `ERR_RENDER_JSON_MALFORMED` (output is
-not JSON), `ERR_RENDER_APPEND_NOT_OBJECT` (JSON but not one object),
+not JSON), `ERR_RENDER_JSON_DEPTH_LIMIT` (more than 127 nested JSON objects or
+arrays), `ERR_RENDER_APPEND_NOT_OBJECT` (JSON but not one object),
 `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` (non-empty destination not ending in
 `\n`) and `ERR_RENDER_WRITE` (lock or write failure). Its usage errors exit `3`.
 
@@ -1128,16 +1129,20 @@ same command payloads as `render` and `render --dry-run`.
 - `sc-compose` shall use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
 - The current follow-on observability uplift targets `sc-observability`
-  `1.2.0`.
+  `1.5.0` and `sc-observability-types` `1.5.0`, both pinned exactly from
+  crates.io with `default-features = false` so the v1 facade is disabled.
+- Logger construction shall use `sc_observability::v2::Logger` and typed sink
+  registration. Builder and build failures shall return `CommandError::usage`
+  (exit 3) with context naming the configured log root.
 - The CLI lifecycle adapter shall prefer `Logger::log(...)` for blocking queue
   admission and may use `Logger::try_log(...)` only where non-blocking
   admission is explicitly required.
 - `Logger::emit(...)` remains a deprecated compatibility path only; any
   retained use must carry an explicit compatibility rationale in
   `docs/migration-notes.md`.
-- The CLI shutdown path shall adapt to `Logger::shutdown(self) ->
-  Logger<Stopped>` while preserving post-shutdown health inspection through the
-  stopped logger typestate.
+- The CLI shutdown path shall use the v2 `Logger::shutdown(&self)` result while
+  preserving post-shutdown health inspection on the retained logger. Shutdown
+  failures shall remain visible in health without aborting command completion.
 - `sc-composer` must emit composition pipeline events through its local
   observer/sink hook model.
 - `sc-compose` must emit command lifecycle events through the same local hook
@@ -1417,7 +1422,10 @@ sprints.
 Normative contract: [ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md).
 User manual: `sc-compose help bead` (`crates/sc-compose/docs/manual/bead.md`).
 Everything is additive to ADR-0021; existing operations, stages, fields, codes
-and `bd` argv are unchanged.
+and `bd` argv are unchanged, except that `bd cook` reads a private
+`.sc-compose-input-*` snapshot of the rendered text instead of the requested
+path (same command and flags; receipts and diagnostics show the public path;
+see ADR-0023 Errata).
 
 - **FR-23.1 Rendered formulas are final.** For the graph operations below,
   structure and values come from the sc-compose template (loops, conditionals,
@@ -1469,8 +1477,11 @@ and `bd` argv are unchanged.
   formula, revision, `plan_path` (present only when there were beads to
   create), `ids` (step -> bead id) and every node and edge with its action
   (`create`/`created`/`existing`; `add`/`added`/`existing`).
-- **FR-23.10 Codes.** The ten `BEADS_GRAPH_*` codes, their stages and exit
-  statuses are ADR-0023 "Errors".
+- **FR-23.10 Codes.** Every `BEADS_*` code, its class (request errors exit 3,
+  execution conditions exit 2) and its trigger is in
+  `docs/error-code-registry.md`; the `BEADS_GRAPH_*` codes, their stages and
+  exit statuses are ADR-0023 "Errors". `BeadComposeError` is
+  `#[non_exhaustive]`, so adapters match it with a wildcard arm.
 - **FR-23.11 bd support.** Production `bd` v1.3.1 is supported; every command
   used exists there. No Beads fork, version probe or persisted proto is used.
 

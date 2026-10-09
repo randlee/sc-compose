@@ -16,8 +16,9 @@ sc-compose bead attach         --request request.json [--json]
 ```
 
 The subcommand determines `operation`; every other value comes from the request
-file. There are no partial request flags. `bd` 1.3.1 or newer must be on `PATH`
-(or named by `bd_executable`) for every operation except `render`.
+file. There are no partial request flags. `bd` 1.3.1 is the supported version and
+must be on `PATH` (or named by `bd_executable`) for every operation except
+`render`; sc-compose does not probe the version.
 
 ## Which operation do I need?
 
@@ -76,7 +77,7 @@ literal text by `attach` and graph-mode `pour`.
 | `working_directory` | yes | Absolute workspace root. Templates and rendered formulas must stay inside it; symlinks out of it are refused. |
 | `template` | yes | The `.formula.toml.j2` or `.formula.json.j2` template, relative to `working_directory`. |
 | `rendered_formula` | yes | Where the rendered `.formula.toml` / `.formula.json` is written. Any existing directory inside `working_directory`; no Beads `formulas/` directory is needed. |
-| `formula_name` | for pour and attach | The formula's name. |
+| `formula_name` | for `pour` and `preview-pour` | The formula's name in the active registry. Optional for the other operations; only `attach` and `preview-attach` require the portable name grammar. |
 | `compose_variables` | yes (may be `{}`) | Structured JSON values for the template (`{{{ ... }}}`, loops, conditionals). |
 | `bead_variables` | yes (may be `{}`) | Scalar values passed to `bd` as `--var` by registry pour only. Must be `{}` for attach and graph pour. |
 | `bd_executable` | no | Path to `bd`; default `bd` on `PATH`. |
@@ -197,6 +198,23 @@ template loops, conditionals and includes, where `preview-attach` and
 
 ## Recipes
 
+### Release under an epic
+
+Copy `examples/beads/release-under-epic/` into your Beads workspace and create
+an epic with `bd create "Release 1.6.1" --type epic --json`. Create `build/`,
+then edit the example's `request.json`: set the absolute `working_directory`
+and `rendered_formula` paths and the returned epic id as `parent`.
+
+```shell
+sc-compose bead preview-attach --request request.json --json
+sc-compose bead attach --request request.json --json
+sc-compose bead attach --request request.json --json
+```
+
+The template creates a build, verify and publish chain under the epic. The
+repeat reports the same step-to-id map with `existing` actions and writes
+nothing. See the example README for fresh-workspace setup.
+
 ### A chain of N steps
 
 `compose_variables`: `{"count": 10}`
@@ -298,7 +316,19 @@ bead to itself, two `bead:` endpoints, a duplicate of another relation or a
 Every operation returns a `sc-compose/beads/v1` receipt: `outcome`
 (`succeeded`, `refused` or `failed`), and one entry per stage with the `bd`
 argv, exit status, elapsed time and bounded output excerpts. Graph pour and
-attach add a `graph` block:
+attach add a `graph` block. Graph JSON commands retain at most 16 MiB of stdout
+and 64 KiB of stderr; other Beads commands retain at most 64 KiB per stream.
+Exceeding either applicable limit terminates the process tree and reports
+`BEADS_PROCESS_OUTPUT_LIMIT` with the actual limit.
+
+Identifier validation refusals also carry an additive `error` object with the canonical
+`code`, `message`, `details` (`field`, rejected `value`, and native validation `rule`),
+and recovery guidance when available. Invalid attach identifiers produce a refused
+receipt with a failed validation stage and exit `2`; malformed requests and missing
+persistent-write authorization retain request-error exit `3`. Existing receipt
+consumers can continue reading the ordinary receipt fields.
+
+Graph block:
 
 ```json
 "graph": {
@@ -324,8 +354,12 @@ work without querying `bd` again.
 Request errors (exit `3`, no receipt stages): a malformed request,
 `BEADS_REQUEST_DESERIALIZATION_FAILED` (including `parent`/`ref` missing on an
 attach operation or present on another, `bead_variables` set for an attach
-operation, `relations` on `render` or `validate`), `BEADS_UNKNOWN_SCHEMA`, path
+operation, `relations` on `render` or `validate`),
+`BEADS_RELATION_ENDPOINT_INVALID` (a relation endpoint lacks its `step:` or
+`bead:` prefix; correct that endpoint), `BEADS_UNKNOWN_SCHEMA`, path
 and authorization errors such as `BEADS_POUR_AUTH_REQUIRED`.
+An invalid `rendered_formula` output path uses `BEADS_OUTPUT_PATH_INVALID`;
+its diagnostic identifies the field, supplied path, and parent-directory rule.
 
 A pour only knows whether it is a registry or graph pour after locating the
 registry, so two pour mistakes are refused receipts (exit `2`) instead:
@@ -341,7 +375,7 @@ Refused or failed receipts (exit `2`):
 | Code | Meaning | What to do |
 |---|---|---|
 | `BEADS_GRAPH_PARENT_NOT_FOUND` | `parent` does not exist | create it or name an existing bead |
-| `BEADS_GRAPH_ID_INVALID` | bad `ref` or step id | fix the name |
+| `BEADS_GRAPH_ID_INVALID` | invalid parent/bead id, `ref`, or step id; request parsing preserves the typed field and value | fix the identifier according to the rule in the message |
 | `BEADS_GRAPH_SCOPE_MISMATCH` | `compose_variables` disagrees with `parent`/`ref` | make them equal, or drop them |
 | `BEADS_GRAPH_FORMULA_UNSUPPORTED` | the formula uses a construct graph mode does not take | express it in the template, or use registry pour |
 | `BEADS_GRAPH_RELATION_INVALID` | a relation is malformed or names a missing bead | fix the relation |
@@ -350,6 +384,7 @@ Refused or failed receipts (exit `2`):
 | `BEADS_GRAPH_EDGE_MISSING` | an edge between two existing beads of this attachment was removed | run the `bd dep add` command the message gives for each edge, then re-run |
 | `BEADS_GRAPH_READ_FAILED` | `bd show` or `bd dep list` failed for a reason other than "not found"; nothing was written | fix the cause shown in the stage output and re-run |
 | `BEADS_GRAPH_APPLY_FAILED` | `bd create --graph` failed; nothing was written | fix the cause shown in the stage output and re-run |
+| `BEADS_GRAPH_APPLY_UNCONFIRMED` | `bd create --graph` exited 0 but its response could not be read or did not match the plan; beads may have been created | before pouring again, run `bd show` on the ids the message lists (or `bd list` for a by-path pour) and reconcile; a retry can create a second molecule |
 
 Earlier codes are unchanged, for example `BEADS_RENDER_FAILED`,
 `BEADS_COOK_FAILED`, `BEADS_PREVIEW_POUR_FAILED`, `BEADS_POUR_FAILED` and
@@ -361,6 +396,15 @@ Use `--json` for the standard sc-compose diagnostic envelope. On success its
 payload is the receipt. On a request error its payload carries the stable code
 and message. Human output is derived from the receipt and does not include the
 `bd` version.
+
+Human output includes `pour_mode` for pour operations, one
+`<action>: <step> -> <id>` line per graph node, the edge count, and `plan_path`
+when a plan was written. A pour root is shown as `_root`; a preview id that bd
+has not assigned is shown as `pending`. Missing-edge refusals print each
+`bd dep add` recovery command on its own line. A failed stage with a non-empty
+`stderr_excerpt` includes that diagnostic on its stage line. Graph failures also
+print the core error's structured `details` (such as the affected id or read
+cause) and actionable `recovery` guidance. Receipt JSON remains unchanged.
 
 ## Troubleshooting
 
@@ -374,3 +418,26 @@ and message. Human output is derived from the receipt and does not include the
   `ref`, or keep the old inputs.
 - **`bd children <parent>` does not list the steps after `preview-attach`.**
   Preview writes nothing; run `attach`.
+- **Files named `.sc-compose-input-*` or `.*.tmp` beside the output.** Every
+  `bd cook` reads a private snapshot of the rendered text rather than the
+  requested path, so the text that is validated is the text that is planned.
+  Receipts and diagnostics show your `rendered_formula` path, never the
+  snapshot. Output is written through a temporary `.*.tmp` file and renamed.
+  Both are removed when the run ends; a crash or kill (`SIGKILL`, power loss)
+  can leave them behind. They are never read again, so delete them.
+
+Request-file read failures use `BEADS_REQUEST_READ_FAILED` (exit 3), with JSON
+`details.path`, `details.kind` (for example `NotFound` or `PermissionDenied`), and
+recovery guidance. Check the request path, read permissions, and UTF-8 encoding.
+A readable file containing malformed JSON retains
+`BEADS_REQUEST_DESERIALIZATION_FAILED`.
+
+Malformed request shapes (unknown operation, wrong field type, or missing required
+field) and missing persistent-operation authorization are reported before invalid
+identifier grammar. They retain usage exit 3. An invalid identifier in an otherwise
+well-formed, authorized request keeps its typed `BEADS_GRAPH_ID_INVALID` error; the
+subcommand, not the request file's `operation`, decides how it is reported: exit 3
+(a request error) for `render`, `validate`, `preview-pour` and `pour`, and a refused
+receipt with exit 2 only for `attach` and `preview-attach`. The subcommand likewise
+decides whether a legacy (non-portable) `formula_name` is tolerated: it is for every
+subcommand except `attach` and `preview-attach`.

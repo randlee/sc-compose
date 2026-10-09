@@ -5,15 +5,16 @@ use std::path::PathBuf;
 
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyFloat, PyList, PyTuple};
+use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
-    BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome, BeadStageReceipt,
-    PourAuthorization, execute_bead_request,
+    BeadComposeRequest, BeadOperation, BeadOutcome, BeadPourMode, BeadStage, BeadStageOutcome,
+    BeadStageReceipt, PourAuthorization, execute_bead_request,
 };
 use serde_json::Value;
 
 const REQUEST_STAGE: &str = "request";
+const RECEIPT_STAGE: &str = "receipt";
 
 #[pyclass(extends = PyException, name = "BeadComposeError")]
 #[derive(Debug)]
@@ -24,17 +25,25 @@ struct PyBeadComposeError {
     stage: Option<String>,
     #[pyo3(get)]
     message: String,
+    #[pyo3(get)]
+    details: Option<BTreeMap<String, String>>,
 }
 
 #[pymethods]
 impl PyBeadComposeError {
     #[new]
-    #[pyo3(signature = (code, message, stage=None))]
-    fn new(code: String, message: String, stage: Option<String>) -> Self {
+    #[pyo3(signature = (code, message, stage=None, details=None))]
+    fn new(
+        code: String,
+        message: String,
+        stage: Option<String>,
+        details: Option<BTreeMap<String, String>>,
+    ) -> Self {
         Self {
             code,
             stage,
             message,
+            details,
         }
     }
 
@@ -58,46 +67,58 @@ fn error(
 fn request_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
     error(
         py,
-        RustBeadComposeError::RequestDeserializationFailed {
-            message: String::new(),
-        }
-        .code(),
+        RustBeadComposeError::REQUEST_DESERIALIZATION_FAILED_CODE,
         Some(REQUEST_STAGE),
         message,
     )
 }
 
+fn receipt_deserialization_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
+    error(
+        py,
+        RustBeadComposeError::RECEIPT_DESERIALIZATION_FAILED_CODE,
+        Some(RECEIPT_STAGE),
+        message,
+    )
+}
+
 fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
-    match error_kind {
-        RustBeadComposeError::RenderFailed { .. } => "render",
-        RustBeadComposeError::ProcessOutputLimitExceeded { stage, .. } => stage_name(*stage),
-        RustBeadComposeError::CookFailed { .. }
-        | RustBeadComposeError::BdUnavailable { .. }
-        | RustBeadComposeError::ProcessArgumentInvalid { .. } => "validate",
-        RustBeadComposeError::ActiveRegistryResolutionFailed { .. }
-        | RustBeadComposeError::FormulaOutsideActiveRegistry { .. }
-        | RustBeadComposeError::FormulaRegistryAmbiguous { .. } => "resolve_active_registry",
-        RustBeadComposeError::PreviewPourFailed { .. } => "preview_pour",
-        RustBeadComposeError::PourFailed { .. } => "pour",
-        RustBeadComposeError::RequestDeserializationFailed { .. }
-        | RustBeadComposeError::UnknownSchema { .. }
-        | RustBeadComposeError::FormulaPathNotFile { .. }
-        | RustBeadComposeError::FormulaExtensionUnsupported { .. }
-        | RustBeadComposeError::TemplatePathInvalid { .. }
-        | RustBeadComposeError::TemplateOutsideWorkingDirectory { .. }
-        | RustBeadComposeError::OutputOutsideWorkingDirectory { .. }
-        | RustBeadComposeError::OutputPathSymlink { .. }
-        | RustBeadComposeError::PathNotUtf8 { .. }
-        | RustBeadComposeError::BeadVariableKeyInvalid { .. }
-        | RustBeadComposeError::BeadVariableKeyDuplicate { .. }
-        | RustBeadComposeError::BeadVariableValueInvalid { .. }
-        | RustBeadComposeError::FormulaNameRequired
-        | RustBeadComposeError::PourAuthorizationRequired
-        | RustBeadComposeError::PourAuthorizationInvalid => REQUEST_STAGE,
-    }
+    error_kind.stage().map_or(REQUEST_STAGE, BeadStage::as_str)
 }
 
 fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyErr {
+    if let RustBeadComposeError::OutputPathInvalid { path, rule } = error_kind {
+        let details = BTreeMap::from([
+            ("field".to_owned(), "rendered_formula".to_owned()),
+            ("value".to_owned(), path.to_string_lossy().into_owned()),
+            ("rule".to_owned(), rule.clone()),
+        ]);
+        return PyErr::from_type(
+            py.get_type::<PyBeadComposeError>(),
+            (
+                error_kind.code(),
+                error_kind.to_string(),
+                rust_error_stage(error_kind),
+                details,
+            ),
+        );
+    }
+    if let RustBeadComposeError::GraphIdInvalid { field, value } = error_kind {
+        let details = BTreeMap::from([
+            ("field".to_owned(), field.as_str().to_owned()),
+            ("value".to_owned(), value.clone()),
+            ("rule".to_owned(), field.rule().to_owned()),
+        ]);
+        return PyErr::from_type(
+            py.get_type::<PyBeadComposeError>(),
+            (
+                error_kind.code(),
+                error_kind.to_string(),
+                rust_error_stage(error_kind),
+                details,
+            ),
+        );
+    }
     error(
         py,
         error_kind.code(),
@@ -169,35 +190,12 @@ fn json_to_py(py: Python<'_>, value: &Value) -> PyResult<Py<PyAny>> {
 }
 
 fn operation_from_str(py: Python<'_>, value: &str) -> PyResult<BeadOperation> {
-    match value {
-        "render" => Ok(BeadOperation::Render),
-        "validate" => Ok(BeadOperation::Validate),
-        "preview_pour" => Ok(BeadOperation::PreviewPour),
-        "pour" => Ok(BeadOperation::Pour),
-        _ => Err(request_error(
+    serde_json::from_value(Value::String(value.to_owned())).map_err(|_error| {
+        request_error(
             py,
-            "operation must be render, validate, preview_pour, or pour",
-        )),
-    }
-}
-
-fn operation_name(operation: BeadOperation) -> &'static str {
-    match operation {
-        BeadOperation::Render => "render",
-        BeadOperation::Validate => "validate",
-        BeadOperation::PreviewPour => "preview_pour",
-        BeadOperation::Pour => "pour",
-    }
-}
-
-fn stage_name(stage: BeadStage) -> &'static str {
-    match stage {
-        BeadStage::Render => "render",
-        BeadStage::Validate => "validate",
-        BeadStage::ResolveActiveRegistry => "resolve_active_registry",
-        BeadStage::PreviewPour => "preview_pour",
-        BeadStage::Pour => "pour",
-    }
+            "operation must be render, validate, preview_pour, pour, preview_attach, or attach",
+        )
+    })
 }
 
 fn parse_bead_variables(
@@ -229,13 +227,17 @@ struct PyBeadOperation;
 #[pymethods]
 impl PyBeadOperation {
     #[classattr]
-    const RENDER: &'static str = "render";
+    const RENDER: &'static str = BeadOperation::Render.as_str();
     #[classattr]
-    const VALIDATE: &'static str = "validate";
+    const VALIDATE: &'static str = BeadOperation::Validate.as_str();
     #[classattr]
-    const PREVIEW_POUR: &'static str = "preview_pour";
+    const PREVIEW_POUR: &'static str = BeadOperation::PreviewPour.as_str();
     #[classattr]
-    const POUR: &'static str = "pour";
+    const POUR: &'static str = BeadOperation::Pour.as_str();
+    #[classattr]
+    const PREVIEW_ATTACH: &'static str = BeadOperation::PreviewAttach.as_str();
+    #[classattr]
+    const ATTACH: &'static str = BeadOperation::Attach.as_str();
 }
 
 #[pyclass(name = "PourAuthorization")]
@@ -244,7 +246,7 @@ struct PyPourAuthorization;
 #[pymethods]
 impl PyPourAuthorization {
     #[classattr]
-    const CREATE_PERSISTENT_BEADS: &'static str = "CreatePersistentBeads";
+    const CREATE_PERSISTENT_BEADS: &'static str = PourAuthorization::CreatePersistentBeads.as_str();
 }
 
 #[pyclass(name = "BeadStage")]
@@ -253,15 +255,19 @@ struct PyBeadStage;
 #[pymethods]
 impl PyBeadStage {
     #[classattr]
-    const RENDER: &'static str = "render";
+    const RENDER: &'static str = BeadStage::Render.as_str();
     #[classattr]
-    const VALIDATE: &'static str = "validate";
+    const VALIDATE: &'static str = BeadStage::Validate.as_str();
     #[classattr]
-    const RESOLVE_ACTIVE_REGISTRY: &'static str = "resolve_active_registry";
+    const RESOLVE_ACTIVE_REGISTRY: &'static str = BeadStage::ResolveActiveRegistry.as_str();
     #[classattr]
-    const PREVIEW_POUR: &'static str = "preview_pour";
+    const PREVIEW_POUR: &'static str = BeadStage::PreviewPour.as_str();
     #[classattr]
-    const POUR: &'static str = "pour";
+    const POUR: &'static str = BeadStage::Pour.as_str();
+    #[classattr]
+    const PREVIEW_ATTACH: &'static str = BeadStage::PreviewAttach.as_str();
+    #[classattr]
+    const ATTACH: &'static str = BeadStage::Attach.as_str();
 }
 
 #[pyclass(name = "BeadStageOutcome", skip_from_py_object)]
@@ -302,8 +308,9 @@ struct PyBeadStageReceipt {
 }
 
 #[pyclass(name = "BeadComposeReceipt", skip_from_py_object)]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct PyBeadComposeReceipt {
+    wire: String,
     #[pyo3(get)]
     schema: String,
     #[pyo3(get)]
@@ -314,20 +321,51 @@ struct PyBeadComposeReceipt {
     stages: Vec<PyBeadStageReceipt>,
     #[pyo3(get)]
     outcome: PyBeadOutcome,
+    #[pyo3(get)]
+    pour_mode: Option<String>,
+    #[pyo3(get)]
+    graph: Option<Py<PyAny>>,
+    /// Edges to repair after a `BEADS_GRAPH_EDGE_MISSING` refusal, each a
+    /// `{"from", "to", "type"}` mapping; empty otherwise.
+    #[pyo3(get)]
+    missing_edges: Py<PyAny>,
+}
+
+#[pymethods]
+impl PyBeadComposeReceipt {
+    /// Decode a versioned Rust receipt into the Python receipt surface.
+    #[classmethod]
+    fn from_json(class: &Bound<'_, PyType>, receipt_json: &str) -> PyResult<Self> {
+        let receipt =
+            serde_json::from_str::<BeadComposeReceipt>(receipt_json).map_err(|error| {
+                receipt_deserialization_error(
+                    class.py(),
+                    format!("failed to decode receipt: {error}"),
+                )
+            })?;
+        Self::from_rust(class.py(), receipt)
+    }
+
+    /// Return the canonical Rust receipt JSON as Python JSON data.
+    fn to_json(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let value = serde_json::from_str(&self.wire).map_err(|error| {
+            receipt_deserialization_error(
+                py,
+                format!("failed to decode receipt for JSON conversion: {error}"),
+            )
+        })?;
+        json_to_py(py, &value)
+    }
 }
 
 fn stage_outcome(inner: &BeadStageOutcome) -> PyBeadStageOutcome {
     match inner {
-        BeadStageOutcome::Succeeded => PyBeadStageOutcome {
-            kind: "succeeded".to_owned(),
-            code: None,
-        },
-        BeadStageOutcome::Skipped => PyBeadStageOutcome {
-            kind: "skipped".to_owned(),
+        BeadStageOutcome::Succeeded | BeadStageOutcome::Skipped => PyBeadStageOutcome {
+            kind: inner.as_str().to_owned(),
             code: None,
         },
         BeadStageOutcome::Failed { code } => PyBeadStageOutcome {
-            kind: "failed".to_owned(),
+            kind: inner.as_str().to_owned(),
             code: Some(code.clone()),
         },
     }
@@ -335,7 +373,7 @@ fn stage_outcome(inner: &BeadStageOutcome) -> PyBeadStageOutcome {
 
 fn stage_receipt(inner: &BeadStageReceipt) -> PyBeadStageReceipt {
     PyBeadStageReceipt {
-        stage: stage_name(inner.stage).to_owned(),
+        stage: inner.stage.as_str().to_owned(),
         argv: inner.argv.clone(),
         exit_status: inner.exit_status,
         elapsed_ms: inner.elapsed_ms,
@@ -348,30 +386,52 @@ fn stage_receipt(inner: &BeadStageReceipt) -> PyBeadStageReceipt {
 fn outcome(inner: &BeadOutcome) -> PyBeadOutcome {
     match inner {
         BeadOutcome::Succeeded => PyBeadOutcome {
-            kind: "succeeded".to_owned(),
+            kind: inner.as_str().to_owned(),
             code: None,
         },
-        BeadOutcome::Refused { code } => PyBeadOutcome {
-            kind: "refused".to_owned(),
-            code: Some(code.clone()),
-        },
-        BeadOutcome::Failed { code } => PyBeadOutcome {
-            kind: "failed".to_owned(),
+        BeadOutcome::Refused { code } | BeadOutcome::Failed { code } => PyBeadOutcome {
+            kind: inner.as_str().to_owned(),
             code: Some(code.clone()),
         },
     }
 }
 
-impl From<BeadComposeReceipt> for PyBeadComposeReceipt {
-    fn from(inner: BeadComposeReceipt) -> Self {
-        Self {
+impl PyBeadComposeReceipt {
+    fn from_rust(py: Python<'_>, inner: BeadComposeReceipt) -> PyResult<Self> {
+        let wire =
+            serde_json::to_string(&inner).map_err(|error| request_error(py, error.to_string()))?;
+        let graph = inner
+            .graph
+            .as_ref()
+            .map(|graph| {
+                let value = serde_json::to_value(graph)
+                    .map_err(|error| request_error(py, error.to_string()))?;
+                json_to_py(py, &value)
+            })
+            .transpose()?;
+        let missing_edges = serde_json::to_value(&inner.missing_edges)
+            .map_err(|error| request_error(py, error.to_string()))?;
+        let missing_edges = json_to_py(py, &missing_edges)?;
+        Ok(Self {
+            wire,
             schema: inner.schema,
-            operation: operation_name(inner.operation).to_owned(),
+            operation: inner.operation.as_str().to_owned(),
             rendered_formula: inner.rendered_formula.display().to_string(),
             stages: inner.stages.iter().map(stage_receipt).collect(),
             outcome: outcome(&inner.outcome),
-        }
+            pour_mode: inner.pour_mode.map(serde_variant_name),
+            graph,
+            missing_edges,
+        })
     }
+}
+
+fn serde_variant_name(mode: BeadPourMode) -> String {
+    serde_json::to_value(mode)
+        .expect("serializing a serde enum to a JSON value must succeed")
+        .as_str()
+        .expect("serde enum representation must be a string")
+        .to_owned()
 }
 
 #[pyclass(name = "BeadComposeRequest", skip_from_py_object)]
@@ -383,7 +443,7 @@ struct PyBeadComposeRequest {
 #[pymethods]
 impl PyBeadComposeRequest {
     #[new]
-    #[pyo3(signature = (working_directory, template, rendered_formula, compose_variables, *, operation="render", formula_name=None, bead_variables=None, bd_executable=None, pour_authorization=None, schema=BEADS_SCHEMA_V1))]
+    #[pyo3(signature = (working_directory, template, rendered_formula, compose_variables, *, operation=BeadOperation::Render.as_str(), formula_name=None, bead_variables=None, bd_executable=None, pour_authorization=None, parent=None, r#ref=None, relations=None, schema=BEADS_SCHEMA_V1))]
     #[allow(
         clippy::too_many_arguments,
         reason = "The Python constructor mirrors the complete versioned Rust request contract."
@@ -399,6 +459,9 @@ impl PyBeadComposeRequest {
         bead_variables: Option<&Bound<'_, PyAny>>,
         bd_executable: Option<&Bound<'_, PyAny>>,
         pour_authorization: Option<&str>,
+        parent: Option<String>,
+        r#ref: Option<String>,
+        relations: Option<&Bound<'_, PyAny>>,
         schema: &str,
     ) -> PyResult<Self> {
         let compose_variables = py_to_json(py, compose_variables)?;
@@ -406,20 +469,20 @@ impl PyBeadComposeRequest {
             .as_object()
             .cloned()
             .ok_or_else(|| request_error(py, "compose_variables must be a string-keyed mapping"))?;
-        let pour_authorization = match pour_authorization {
-            None => None,
-            Some("CreatePersistentBeads") => Some(PourAuthorization::CreatePersistentBeads),
-            Some(_) => {
-                return Err(request_error(
-                    py,
-                    "pour_authorization must be CreatePersistentBeads when supplied",
-                ));
-            }
-        };
+        let pour_authorization = pour_authorization
+            .map(PourAuthorization::try_from)
+            .transpose()
+            .map_err(|error| rust_error_to_pyerr(py, &error))?;
+        let operation = operation_from_str(py, operation)?;
+        let formula_name = formula_name
+            .map(|name| sc_composer_beads::FormulaName::for_operation(operation, name))
+            .transpose()
+            .map_err(|error| rust_error_to_pyerr(py, &error))?
+            .flatten();
         Ok(Self {
             inner: BeadComposeRequest {
                 schema: schema.to_owned(),
-                operation: operation_from_str(py, operation)?,
+                operation,
                 working_directory: coerce_path(py, working_directory, "working_directory")?,
                 template: coerce_path(py, template, "template")?,
                 rendered_formula: coerce_path(py, rendered_formula, "rendered_formula")?,
@@ -430,6 +493,23 @@ impl PyBeadComposeRequest {
                     .map(|value| coerce_path(py, value, "bd_executable"))
                     .transpose()?,
                 pour_authorization,
+                parent: parent
+                    .map(sc_composer_beads::BeadId::new)
+                    .transpose()
+                    .map_err(|error| rust_error_to_pyerr(py, &error))?,
+                ref_: r#ref
+                    .map(sc_composer_beads::GraphRef::new)
+                    .transpose()
+                    .map_err(|error| rust_error_to_pyerr(py, &error))?,
+                relations: relations
+                    .map(|value| {
+                        py_to_json(py, value).and_then(|value| {
+                            sc_composer_beads::parse_relations(value)
+                                .map_err(|error| rust_error_to_pyerr(py, &error))
+                        })
+                    })
+                    .transpose()?
+                    .unwrap_or_default(),
             },
         })
     }
@@ -441,7 +521,7 @@ impl PyBeadComposeRequest {
 
     #[getter]
     fn operation(&self) -> &'static str {
-        operation_name(self.inner.operation)
+        self.inner.operation.as_str()
     }
 
     #[getter]
@@ -466,7 +546,7 @@ impl PyBeadComposeRequest {
 
     #[getter]
     fn formula_name(&self) -> Option<String> {
-        self.inner.formula_name.clone()
+        self.inner.formula_name.as_ref().map(ToString::to_string)
     }
 
     #[getter]
@@ -484,9 +564,24 @@ impl PyBeadComposeRequest {
 
     #[getter]
     fn pour_authorization(&self) -> Option<&'static str> {
-        self.inner
-            .pour_authorization
-            .map(|_| "CreatePersistentBeads")
+        self.inner.pour_authorization.map(PourAuthorization::as_str)
+    }
+
+    #[getter]
+    fn parent(&self) -> Option<String> {
+        self.inner.parent.as_ref().map(ToString::to_string)
+    }
+
+    #[getter]
+    fn r#ref(&self) -> Option<String> {
+        self.inner.ref_.as_ref().map(ToString::to_string)
+    }
+
+    #[getter]
+    fn relations(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let relations = serde_json::to_value(&self.inner.relations)
+            .map_err(|error| request_error(py, error.to_string()))?;
+        json_to_py(py, &relations)
     }
 }
 
@@ -499,9 +594,10 @@ fn execute_with_operation(
     if let Some(operation) = operation {
         request.operation = operation;
     }
-    py.detach(|| execute_bead_request(&request))
-        .map(PyBeadComposeReceipt::from)
-        .map_err(|error_kind| rust_error_to_pyerr(py, &error_kind))
+    let receipt = py
+        .detach(|| execute_bead_request(&request))
+        .map_err(|error_kind| rust_error_to_pyerr(py, &error_kind))?;
+    PyBeadComposeReceipt::from_rust(py, receipt)
 }
 
 #[pyfunction]
@@ -564,10 +660,36 @@ fn pour(
     execute_with_operation(py, &request, Some(BeadOperation::Pour))
 }
 
+#[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
+fn preview_attach(
+    py: Python<'_>,
+    request: PyRef<'_, PyBeadComposeRequest>,
+) -> PyResult<PyBeadComposeReceipt> {
+    execute_with_operation(py, &request, Some(BeadOperation::PreviewAttach))
+}
+#[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
+fn attach(
+    py: Python<'_>,
+    request: PyRef<'_, PyBeadComposeRequest>,
+) -> PyResult<PyBeadComposeReceipt> {
+    execute_with_operation(py, &request, Some(BeadOperation::Attach))
+}
+
 #[pymodule]
 #[pyo3(name = "_native")]
 fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("BEADS_SCHEMA_V1", BEADS_SCHEMA_V1)?;
+    for &code in RustBeadComposeError::GRAPH_CODES {
+        module.add(code, code)?;
+    }
     module.add_class::<PyBeadComposeError>()?;
     module.add_class::<PyBeadOperation>()?;
     module.add_class::<PyPourAuthorization>()?;
@@ -582,6 +704,8 @@ fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(validate, module)?)?;
     module.add_function(wrap_pyfunction!(preview_pour, module)?)?;
     module.add_function(wrap_pyfunction!(pour, module)?)?;
+    module.add_function(wrap_pyfunction!(preview_attach, module)?)?;
+    module.add_function(wrap_pyfunction!(attach, module)?)?;
     Ok(())
 }
 
@@ -592,6 +716,23 @@ mod tests {
 
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn serde_variant_name_matches_contract_wire_values() {
+        for (mode, expected) in [
+            (BeadPourMode::Registry, "registry"),
+            (BeadPourMode::Graph, "graph"),
+        ] {
+            let serde_value = serde_json::to_value(mode).expect("pour mode serializes");
+            assert_eq!(
+                serde_variant_name(mode),
+                serde_value
+                    .as_str()
+                    .expect("pour mode serializes as a string")
+            );
+            assert_eq!(serde_value.as_str(), Some(expected));
+        }
+    }
 
     fn temporary_root() -> PathBuf {
         let nonce = SystemTime::now()
@@ -617,7 +758,7 @@ mod tests {
         fs::copy(
             concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/../../crates/sc-composer-beads/tests/fixtures/beads/toml-workflow.formula.toml.j2"
+                "/tests/fixtures/toml-workflow.formula.toml.j2"
             ),
             &template,
         )
@@ -640,6 +781,9 @@ mod tests {
             bead_variables: BTreeMap::new(),
             bd_executable: None,
             pour_authorization: None,
+            parent: None,
+            ref_: None,
+            relations: Vec::new(),
         };
 
         let rust_receipt = execute_bead_request(&request).expect("direct Rust render must succeed");
@@ -655,10 +799,7 @@ mod tests {
             .expect("Python adapter render must succeed");
 
             assert_eq!(python_receipt.schema, rust_receipt.schema);
-            assert_eq!(
-                python_receipt.operation,
-                operation_name(rust_receipt.operation)
-            );
+            assert_eq!(python_receipt.operation, rust_receipt.operation.as_str());
             assert_eq!(
                 python_receipt.rendered_formula,
                 rust_receipt.rendered_formula.display().to_string()

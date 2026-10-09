@@ -1,0 +1,227 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-fail">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-5 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;success&quot;: true, &quot;data&quot;: {&quot;correlation_id&quot;: &quot;template-probe&quot;, &quot;target&quot;: &quot;TEMPLATE/attach&quot;, &quot;run&quot;: 5, &quot;tested_head&quot;: &quot;a0ce54daf5e9a8c756868611b5913b08f5b60dc1&quot;, &quot;tested_tree&quot;: &quot;2c77262509320395b3cd317dc29b22ab3499155f&quot;, &quot;tested_branch&quot;: &quot;fix/t-7-t40-f1-error-paths (PR #754, top of the Phase T stack; two commits of fixes above e44ef65b plus a test commit: 7dfd37da, c733d14b, a0ce54da)&quot;, &quot;worktree&quot;: &quot;/private/tmp/claude-501/-Users-randlee-github-sc-compose/ad60cb14-c875-41a7-825f-3b1e466350d8/scratchpad/campaign5/src-a0ce54da (detached worktree of a0ce54da, removed after the build and run)&quot;, &quot;previous_run&quot;: {&quot;tested_head&quot;: &quot;e44ef65bfabf1228e6c1dab432d1e2520aa0d57c&quot;, &quot;tested_tree&quot;: &quot;70ad481ca7f686646014af878b8c136c77aa52d6&quot;, &quot;results_backup&quot;: &quot;/private/tmp/claude-501/-Users-randlee-github-sc-compose/ad60cb14-c875-41a7-825f-3b1e466350d8/scratchpad/campaign5/probe5/results-template.jsonl.e44ef65b&quot;, &quot;report_backup&quot;: &quot;/private/tmp/claude-501/-Users-randlee-github-sc-compose/ad60cb14-c875-41a7-825f-3b1e466350d8/scratchpad/campaign5/report/template.json.e44ef65b&quot;, &quot;earlier_run&quot;: {&quot;tested_head&quot;: &quot;f9f324548b608e2f0bd841aed4a7ae2a9c035b06&quot;, &quot;tested_tree&quot;: &quot;494f024408df35ff1e70b58e473beeb2694e5836&quot;}}, &quot;binary&quot;: &quot;/private/tmp/claude-501/-Users-randlee-github-sc-compose/ad60cb14-c875-41a7-825f-3b1e466350d8/scratchpad/campaign5/target/debug/sc-compose (cargo build -p sc-compose -j 2, CARGO_TARGET_DIR=$CAMPAIGN/target)&quot;, &quot;bd_mode&quot;: &quot;fake&quot;, &quot;bd_note&quot;: &quot;bd is a stub (/private/tmp/claude-501/-Users-randlee-github-sc-compose/ad60cb14-c875-41a7-825f-3b1e466350d8/scratchpad/campaign5/fakebin/bd: logs argv and file arguments and answers cook/where/show/dep list/mol pour/create --graph from a per-scenario JSON db, with failures configured by env vars); dolt stub exits 99. Real bd/Dolt behavior is out of scope for this run. No real bd or dolt was run; the lead&#x27;s later permission for serial real-bd use was not used.&quot;, &quot;seed&quot;: 157, &quot;execution&quot;: &quot;strictly serial, foreground, one sc-compose process at a time, 60 s per-case timeout; fresh workspace per scenario under $CAMPAIGN/work, deleted afterwards&quot;, &quot;harness&quot;: &quot;/private/tmp/claude-501/-Users-randlee-github-sc-compose/ad60cb14-c875-41a7-825f-3b1e466350d8/scratchpad/campaign5/probe5 (lib.py, tmpl.py, min1-5.py); raw rows in results-template.jsonl. No harness code was changed for the e44ef65b or a0ce54da reruns; only the head binary was rebuilt.&quot;, &quot;rerun_coverage&quot;: &quot;Single-head rerun at a0ce54da: the complete tmpl.py run (all six families A-F, every scenario, seed 157, nothing skipped or weakened), including the boundary and request-shape scenarios behind TMPL5-B1..B3, TMPL5-O1/O2 and TMPL5-N1, plus min1.py-min5.py (84 reproduction runs). Compared with the e44ef65b run, every one of the 568 rows is identical in every recorded field (rc, outcome, violations, problems, bd calls, stderr, note) after normalizing pids and timestamps; the error-path presentation changes in 7dfd37da/a0ce54da produced no visible change on macOS. Compared with f9f32454, the only change is that the two TMPL5-01 rows are no longer flagged. Baseline rows (min4, min5) used the unchanged baseline binary.&quot;, &quot;flagged_ids&quot;: [&quot;frontmatter-required-missing-attach&quot;, &quot;frontmatter-required-missing-preview_attach&quot;, &quot;missing-var-attach&quot;, &quot;missing-var-preview_attach&quot;], &quot;cases_run&quot;: 568, &quot;reproduction_runs&quot;: 84, &quot;families&quot;: {&quot;A-roundtrip&quot;: {&quot;scenarios&quot;: 60, &quot;flagged&quot;: 0}, &quot;B-structure&quot;: {&quot;scenarios&quot;: 80, &quot;flagged&quot;: 4}, &quot;C-paths&quot;: {&quot;scenarios&quot;: 78, &quot;flagged&quot;: 0}, &quot;D-ids&quot;: {&quot;scenarios&quot;: 144, &quot;flagged&quot;: 0}, &quot;E-bd-responses&quot;: {&quot;scenarios&quot;: 106, &quot;flagged&quot;: 0}, &quot;F-pour&quot;: {&quot;scenarios&quot;: 100, &quot;flagged&quot;: 0}}, &quot;family_descriptions&quot;: {&quot;A-roundtrip&quot;: &quot;23 hostile string values plus 7 non-string values through TOML and JSON escaping, checked through bd&#x27;s parse of the rendered formula in the create --graph plan (exact round trip; runtime {{ }} kept literally; no --var)&quot;, &quot;B-structure&quot;: &quot;seeded loops (1-40 steps with random needs), conditionals, includes (escape, absolute, cycle, self, missing, symlink out), frontmatter, comment/raw blocks, CRLF/BOM/invalid UTF-8, formula grammar refusals; attach re-run must be a no-op (FR-23.5)&quot;, &quot;C-paths&quot;: &quot;template and rendered_formula confinement, symlink final component and parent, plan-file symlink or directory, bd_executable missing/dir/non-executable/relative/shell metacharacters, Unicode, dash-leading and newline file names; files outside the root are checked for changes&quot;, &quot;D-ids&quot;: &quot;parent, ref and relation identifiers, scope mismatch, authorization, request shape; JSON and human output&quot;, &quot;E-bd-responses&quot;: &quot;hostile cook/show/dep list/create --graph replies (non-JSON, ANSI/bidi, wrong/duplicate ids, missing ids, exit codes, 17 MB stdout, path echo); JSON and human output&quot;, &quot;F-pour&quot;: &quot;registry vs graph pour mode, ambiguity, name mismatch, relations/bead_variables per mode, authorization, where/mol pour failures, 70 KB validate stdout; JSON and human output&quot;}, &quot;invariants_checked_every_case&quot;: [&quot;no panic, signal or timeout&quot;, &quot;no private .sc-compose-input-*/temp path in stdout or stderr&quot;, &quot;no leftover temp files&quot;, &quot;preview/validate/render never issue a persistent create --graph or mol pour&quot;, &quot;render never runs bd&quot;, &quot;show/dep list always use the -- separator&quot;, &quot;exit code matches outcome (0 succeeded, 2 refused/failed, 3 request error)&quot;, &quot;human output has no raw control or bidi characters&quot;, &quot;JSON and human exit codes equal (171 same-family -json/-human id pairs, 0 mismatches)&quot;], &quot;harness_corrections&quot;: &quot;From the f9f32454 run (none needed for the e44ef65b or a0ce54da reruns): the first passes flagged 47 rows because of harness mistakes: wrong expected code names (BEADS_*_WORKING_DIR, BEADS_FORMULA_NOT_FILE, BEADS_VARIABLE_*), a loop template that ignored the documented trim_blocks, bd_* expectations applied to render, a parent containing U+202E that is a valid BeadId (only whitespace is barred), and a fabricated snapshot path in fake stderr. Those families were fixed and re-run; the counts above come from the re-runs.&quot;, &quot;findings&quot;: [{&quot;id&quot;: &quot;TMPL5-01&quot;, &quot;status&quot;: &quot;fixed_at_tested_head&quot;, &quot;status_at_e44ef65b&quot;: &quot;fixed_at_tested_head&quot;, &quot;status_at_f9f32454&quot;: &quot;confirmed_bug&quot;, &quot;status_evidence&quot;: &quot;a0ce54da: 0 receipt fields (argv, stdout_excerpt, stderr_excerpt) in any stage contain .sc-compose-input-* across 48 reproduction runs (min1 0/12 cook-failure echo on preview_attach/attach/graph preview_pour/registry validate; min2 0/6 graph preview_pour/pour second-cook failure; min3 0/30 cook-with-source success, JSON and human, all five routes); in the full tmpl.py run cook-exit1-echo-path-preview_attach-json and -attach-json (flagged at f9f32454) are clean. The validate stage stdout_excerpt now shows the public build/f.formula.toml path. bd itself is still invoked with the private snapshot path (fake-bd argv log), which is the intended snapshot isolation and is not presented in the receipt.&quot;, &quot;severity&quot;: &quot;medium&quot;, &quot;subsystem&quot;: &quot;sc-composer-beads graph engine receipt presentation (attach, preview_attach, graph-mode preview_pour/pour)&quot;, &quot;seed&quot;: 157, &quot;bd_mode&quot;: &quot;fake&quot;, &quot;command&quot;: &quot;env -i PATH=$CAMPAIGN/fakebin:/usr/bin:/bin HOME=$CAMPAIGN/home FAKE_BD_LOG=$WS/.fakebd-log.jsonl FAKE_BD_DB=$WS/.fakebd-db.json FAKE_BD_COOK_SOURCE=1 $CAMPAIGN/target/debug/sc-compose bead preview-attach --request $WS/req.json --json&quot;, &quot;minimal_input&quot;: {&quot;template f.formula.toml.j2&quot;: &quot;formula = \&quot;f\&quot;\ntype = \&quot;workflow\&quot;\n[[steps]]\nid = \&quot;a\&quot;\ntitle = \&quot;t\&quot;\n&quot;, &quot;request&quot;: {&quot;schema&quot;: &quot;sc-compose/beads/v1&quot;, &quot;operation&quot;: &quot;preview_attach&quot;, &quot;working_directory&quot;: &quot;$WS&quot;, &quot;template&quot;: &quot;f.formula.toml.j2&quot;, &quot;rendered_formula&quot;: &quot;build/f.formula.toml&quot;, &quot;compose_variables&quot;: {}, &quot;bead_variables&quot;: {}, &quot;bd_executable&quot;: &quot;$CAMPAIGN/fakebin/bd&quot;, &quot;parent&quot;: &quot;pa-1&quot;, &quot;ref&quot;: &quot;r1&quot;}, &quot;fake bd&quot;: &quot;`bd cook &lt;path&gt; --json` prints the parsed formula plus \&quot;source\&quot;: &lt;path&gt; (the shape of bd v1.3.1 captures in crates/sc-composer-beads/tests/fixtures/beads/graph/*.cooked.json); variant: cook exits 1 and echoes &lt;path&gt; on stdout&quot;}, &quot;expected_oracle&quot;: &quot;FUZZ-055 / d487f845 presentation rule: no receipt field presents the private .sc-compose-input-* snapshot path; argv and stderr_excerpt of the same stage already show the public rendered_formula path, and the registry validate route presents stdout too&quot;, &quot;observed&quot;: &quot;(at f9f32454; does not reproduce at e44ef65b or a0ce54da) JSON receipt, stage `validate` (attach routes) or `preview_pour`/`pour` (graph-mode pour, second cook), field stdout_excerpt contains &lt;ws&gt;/build/.sc-compose-input-&lt;pid&gt;-&lt;ns&gt;-0.formula.toml (a deleted file). argv and stderr_excerpt in the same stage are presented correctly. Happens on success (cook stdout with source) and on cook failure (stdout echo). Registry validate does not leak. Human output does not print stdout_excerpt, so it is clean. graph.rs execute() rewrites argv and stderr_excerpt but not stdout_excerpt, and Runtime::invoke() passes no presentation source for cook.&quot;, &quot;reproduction_count&quot;: &quot;at f9f32454: 3/3 for each of preview_attach, attach, graph preview_pour, graph pour (min1.py, min2.py, min3.py); at e44ef65b: 0/48; at a0ce54da: 0/48 (same scripts, unchanged)&quot;, &quot;baseline&quot;: &quot;baseline has no attach routes; not comparable&quot;}, {&quot;id&quot;: &quot;TMPL5-02&quot;, &quot;status&quot;: &quot;confirmed_bug&quot;, &quot;status_evidence&quot;: &quot;a0ce54da: min5 27/27 runs render title = \&quot;\&quot; with exit 0 for required_variables, defaults and no-frontmatter cases on head render, head attach (create --graph sent) and baseline render; full tmpl.py run flags missing-var-{preview_attach,attach} and frontmatter-required-missing-{preview_attach,attach} (expected BEADS_RENDER_FAILED, got succeeded).&quot;, &quot;severity&quot;: &quot;medium&quot;, &quot;subsystem&quot;: &quot;sc-composer-beads render (render_formula_in_root), every bead route&quot;, &quot;seed&quot;: 157, &quot;bd_mode&quot;: &quot;fake&quot;, &quot;command&quot;: &quot;env -i PATH=$CAMPAIGN/fakebin:/usr/bin:/bin HOME=$CAMPAIGN/home FAKE_BD_LOG=$WS/.fakebd-log.jsonl FAKE_BD_DB=$WS/.fakebd-db.json $CAMPAIGN/target/debug/sc-compose bead attach --request $WS/req.json --json&quot;, &quot;minimal_input&quot;: {&quot;template f.formula.toml.j2&quot;: &quot;---\nrequired_variables: [title]\n---\nformula = \&quot;f\&quot;\ntype = \&quot;workflow\&quot;\n[[steps]]\nid = \&quot;a\&quot;\ntitle = \&quot;{{{ title }}}\&quot;\n&quot;, &quot;request&quot;: {&quot;operation&quot;: &quot;attach&quot;, &quot;compose_variables&quot;: {}, &quot;pour_authorization&quot;: &quot;CreatePersistentBeads&quot;, &quot;parent&quot;: &quot;pa-1&quot;, &quot;ref&quot;: &quot;r1&quot;, &quot;...&quot;: &quot;as TMPL5-01&quot;}}, &quot;expected_oracle&quot;: &quot;FR-2b (docs/requirements.md): missing frontmatter-declared required variables must fail rendering; `sc-compose render --file` does fail with ERR_VAL_MISSING_REQUIRED for the same frontmatter. Frontmatter `defaults` should bind the variable.&quot;, &quot;observed&quot;: &quot;Exit 0, outcome succeeded; the frontmatter block is stripped (malformed YAML frontmatter does fail with BEADS_RENDER_FAILED, so it is parsed), but required_variables is not enforced and defaults are not applied: the rendered formula has title = \&quot;\&quot;, and attach sends a create --graph plan with an empty title. Without frontmatter an undefined {{{ title }}} also renders silently as an empty string.&quot;, &quot;reproduction_count&quot;: &quot;3/3 at a0ce54da (min5.py) for required, defaults and no-frontmatter cases on head render and head attach&quot;, &quot;baseline&quot;: &quot;same on baseline render (pre-existing; not a regression)&quot;}, {&quot;id&quot;: &quot;TMPL5-03&quot;, &quot;status&quot;: &quot;confirmed_bug&quot;, &quot;status_evidence&quot;: &quot;a0ce54da: min4 9/9 runs leave $WS-outside/x.formula.toml written after bd cook and bd where; head preview_pour and pour refuse BEADS_OUTPUT_OUTSIDE_WORKING_DIR, baseline preview_pour refuses BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY.&quot;, &quot;severity&quot;: &quot;low&quot;, &quot;subsystem&quot;: &quot;sc-composer-beads preview_pour/pour output confinement&quot;, &quot;seed&quot;: 157, &quot;bd_mode&quot;: &quot;fake&quot;, &quot;command&quot;: &quot;env -i PATH=$CAMPAIGN/fakebin:/usr/bin:/bin HOME=$CAMPAIGN/home FAKE_BD_LOG=$WS/.fakebd-log.jsonl FAKE_BD_DB=$WS/.fakebd-db.json $CAMPAIGN/target/debug/sc-compose bead preview-pour --request $WS/req.json --json&quot;, &quot;minimal_input&quot;: {&quot;layout&quot;: &quot;$WS/f.formula.toml.j2 (any valid formula), $WS/.beads/formulas/ (the active registry), $WS-outside/ (sibling directory)&quot;, &quot;request&quot;: {&quot;operation&quot;: &quot;preview_pour&quot;, &quot;formula_name&quot;: &quot;x&quot;, &quot;rendered_formula&quot;: &quot;$WS-outside/x.formula.toml&quot;, &quot;...&quot;: &quot;as TMPL5-01 without parent/ref&quot;}}, &quot;expected_oracle&quot;: &quot;ADR-0023 Authorization and confinement: rendered_formula is confined to working_directory, and a rendered formula outside working_directory that is not in the active registry is refused. preview-pour writes nothing persistent. A refused request should not write outside the root.&quot;, &quot;observed&quot;: &quot;rc 2, outcome failed BEADS_OUTPUT_OUTSIDE_WORKING_DIR (baseline gives BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY), but $WS-outside/x.formula.toml has already been written (atomic replace, so an existing file there is overwritten) and `bd cook` has run on it. validate_request skips the confinement check for PreviewPour/Pour because the registry may be outside the root, and the refusal comes only after `bd where`.&quot;, &quot;reproduction_count&quot;: &quot;3/3 head preview_pour, 3/3 head pour, 3/3 baseline preview_pour at a0ce54da (min4.py)&quot;, &quot;baseline&quot;: &quot;the same write happens on baseline (pre-existing); only the refusal code changed&quot;}], &quot;observations&quot;: [{&quot;id&quot;: &quot;TMPL5-O1&quot;, &quot;status&quot;: &quot;inconclusive&quot;, &quot;note&quot;: &quot;Non-string compose values in a quoted slot render differently by escape mode: null -&gt; &#x27;&#x27; in TOML templates and &#x27;null&#x27; in JSON templates; arrays render as [\&quot;a\&quot;, \&quot;b\&quot;] (TOML) and [\&quot;a\&quot;,\&quot;b\&quot;] (JSON). No documented oracle, so not reported as a bug.&quot;}, {&quot;id&quot;: &quot;TMPL5-O2&quot;, &quot;status&quot;: &quot;inconclusive&quot;, &quot;note&quot;: &quot;Unknown top-level request fields (for example a typo such as `relation` for `relations`) are accepted and ignored on every route. Undocumented either way, and a typo silently drops the intended edges.&quot;}, {&quot;id&quot;: &quot;TMPL5-B1&quot;, &quot;status&quot;: &quot;intentional_boundary&quot;, &quot;note&quot;: &quot;A template path containing a control character (\\n, \\t) fails BEADS_RENDER_FAILED with the canonical-source rule &#x27;no control characters&#x27;. A newline in rendered_formula alone is accepted.&quot;}, {&quot;id&quot;: &quot;TMPL5-B2&quot;, &quot;status&quot;: &quot;intentional_boundary&quot;, &quot;note&quot;: &quot;compose_variables nested more than about 128 levels deep give BEADS_REQUEST_DESERIALIZATION_FAILED, exit 3 (serde_json recursion limit).&quot;}, {&quot;id&quot;: &quot;TMPL5-B3&quot;, &quot;status&quot;: &quot;intentional_boundary&quot;, &quot;note&quot;: &quot;When template == rendered_formula, the template is overwritten in place. Plain `sc-compose render --output &lt;same file&gt;` does the same, so this is consistent.&quot;}, {&quot;id&quot;: &quot;TMPL5-N1&quot;, &quot;status&quot;: &quot;inconclusive&quot;, &quot;note&quot;: &quot;Cosmetic: render-stage stderr_excerpt includes the trailing text &#x27;backtrace:\\ndisabled backtrace&#x27;.&quot;}], &quot;summary&quot;: {&quot;confirmed_bugs&quot;: 2, &quot;fixed_at_tested_head&quot;: 1, &quot;intentional_boundaries&quot;: 3, &quot;inconclusive&quot;: 3}, &quot;not_run&quot;: [&quot;real bd/Dolt behaviour (out of scope by design)&quot;, &quot;hang/timeout injection from bd (the runner has no bd timeout, so a hanging stub would hang sc-compose; skipped to keep the run bounded)&quot;, &quot;Python binding parity&quot;]}, &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="{
+  &quot;run&quot;: 5,
+  &quot;tested_head&quot;: &quot;a0ce54daf5e9a8c756868611b5913b08f5b60dc1&quot;,
+  &quot;tested_tree&quot;: &quot;2c77262509320395b3cd317dc29b22ab3499155f&quot;,
+  &quot;tested_branch&quot;: &quot;fix/t-7-t40-f1-error-paths (PR #754, top of the Phase T stack; two commits of fixes above e44ef65b plus a test commit: 7dfd37da, c733d14b, a0ce54da)&quot;,
+  &quot;bd_mode&quot;: &quot;fake&quot;,
+  &quot;seed&quot;: 157,
+  &quot;execution&quot;: &quot;strictly serial, foreground, one sc-compose process at a time, 60 s per-case timeout; fresh workspace per scenario under $CAMPAIGN/work, deleted afterwards&quot;,
+  &quot;bd_note&quot;: &quot;bd is a stub (/private/tmp/claude-501/-Users-randlee-github-sc-compose/ad60cb14-c875-41a7-825f-3b1e466350d8/scratchpad/campaign5/fakebin/bd: logs argv and file arguments and answers cook/where/show/dep list/mol pour/create --graph from a per-scenario JSON db, with failures configured by env vars); dolt stub exits 99. Real bd/Dolt behavior is out of scope for this run. No real bd or dolt was run; the lead&#x27;s later permission for serial real-bd use was not used.&quot;,
+  &quot;reproduction_runs&quot;: 84,
+  &quot;rerun_coverage&quot;: &quot;Single-head rerun at a0ce54da: the complete tmpl.py run (all six families A-F, every scenario, seed 157, nothing skipped or weakened), including the boundary and request-shape scenarios behind TMPL5-B1..B3, TMPL5-O1/O2 and TMPL5-N1, plus min1.py-min5.py (84 reproduction runs). Compared with the e44ef65b run, every one of the 568 rows is identical in every recorded field (rc, outcome, violations, problems, bd calls, stderr, note) after normalizing pids and timestamps; the error-path presentation changes in 7dfd37da/a0ce54da produced no visible change on macOS. Compared with f9f32454, the only change is that the two TMPL5-01 rows are no longer flagged. Baseline rows (min4, min5) used the unchanged baseline binary.&quot;,
+  &quot;previous_run&quot;: {
+    &quot;tested_head&quot;: &quot;e44ef65bfabf1228e6c1dab432d1e2520aa0d57c&quot;,
+    &quot;tested_tree&quot;: &quot;70ad481ca7f686646014af878b8c136c77aa52d6&quot;,
+    &quot;results_backup&quot;: &quot;/private/tmp/claude-501/-Users-randlee-github-sc-compose/ad60cb14-c875-41a7-825f-3b1e466350d8/scratchpad/campaign5/probe5/results-template.jsonl.e44ef65b&quot;,
+    &quot;report_backup&quot;: &quot;/private/tmp/claude-501/-Users-randlee-github-sc-compose/ad60cb14-c875-41a7-825f-3b1e466350d8/scratchpad/campaign5/report/template.json.e44ef65b&quot;,
+    &quot;earlier_run&quot;: {
+      &quot;tested_head&quot;: &quot;f9f324548b608e2f0bd841aed4a7ae2a9c035b06&quot;,
+      &quot;tested_tree&quot;: &quot;494f024408df35ff1e70b58e473beeb2694e5836&quot;
+    }
+  },
+  &quot;interpretation&quot;: &quot;Completed worker execution; FAIL follows unresolved confirmed findings. Flagged scenarios or differential mismatches are not binary pass/fail counts.&quot;,
+  &quot;not_run&quot;: [
+    &quot;real bd/Dolt behaviour (out of scope by design)&quot;,
+    &quot;hang/timeout injection from bd (the runner has no bd timeout, so a hanging stub would hang sc-compose; skipped to keep the run bounded)&quot;,
+    &quot;Python binding parity&quot;
+  ]
+}">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">template run5 rerun at a0ce54da (fake bd stub); binary pass/fail counts not supplied</th>
+        <td>568</td>
+        <td>not supplied/568</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">run5/family/A-roundtrip</th><td><code>23 hostile string values plus 7 non-string values through TOML and JSON escaping, checked through bd&#x27;s parse of the rendered formula in the create --graph plan (exact round trip; runtime {{ }} kept literally; no --var); {&quot;scenarios&quot;: 60, &quot;flagged&quot;: 0}</code></td><td>flagged 0</td></tr>
+        <tr><th scope="row">run5/family/B-structure</th><td><code>seeded loops (1-40 steps with random needs), conditionals, includes (escape, absolute, cycle, self, missing, symlink out), frontmatter, comment/raw blocks, CRLF/BOM/invalid UTF-8, formula grammar refusals; attach re-run must be a no-op (FR-23.5); {&quot;scenarios&quot;: 80, &quot;flagged&quot;: 4}</code></td><td>flagged 4</td></tr>
+        <tr><th scope="row">run5/family/C-paths</th><td><code>template and rendered_formula confinement, symlink final component and parent, plan-file symlink or directory, bd_executable missing/dir/non-executable/relative/shell metacharacters, Unicode, dash-leading and newline file names; files outside the root are checked for changes; {&quot;scenarios&quot;: 78, &quot;flagged&quot;: 0}</code></td><td>flagged 0</td></tr>
+        <tr><th scope="row">run5/family/D-ids</th><td><code>parent, ref and relation identifiers, scope mismatch, authorization, request shape; JSON and human output; {&quot;scenarios&quot;: 144, &quot;flagged&quot;: 0}</code></td><td>flagged 0</td></tr>
+        <tr><th scope="row">run5/family/E-bd-responses</th><td><code>hostile cook/show/dep list/create --graph replies (non-JSON, ANSI/bidi, wrong/duplicate ids, missing ids, exit codes, 17 MB stdout, path echo); JSON and human output; {&quot;scenarios&quot;: 106, &quot;flagged&quot;: 0}</code></td><td>flagged 0</td></tr>
+        <tr><th scope="row">run5/family/F-pour</th><td><code>registry vs graph pour mode, ambiguity, name mismatch, relations/bead_variables per mode, authorization, where/mol pour failures, 70 KB validate stdout; JSON and human output; {&quot;scenarios&quot;: 100, &quot;flagged&quot;: 0}</code></td><td>flagged 0</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>TMPL5-01</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>See literal minimal_input in source envelope.</code></dd>
+        <dt>Input</dt><dd><code>{
+  &quot;template f.formula.toml.j2&quot;: &quot;formula = \&quot;f\&quot;\ntype = \&quot;workflow\&quot;\n[[steps]]\nid = \&quot;a\&quot;\ntitle = \&quot;t\&quot;\n&quot;,
+  &quot;request&quot;: {
+    &quot;schema&quot;: &quot;sc-compose/beads/v1&quot;,
+    &quot;operation&quot;: &quot;preview_attach&quot;,
+    &quot;working_directory&quot;: &quot;$WS&quot;,
+    &quot;template&quot;: &quot;f.formula.toml.j2&quot;,
+    &quot;rendered_formula&quot;: &quot;build/f.formula.toml&quot;,
+    &quot;compose_variables&quot;: {},
+    &quot;bead_variables&quot;: {},
+    &quot;bd_executable&quot;: &quot;$CAMPAIGN/fakebin/bd&quot;,
+    &quot;parent&quot;: &quot;pa-1&quot;,
+    &quot;ref&quot;: &quot;r1&quot;
+  },
+  &quot;fake bd&quot;: &quot;`bd cook &lt;path&gt; --json` prints the parsed formula plus \&quot;source\&quot;: &lt;path&gt; (the shape of bd v1.3.1 captures in crates/sc-composer-beads/tests/fixtures/beads/graph/*.cooked.json); variant: cook exits 1 and echoes &lt;path&gt; on stdout&quot;
+}</code></dd>
+        <dt>Expected</dt><dd>FUZZ-055 / d487f845 presentation rule: no receipt field presents the private .sc-compose-input-* snapshot path; argv and stderr_excerpt of the same stage already show the public rendered_formula path, and the registry validate route presents stdout too</dd>
+        <dt>Observed</dt><dd>(at f9f32454; does not reproduce at e44ef65b or a0ce54da) JSON receipt, stage `validate` (attach routes) or `preview_pour`/`pour` (graph-mode pour, second cook), field stdout_excerpt contains &lt;ws&gt;/build/.sc-compose-input-&lt;pid&gt;-&lt;ns&gt;-0.formula.toml (a deleted file). argv and stderr_excerpt in the same stage are presented correctly. Happens on success (cook stdout with source) and on cook failure (stdout echo). Registry validate does not leak. Human output does not print stdout_excerpt, so it is clean. graph.rs execute() rewrites argv and stderr_excerpt but not stdout_excerpt, and Runtime::invoke() passes no presentation source for cook.</dd>
+        <dt>Requirement / ADR</dt><dd>FUZZ-055 / d487f845 presentation rule: no receipt field presents the private .sc-compose-input-* snapshot path; argv and stderr_excerpt of the same stage already show the public rendered_formula path, and the registry validate route presents stdout too</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team-lead pending triage; no new requirement or fix is asserted by report integration.</dd>
+        <dt>Root cause</dt><dd>(at f9f32454; does not reproduce at e44ef65b or a0ce54da) JSON receipt, stage `validate` (attach routes) or `preview_pour`/`pour` (graph-mode pour, second cook), field stdout_excerpt contains &lt;ws&gt;/build/.sc-compose-input-&lt;pid&gt;-&lt;ns&gt;-0.formula.toml (a deleted file). argv and stderr_excerpt in the same stage are presented correctly. Happens on success (cook stdout with source) and on cook failure (stdout echo). Registry validate does not leak. Human output does not print stdout_excerpt, so it is clean. graph.rs execute() rewrites argv and stderr_excerpt but not stdout_excerpt, and Runtime::invoke() passes no presentation source for cook.</dd>
+        <dt>Recommended fix</dt><dd>No further fix indicated at a0ce54da: the run5 rerun records fixed_at_tested_head (confirmed_bug at f9f32454); team-lead to confirm closure. Not fixed by this report.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>TMPL5-02</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>See literal minimal_input in source envelope.</code></dd>
+        <dt>Input</dt><dd><code>{
+  &quot;template f.formula.toml.j2&quot;: &quot;---\nrequired_variables: [title]\n---\nformula = \&quot;f\&quot;\ntype = \&quot;workflow\&quot;\n[[steps]]\nid = \&quot;a\&quot;\ntitle = \&quot;{{{ title }}}\&quot;\n&quot;,
+  &quot;request&quot;: {
+    &quot;operation&quot;: &quot;attach&quot;,
+    &quot;compose_variables&quot;: {},
+    &quot;pour_authorization&quot;: &quot;CreatePersistentBeads&quot;,
+    &quot;parent&quot;: &quot;pa-1&quot;,
+    &quot;ref&quot;: &quot;r1&quot;,
+    &quot;...&quot;: &quot;as TMPL5-01&quot;
+  }
+}</code></dd>
+        <dt>Expected</dt><dd>FR-2b (docs/requirements.md): missing frontmatter-declared required variables must fail rendering; `sc-compose render --file` does fail with ERR_VAL_MISSING_REQUIRED for the same frontmatter. Frontmatter `defaults` should bind the variable.</dd>
+        <dt>Observed</dt><dd>Exit 0, outcome succeeded; the frontmatter block is stripped (malformed YAML frontmatter does fail with BEADS_RENDER_FAILED, so it is parsed), but required_variables is not enforced and defaults are not applied: the rendered formula has title = &quot;&quot;, and attach sends a create --graph plan with an empty title. Without frontmatter an undefined {{{ title }}} also renders silently as an empty string.</dd>
+        <dt>Requirement / ADR</dt><dd>FR-2b (docs/requirements.md): missing frontmatter-declared required variables must fail rendering; `sc-compose render --file` does fail with ERR_VAL_MISSING_REQUIRED for the same frontmatter. Frontmatter `defaults` should bind the variable.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team-lead pending triage; no new requirement or fix is asserted by report integration.</dd>
+        <dt>Root cause</dt><dd>Exit 0, outcome succeeded; the frontmatter block is stripped (malformed YAML frontmatter does fail with BEADS_RENDER_FAILED, so it is parsed), but required_variables is not enforced and defaults are not applied: the rendered formula has title = &quot;&quot;, and attach sends a create --graph plan with an empty title. Without frontmatter an undefined {{{ title }}} also renders silently as an empty string.</dd>
+        <dt>Recommended fix</dt><dd>Team-lead pending triage; confirmed_bug at a0ce54da (run5 rerun), not fixed by this report.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>TMPL5-03</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>See literal minimal_input in source envelope.</code></dd>
+        <dt>Input</dt><dd><code>{
+  &quot;layout&quot;: &quot;$WS/f.formula.toml.j2 (any valid formula), $WS/.beads/formulas/ (the active registry), $WS-outside/ (sibling directory)&quot;,
+  &quot;request&quot;: {
+    &quot;operation&quot;: &quot;preview_pour&quot;,
+    &quot;formula_name&quot;: &quot;x&quot;,
+    &quot;rendered_formula&quot;: &quot;$WS-outside/x.formula.toml&quot;,
+    &quot;...&quot;: &quot;as TMPL5-01 without parent/ref&quot;
+  }
+}</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Authorization and confinement: rendered_formula is confined to working_directory, and a rendered formula outside working_directory that is not in the active registry is refused. preview-pour writes nothing persistent. A refused request should not write outside the root.</dd>
+        <dt>Observed</dt><dd>rc 2, outcome failed BEADS_OUTPUT_OUTSIDE_WORKING_DIR (baseline gives BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY), but $WS-outside/x.formula.toml has already been written (atomic replace, so an existing file there is overwritten) and `bd cook` has run on it. validate_request skips the confinement check for PreviewPour/Pour because the registry may be outside the root, and the refusal comes only after `bd where`.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Authorization and confinement: rendered_formula is confined to working_directory, and a rendered formula outside working_directory that is not in the active registry is refused. preview-pour writes nothing persistent. A refused request should not write outside the root.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team-lead pending triage; no new requirement or fix is asserted by report integration.</dd>
+        <dt>Root cause</dt><dd>rc 2, outcome failed BEADS_OUTPUT_OUTSIDE_WORKING_DIR (baseline gives BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY), but $WS-outside/x.formula.toml has already been written (atomic replace, so an existing file there is overwritten) and `bd cook` has run on it. validate_request skips the confinement check for PreviewPour/Pour because the registry may be outside the root, and the refusal comes only after `bd where`.</dd>
+        <dt>Recommended fix</dt><dd>Team-lead pending triage; confirmed_bug at a0ce54da (run5 rerun), not fixed by this report.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>TMPL5-O1</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>See literal minimal_input in source envelope.</code></dd>
+        <dt>Input</dt><dd><code>&quot;Non-string compose values in a quoted slot render differently by escape mode: null -&gt; &#x27;&#x27; in TOML templates and &#x27;null&#x27; in JSON templates; arrays render as [\&quot;a\&quot;, \&quot;b\&quot;] (TOML) and [\&quot;a\&quot;,\&quot;b\&quot;] (JSON). No documented oracle, so not reported as a bug.&quot;</code></dd>
+        <dt>Expected</dt><dd>No decisive documented oracle supplied; retain original observation classification.</dd>
+        <dt>Observed</dt><dd>Non-string compose values in a quoted slot render differently by escape mode: null -&gt; &#x27;&#x27; in TOML templates and &#x27;null&#x27; in JSON templates; arrays render as [&quot;a&quot;, &quot;b&quot;] (TOML) and [&quot;a&quot;,&quot;b&quot;] (JSON). No documented oracle, so not reported as a bug.</dd>
+        <dt>Requirement / ADR</dt><dd>Undecided requirement/documentation boundary; team lead must triage.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team-lead pending triage; no new requirement or fix is asserted by report integration.</dd>
+        <dt>Root cause</dt><dd>Non-string compose values in a quoted slot render differently by escape mode: null -&gt; &#x27;&#x27; in TOML templates and &#x27;null&#x27; in JSON templates; arrays render as [&quot;a&quot;, &quot;b&quot;] (TOML) and [&quot;a&quot;,&quot;b&quot;] (JSON). No documented oracle, so not reported as a bug.</dd>
+        <dt>Recommended fix</dt><dd>Team-lead pending triage; inconclusive at a0ce54da (run5 rerun), not fixed by this report.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>TMPL5-O2</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>See literal minimal_input in source envelope.</code></dd>
+        <dt>Input</dt><dd><code>&quot;Unknown top-level request fields (for example a typo such as `relation` for `relations`) are accepted and ignored on every route. Undocumented either way, and a typo silently drops the intended edges.&quot;</code></dd>
+        <dt>Expected</dt><dd>No decisive documented oracle supplied; retain original observation classification.</dd>
+        <dt>Observed</dt><dd>Unknown top-level request fields (for example a typo such as `relation` for `relations`) are accepted and ignored on every route. Undocumented either way, and a typo silently drops the intended edges.</dd>
+        <dt>Requirement / ADR</dt><dd>Undecided requirement/documentation boundary; team lead must triage.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team-lead pending triage; no new requirement or fix is asserted by report integration.</dd>
+        <dt>Root cause</dt><dd>Unknown top-level request fields (for example a typo such as `relation` for `relations`) are accepted and ignored on every route. Undocumented either way, and a typo silently drops the intended edges.</dd>
+        <dt>Recommended fix</dt><dd>Team-lead pending triage; inconclusive at a0ce54da (run5 rerun), not fixed by this report.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>TMPL5-B1</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>See literal minimal_input in source envelope.</code></dd>
+        <dt>Input</dt><dd><code>&quot;A template path containing a control character (\\n, \\t) fails BEADS_RENDER_FAILED with the canonical-source rule &#x27;no control characters&#x27;. A newline in rendered_formula alone is accepted.&quot;</code></dd>
+        <dt>Expected</dt><dd>No decisive documented oracle supplied; retain original observation classification.</dd>
+        <dt>Observed</dt><dd>A template path containing a control character (\n, \t) fails BEADS_RENDER_FAILED with the canonical-source rule &#x27;no control characters&#x27;. A newline in rendered_formula alone is accepted.</dd>
+        <dt>Requirement / ADR</dt><dd>Undecided requirement/documentation boundary; team lead must triage.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team-lead pending triage; no new requirement or fix is asserted by report integration.</dd>
+        <dt>Root cause</dt><dd>A template path containing a control character (\n, \t) fails BEADS_RENDER_FAILED with the canonical-source rule &#x27;no control characters&#x27;. A newline in rendered_formula alone is accepted.</dd>
+        <dt>Recommended fix</dt><dd>Team-lead pending triage; intentional_boundary at a0ce54da (run5 rerun), not fixed by this report.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>TMPL5-B2</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>See literal minimal_input in source envelope.</code></dd>
+        <dt>Input</dt><dd><code>&quot;compose_variables nested more than about 128 levels deep give BEADS_REQUEST_DESERIALIZATION_FAILED, exit 3 (serde_json recursion limit).&quot;</code></dd>
+        <dt>Expected</dt><dd>No decisive documented oracle supplied; retain original observation classification.</dd>
+        <dt>Observed</dt><dd>compose_variables nested more than about 128 levels deep give BEADS_REQUEST_DESERIALIZATION_FAILED, exit 3 (serde_json recursion limit).</dd>
+        <dt>Requirement / ADR</dt><dd>Undecided requirement/documentation boundary; team lead must triage.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team-lead pending triage; no new requirement or fix is asserted by report integration.</dd>
+        <dt>Root cause</dt><dd>compose_variables nested more than about 128 levels deep give BEADS_REQUEST_DESERIALIZATION_FAILED, exit 3 (serde_json recursion limit).</dd>
+        <dt>Recommended fix</dt><dd>Team-lead pending triage; intentional_boundary at a0ce54da (run5 rerun), not fixed by this report.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>TMPL5-B3</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>See literal minimal_input in source envelope.</code></dd>
+        <dt>Input</dt><dd><code>&quot;When template == rendered_formula, the template is overwritten in place. Plain `sc-compose render --output &lt;same file&gt;` does the same, so this is consistent.&quot;</code></dd>
+        <dt>Expected</dt><dd>No decisive documented oracle supplied; retain original observation classification.</dd>
+        <dt>Observed</dt><dd>When template == rendered_formula, the template is overwritten in place. Plain `sc-compose render --output &lt;same file&gt;` does the same, so this is consistent.</dd>
+        <dt>Requirement / ADR</dt><dd>Undecided requirement/documentation boundary; team lead must triage.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team-lead pending triage; no new requirement or fix is asserted by report integration.</dd>
+        <dt>Root cause</dt><dd>When template == rendered_formula, the template is overwritten in place. Plain `sc-compose render --output &lt;same file&gt;` does the same, so this is consistent.</dd>
+        <dt>Recommended fix</dt><dd>Team-lead pending triage; intentional_boundary at a0ce54da (run5 rerun), not fixed by this report.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>TMPL5-N1</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>See literal minimal_input in source envelope.</code></dd>
+        <dt>Input</dt><dd><code>&quot;Cosmetic: render-stage stderr_excerpt includes the trailing text &#x27;backtrace:\\ndisabled backtrace&#x27;.&quot;</code></dd>
+        <dt>Expected</dt><dd>No decisive documented oracle supplied; retain original observation classification.</dd>
+        <dt>Observed</dt><dd>Cosmetic: render-stage stderr_excerpt includes the trailing text &#x27;backtrace:\ndisabled backtrace&#x27;.</dd>
+        <dt>Requirement / ADR</dt><dd>Undecided requirement/documentation boundary; team lead must triage.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team-lead pending triage; no new requirement or fix is asserted by report integration.</dd>
+        <dt>Root cause</dt><dd>Cosmetic: render-stage stderr_excerpt includes the trailing text &#x27;backtrace:\ndisabled backtrace&#x27;.</dd>
+        <dt>Recommended fix</dt><dd>Team-lead pending triage; inconclusive at a0ce54da (run5 rerun), not fixed by this report.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

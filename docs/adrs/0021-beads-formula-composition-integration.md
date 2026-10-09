@@ -152,6 +152,7 @@ pub enum BeadComposeError {
 evidence. Each child stream is capped at 64 KiB; an over-limit stage terminates
 its process tree and returns `ProcessOutputLimitExceeded` rather than
 consuming unbounded memory or waiting for a normal pipe-inheriting descendant.
+Graph JSON commands alone permit bounded stdout up to 16 MiB, retaining the 64 KiB stderr cap and the same termination policy.
 The runner uses `process-wrap`: Unix children lead a dedicated process group
 and Windows children are created suspended, assigned to a Job Object, then
 resumed. Cap termination kills that group or Job Object respectively.
@@ -168,6 +169,7 @@ codes:
 | `FormulaPathNotFile` | `BEADS_FORMULA_NOT_FILE` | Template or rendered formula path is not a regular file. |
 | `FormulaExtensionUnsupported` | `BEADS_FORMULA_EXTENSION_UNSUPPORTED` | Formula is not `.formula.toml` or `.formula.json`. |
 | `TemplatePathInvalid` | `BEADS_TEMPLATE_PATH_INVALID` | Template path is missing, malformed, or cannot be resolved. |
+| `OutputPathInvalid` | `BEADS_OUTPUT_PATH_INVALID` | `rendered_formula` cannot be normalized because its parent directory is missing or cannot be resolved. |
 | `TemplateOutsideWorkingDirectory` | `BEADS_TEMPLATE_OUTSIDE_WORKING_DIR` | Template escapes `working_directory`. |
 | `OutputOutsideWorkingDirectory` | `BEADS_OUTPUT_OUTSIDE_WORKING_DIR` | Rendered output escapes the permitted working directory. |
 | `OutputPathSymlink` | `BEADS_OUTPUT_PATH_SYMLINK` | Final rendered output component is a symbolic link. |
@@ -179,7 +181,7 @@ codes:
 | `PourAuthorizationInvalid` | `BEADS_POUR_AUTH_INVALID` | Authorization is present but is not `CreatePersistentBeads`. |
 | `BdUnavailable` | `BEADS_BD_UNAVAILABLE` | The configured `bd` executable cannot be started. |
 | `ProcessOutputLimitExceeded` | `BEADS_PROCESS_OUTPUT_LIMIT` | A `bd` stage exceeded the per-stream output capture limit and was terminated. |
-| `RenderFailed` | `BEADS_RENDER_FAILED` | Formula rendering failed before `bd` validation. |
+| `RenderFailed` | `BEADS_RENDER_FAILED` | Formula rendering failed before `bd` validation, including a composition variable with no caller value and no frontmatter default. |
 | `CookFailed` | `BEADS_COOK_FAILED` | `bd cook --dry-run` failed. |
 | `ActiveRegistryResolutionFailed` | `BEADS_WHERE_FAILED` | `bd where --json` failed or returned unusable registry data. |
 | `FormulaOutsideActiveRegistry` | `BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY` | Formula path is not the active registry path for its name and extension. |

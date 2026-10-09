@@ -1,0 +1,26 @@
+{
+  "schema": "sc-compose/beads/v1",
+  "operation": "preview_pour",
+  "rendered_formula": "<workspace>/release.formula.toml",
+  "stages": [
+    {
+      "stage": "preview_pour",
+      "argv": [],
+      "exit_status": null,
+      "elapsed_ms": 0,
+      "stdout_excerpt": "",
+      "stderr_excerpt": "BEADS_GRAPH_CONFLICT",
+      "outcome": {
+        "failed": {
+          "code": "BEADS_GRAPH_CONFLICT"
+        }
+      }
+    }
+  ],
+  "outcome": {
+    "refused": {
+      "code": "BEADS_GRAPH_CONFLICT"
+    }
+  },
+  "pour_mode": "graph"
+}

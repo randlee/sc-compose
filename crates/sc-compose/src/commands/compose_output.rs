@@ -1,10 +1,10 @@
-use std::io::Write;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::anyhow;
 use sc_composer::{
     ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode, DiagnosticSeverity,
-    ValidationOutcomeEvent,
+    RecoveryHint, RecoveryHintKind, ValidationOutcomeEvent,
 };
 
 use crate::cli::RenderBehaviorArgs;
@@ -20,12 +20,14 @@ pub(super) fn emit_render_output(
     render_check: Option<sc_composer::RenderCheckReport>,
 ) -> Result<(), CommandError> {
     let rendered_text = checked_output.body();
-    let output_path = args.output.clone();
-    let derived_path = derived_output_path(request, output_path.as_deref());
+    let output_path: Option<&Path> = args.output.as_deref().or(args.append.as_deref());
+    let derived_path = derived_output_path(request, output_path);
     let would_change = render_would_change(&derived_path, rendered_text);
     let bytes_written = if args.dry_run {
         None
-    } else if let Some(output) = output_path.as_ref() {
+    } else if let Some(output) = args.append.as_ref() {
+        Some(append_json_record(output, resolved_path, rendered_text)?)
+    } else if let Some(output) = output_path {
         let mut file = std::fs::File::create(output).map_err(|error| {
             CommandError::render_write(
                 anyhow!(error).context(format!("failed to write {}", output.display())),
@@ -81,11 +83,13 @@ pub(super) fn emit_render_output(
         } else {
             let mut payload = serde_json::json!({
                 "output_path": output_path
-                    .as_ref()
-                    .map_or_else(|| "stdout".to_owned(), |path| to_forward_slash(path)),
+                    .map_or_else(|| "stdout".to_owned(), to_forward_slash),
                 "bytes_written": bytes_written.unwrap_or_default(),
                 "template": to_forward_slash(resolved_path),
             });
+            if args.append.is_some() {
+                payload["appended"] = serde_json::Value::Bool(true);
+            }
             add_render_check(&mut payload, render_check);
             payload
         };
@@ -109,6 +113,139 @@ pub(super) fn emit_render_output(
     }
 
     Ok(())
+}
+
+fn append_json_record(
+    path: &Path,
+    template_path: &Path,
+    rendered: &str,
+) -> Result<usize, CommandError> {
+    let checked = sc_composer::check_rendered_output(
+        sc_composer::OutputFormat::Json,
+        template_path,
+        rendered,
+    )
+    .map_err(CommandError::render_check)?;
+    // The body already passed JSON syntax validation. Inspect only its root
+    // token, avoiding a numeric conversion that would reject valid exponents.
+    if !checked.body().trim_start().starts_with('{') {
+        return Err(CommandError::render_append(
+            anyhow!("--append requires the rendered output to be a JSON object"),
+            DiagnosticCode::ErrRenderAppendNotObject,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectInput {
+                description: "the rendered output; --append requires a JSON object".to_owned(),
+            })],
+        ));
+    }
+    let object: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
+        serde_json::from_str(checked.body()).map_err(|error| {
+            CommandError::render_append(
+                anyhow!(error).context(format!(
+                    "failed to parse checked JSON from template {}",
+                    template_path.display()
+                )),
+                DiagnosticCode::ErrRenderJsonMalformed,
+                Vec::new(),
+            )
+        })?;
+    let mut line = serde_json::to_string(&object)
+        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+    compact_json_whitespace(&mut line);
+    line.push('\n');
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path)
+        .map_err(|error| {
+            CommandError::render_write(
+                anyhow!(error).context(format!("failed to open {}", path.display())),
+            )
+        })?;
+    file.lock().map_err(|error| {
+        CommandError::render_write(anyhow!(error).context("failed to lock append target"))
+    })?;
+    let original_len = file
+        .metadata()
+        .map_err(|error| {
+            CommandError::render_write(anyhow!(error).context(format!(
+                "failed to inspect append target {}",
+                path.display()
+            )))
+        })?
+        .len();
+    if original_len > 0 {
+        file.seek(SeekFrom::End(-1))
+            .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+        let mut tail = [0];
+        file.read_exact(&mut tail)
+            .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+        if tail[0] != b'\n' {
+            return Err(CommandError::render_append(
+                anyhow!("append target must end with a newline"),
+                DiagnosticCode::ErrRenderAppendNoFinalNewline,
+                vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
+                    path: path.to_path_buf(),
+                })],
+            ));
+        }
+    }
+    file.seek(SeekFrom::End(0))
+        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+    if let Err(error) = file.write_all(line.as_bytes()).and_then(|()| file.flush()) {
+        let rollback = file.set_len(original_len);
+        return Err(append_failure(path, error, rollback));
+    }
+    Ok(line.len())
+}
+
+/// Map a failed append write, and the result of rolling the file back, to the
+/// command error. A failed rollback may leave a partial last line, so it names
+/// the append target and carries an inspect-path recovery hint.
+fn append_failure(
+    path: &Path,
+    error: std::io::Error,
+    rollback: std::io::Result<()>,
+) -> CommandError {
+    match rollback {
+        Ok(()) => CommandError::render_write(
+            anyhow!(error).context("failed to append JSON record; restored append target"),
+        ),
+        Err(rollback_error) => CommandError::render_append(
+            anyhow!(error).context(format!(
+                "failed to append JSON record; rollback also failed ({rollback_error}); a partial last line may remain; inspect and restore the append target {}",
+                sc_composer_beads::error::escape_human_text(&path.display().to_string())
+            )),
+            DiagnosticCode::ErrRenderWrite,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
+                path: path.to_path_buf(),
+            })],
+        ),
+    }
+}
+
+/// Compact already validated JSON without parsing numeric or string lexemes again.
+fn compact_json_whitespace(json: &mut String) {
+    let mut in_string = false;
+    let mut escaped = false;
+    json.retain(|character| {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if character == '"' {
+                in_string = false;
+            }
+            true
+        } else if character == '"' {
+            in_string = true;
+            true
+        } else {
+            !matches!(character, ' ' | '\t' | '\r' | '\n')
+        }
+    });
 }
 
 fn add_render_check(
@@ -196,4 +333,75 @@ fn strip_j2_suffix(path: &Path) -> PathBuf {
     let mut rebuilt = path.to_path_buf();
     rebuilt.set_file_name(stripped);
     rebuilt
+}
+
+#[cfg(test)]
+mod append_failure_tests {
+    use super::append_failure;
+    use sc_composer::{DiagnosticCode, RecoveryHint, RecoveryHintKind};
+    use std::io::{Error, ErrorKind};
+    use std::path::Path;
+
+    #[test]
+    fn failed_rollback_names_the_target_and_hints_inspect_path() {
+        let path = Path::new("out/records.jsonl");
+        let error = append_failure(
+            path,
+            Error::new(ErrorKind::StorageFull, "disk full"),
+            Err(Error::other("truncate failed")),
+        );
+        assert_eq!(error.diagnostic_code, Some(DiagnosticCode::ErrRenderWrite));
+        assert_eq!(
+            error.recovery_hints,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
+                path: path.to_path_buf()
+            })]
+        );
+        let message = format!("{:#}", error.error);
+        assert!(message.contains("out/records.jsonl"), "{message}");
+        assert!(message.contains("rollback also failed"), "{message}");
+        assert!(error.diagnostics[0].message.contains("out/records.jsonl"));
+    }
+
+    #[test]
+    fn failed_rollback_json_envelope_and_human_text_name_the_escaped_target() {
+        let path = Path::new("out/rec\u{1b}[2Jords.jsonl");
+        let error = append_failure(
+            path,
+            Error::new(ErrorKind::StorageFull, "disk full"),
+            Err(Error::other("truncate failed")),
+        );
+        let envelope =
+            crate::json_output::envelope(serde_json::json!({}), error.diagnostics.clone());
+        assert_eq!(envelope["diagnostics"][0]["code"], "ERR_RENDER_WRITE");
+        assert_eq!(
+            envelope["diagnostics"][0]["path"],
+            serde_json::json!("out/rec\u{1b}[2Jords.jsonl")
+        );
+        let human = error.to_string();
+        assert!(
+            !human.chars().any(|c| c.is_control() && c != '\n'),
+            "{human:?}"
+        );
+        let hint_line = human
+            .lines()
+            .find(|line| line.starts_with("recovery: inspect "))
+            .unwrap();
+        assert_eq!(hint_line, "recovery: inspect out/rec\\u{001B}[2Jords.jsonl");
+        assert!(
+            human.contains("append target out/rec\\u{001B}[2Jords.jsonl"),
+            "{human}"
+        );
+    }
+
+    #[test]
+    fn restored_target_needs_no_recovery_hint() {
+        let error = append_failure(
+            Path::new("out/records.jsonl"),
+            Error::new(ErrorKind::StorageFull, "disk full"),
+            Ok(()),
+        );
+        assert!(error.recovery_hints.is_empty());
+        assert!(format!("{:#}", error.error).contains("restored append target"));
+    }
 }

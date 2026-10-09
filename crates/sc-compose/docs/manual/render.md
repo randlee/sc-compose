@@ -37,7 +37,12 @@ Rendering options are `--output PATH`, `--guidance TEXT`,
 
 JSON templates are always checked before ordinary `render` emits stdout or
 creates an output file. A malformed result fails closed with
-`ERR_RENDER_JSON_MALFORMED`; the rendered body is never emitted. The
+`ERR_RENDER_JSON_MALFORMED`; the rendered body is never emitted. JSON supports
+at most 127 nested objects or arrays, counting the root container as level 1.
+Exceeding this bound during parsing fails with
+`ERR_RENDER_JSON_DEPTH_LIMIT` (exit `2`) naming the limit, rather than claiming
+the body is malformed. This limit also applies to `--append`; a depth failure
+leaves its destination unchanged. The
 `--check-render` flag also applies this gate to non-JSON text and includes a
 `render_check` object in JSON output. A successful check reports
 `state: "render_checked"`; callers must not treat a static validation result
@@ -78,6 +83,8 @@ In order, `render --append`:
 2. requires the result to be exactly one JSON object
    (`ERR_RENDER_JSON_MALFORMED` if it is not JSON,
    `ERR_RENDER_APPEND_NOT_OBJECT` if it is an array, string or number);
+   because the object is parsed and re-serialized, its key order may differ
+   from the rendered source order;
 3. writes it as one compact UTF-8 line (embedded newlines stay escaped)
    followed by `\n`;
 4. opens the file for append (creating it if needed) and holds an exclusive
@@ -114,6 +121,8 @@ in records come from your inputs; sc-compose adds none.
   explicit legacy mode that should be migrated to bare placeholders and
   `auto`. `ERR_JSON_ESCAPE_MODE_NON_JSON` means a JSON mode was selected for a
   non-JSON template.
+- `ERR_RENDER_JSON_DEPTH_LIMIT` identifies output exceeding 127 nested JSON
+  objects or arrays; its diagnostic gives the limit and source location.
 - `ERR_RENDER_JSON_MALFORMED` identifies a complete rendered JSON body that
   failed parsing. Its diagnostic includes the template, line, column, and byte
   offset but does not echo rendered values.

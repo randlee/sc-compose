@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"other_type\",\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/other_type.formula.json\",\n  \"steps\": [\n    {\n      \"id\": \"build\",\n      \"title\": \"Build {{literal}}\"\n    }\n  ],\n  \"type\": \"convoy\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

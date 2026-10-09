@@ -741,6 +741,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sc-compose-test-support"
+version = "1.6.1"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "sc-composer"
 version = "1.6.1"
 dependencies = [
@@ -761,6 +768,7 @@ name = "sc-composer-beads"
 version = "1.6.1"
 dependencies = [
  "process-wrap",
+ "sc-compose-test-support",
  "sc-composer",
  "serde",
  "serde_json",
@@ -778,10 +786,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "sc-observability"
-version = "1.2.0"
+name = "sc-lint-attributes"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2055d92ac115dce2a139b182f9f7c716351a4f93c4449f9693a2a3c4493b345d"
+checksum = "0d171ed3b766d7156eaff8a4bdb0b18b4dca0492b0900a785245df054b958695"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "sc-lint-directives",
+ "syn",
+]
+
+[[package]]
+name = "sc-lint-directives"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c59d16ee010b347f206134c9af1f0278cb541a6a5c8cc0bd9ca26323e35fd5b8"
+dependencies = [
+ "syn",
+]
+
+[[package]]
+name = "sc-observability"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db7297a0157628a9185f25e4efb657ec9c4559469b61784ae8e7a39bf47607aa"
 dependencies = [
  "sc-observability-types",
  "serde",
@@ -792,10 +821,11 @@ dependencies = [
 
 [[package]]
 name = "sc-observability-types"
-version = "1.2.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3ddd83dc10e65f4fda4c8b392fb9cfb520c4007c5ee5d0cde3af75c463b98ab"
+checksum = "67bf3355befbf65bcc1db17546982b51b29fa6601395e11f3dbcd17ab91044c7"
 dependencies = [
+ "sc-lint-attributes",
  "serde",
  "serde_json",
  "thiserror",

@@ -292,10 +292,10 @@ fn assert_python_adapter_boundary_rules(root: &Path, violations: &mut Vec<String
 fn assert_required_dependency_rules(root: &Path, violations: &mut Vec<String>) {
     let manifest = root.join("bindings/python/Cargo.toml");
     let python_manifest = fs::read_to_string(&manifest).expect("python manifest");
-    if !python_manifest
-        .lines()
-        .any(|line| line.trim_start().starts_with("sc-composer ="))
-    {
+    if !python_manifest.lines().any(|line| {
+        let line = line.trim_start();
+        line.starts_with("sc-composer =") || line.starts_with("sc-composer.workspace =")
+    }) {
         violations.push(format!(
             "{}: missing sc-composer dependency",
             manifest.display()

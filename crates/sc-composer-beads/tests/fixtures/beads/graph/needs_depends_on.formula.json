@@ -1,0 +1,26 @@
+{
+  "formula": "needs_depends_on",
+  "description": "Graph parser contract",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build"
+    },
+    {
+      "id": "test",
+      "title": "Test",
+      "needs": [
+        "build"
+      ]
+    },
+    {
+      "id": "ship",
+      "title": "Ship",
+      "depends_on": [
+        "test"
+      ]
+    }
+  ]
+}

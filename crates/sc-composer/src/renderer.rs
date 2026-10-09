@@ -10,7 +10,7 @@ use minijinja::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{RenderError, template_content_extension};
+use crate::{DiagnosticCode, RenderError, template_content_extension};
 
 const XML_REPLACEMENT_NCR: &str = "&#xfffd;";
 
@@ -437,6 +437,17 @@ impl Renderer {
         })
     }
 
+    /// Refuse to print an undefined value instead of rendering it empty.
+    ///
+    /// Tests such as `{% if name %}` and `name is defined` still see an
+    /// undefined value as false. The default renderer stays lenient.
+    #[must_use]
+    pub fn refusing_undefined(mut self) -> Self {
+        self.env
+            .set_undefined_behavior(minijinja::UndefinedBehavior::SemiStrict);
+        self
+    }
+
     /// Render a template string with the provided serializable context.
     ///
     /// # Errors
@@ -465,7 +476,24 @@ impl Renderer {
             .env
             .template_from_named_str(template_name, template)
             .map_err(RenderError::render)?;
-        template.render(context).map_err(RenderError::render)
+        template.render(context).map_err(|error| {
+            if error.kind() != minijinja::ErrorKind::UndefinedError {
+                return RenderError::render(error);
+            }
+            // Name the expression that printed the undefined value.
+            let expression = error
+                .range()
+                .and_then(|range| template.source().get(range))
+                .map(str::trim);
+            let location = error
+                .line()
+                .map_or_else(String::new, |line| format!(" ({template_name}:{line})"));
+            let message = match expression {
+                Some(expression) => format!("undefined variable: {expression}{location}"),
+                None => format!("undefined value{location}"),
+            };
+            RenderError::with_code(error, DiagnosticCode::ErrValUnboundVariable, message)
+        })
     }
 }
 
@@ -547,6 +575,36 @@ mod tests {
         JsonEscapeMode, LoadedTemplateRequest, NamedTemplateAsset, Renderer, XML_REPLACEMENT_NCR,
         render_loaded_template, resolve_json_escape_mode, turtle_escape_filter,
     };
+
+    #[test]
+    fn refusing_undefined_names_the_printed_expression_and_default_stays_lenient() {
+        let template =
+            "{% if missing %}x{% endif %}{% for i in range(1, 3) %}{{ i }}{% endfor %}{{ title }}";
+        assert_eq!(
+            Renderer::new().render(template, json!({})).unwrap(),
+            "12",
+            "the default renderer keeps rendering undefined values as empty"
+        );
+
+        let error = Renderer::new()
+            .refusing_undefined()
+            .render(template, json!({}))
+            .expect_err("printing an undefined value is refused");
+        assert_eq!(
+            error.code(),
+            Some(crate::DiagnosticCode::ErrValUnboundVariable)
+        );
+        assert_eq!(error.message(), "undefined variable: title (inline:1)");
+
+        assert_eq!(
+            Renderer::new()
+                .refusing_undefined()
+                .render(template, json!({ "title": "t" }))
+                .unwrap(),
+            "12t",
+            "tests, loop locals and globals still work"
+        );
+    }
 
     #[test]
     fn renderer_can_render_multiple_templates_with_one_environment() {
