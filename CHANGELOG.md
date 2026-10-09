@@ -82,6 +82,11 @@ No version bump: the crate has no external users yet.
   frontmatter default with `BEADS_RENDER_FAILED` naming the variable, and
   writes nothing. It previously rendered as `""` in TOML and `"null"` in JSON
   formulas. Core `sc-compose render` semantics are unchanged.
+- `sc-composer`: new opt-in `Renderer::refusing_undefined()` fails a render
+  that prints an undefined value with `ErrValUnboundVariable` naming the
+  expression; `if`/`is defined` tests, loop locals and globals such as
+  `range` are unaffected. Bead rendering uses it. The default renderer stays
+  lenient.
 
 ## [1.6.1] - 2026-08-30
 

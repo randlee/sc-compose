@@ -69,13 +69,7 @@ pub(crate) fn render_formula_in_root(
         vars_defaults: BTreeMap::new(),
         guidance_block: None,
         user_prompt: None,
-        // A composition variable with no caller value and no frontmatter
-        // default would otherwise render as `""` or `"null"` and reach bd as
-        // a valid formula; bead rendering refuses it (TMPL5-02).
-        policy: sc_composer::ComposePolicy {
-            unbound_variable_policy: Some(sc_composer::UnknownVariablePolicy::Error),
-            ..sc_composer::ComposePolicy::default()
-        },
+        policy: sc_composer::ComposePolicy::default(),
     };
     // Reuse the library validation path so frontmatter `required_variables`
     // and `defaults` have the same meaning here as in `sc-composer` render.
@@ -115,6 +109,10 @@ pub(crate) fn render_formula_in_root(
         CLOSE_DELIMITER,
         escape_mode(template),
     )
+    // A composition variable with no caller value and no frontmatter default
+    // would otherwise render as `""` or `"null"` and reach bd as a valid
+    // formula; bead rendering refuses it (TMPL5-02).
+    .map(sc_composer::Renderer::refusing_undefined)
     .and_then(|renderer| {
         renderer.render_named(&template.to_string_lossy(), &expanded.text, context)
     })
@@ -353,6 +351,24 @@ mod tests {
                     .contains("set")
             );
         }
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn loop_locals_and_builtins_are_not_undefined() {
+        let root = temporary_directory();
+        let template = root.join("loop.formula.toml.j2");
+        let output = root.join("loop.formula.toml");
+        fs::write(
+            &template,
+            "formula = \"batch\"\n{% for i in range(1, 4) %}\n[[steps]]\nid = \"item_{{{ i }}}\"\n{% if i > 1 %}needs = [\"item_{{{ i - 1 }}}\"]\n{% endif %}{% endfor %}{% set local = 3 %}n = \"{{{ local }}}\"\n",
+        )
+        .expect("write template");
+        render_formula(&template, &output, &Map::new()).expect("loop locals are bound");
+        let rendered = fs::read_to_string(&output).expect("read output");
+        assert!(rendered.contains("id = \"item_3\""), "{rendered}");
+        assert!(rendered.contains("needs = [\"item_2\"]"), "{rendered}");
+        assert!(rendered.contains("n = \"3\""), "{rendered}");
         fs::remove_dir_all(root).expect("cleanup");
     }
 
@@ -624,12 +640,16 @@ mod tests {
     }
 
     fn temporary_directory() -> PathBuf {
+        static SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock")
             .as_nanos();
+        // Parallel tests can read the same clock value; the sequence keeps
+        // their directories distinct.
+        let sequence = SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!(
-            "sc-composer-beads-render-test-{}-{unique}",
+            "sc-composer-beads-render-test-{}-{unique}-{sequence}",
             std::process::id()
         ));
         fs::create_dir_all(&root).expect("create test directory");
