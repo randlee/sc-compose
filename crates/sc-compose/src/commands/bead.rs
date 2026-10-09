@@ -275,7 +275,6 @@ fn missing_edge_recovery_commands(
 #[cfg(test)]
 mod tests {
     use super::{human_bead_error, missing_edge_recovery_commands};
-    use sc_compose_test_support as shell_literal;
     use sc_composer_beads::{
         BeadComposeError, BeadComposeReceipt, BeadId, GraphConflictReason, GraphDependencyType,
         GraphIdField, MissingEdge,
@@ -317,7 +316,7 @@ mod tests {
         }
     }
     #[test]
-    fn missing_edge_recovery_commands_escape_controls_and_bidi_for_bash() {
+    fn missing_edge_recovery_commands_escape_controls_and_bidi_for_posix_sh() {
         let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}$(literal)$HOME`literal`";
         let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
         let receipt: BeadComposeReceipt = serde_json::from_value(json!({
@@ -342,18 +341,18 @@ mod tests {
             .unwrap()
             .strip_suffix(" --type 'blocks'")
             .unwrap();
-        shell_literal::assert_round_trip(arguments, &[from, to]);
         let separators = "line\u{2028}paragraph\u{2029}end";
         let escaped = super::shell_quote(separators);
         assert!(!escaped.contains(['\u{2028}', '\u{2029}']));
-        shell_literal::assert_round_trip(&escaped, &[separators]);
+        assert!(!arguments.contains("$'"), "{arguments}");
         #[cfg(unix)]
         {
-            let output = std::process::Command::new("bash")
+            // The word is POSIX: the system sh must read it back exactly.
+            let output = std::process::Command::new("/bin/sh")
                 .args(["-c", &format!("printf '%s\\0' {arguments}")])
                 .env("LC_ALL", "C.UTF-8")
                 .output()
-                .expect("isolated Bash printf");
+                .expect("POSIX sh printf");
             assert!(output.status.success(), "{output:?}");
             assert_eq!(output.stdout, format!("{from}\0{to}\0").into_bytes());
         }

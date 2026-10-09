@@ -822,36 +822,72 @@ impl std::fmt::Display for GraphFormulaUnsupportedReason {
 
 /// Quote one argument for a shell-copyable recovery command.
 ///
-/// An argument without control or formatting characters is emitted as a POSIX
-/// single-quoted word (`'` becomes `'"'"'`), which every POSIX shell and
-/// `PowerShell` accept for these values. An argument that contains a control or
-/// formatting character is emitted as an ANSI-C `$'...'` word with `\xNN`
-/// byte escapes so no raw control character reaches the terminal; that form is
-/// understood by Bash, Zsh, ksh93 and mksh but not by every POSIX `sh`, and is
-/// not valid in `cmd.exe`. Windows callers should run recovery commands from
-/// `PowerShell` or Git Bash.
+/// The result is a POSIX `sh` word and needs nothing beyond `sh` and the
+/// `printf` builtin. An argument without control or formatting characters is a
+/// single-quoted word (`'` becomes `'"'"'`). Each control or formatting
+/// character is instead spelled with octal `printf` escapes inside a
+/// double-quoted command substitution, so no raw control character reaches the
+/// terminal and no Bash-only `$'...'` quoting is used. The substitution also
+/// covers the plain text that follows the escapes: POSIX command substitution
+/// drops trailing newlines, which would otherwise lose a newline. A newline
+/// that ends the argument cannot be kept that way, so it is shown as the
+/// visible text `\u{000A}` instead; recovery commands never carry one.
+///
+/// The word is not valid in `PowerShell` (an embedded quote there is a doubled
+/// `''`, and it has no `printf`) or in `cmd.exe`. On Windows, run recovery
+/// commands from Git Bash or WSL.
 #[must_use]
 pub fn shell_quote(argument: &str) -> String {
     if !argument.chars().any(needs_shell_escape) {
-        return format!("'{}'", argument.replace('\'', "'\"'\"'"));
+        return single_quoted(argument);
     }
-    let mut quoted = String::from("$'");
-    for character in argument.chars() {
-        match character {
-            '\\' => quoted.push_str("\\\\"),
-            '\'' => quoted.push_str("\\'"),
-            character if needs_shell_escape(character) => {
-                let mut encoded = [0; 4];
-                for byte in character.encode_utf8(&mut encoded).bytes() {
-                    // String formatting is infallible.
-                    let _ = write!(quoted, "\\x{byte:02X}");
-                }
-            }
-            character => quoted.push(character),
+    let body = argument.trim_end_matches('\n');
+    let trailing_newlines = argument.len() - body.len();
+    let characters: Vec<char> = body.chars().collect();
+    let mut quoted = String::new();
+    let mut index = 0;
+    while index < characters.len() {
+        let plain_end = characters[index..]
+            .iter()
+            .position(|character| needs_shell_escape(*character))
+            .map_or(characters.len(), |offset| index + offset);
+        if plain_end > index {
+            quoted.push_str(&single_quoted(
+                &characters[index..plain_end].iter().collect::<String>(),
+            ));
         }
+        index = plain_end;
+        if index == characters.len() {
+            break;
+        }
+        // The escapes and the plain text up to the next escape share one
+        // substitution so it never ends in a newline.
+        let mut end = index;
+        while end < characters.len() && needs_shell_escape(characters[end]) {
+            end += 1;
+        }
+        while end < characters.len() && !needs_shell_escape(characters[end]) {
+            end += 1;
+        }
+        quoted.push_str("\"$(printf '");
+        for character in &characters[index..end] {
+            let mut encoded = [0; 4];
+            for byte in character.encode_utf8(&mut encoded).bytes() {
+                // String formatting is infallible.
+                let _ = write!(quoted, "\\{byte:03o}");
+            }
+        }
+        quoted.push_str("')\"");
+        index = end;
     }
-    quoted.push('\'');
+    for _ in 0..trailing_newlines {
+        quoted.push_str("'\\u{000A}'");
+    }
     quoted
+}
+
+fn single_quoted(text: &str) -> String {
+    format!("'{}'", text.replace('\'', "'\"'\"'"))
 }
 
 fn needs_shell_escape(character: char) -> bool {
