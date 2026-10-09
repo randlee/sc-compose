@@ -1,0 +1,8 @@
+{
+  "schema": "sc-compose/beads/v1",
+  "operation": "pour",
+  "rendered_formula": "<workspace>/release.formula.toml",
+  "stages": [],
+  "outcome": "succeeded",
+  "pour_mode": "registry"
+}
