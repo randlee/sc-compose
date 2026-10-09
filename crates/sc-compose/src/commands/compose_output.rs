@@ -215,7 +215,7 @@ fn append_failure(
         Err(rollback_error) => CommandError::render_append(
             anyhow!(error).context(format!(
                 "failed to append JSON record; rollback also failed ({rollback_error}); a partial last line may remain; inspect and restore the append target {}",
-                path.display()
+                sc_composer_beads::error::escape_human_text(&path.display().to_string())
             )),
             DiagnosticCode::ErrRenderWrite,
             vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
@@ -361,6 +361,37 @@ mod append_failure_tests {
         assert!(message.contains("out/records.jsonl"), "{message}");
         assert!(message.contains("rollback also failed"), "{message}");
         assert!(error.diagnostics[0].message.contains("out/records.jsonl"));
+    }
+
+    #[test]
+    fn failed_rollback_json_envelope_and_human_text_name_the_escaped_target() {
+        let path = Path::new("out/rec\u{1b}[2Jords.jsonl");
+        let error = append_failure(
+            path,
+            Error::new(ErrorKind::StorageFull, "disk full"),
+            Err(Error::other("truncate failed")),
+        );
+        let envelope =
+            crate::json_output::envelope(serde_json::json!({}), error.diagnostics.clone());
+        assert_eq!(envelope["diagnostics"][0]["code"], "ERR_RENDER_WRITE");
+        assert_eq!(
+            envelope["diagnostics"][0]["path"],
+            serde_json::json!("out/rec\u{1b}[2Jords.jsonl")
+        );
+        let human = error.to_string();
+        assert!(
+            !human.chars().any(|c| c.is_control() && c != '\n'),
+            "{human:?}"
+        );
+        let hint_line = human
+            .lines()
+            .find(|line| line.starts_with("recovery: inspect "))
+            .unwrap();
+        assert_eq!(hint_line, "recovery: inspect out/rec\\u{001B}[2Jords.jsonl");
+        assert!(
+            human.contains("append target out/rec\\u{001B}[2Jords.jsonl"),
+            "{human}"
+        );
     }
 
     #[test]
