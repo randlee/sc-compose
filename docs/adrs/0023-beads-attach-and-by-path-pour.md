@@ -477,7 +477,8 @@ issued.
 
 ### Conflict rules (plan stage, before any write)
 The plan stage reads the parent, each planned id and each `bead:` relation
-endpoint with one `bd show <id>... --json`, and the edges of each existing
+endpoint with `bd show <id>... --json` (in batches of 64 ids, so a large plan
+issues more than one), and the edges of each existing
 planned bead with `bd dep list <id> --json`. A bead is absent only on bd's
 not-found response: the id is missing from a list that `bd show` returned with
 exit 0, or `bd show` exits 1 with JSON `error` equal to `no issues found
@@ -508,7 +509,8 @@ show`; existence of `bead:` endpoints is checked in the plan stage.
 
 | Case | Result |
 |---|---|
-| endpoint string without `step:` / `bead:` prefix, or unknown `type` | `RequestDeserializationFailed` (exit 3) |
+| endpoint string without `step:` / `bead:` prefix | `RelationEndpointInvalid` (`BEADS_RELATION_ENDPOINT_INVALID`, exit 3) |
+| unknown relation `type` | `RequestDeserializationFailed` (exit 3) |
 | `step:` endpoint naming no step in the formula | `GraphRelationInvalid` (`unknown_step`) |
 | `from` equals `to` | `GraphRelationInvalid` (`self_edge`) |
 | both endpoints `bead:` | `GraphRelationInvalid` (`no_step`) |
@@ -539,6 +541,35 @@ The only mutating bd command sc-compose issues for these operations is one
 reopen`, `bd delete`, `bd dep add`, `bd mol pour` or `bd mol bond` for them,
 and never `bd cook --persist`, so no existing bead changes and no proto is
 created.
+
+## Errata (Phase T readiness)
+
+These corrections bring the text above in line with the shipped behaviour.
+
+- **Relation endpoint error.** A relation endpoint without a `step:` or
+  `bead:` prefix is `RelationEndpointInvalid`
+  (`BEADS_RELATION_ENDPOINT_INVALID`, exit 3), not
+  `RequestDeserializationFailed`. A prefixed endpoint whose id fails its
+  grammar is `GraphIdInvalid`. Request JSON errors report the line and column
+  of the request file.
+- **Batched `bd show`.** Reads of existing beads are batched, 64 ids per
+  `bd show`; the not-found rules apply to each batch.
+- **Isolated cook snapshot.** Every `bd cook` (the validate stage and the graph
+  cook) reads a private snapshot of the rendered text, named
+  `.sc-compose-input-*` beside the output, not the requested path, so the text
+  that is validated is the text that is planned and published. Receipts and
+  diagnostics present the public `rendered_formula` path in place of the
+  snapshot. "Unchanged" argv in the Stages table therefore means the same
+  command and flags with that substitution. The snapshot is removed when the
+  run ends; a crash can leave it behind (see the manual).
+- **Error codes and classes.** Every `BEADS_*` code is listed in
+  `docs/error-code-registry.md`, including the request-level codes
+  (`BEADS_REQUEST_READ_FAILED`, `BEADS_RELATION_ENDPOINT_INVALID`, ...) and
+  the execution codes of registry pour. `GraphIdInvalid` found while parsing a
+  request file is a request error (exit 3).
+- **`formula_name`.** It is required only for registry `pour` and
+  `preview_pour`; attach and by-path graph pour take it as optional input, and
+  the portable grammar applies only to attach operations.
 
 ## Issue coverage
 

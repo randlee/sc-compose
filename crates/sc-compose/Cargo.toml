@@ -32,9 +32,6 @@ time.workspace = true
 toml.workspace = true
 ulid.workspace = true
 
-[dev-dependencies]
-sc-compose-test-support.workspace = true
-
 [lints]
 workspace = true
 

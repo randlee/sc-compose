@@ -718,7 +718,6 @@ dependencies = [
  "clap",
  "glob",
  "mimalloc",
- "sc-compose-test-support",
  "sc-composer",
  "sc-composer-beads",
  "sc-observability",

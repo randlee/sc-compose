@@ -1474,8 +1474,11 @@ and `bd` argv are unchanged.
   formula, revision, `plan_path` (present only when there were beads to
   create), `ids` (step -> bead id) and every node and edge with its action
   (`create`/`created`/`existing`; `add`/`added`/`existing`).
-- **FR-23.10 Codes.** The eleven `BEADS_GRAPH_*` codes, their stages and exit
-  statuses are ADR-0023 "Errors".
+- **FR-23.10 Codes.** Every `BEADS_*` code, its class (request errors exit 3,
+  execution conditions exit 2) and its trigger is in
+  `docs/error-code-registry.md`; the `BEADS_GRAPH_*` codes, their stages and
+  exit statuses are ADR-0023 "Errors". `BeadComposeError` is
+  `#[non_exhaustive]`, so adapters match it with a wildcard arm.
 - **FR-23.11 bd support.** Production `bd` v1.3.1 is supported; every command
   used exists there. No Beads fork, version probe or persisted proto is used.
 

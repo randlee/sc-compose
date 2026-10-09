@@ -16,8 +16,9 @@ sc-compose bead attach         --request request.json [--json]
 ```
 
 The subcommand determines `operation`; every other value comes from the request
-file. There are no partial request flags. `bd` 1.3.1 or newer must be on `PATH`
-(or named by `bd_executable`) for every operation except `render`.
+file. There are no partial request flags. `bd` 1.3.1 is the supported version and
+must be on `PATH` (or named by `bd_executable`) for every operation except
+`render`; sc-compose does not probe the version.
 
 ## Which operation do I need?
 
@@ -76,7 +77,7 @@ literal text by `attach` and graph-mode `pour`.
 | `working_directory` | yes | Absolute workspace root. Templates and rendered formulas must stay inside it; symlinks out of it are refused. |
 | `template` | yes | The `.formula.toml.j2` or `.formula.json.j2` template, relative to `working_directory`. |
 | `rendered_formula` | yes | Where the rendered `.formula.toml` / `.formula.json` is written. Any existing directory inside `working_directory`; no Beads `formulas/` directory is needed. |
-| `formula_name` | for pour and attach | The formula's name. |
+| `formula_name` | for `pour` and `preview-pour` | The formula's name in the active registry. Optional for the other operations; only `attach` and `preview-attach` require the portable name grammar. |
 | `compose_variables` | yes (may be `{}`) | Structured JSON values for the template (`{{{ ... }}}`, loops, conditionals). |
 | `bead_variables` | yes (may be `{}`) | Scalar values passed to `bd` as `--var` by registry pour only. Must be `{}` for attach and graph pour. |
 | `bd_executable` | no | Path to `bd`; default `bd` on `PATH`. |
@@ -417,6 +418,13 @@ cause) and actionable `recovery` guidance. Receipt JSON remains unchanged.
   `ref`, or keep the old inputs.
 - **`bd children <parent>` does not list the steps after `preview-attach`.**
   Preview writes nothing; run `attach`.
+- **Files named `.sc-compose-input-*` or `.*.tmp` beside the output.** Every
+  `bd cook` reads a private snapshot of the rendered text rather than the
+  requested path, so the text that is validated is the text that is planned.
+  Receipts and diagnostics show your `rendered_formula` path, never the
+  snapshot. Output is written through a temporary `.*.tmp` file and renamed.
+  Both are removed when the run ends; a crash or kill (`SIGKILL`, power loss)
+  can leave them behind. They are never read again, so delete them.
 
 Request-file read failures use `BEADS_REQUEST_READ_FAILED` (exit 3), with JSON
 `details.path`, `details.kind` (for example `NotFound` or `PermissionDenied`), and
