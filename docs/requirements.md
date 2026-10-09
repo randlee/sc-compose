@@ -1422,7 +1422,10 @@ sprints.
 Normative contract: [ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md).
 User manual: `sc-compose help bead` (`crates/sc-compose/docs/manual/bead.md`).
 Everything is additive to ADR-0021; existing operations, stages, fields, codes
-and `bd` argv are unchanged.
+and `bd` argv are unchanged, except that `bd cook` reads a private
+`.sc-compose-input-*` snapshot of the rendered text instead of the requested
+path (same command and flags; receipts and diagnostics show the public path;
+see ADR-0023 Errata).
 
 - **FR-23.1 Rendered formulas are final.** For the graph operations below,
   structure and values come from the sc-compose template (loops, conditionals,

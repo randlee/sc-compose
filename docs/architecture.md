@@ -177,7 +177,9 @@ and by `preview-attach` / `attach` ([ADR-0023](adrs/0023-beads-attach-and-by-pat
 The graph engine:
 
 1. reads the rendered formula through `bd cook <path> --json` (bd's own
-   parser; no TOML dependency) and checks the flat-formula subset;
+   parser; no TOML dependency) and checks the flat-formula subset; `<path>` is
+   a private `.sc-compose-input-*` snapshot of the rendered text, shown as the
+   public path in receipts and diagnostics (ADR-0023 Errata);
 2. computes the planned nodes (attach ids `<parent>.<ref>-<step>`, provenance
    under `sc_compose_graph`) and edges (`needs` -> `blocks`, `relations[]`);
 3. reads existing state with `bd show` / `bd dep list` and classifies each node
