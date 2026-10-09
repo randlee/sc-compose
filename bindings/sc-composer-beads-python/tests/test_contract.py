@@ -14,7 +14,7 @@ import sc_composer_beads as beads
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-FIXTURE_ROOT = REPOSITORY_ROOT / "crates" / "sc-composer-beads" / "tests" / "fixtures" / "beads"
+FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"
 GRAPH_FIXTURE_ROOT = FIXTURE_ROOT / "graph"
 
 
