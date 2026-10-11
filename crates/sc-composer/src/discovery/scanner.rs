@@ -27,6 +27,14 @@ pub(super) fn walk_template<F>(
 {
     let mut cursor = text;
     while let Some((delimiter, start)) = next_delimiter(cursor, expression_delimiters) {
+        // A comment renders nothing, so nothing inside it is a reference.
+        if let Some(comment) = cursor.find("{#").filter(|comment| *comment < start) {
+            let Some(end) = cursor[comment + 2..].find("#}") else {
+                break;
+            };
+            cursor = &cursor[comment + 2 + end + 2..];
+            continue;
+        }
         let start_delimiter = match delimiter {
             Delimiter::Expression => expression_delimiters.open.as_str(),
             Delimiter::Statement => "{%",
@@ -48,10 +56,18 @@ pub(super) fn walk_template<F>(
             .or_else(|| without_leading_marker.strip_suffix('+'))
             .unwrap_or(without_leading_marker);
         let expression = without_markers.trim();
+        cursor = &after_start[end + end_delimiter.len()..];
+        // A raw block renders its body literally, so it holds no references.
+        if matches!(delimiter, Delimiter::Statement) && expression == "raw" {
+            let Some(body_end) = find_endraw(cursor) else {
+                break;
+            };
+            cursor = &cursor[body_end..];
+            continue;
+        }
         if visit(delimiter, expression) {
             break;
         }
-        cursor = &after_start[end + end_delimiter.len()..];
     }
 }
 
@@ -88,6 +104,22 @@ fn find_exact_delimiter(text: &str, delimiter: &str) -> Option<usize> {
             continue;
         }
         return Some(absolute);
+    }
+    None
+}
+
+/// Return the offset just past the `{% endraw %}` tag (with optional
+/// whitespace-control markers) that closes a raw block.
+fn find_endraw(text: &str) -> Option<usize> {
+    let mut search = 0;
+    while let Some(open) = text[search..].find("{%") {
+        let tag_start = search + open + 2;
+        let close = tag_start + text[tag_start..].find("%}")?;
+        let content = text[tag_start..close].trim_matches(['-', '+']).trim();
+        if content == "endraw" {
+            return Some(close + 2);
+        }
+        search = tag_start;
     }
     None
 }
