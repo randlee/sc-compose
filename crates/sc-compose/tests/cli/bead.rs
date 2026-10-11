@@ -848,7 +848,7 @@ fn pinned_bd_attach_persists_custom_relations_when_configured() {
 }
 
 #[test]
-fn pinned_bd_graph_attach_cooks_extends_and_refuses_loop_and_expand_ids_when_configured() {
+fn pinned_bd_graph_attach_cooks_extends_and_checks_expanded_step_ids_when_configured() {
     let Some(bd) = configured_pinned_bd() else {
         return;
     };
@@ -903,35 +903,52 @@ fn pinned_bd_graph_attach_cooks_extends_and_refuses_loop_and_expand_ids_when_con
         );
     }
 
-    let invalid_formulas = [
-        (
-            "loop",
-            "formula = \"loop\"\nversion = 1\ntype = \"workflow\"\n\n[[steps]]\nid = \"iterate\"\ntitle = \"Iterate\"\n[steps.loop]\ncount = 2\nvar = \"i\"\n[[steps.loop.body]]\nid = \"work\"\ntitle = \"Work\"\n",
-        ),
-        (
-            "expand",
-            "formula = \"expand\"\nversion = 1\ntype = \"workflow\"\n\n[[steps]]\nid = \"review\"\ntitle = \"Review\"\nexpand = \"exp-review\"\n",
-        ),
-    ];
+    let loop_formula = "formula = \"loop\"\nversion = 1\ntype = \"workflow\"\n\n[[steps]]\nid = \"iterate\"\ntitle = \"Iterate\"\n[steps.loop]\ncount = 2\nvar = \"i\"\n[[steps.loop.body]]\nid = \"work\"\ntitle = \"Work\"\n";
+    let expand_formula = "formula = \"expand\"\nversion = 1\ntype = \"workflow\"\n\n[[steps]]\nid = \"review\"\ntitle = \"Review\"\nexpand = \"exp-review\"\n";
     write_file(
         &formulas.join("exp-review.formula.toml"),
         "formula = \"exp-review\"\nversion = 1\ntype = \"expansion\"\n\n[[template]]\nid = \"check\"\ntitle = \"Check {target}\"\n",
     );
-    for (name, formula) in invalid_formulas {
-        let template = root.join(format!("{name}.formula.toml.j2"));
-        write_file(&template, formula);
-        request["template"] = json!(template);
-        request["rendered_formula"] = json!(root.join(format!("build/{name}.formula.toml")));
-        request["ref"] = json!(name);
-        let path = workspace.write_request(&request);
-        let output = workspace.cli("preview-attach", &path, true, 2);
-        let envelope: serde_json::Value =
-            serde_json::from_slice(&output.stdout).expect("refusal JSON");
-        assert_eq!(
-            envelope["payload"]["error"]["code"], "BEADS_GRAPH_ID_INVALID",
-            "{name}: {envelope}"
-        );
-    }
+    let expand_template = root.join("expand.formula.toml.j2");
+    write_file(&expand_template, expand_formula);
+    request["template"] = json!(expand_template);
+    request["rendered_formula"] = json!(root.join("build/expand.formula.toml"));
+    request["ref"] = json!("expand");
+    let path = workspace.write_request(&request);
+    let preview = workspace.cli("preview-attach", &path, false, 0);
+    let preview = String::from_utf8(preview.stdout).expect("expanded preview text");
+    assert!(preview.contains("create: check ->"), "{preview}");
+    assert!(!preview.contains("create: review ->"), "{preview}");
+
+    let loop_template = root.join("loop.formula.toml.j2");
+    write_file(&loop_template, loop_formula);
+    request["template"] = json!(loop_template);
+    request["rendered_formula"] = json!(root.join("build/loop.formula.toml"));
+    request["ref"] = json!("loop");
+    let path = workspace.write_request(&request);
+    let output = workspace.cli("preview-attach", &path, true, 2);
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("loop refusal JSON");
+    assert_eq!(
+        envelope["payload"]["error"]["code"], "BEADS_GRAPH_ID_INVALID",
+        "loop: {envelope}"
+    );
+
+    write_file(
+        &formulas.join("exp-review.formula.toml"),
+        "formula = \"exp-review\"\nversion = 1\ntype = \"expansion\"\n\n[[template]]\nid = \"check-it\"\ntitle = \"Check {target}\"\n",
+    );
+    request["template"] = json!(root.join("expand.formula.toml.j2"));
+    request["rendered_formula"] = json!(root.join("build/invalid-expand.formula.toml"));
+    request["ref"] = json!("invalidexpand");
+    let path = workspace.write_request(&request);
+    let output = workspace.cli("preview-attach", &path, true, 2);
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("expand refusal JSON");
+    assert_eq!(
+        envelope["payload"]["error"]["code"], "BEADS_GRAPH_ID_INVALID",
+        "expand: {envelope}"
+    );
 }
 
 fn assert_by_path_pour(workspace: &GraphCliWorkspace, request: &serde_json::Value) {
