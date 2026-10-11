@@ -93,10 +93,8 @@ pub(crate) fn render_formula_in_root_with_bead_variables_and_mode(
     let root =
         sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
     let mut variables = BTreeMap::new();
-    if bead_variable_rendering == BeadVariableRendering::ScCompose {
-        for (name, value) in bead_variables {
-            variables.insert(name.clone(), serde_json::Value::String(value.clone()));
-        }
+    for (name, value) in bead_variables {
+        variables.insert(name.clone(), serde_json::Value::String(value.clone()));
     }
     for (name, value) in compose_variables {
         variables.insert(name.clone(), value.clone());
@@ -507,6 +505,32 @@ mod tests {
             fs::read_to_string(&output).expect("read output"),
             "title = \"Composed\"\nruntime = \"{{ bd_only }}\""
         );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn bd_variable_rendering_keeps_triple_brace_validation_strict() {
+        let root = temporary_directory();
+        let template = root.join("missing-compose.formula.toml.j2");
+        let output = root.join("missing-compose.formula.toml");
+        fs::write(
+            &template,
+            "title = \"{{{ missing }}}\"\nruntime = \"{{ bd_only }}\"\n",
+        )
+        .expect("write template");
+        let error = render_formula_in_root_with_bead_variables_and_mode(
+            &template,
+            &output,
+            &Map::new(),
+            &BTreeMap::new(),
+            crate::BeadVariableRendering::Bd,
+            &root,
+        )
+        .expect_err("undeclared triple-brace value is refused");
+        assert!(
+            matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("missing"))
+        );
+        assert!(!output.exists());
         fs::remove_dir_all(root).expect("cleanup");
     }
 

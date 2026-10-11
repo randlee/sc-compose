@@ -9,9 +9,18 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 import sc_composer_beads as beads
 
+
+def test_request_accepts_bd_variable_rendering(tmp_path: Path) -> None:
+    request = beads.BeadComposeRequest(
+        tmp_path,
+        tmp_path / "template.formula.toml.j2",
+        tmp_path / "output.formula.toml",
+        {},
+        bead_variable_rendering="bd",
+    )
+    assert request.bead_variable_rendering == "bd"
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"

@@ -555,6 +555,85 @@ fn render_substitutes_declared_bead_variables_before_bd_runs() {
 }
 
 #[test]
+fn bd_variable_rendering_request_and_flag_preserve_tight_placeholders() {
+    let fixture = TempFixture::new("bead-true-bd-render");
+    let template = fixture.path.join("vars.formula.toml.j2");
+    fs::write(
+        &template,
+        "---\nrequired_variables:\n  - release_name\n---\nformula = \"vars\"\ntitle = \"{{release_name}}\"\n",
+    )
+    .expect("template");
+    let output = fixture.path.join("out/vars.formula.toml");
+    fs::create_dir_all(output.parent().expect("output parent")).expect("output directory");
+    let (fake_bd, _) = write_fake_bd(&fixture.path, 0, 0);
+    let request = write_request(&fixture.path, &template, &output, &fake_bd, None);
+
+    let default = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(&request)
+        .output()
+        .expect("default render");
+    assert!(default.status.success(), "{default:?}");
+    assert!(
+        fs::read_to_string(&output)
+            .expect("default output")
+            .contains("1.5.0")
+    );
+
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&request).expect("request"))
+            .expect("request JSON");
+    value["bead_variable_rendering"] = json!("bd");
+    write_file(&request, &value.to_string());
+    let request_mode = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(&request)
+        .output()
+        .expect("request mode render");
+    assert!(request_mode.status.success(), "{request_mode:?}");
+    assert!(
+        fs::read_to_string(&output)
+            .expect("request mode output")
+            .contains("{{release_name}}")
+    );
+
+    value
+        .as_object_mut()
+        .expect("request object")
+        .remove("bead_variable_rendering");
+    write_file(&request, &value.to_string());
+    let flag_mode = sc_compose()
+        .args(["bead", "render", "--true-bd-render", "--request"])
+        .arg(&request)
+        .output()
+        .expect("flag mode render");
+    assert!(flag_mode.status.success(), "{flag_mode:?}");
+    assert!(
+        fs::read_to_string(&output)
+            .expect("flag mode output")
+            .contains("{{release_name}}")
+    );
+
+    value["bead_variable_rendering"] = json!("unknown");
+    write_file(&request, &value.to_string());
+    let unknown = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(&request)
+        .output()
+        .expect("unknown mode render");
+    assert_eq!(unknown.status.code(), Some(3), "{unknown:?}");
+    let error_text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&unknown.stdout),
+        String::from_utf8_lossy(&unknown.stderr)
+    );
+    assert!(
+        error_text.contains("expected `sc-compose` or `bd`"),
+        "{error_text}"
+    );
+}
+
+#[test]
 fn invalid_pour_authorization_returns_its_code_before_render_or_bd() {
     let fixture = TempFixture::new("bead-pour-invalid-auth");
     let template = copy_canonical_template(&fixture.path, "toml-workflow.formula.toml.j2");
@@ -783,6 +862,45 @@ fn pinned_bd_registry_pour_receives_rendered_bead_variables() {
             bead["title"] == "Padded 1.7.1" && bead["description"] == "Tight 1.7.1"
         }),
         "expected rendered values in created bead: {beads}"
+    );
+}
+
+#[test]
+fn pinned_bd_registry_pour_renders_tight_variable_in_bd_mode() {
+    let Some(bd) = configured_pinned_bd() else {
+        return;
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let template = root.join("bd-vars.formula.toml.j2");
+    let rendered_formula = workspace.beads_dir.join("formulas/bd-vars.formula.toml");
+    fs::create_dir_all(rendered_formula.parent().expect("registry formulas")).expect("formulas");
+    fs::write(&template, "formula = \"bd-vars\"\nversion = 1\ntype = \"workflow\"\n\n[vars.release_name]\nrequired = true\n\n[[steps]]\nid = \"release\"\ntitle = \"Tight {{release_name}}\"\ntype = \"task\"\n").expect("template");
+    let request = workspace.write_request(&json!({
+        "schema": BEADS_SCHEMA, "operation": "pour", "working_directory": root,
+        "template": template, "rendered_formula": rendered_formula, "compose_variables": {},
+        "formula_name": "bd-vars", "bead_variables": { "release_name": "1.7.1" },
+        "bead_variable_rendering": "bd", "bd_executable": workspace.bd,
+        "pour_authorization": "CreatePersistentBeads",
+    }));
+    let preview = workspace.cli("preview-pour", &request, true, 0);
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&preview.stdout).expect("preview")["payload"]["pour_mode"],
+        "registry"
+    );
+    let output = workspace.cli("pour", &request, true, 0);
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).expect("pour")["payload"]["pour_mode"],
+        "registry"
+    );
+    let beads = workspace.bd_json(&["list", "--all", "-n", "0", "--json"]);
+    assert!(
+        beads
+            .as_array()
+            .expect("bead list")
+            .iter()
+            .any(|bead| bead["title"] == "Tight 1.7.1"),
+        "expected bd-rendered tight value: {beads}"
     );
 }
 
