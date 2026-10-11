@@ -1194,3 +1194,33 @@ def test_exception_surface_exposes_message_and_code(
     assert isinstance(error.message, str)
     assert error.message
     assert error.code == expected_code
+
+
+def test_compose_rejects_malformed_json_output_like_the_cli(tmp_path: Path) -> None:
+    write(tmp_path / "payload.json.j2", '{"a": {{ a }}, }')
+    request = make_file_request(tmp_path, "payload.json.j2", vars_input={"a": 1})
+
+    for render in (sc_compose.compose, sc_compose.compose_file):
+        with pytest.raises(sc_compose.ScRenderError) as error:
+            render(request)
+        assert error.value.code == "ERR_RENDER_JSON_MALFORMED"
+
+    write(tmp_path / "ok.json.j2", '{"a": {{ a }}}')
+    ok = sc_compose.compose(make_file_request(tmp_path, "ok.json.j2", vars_input={"a": 1}))
+    assert ok.rendered_text == '{"a": 1}'
+
+    write(tmp_path / "notes.md.j2", '{"a": {{ a }}, }')
+    text = sc_compose.compose(make_file_request(tmp_path, "notes.md.j2", vars_input={"a": 1}))
+    assert text.rendered_text == '{"a": 1, }'
+
+
+def test_render_loaded_template_rejects_malformed_json_output() -> None:
+    request = sc_compose.LoadedTemplateRequest(
+        template_name="payload.json.j2",
+        template_text='{"a": {{ a }}, }',
+        context={"a": 1},
+    )
+
+    with pytest.raises(sc_compose.ScRenderError) as error:
+        sc_compose.render_loaded_template(request)
+    assert error.value.code == "ERR_RENDER_JSON_MALFORMED"

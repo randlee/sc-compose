@@ -457,6 +457,9 @@ class Renderer:
 BUILTIN_VARIABLE_NAMES: list[str]
 
 
+# compose(), compose_file() and render_loaded_template() apply the CLI's
+# checked-render contract: a JSON template (by extension) whose output is not
+# one complete JSON document raises ScRenderError ERR_RENDER_JSON_MALFORMED.
 def compose(request: ComposeRequest) -> ComposeResult: ...
 def compose_file(request: ComposeRequest) -> ComposeResult: ...
 def validate(request: ComposeRequest) -> ValidationReport: ...
