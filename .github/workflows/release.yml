@@ -485,7 +485,7 @@ jobs:
   # zipped form with an independent consumer module before upload.
   build-go-bundles:
     if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
-    needs: [gate-and-tag, go-native-plan]
+    needs: [gate-and-tag, release-plan, go-native-plan]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.go-native-plan.outputs.target_matrix) }}
@@ -503,7 +503,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.94.1
+          toolchain: ${{ needs.release-plan.outputs.rust_toolchain }}
           targets: ${{ matrix.target }}
 
       - name: Build the target-native static adapter
