@@ -273,3 +273,23 @@ fn validate_strict_does_not_report_filter_or_call_targets_as_tokens() {
         "{stdout}"
     );
 }
+
+#[test]
+fn render_strict_does_not_read_tokens_inside_jinja_comments() {
+    let root = temp_root("render-strict-jinja-comment");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\n{# bd uses `{{other}}` here #}hi {{ name }}",
+    );
+
+    for command in ["render", "validate"] {
+        let output = sc_compose()
+            .args([command, "--strict", "--mode", "file", "--root"])
+            .arg(&root)
+            .args(["--file", "template.md.j2", "--var", "name=x"])
+            .output()
+            .unwrap();
+
+        assert!(output.status.success(), "{command}: {output:?}");
+    }
+}
