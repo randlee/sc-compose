@@ -266,6 +266,13 @@ pub(crate) struct ValidateArgs {
     #[arg(long, help = "Validate all stacked template passes")]
     pub(crate) all: bool,
     #[arg(
+        long = "brace-count",
+        value_parser = clap::value_parser!(u8).range(2..),
+        conflicts_with = "all",
+        help = "Validate with custom brace-count delimiters (for example 3 => {{{ }}})"
+    )]
+    pub(crate) brace_count: Option<u8>,
+    #[arg(
         long,
         help = "Report redundant filter chains and other lint findings with source locations"
     )]

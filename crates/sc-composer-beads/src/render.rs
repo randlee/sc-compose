@@ -319,6 +319,34 @@ mod tests {
     // refused whether or not the caller supplies it: never rendered as `""`
     // (TOML) or `"null"` (JSON), and never accepted without a declaration.
     #[test]
+    fn frontmatter_rejects_provided_undeclared_variable() {
+        let root = temporary_directory();
+        let template = root.join("strict.formula.toml.j2");
+        let output = root.join("strict.formula.toml");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - phase\n---\ndescription = \"{{{ phase }}} {{{ nobody }}}\"\n",
+        )
+        .expect("write template");
+
+        let error = render_formula(
+            &template,
+            &output,
+            &Map::from_iter([
+                (String::from("phase"), json!("x")),
+                (String::from("nobody"), json!("z")),
+            ]),
+        )
+        .expect_err("provided undeclared input must be refused");
+
+        assert!(
+            matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("nobody")),
+            "{error:?}"
+        );
+        assert!(!output.exists(), "nothing is written on refusal");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+    #[test]
     fn undeclared_variable_without_frontmatter_is_refused() {
         let root = temporary_directory();
         for (name, body) in [

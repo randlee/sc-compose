@@ -25,6 +25,8 @@ All notable changes to this project will be documented in this file.
 - `--strict` is hidden and has no effect; it is accepted so existing callers
   keep working. `--unknown-var-mode` now governs only extra caller-provided
   variables.
+- `sc-compose validate --brace-count N` validates templates with N-brace
+  variable delimiters, including Beads `{{{ ... }}}` formulas.
 - `sc-compose templates init` no longer reports variables as unbound (it has
   no caller input); other validation defects are listed as recommendations.
 - Values supplied per pass (`ComposePolicy.passes[].defaults`) now count as
