@@ -938,7 +938,10 @@ def test_crates_leg_is_separate_and_independently_retryable() -> None:
     crates_text = crates_publish_workflow_text()
 
     # The GitHub Release leg must not depend on crates.io publication.
-    assert "needs: [gate-and-tag, build, build-python-wheels, build-python-sdists]" in release_text
+    assert (
+        "needs: [gate-and-tag, build, build-python-wheels, build-python-sdists, build-go-bundles]"
+        in release_text
+    )
     assert "needs: [gate-and-tag, build, publish," not in release_text
 
     assert "workflow_dispatch:" in crates_text
@@ -2461,7 +2464,7 @@ def test_root_release_workflow_threads_retry_provenance_and_builds_from_main() -
     assert 'git tag "$tag" "$main_sha"' in workflow
     assert "build_ref: ${{ steps.release-ref.outputs.build_ref }}" in workflow
     assert workflow.count('echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"') == 1
-    assert workflow.count("needs.gate-and-tag.outputs.build_ref") == 9
+    assert workflow.count("needs.gate-and-tag.outputs.build_ref") == 11
     assert "gate-and-tag.outputs.release_ref" not in workflow
     assert "ref: ${{ needs.gate-and-tag.outputs.release_tag }}" not in workflow
     assert "ref: ${{ needs.gate-and-tag.outputs.release_ref }}" not in workflow
