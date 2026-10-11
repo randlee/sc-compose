@@ -61,13 +61,55 @@ pub fn discover_tokens_with_delimiters(
                 } else if let Some(name) = parse_set_scope(expression, &scopes, &mut tokens) {
                     scopes[0].bound_names.insert(name);
                 } else {
-                    collect_identifiers(expression, &scopes, &mut tokens);
+                    let arguments = statement_arguments(expression);
+                    if matches!(statement_name(expression), Some("filter" | "call")) {
+                        collect_identifiers(
+                            &mask_leading_identifier(arguments),
+                            &scopes,
+                            &mut tokens,
+                        );
+                    } else {
+                        collect_identifiers(arguments, &scopes, &mut tokens);
+                    }
                 }
             }
         }
         false
     });
     tokens
+}
+
+/// Drop the leading tag name of a statement (`if`, `autoescape`,
+/// `endautoescape`, ...): it names the block, never a variable.
+fn statement_arguments(statement: &str) -> &str {
+    let tag_end = statement_name(statement).map_or(statement.len(), str::len);
+    &statement[tag_end..]
+}
+
+fn statement_name(statement: &str) -> Option<&str> {
+    statement
+        .split(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
+        .next()
+        .filter(|name| !name.is_empty())
+}
+
+/// Blank a statement's first bare identifier while retaining its expression
+/// arguments. Filter and call targets are Jinja syntax; their arguments can
+/// still reference template variables.
+fn mask_leading_identifier(arguments: &str) -> String {
+    let mut masked = arguments.chars().collect::<Vec<_>>();
+    let start = masked
+        .iter()
+        .position(|character| !character.is_ascii_whitespace())
+        .unwrap_or(masked.len());
+    let end = masked[start..]
+        .iter()
+        .position(|character| !character.is_ascii_alphanumeric() && *character != '_')
+        .map_or(masked.len(), |offset| start + offset);
+    for character in &mut masked[start..end] {
+        *character = ' ';
+    }
+    masked.into_iter().collect()
 }
 
 /// Return whether `text` contains a bare-identifier loop over `variable`.
@@ -247,6 +289,45 @@ mod tests {
         let tokens = discover_tokens("{{ loop.last }}");
 
         assert!(tokens.contains(&crate::VariableName::new("loop.last").unwrap()));
+    }
+
+    #[test]
+    fn block_tag_names_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% autoescape false -%}{{ body }}{%- endautoescape %}{% with %}{% endwith %}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("body").unwrap()].into());
+    }
+
+    #[test]
+    fn test_names_and_is_keyword_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% if x is defined and x | trim %}{{ x }}{% endif %}{% if y is not none %}{{ y is divisibleby(z) }}{% endif %}",
+        );
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("x").unwrap(),
+                crate::VariableName::new("y").unwrap(),
+                crate::VariableName::new("z").unwrap(),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn comments_and_raw_blocks_are_not_scanned_for_tokens() {
+        let tokens = discover_tokens(
+            "{# bd uses `{{name}}` and {% if other %} here #}{% raw %}{{ literal }}{% endraw %}{{ x }}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("x").unwrap()].into());
+        assert_eq!(
+            discover_tokens_with_brace_count("{# {{{ hidden }}} #}{{{ outer }}}", 3),
+            [crate::VariableName::new("outer").unwrap()].into()
+        );
     }
 
     #[test]

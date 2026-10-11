@@ -222,3 +222,74 @@ fn validate_help_documents_lint_flag() {
     assert!(stdout.contains("--lint"));
     assert!(stdout.contains("lint findings with source locations"));
 }
+
+#[test]
+fn validate_strict_does_not_report_block_tags_or_test_names_as_tokens() {
+    let root = temp_root("validate-strict-jinja-keywords");
+    write_file(
+        &root.join("template.xml.j2"),
+        "---\nrequired_variables:\n  - x\n---\n{% autoescape false -%}\n{% if x is defined and x | trim %}{{ x }}{% endif %}\n{%- endautoescape %}\n",
+    );
+
+    let output = sc_compose()
+        .args(["validate", "--strict", "--mode", "file", "--root"])
+        .arg(&root)
+        .args(["--file", "template.xml.j2", "--var", "x=1"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("undeclared referenced token"), "{stdout}");
+}
+
+#[test]
+fn validate_strict_does_not_report_filter_or_call_targets_as_tokens() {
+    let root = temp_root("validate-strict-filter-call-targets");
+    write_file(
+        &root.join("template.xml.j2"),
+        "{% filter upper %}text{% endfilter %}\n{% call name %}body{% endcall %}\n{% call name(x) %}body{% endcall %}\n",
+    );
+
+    let output = sc_compose()
+        .args(["validate", "--strict", "--mode", "file", "--root"])
+        .arg(&root)
+        .args(["--file", "template.xml.j2"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("undeclared referenced token: x"),
+        "{stdout}"
+    );
+    assert!(
+        !stdout.contains("undeclared referenced token: upper"),
+        "{stdout}"
+    );
+    assert!(
+        !stdout.contains("undeclared referenced token: name"),
+        "{stdout}"
+    );
+}
+
+#[test]
+fn render_strict_does_not_read_tokens_inside_jinja_comments() {
+    let root = temp_root("render-strict-jinja-comment");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\n{# bd uses `{{other}}` here #}hi {{ name }}",
+    );
+
+    for command in ["render", "validate"] {
+        let output = sc_compose()
+            .args([command, "--strict", "--mode", "file", "--root"])
+            .arg(&root)
+            .args(["--file", "template.md.j2", "--var", "name=x"])
+            .output()
+            .unwrap();
+
+        assert!(output.status.success(), "{command}: {output:?}");
+    }
+}
