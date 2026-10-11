@@ -61,13 +61,22 @@ pub fn discover_tokens_with_delimiters(
                 } else if let Some(name) = parse_set_scope(expression, &scopes, &mut tokens) {
                     scopes[0].bound_names.insert(name);
                 } else {
-                    collect_identifiers(expression, &scopes, &mut tokens);
+                    collect_identifiers(statement_arguments(expression), &scopes, &mut tokens);
                 }
             }
         }
         false
     });
     tokens
+}
+
+/// Drop the leading tag name of a statement (`if`, `autoescape`,
+/// `endautoescape`, ...): it names the block, never a variable.
+fn statement_arguments(statement: &str) -> &str {
+    let tag_end = statement
+        .find(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
+        .unwrap_or(statement.len());
+    &statement[tag_end..]
 }
 
 /// Return whether `text` contains a bare-identifier loop over `variable`.
@@ -247,6 +256,32 @@ mod tests {
         let tokens = discover_tokens("{{ loop.last }}");
 
         assert!(tokens.contains(&crate::VariableName::new("loop.last").unwrap()));
+    }
+
+    #[test]
+    fn block_tag_names_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% autoescape false -%}{{ body }}{%- endautoescape %}{% with %}{% endwith %}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("body").unwrap()].into());
+    }
+
+    #[test]
+    fn test_names_and_is_keyword_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% if x is defined and x | trim %}{{ x }}{% endif %}{% if y is not none %}{{ y is divisibleby(z) }}{% endif %}",
+        );
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("x").unwrap(),
+                crate::VariableName::new("y").unwrap(),
+                crate::VariableName::new("z").unwrap(),
+            ]
+            .into()
+        );
     }
 
     #[test]
