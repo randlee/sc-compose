@@ -138,7 +138,7 @@ pub(crate) fn render_formula_in_root_with_bead_variables(
         .map(|(name, value)| {
             (
                 name.clone(),
-                protect_literal_braces(value, &literal_brace_token),
+                protect_literal_braces(value, literal_brace_token),
             )
         })
         .collect::<BTreeMap<_, _>>();
@@ -171,7 +171,7 @@ pub(crate) fn render_formula_in_root_with_bead_variables(
     })?;
     atomic_write(
         rendered_formula,
-        restore_literal_braces(&rendered, &literal_brace_token).as_bytes(),
+        restore_literal_braces(&rendered, literal_brace_token).as_bytes(),
     )
 }
 
@@ -186,18 +186,24 @@ fn validation_error(report: &sc_composer::ValidationReport) -> BeadComposeError 
     }
 }
 
-/// Build a per-render marker that cannot collide with source text or values.
-fn literal_brace_token(text: &str, context: &BTreeMap<String, serde_json::Value>) -> String {
-    loop {
-        let sequence = TEMPORARY_OUTPUT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let token = format!("__SC_COMPOSE_LITERAL_BRACE_{sequence}__");
-        if !text.contains(&token) && !context.values().any(|value| value_contains(value, &token)) {
+/// Build a per-render private-use marker that cannot collide with source text
+/// or values. A single codepoint stays caseless and indivisible to filters.
+fn literal_brace_token(text: &str, context: &BTreeMap<String, serde_json::Value>) -> char {
+    const FIRST: u32 = 0xE000;
+    const LAST: u32 = 0xF8FF;
+    let range = LAST - FIRST + 1;
+    let start = TEMPORARY_OUTPUT_SEQUENCE.fetch_add(1, Ordering::Relaxed) as u32 % range;
+    for offset in 0..range {
+        let token = char::from_u32(FIRST + (start + offset) % range)
+            .expect("private-use range is valid Unicode");
+        if !text.contains(token) && !context.values().any(|value| value_contains(value, token)) {
             return token;
         }
     }
+    unreachable!("the private-use range has an available marker")
 }
 
-fn value_contains(value: &serde_json::Value, needle: &str) -> bool {
+fn value_contains(value: &serde_json::Value, needle: char) -> bool {
     match value {
         serde_json::Value::String(value) => value.contains(needle),
         serde_json::Value::Array(values) => {
@@ -210,9 +216,11 @@ fn value_contains(value: &serde_json::Value, needle: &str) -> bool {
     }
 }
 
-fn protect_literal_braces(value: &serde_json::Value, token: &str) -> serde_json::Value {
+fn protect_literal_braces(value: &serde_json::Value, token: char) -> serde_json::Value {
     match value {
-        serde_json::Value::String(value) => serde_json::Value::String(value.replace('{', token)),
+        serde_json::Value::String(value) => {
+            serde_json::Value::String(value.replace('{', &token.to_string()))
+        }
         serde_json::Value::Array(values) => serde_json::Value::Array(
             values
                 .iter()
@@ -229,7 +237,7 @@ fn protect_literal_braces(value: &serde_json::Value, token: &str) -> serde_json:
     }
 }
 
-fn restore_literal_braces(rendered: &str, token: &str) -> String {
+fn restore_literal_braces(rendered: &str, token: char) -> String {
     rendered.replace(token, "{")
 }
 
@@ -459,6 +467,34 @@ mod tests {
         assert_eq!(
             fs::read_to_string(&output).expect("read output"),
             format!("compose = \"{literal}\"\nbead = \"{literal}\"")
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn filters_treat_literal_braces_as_one_caseless_character() {
+        let root = temporary_directory();
+        let template = root.join("literal-brace-filters.formula.toml.j2");
+        let output = root.join("literal-brace-filters.formula.toml");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - compose_value\n  - bead_value\n---\ncompose_lower = \"{{{ compose_value | lower }}}\"\ncompose_length = \"{{{ compose_value | length }}}\"\ncompose_truncate = \"{{{ compose_value | truncate(3) }}}\"\nbead_lower = \"{{ bead_value | lower }}\"\nbead_length = \"{{ bead_value | length }}\"\nbead_truncate = \"{{ bead_value | truncate(3) }}\"\n",
+        )
+        .expect("write template");
+        let value = "A{BC";
+
+        render_formula_in_root_with_bead_variables(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("compose_value"), json!(value))]),
+            &BTreeMap::from([(String::from("bead_value"), value.to_owned())]),
+            &root,
+        )
+        .expect("render filtered literal braces");
+
+        assert_eq!(
+            fs::read_to_string(&output).expect("read output"),
+            "compose_lower = \"a{bc\"\ncompose_length = \"4\"\ncompose_truncate = \"A{B\"\nbead_lower = \"a{bc\"\nbead_length = \"4\"\nbead_truncate = \"A{B\""
         );
         fs::remove_dir_all(root).expect("cleanup");
     }

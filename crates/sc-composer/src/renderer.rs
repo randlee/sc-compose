@@ -319,6 +319,10 @@ fn map_get_unknown_method_callback(
     }
 }
 
+fn truncate_filter(value: String, length: usize) -> String {
+    value.chars().take(length).collect()
+}
+
 fn configure_environment(env: &mut Environment<'static>, escape_mode: TemplateEscapeMode) {
     env.set_trim_blocks(true);
     env.set_lstrip_blocks(true);
@@ -336,6 +340,7 @@ fn configure_environment(env: &mut Environment<'static>, escape_mode: TemplateEs
     env.add_filter("xml_char_safe", xml_char_safe_filter);
     env.add_filter("frontmatter_safe", frontmatter_safe_filter);
     env.add_filter("yaml_safe", yaml_safe_filter);
+    env.add_filter("truncate", truncate_filter);
     env.set_unknown_method_callback(map_get_unknown_method_callback);
 }
 

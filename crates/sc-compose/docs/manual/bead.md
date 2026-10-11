@@ -55,6 +55,10 @@ they are also passed to `bd --var` for its required-variable checks.
 `bead_variables` is unavailable for attach and graph-mode pour, whose request
 objects must leave it empty.
 
+Values supplied in `compose_variables` and `bead_variables` stay literal across
+the two render passes. A template literal or `replace()` expression therefore
+cannot match a `{` character inside a supplied value.
+
 ## The request
 
 ```json
