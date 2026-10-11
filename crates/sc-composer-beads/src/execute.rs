@@ -10,7 +10,7 @@ use crate::contract::{
 };
 use crate::error::{BeadComposeError, short_cause};
 use crate::paths::{public_path_buf, public_path_display};
-use crate::render::{render_formula_in_root, validate_output_destination};
+use crate::render::{render_formula_in_root_with_bead_variables, validate_output_destination};
 use crate::runner::{
     CommandSpec, PROCESS_OUTPUT_LIMIT_BYTES, ProcessOutput, ProcessRunner, StdProcessRunner,
     is_process_output_limit_error,
@@ -174,10 +174,11 @@ fn render_stage(
     let rendered = (|| {
         let input = InputSnapshot::reserve(&normalized.rendered_formula)
             .map_err(|error| reserve_error(&normalized.rendered_formula, error))?;
-        render_formula_in_root(
+        render_formula_in_root_with_bead_variables(
             &normalized.template,
             input.path(),
             &request.compose_variables,
+            &request.bead_variables,
             &normalized.working_directory,
         )?;
         // Every operation writes the rendered formula exactly once and keeps
@@ -805,7 +806,7 @@ pub(crate) mod tests {
         let template = root.join("example.formula.toml.j2");
         fs::write(
             &template,
-            "---\nrequired_variables:\n  - people\n---\n{% for person in people %}- {{{ person.name }}}\\n{% endfor %}runtime = \"{{ bead_var }}\"\\n",
+            "---\nrequired_variables:\n  - people\ndefaults:\n  bead_var: fallback\n---\n{% for person in people %}- {{{ person.name }}}\\n{% endfor %}runtime = \"{{ bead_var }}\"\\n",
         )
         .expect("write template");
         BeadComposeRequest {
@@ -819,6 +820,7 @@ pub(crate) mod tests {
             bead_variables: BTreeMap::from([
                 (String::from("zebra"), String::from("last")),
                 (String::from("alpha"), String::from("first")),
+                (String::from("bead_var"), String::from("runtime")),
             ]),
             bd_executable: Some(PathBuf::from("fake-bd")),
             pour_authorization: None,
@@ -1048,7 +1050,7 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn render_keeps_beads_runtime_placeholders_and_renders_structured_values() {
+    fn render_substitutes_bead_variables_and_renders_structured_values() {
         let root = workspace();
         let result = execute_bead_request_with_runner(
             &request(&root, BeadOperation::Render),
@@ -1059,7 +1061,7 @@ pub(crate) mod tests {
         let rendered =
             fs::read_to_string(root.join("example.formula.toml")).expect("rendered formula");
         assert!(rendered.contains("- Ada"));
-        assert!(rendered.contains("{{ bead_var }}"));
+        assert!(rendered.contains("runtime = \"runtime\""));
         fs::remove_dir_all(root).expect("cleanup");
     }
 
@@ -1085,6 +1087,8 @@ pub(crate) mod tests {
                 "--json",
                 "--var",
                 "alpha=first",
+                "--var",
+                "bead_var=runtime",
                 "--var",
                 "zebra=last",
             ]

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- `sc-compose bead` now renders declared `bead_variables` in both padded
+  `{{ key }}` and tight `{{key}}` formula placeholders before invoking `bd`,
+  while still passing them as `--var` for Beads runtime checks (#618).
+
 ### Changed
 
 - Strict is the only render mode (#783): no render can silently skip a

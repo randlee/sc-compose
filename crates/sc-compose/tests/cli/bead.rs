@@ -473,6 +473,33 @@ fn pinned_bd_validates_the_canonical_cli_fixture_when_configured() {
 }
 
 #[test]
+fn render_substitutes_declared_bead_variables_before_bd_runs() {
+    let fixture = TempFixture::new("bead-render-vars");
+    let template = fixture.path.join("vars.formula.toml.j2");
+    fs::write(
+        &template,
+        "---\nrequired_variables:\n  - release_name\n---\nformula = \"vars\"\ntitle = \"{{ release_name }}\"\ndescription = \"{{release_name | upper}}\"\n",
+    )
+    .expect("template");
+    let output = fixture.path.join("out/vars.formula.toml");
+    fs::create_dir_all(output.parent().expect("output parent")).expect("output directory");
+    let (fake_bd, _) = write_fake_bd(&fixture.path, 0, 0);
+    let request = write_request(&fixture.path, &template, &output, &fake_bd, None);
+
+    let command = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(request)
+        .output()
+        .expect("run bead render");
+
+    assert!(command.status.success(), "{command:?}");
+    assert_eq!(
+        fs::read_to_string(output).expect("rendered formula"),
+        "formula = \"vars\"\ntitle = \"1.5.0\"\ndescription = \"1.5.0\""
+    );
+}
+
+#[test]
 fn invalid_pour_authorization_returns_its_code_before_render_or_bd() {
     let fixture = TempFixture::new("bead-pour-invalid-auth");
     let template = copy_canonical_template(&fixture.path, "toml-workflow.formula.toml.j2");
@@ -649,6 +676,61 @@ fn pinned_bd_graph_pour_and_attach_run_the_release_example_with_text_and_exit_co
         .expect("help bead");
     assert!(help.status.success());
     assert!(String::from_utf8_lossy(&help.stdout).contains("Release under an epic"));
+}
+
+#[test]
+fn pinned_bd_registry_pour_receives_rendered_bead_variables() {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        eprintln!("skipping pinned bd bead-variable integration: BD_EXECUTABLE is not configured");
+        return;
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let template = root.join("release-vars.formula.toml.j2");
+    let rendered_formula = workspace
+        .beads_dir
+        .join("formulas/release-vars.formula.toml");
+    fs::create_dir_all(rendered_formula.parent().expect("registry formulas")).expect("formulas");
+    fs::write(
+        &template,
+        "---\nrequired_variables:\n  - release_name\n---\nformula = \"release-vars\"\ndescription = \"Rendered variables\"\nversion = 1\ntype = \"workflow\"\n\n[vars.release_name]\nrequired = true\n\n[[steps]]\nid = \"release\"\ntitle = \"Padded {{ release_name }}\"\ndescription = \"Tight {{release_name}}\"\ntype = \"task\"\n",
+    )
+    .expect("template");
+    let request = workspace.write_request(&json!({
+        "schema": BEADS_SCHEMA,
+        "operation": "pour",
+        "working_directory": root,
+        "template": template,
+        "rendered_formula": rendered_formula,
+        "compose_variables": {},
+        "formula_name": "release-vars",
+        "bead_variables": { "release_name": "1.7.1" },
+        "bd_executable": workspace.bd,
+        "pour_authorization": "CreatePersistentBeads",
+    }));
+
+    let before_preview = workspace.snapshot();
+    let preview = workspace.cli("preview-pour", &request, true, 0);
+    let preview_envelope: serde_json::Value =
+        serde_json::from_slice(&preview.stdout).expect("preview envelope");
+    assert_eq!(preview_envelope["payload"]["pour_mode"], "registry");
+    assert_eq!(
+        workspace.snapshot(),
+        before_preview,
+        "registry preview writes no beads"
+    );
+
+    let output = workspace.cli("pour", &request, true, 0);
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("pour envelope");
+    assert_eq!(envelope["payload"]["pour_mode"], "registry");
+    let beads = workspace.bd_json(&["list", "--all", "-n", "0", "--json"]);
+    assert!(
+        beads.as_array().expect("bead list").iter().any(|bead| {
+            bead["title"] == "Padded 1.7.1" && bead["description"] == "Tight 1.7.1"
+        }),
+        "expected rendered values in created bead: {beads}"
+    );
 }
 
 fn assert_by_path_pour(workspace: &GraphCliWorkspace, request: &serde_json::Value) {
