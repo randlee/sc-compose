@@ -318,6 +318,19 @@ mod tests {
     }
 
     #[test]
+    fn comments_and_raw_blocks_are_not_scanned_for_tokens() {
+        let tokens = discover_tokens(
+            "{# bd uses `{{name}}` and {% if other %} here #}{% raw %}{{ literal }}{% endraw %}{{ x }}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("x").unwrap()].into());
+        assert_eq!(
+            discover_tokens_with_brace_count("{# {{{ hidden }}} #}{{{ outer }}}", 3),
+            [crate::VariableName::new("outer").unwrap()].into()
+        );
+    }
+
+    #[test]
     fn filter_argument_references_remain_discovered() {
         let tokens = discover_tokens("{{ x | default(other_var) }}");
 
