@@ -377,14 +377,15 @@ fn redirected_registry_is_resolved_by_bd_where(root: &Path, bd: &Path) {
         .join(".beads")
         .join("formulas")
         .join("redirect-workflow.formula.toml");
-    let receipt = execute_bead_request(&request(
+    let mut request = request(
         &redirected_worktree,
         &template,
         output,
         "redirect-workflow",
         bd,
-    ))
-    .expect("redirected registry request");
+    );
+    request.bead_variable_rendering = sc_composer_beads::BeadVariableRendering::Bd;
+    let receipt = execute_bead_request(&request).expect("redirected registry request");
     assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
 }
 
