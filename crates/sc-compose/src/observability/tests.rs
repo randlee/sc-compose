@@ -104,3 +104,36 @@ fn sample_health() -> LoggingHealthReport {
         last_error: None,
     }
 }
+
+#[test]
+fn logger_build_failure_reports_usage_error_with_log_root() {
+    let root = PathBuf::from("test-log-root");
+    let mut config = build_logger_config(root.clone()).expect("logger config");
+    config.enable_file_sink = false;
+    let error = super::logger::build_logger_with_config(config, true)
+        .err()
+        .expect("building without sinks must fail");
+    assert_eq!(error.exit_code, crate::exit_codes::USAGE_FAIL);
+    assert!(error.to_string().contains("test-log-root"));
+}
+
+#[test]
+fn logger_builder_failure_reports_usage_error_with_log_root() {
+    for wants_json in [false, true] {
+        let mut config =
+            build_logger_config(PathBuf::from("builder-test-log-root")).expect("logger config");
+        // The published logger rejects zero capacity inside Logger::builder,
+        // before sink registration or build can run.
+        config.queue_capacity = 0;
+        let error = super::logger::build_logger_with_config(config, wants_json)
+            .err()
+            .expect("zero queue capacity must fail during builder creation");
+
+        assert_eq!(error.exit_code, 3);
+        assert!(error.to_string().contains("builder-test-log-root"));
+        assert!(
+            format!("{:#}", error.error)
+                .contains("logger queue capacity must be greater than zero")
+        );
+    }
+}

@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"on_complete\",\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/on_complete.formula.json\",\n  \"steps\": [\n    {\n      \"id\": \"build\",\n      \"on_complete\": {\n        \"bond\": \"worker\",\n        \"for_each\": \"output.items\"\n      },\n      \"title\": \"Build {{literal}}\"\n    }\n  ],\n  \"type\": \"workflow\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

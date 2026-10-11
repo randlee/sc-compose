@@ -1,0 +1,7 @@
+{
+  "id": "comp-wf-example",
+  "parent": "comp-workflow-issues",
+  "title": "Example refusal workflow issue",
+  "description": "A pre-claim gate refused this example task.",
+  "remedy": "Correct the precondition and re-dispatch the task."
+}

@@ -1,0 +1,17 @@
+formula = "release"
+version = 1
+type = "workflow"
+
+[[steps]]
+id = "build"
+title = "Build {{{ version }}}"
+
+[[steps]]
+id = "verify"
+title = "Verify {{{ version }}}"
+needs = ["build"]
+
+[[steps]]
+id = "publish"
+title = "Publish {{{ version }}}"
+needs = ["verify"]

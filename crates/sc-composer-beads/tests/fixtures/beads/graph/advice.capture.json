@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"advice\": [\n    {\n      \"before\": {\n        \"id\": \"prepare\",\n        \"title\": \"Prepare\"\n      },\n      \"target\": \"build\"\n    }\n  ],\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"advice\",\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/advice.formula.json\",\n  \"steps\": [\n    {\n      \"id\": \"prepare\",\n      \"title\": \"Prepare\"\n    },\n    {\n      \"id\": \"build\",\n      \"needs\": [\n        \"prepare\"\n      ],\n      \"title\": \"Build {{literal}}\"\n    }\n  ],\n  \"type\": \"workflow\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

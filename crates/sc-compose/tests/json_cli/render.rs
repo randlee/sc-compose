@@ -9,6 +9,178 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
+fn render_json_append(root: &Path, template: &str, destination: &Path) -> std::process::Output {
+    sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            template,
+            "--append",
+            destination.to_str().unwrap(),
+            "--json",
+        ])
+        .output()
+        .unwrap()
+}
+
+fn render_plain_append(root: &Path, template: &str, destination: &Path) -> std::process::Output {
+    sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            template,
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap()
+}
+
+#[test]
+fn render_append_non_object_reports_inspect_input_recovery_hint() {
+    let root = temp_root("render-append-non-object-hint");
+    write_file(&root.join("record.json.j2"), "[1, 2]");
+    let destination = root.join("records.jsonl");
+
+    let output = render_plain_append(&root, "record.json.j2", &destination);
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains(
+            "recovery: inspect input: the rendered output; --append requires a JSON object"
+        )
+    );
+}
+
+#[test]
+fn render_append_missing_final_newline_reports_target_recovery_hint() {
+    let root = temp_root("render-append-missing-newline-hint");
+    write_file(&root.join("record.json.j2"), r#"{"record":"new"}"#);
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"existing\":true}");
+
+    let output = render_plain_append(&root, "record.json.j2", &destination);
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains(&format!("recovery: inspect {}", destination.display()))
+    );
+    assert_eq!(
+        fs::read_to_string(destination).unwrap(),
+        "{\"existing\":true}"
+    );
+}
+
+#[test]
+fn render_json_append_reports_appended_payload() {
+    let root = temp_root("render-json-append-success");
+    write_file(&root.join("record.json.j2"), r#"{"record":"new"}"#);
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"existing\":true}\n");
+
+    let output = render_json_append(&root, "record.json.j2", &destination);
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["output_path"],
+        destination.to_string_lossy().replace('\\', "/")
+    );
+    assert_eq!(
+        value["payload"]["bytes_written"],
+        "{\"record\":\"new\"}\n".len()
+    );
+    assert_eq!(value["payload"]["appended"], true);
+    assert!(value["payload"].get("body").is_none());
+    assert_eq!(
+        fs::read_to_string(destination).unwrap(),
+        "{\"existing\":true}\n{\"record\":\"new\"}\n"
+    );
+}
+
+#[test]
+fn render_json_append_non_object_reports_failure_code() {
+    let root = temp_root("render-json-append-non-object");
+    write_file(&root.join("record.json.j2"), "[1, 2]");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"existing\":true}\n");
+
+    let output = render_json_append(&root, "record.json.j2", &destination);
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_RENDER_APPEND_NOT_OBJECT");
+    assert_eq!(
+        fs::read_to_string(destination).unwrap(),
+        "{\"existing\":true}\n"
+    );
+}
+
+#[test]
+fn render_json_append_missing_final_newline_reports_failure_code() {
+    let root = temp_root("render-json-append-incomplete-destination");
+    write_file(&root.join("record.json.j2"), r#"{"record":"new"}"#);
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"existing\":true}");
+
+    let output = render_json_append(&root, "record.json.j2", &destination);
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_RENDER_APPEND_NO_FINAL_NEWLINE");
+    assert_eq!(
+        value["diagnostics"][0]["path"],
+        serde_json::json!(destination.to_string_lossy()),
+        "the inspect-path recovery target must be in the JSON envelope"
+    );
+    assert_eq!(
+        fs::read_to_string(destination).unwrap(),
+        "{\"existing\":true}"
+    );
+}
+
+#[test]
+fn render_json_append_malformed_json_reports_failure_code() {
+    let root = temp_root("render-json-append-malformed");
+    write_file(&root.join("record.json.j2"), r#"{"record":"new""#);
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"existing\":true}\n");
+
+    let output = render_json_append(&root, "record.json.j2", &destination);
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_RENDER_JSON_MALFORMED");
+    assert_eq!(
+        value["diagnostics"][0]["path"],
+        fs::canonicalize(root.join("record.json.j2"))
+            .unwrap()
+            .to_string_lossy()
+            .as_ref()
+    );
+    assert_eq!(
+        fs::read_to_string(destination).unwrap(),
+        "{\"existing\":true}\n"
+    );
+}
+
 #[test]
 fn render_json_legacy_mode_supports_existing_quoted_placeholders() {
     let root = temp_root("render-json-legacy-mode");

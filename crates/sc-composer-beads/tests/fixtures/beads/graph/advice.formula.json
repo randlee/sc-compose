@@ -1,0 +1,21 @@
+{
+  "formula": "advice",
+  "description": "Graph parser contract",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "advice": [
+    {
+      "target": "build",
+      "before": {
+        "id": "prepare",
+        "title": "Prepare"
+      }
+    }
+  ]
+}

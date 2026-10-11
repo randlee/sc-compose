@@ -1,0 +1,95 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-1 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0001&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 60, &quot;name&quot;: &quot;A render fidelity&quot;, &quot;passed&quot;: 60}, {&quot;cases&quot;: 53, &quot;name&quot;: &quot;B TOML vs JSON preview parity&quot;, &quot;passed&quot;: 53}, {&quot;cases&quot;: 45, &quot;name&quot;: &quot;C formula grammar refusals&quot;, &quot;passed&quot;: 45}, {&quot;cases&quot;: 12, &quot;name&quot;: &quot;D/E real attach + re-run fidelity&quot;, &quot;passed&quot;: 11}, {&quot;cases&quot;: 10, &quot;name&quot;: &quot;scale 30-500 steps&quot;, &quot;passed&quot;: 5}, {&quot;cases&quot;: 25, &quot;name&quot;: &quot;G whitespace/delimiters/includes&quot;, &quot;passed&quot;: 21}, {&quot;cases&quot;: 12, &quot;name&quot;: &quot;H special text through attach&quot;, &quot;passed&quot;: 12}, {&quot;cases&quot;: 1, &quot;name&quot;: &quot;I step-id case&quot;, &quot;passed&quot;: 1}, {&quot;cases&quot;: 6, &quot;name&quot;: &quot;J graph pour parity&quot;, &quot;passed&quot;: 6}, {&quot;cases&quot;: 15, &quot;name&quot;: &quot;K ref id rule and scope&quot;, &quot;passed&quot;: 10}, {&quot;cases&quot;: 3, &quot;name&quot;: &quot;revision CRLF&quot;, &quot;passed&quot;: 3}, {&quot;cases&quot;: 6, &quot;name&quot;: &quot;misc includes/paths&quot;, &quot;passed&quot;: 1}], &quot;cases_run&quot;: 248, &quot;correlation_id&quot;: &quot;template-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 20, &quot;finding_ids&quot;: [&quot;FUZZ-018&quot;, &quot;FUZZ-019&quot;, &quot;FUZZ-020&quot;, &quot;FUZZ-036&quot;, &quot;FUZZ-037&quot;], &quot;passed&quot;: 228, &quot;seed&quot;: 7023, &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;bead templates with loops, conditionals and includes producing formulas up to 500 steps; TOML/JSON parity; formula grammar refusals&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Workspaces tpla, tplb. TOML/JSON parity held for ids, nodes, edges, plan nodes and bd content across 53 previews, 12 attaches and 6 graph pours. Every ADR-0023 grammar refusal matched in both formats and modes. 300-step attach and pour pass; 500-step attach/pour fail (FUZZ-015).">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">bead templates with loops, conditionals and includes producing formulas up to 500 steps; TOML/JSON parity; formula grammar refusals</th>
+        <td>248</td>
+        <td>228/248</td>
+        <td>
+          <span class="status status-error">FAIL: 3 confirmed bug(s)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">template-probe/A render fidelity</th><td><code>A render fidelity</code></td><td>60/60 passed</td></tr>
+        <tr><th scope="row">template-probe/B TOML vs JSON preview parity</th><td><code>B TOML vs JSON preview parity</code></td><td>53/53 passed</td></tr>
+        <tr><th scope="row">template-probe/C formula grammar refusals</th><td><code>C formula grammar refusals</code></td><td>45/45 passed</td></tr>
+        <tr><th scope="row">template-probe/D/E real attach + re-run fidelity</th><td><code>D/E real attach + re-run fidelity</code></td><td>11/12 passed</td></tr>
+        <tr><th scope="row">template-probe/scale 30-500 steps</th><td><code>scale 30-500 steps</code></td><td>5/10 passed</td></tr>
+        <tr><th scope="row">template-probe/G whitespace/delimiters/includes</th><td><code>G whitespace/delimiters/includes</code></td><td>21/25 passed</td></tr>
+        <tr><th scope="row">template-probe/H special text through attach</th><td><code>H special text through attach</code></td><td>12/12 passed</td></tr>
+        <tr><th scope="row">template-probe/I step-id case</th><td><code>I step-id case</code></td><td>1/1 passed</td></tr>
+        <tr><th scope="row">template-probe/J graph pour parity</th><td><code>J graph pour parity</code></td><td>6/6 passed</td></tr>
+        <tr><th scope="row">template-probe/K ref id rule and scope</th><td><code>K ref id rule and scope</code></td><td>10/15 passed</td></tr>
+        <tr><th scope="row">template-probe/revision CRLF</th><td><code>revision CRLF</code></td><td>3/3 passed</td></tr>
+        <tr><th scope="row">template-probe/misc includes/paths</th><td><code>misc includes/paths</code></td><td>1/6 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-018</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>main.formula.toml.j2: formula = &quot;inc&quot; / version = 1 / type = &quot;workflow&quot; / @&lt;frag/common.toml.j2&gt; / [[steps]] id = &quot;local&quot; ...; frag/common.toml.j2: [[steps]] id = &quot;shared&quot; title = &quot;Shared step&quot;</code></dd>
+        <dt>Input</dt><dd><code>render request, compose_variables {}</code></dd>
+        <dt>Expected</dt><dd>help bead &#x27;Shared step blocks&#x27;: include fragments with sc-compose&#x27;s @&lt;path&gt; include syntax; FR-23.1 (structure from loops, conditionals, includes); FR-3.</dd>
+        <dt>Observed</dt><dd>Exit 0 but the rendered formula keeps the literal line &#x27;@&lt;frag/common.toml.j2&gt;&#x27;; the same text through plain `sc-compose render` expands the include. A later preview-attach fails with BEADS_COOK_FAILED. Reproduced 3/3 by the coordinator; origin/develop renders the same.</dd>
+        <dt>Requirement / ADR</dt><dd>FR-23.1, FR-3, bead manual &#x27;Shared step blocks&#x27;, ADR-0023 step_construct guidance</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>render_formula calls Renderer::render_named on the raw template text and bypasses sc-composer&#x27;s include-expansion pipeline.</dd>
+        <dt>Recommended fix</dt><dd>Run include expansion (confined to working_directory) before rendering bead templates.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-019</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{% if %}</code></dd>
+        <dt>Input</dt><dd><code>render request, compose_variables {}</code></dd>
+        <dt>Expected</dt><dd>FR-8: diagnostics carry a human-readable message; RenderFailed has a cause message.</dd>
+        <dt>Observed</dt><dd>Exit 2, BEADS_RENDER_FAILED, render stage stderr_excerpt and stdout_excerpt empty; text mode prints only &#x27;stage Render: failed (BEADS_RENDER_FAILED)&#x27;. Reproduced 3/3 by the coordinator; same on baseline.</dd>
+        <dt>Requirement / ADR</dt><dd>FR-8 Determinism and Diagnostics</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>The receipt built for a render failure drops RenderFailed.message.</dd>
+        <dt>Recommended fix</dt><dd>Record the render error message in the render stage&#x27;s stderr_excerpt, as graph stages do via record_error.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-020</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;g&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;T a&quot; needs = [&quot;a&quot;]</code></dd>
+        <dt>Input</dt><dd><code>preview_attach under an existing epic, ref gcx</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Errors: GraphApplyFailed carries bd&#x27;s failure cause so the caller can fix it.</dd>
+        <dt>Observed</dt><dd>Exit 2 BEADS_GRAPH_APPLY_FAILED with message &#x27;graph apply failed (Some(1)): {; [argv]&#x27;: the cause is &#x27;{&#x27;, the first line of bd&#x27;s pretty-printed JSON; the real error (blocking dependency cycle) appears only in stdout_excerpt. Reproduced 3/3 by the coordinator.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Errors (GraphApplyFailed, GraphReadFailed)</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>process_failure_cause falls back to stdout and short_cause takes its first non-empty line.</dd>
+        <dt>Recommended fix</dt><dd>Parse bd&#x27;s JSON error object (the `error` field) before falling back to the first line.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

@@ -33,6 +33,21 @@ impl RenderError {
         }
     }
 
+    /// Construct a render error with a caller-chosen code and message.
+    #[must_use]
+    pub(crate) fn with_code(
+        source: impl StdError + Send + Sync + 'static,
+        code: DiagnosticCode,
+        message: String,
+    ) -> Self {
+        Self {
+            code: Some(code),
+            message,
+            source: Box::new(source),
+            backtrace: Backtrace::capture(),
+        }
+    }
+
     /// Return the captured backtrace for the render failure.
     pub const fn backtrace(&self) -> &Backtrace {
         &self.backtrace

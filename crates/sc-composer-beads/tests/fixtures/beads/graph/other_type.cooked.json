@@ -1,0 +1,14 @@
+{
+  "description": "Graph parser contract",
+  "formula": "other_type",
+  "schema_version": 1,
+  "source": "<workspace>/other_type.formula.json",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "convoy",
+  "version": 1
+}

@@ -1,0 +1,21 @@
+{
+  "description": "Graph parser contract",
+  "formula": "loop",
+  "schema_version": 1,
+  "source": "<workspace>/loop.formula.json",
+  "steps": [
+    {
+      "id": "build.iter1.check",
+      "title": "Check"
+    },
+    {
+      "id": "build.iter2.check",
+      "needs": [
+        "build.iter1.check"
+      ],
+      "title": "Check"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

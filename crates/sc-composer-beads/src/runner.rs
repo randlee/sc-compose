@@ -12,11 +12,14 @@ use process_wrap::std::{ChildWrapper, CommandWrap, JobObject};
 #[cfg(unix)]
 use process_wrap::std::{ChildWrapper, CommandWrap, ProcessGroup};
 
-/// Maximum number of bytes retained from each `bd` output stream.
+/// Maximum bytes retained per legacy `bd` stream and graph diagnostic stderr.
 ///
 /// The runner terminates its contained process tree when this limit is exceeded,
 /// rather than allowing an untrusted subprocess to consume unbounded memory.
 pub const PROCESS_OUTPUT_LIMIT_BYTES: usize = 64 * 1024;
+
+/// Maximum graph JSON stdout capture; diagnostic stderr retains the legacy cap.
+pub const GRAPH_OUTPUT_LIMIT_BYTES: usize = 16 * 1024 * 1024;
 
 const OUTPUT_LIMIT_ERROR_MARKER: &str = "sc-composer-beads process output limit exceeded";
 
@@ -70,6 +73,18 @@ pub trait ProcessRunner {
     /// Returns an I/O error when the executable could not be started or its
     /// output could not be captured.
     fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput>;
+
+    /// Run a graph JSON command with bounded graph output capture.
+    ///
+    /// The default preserves existing custom runners. The production runner
+    /// permits up to 16 MiB of graph stdout and 64 KiB of diagnostic stderr,
+    /// with the same process-tree containment as [`Self::run`].
+    ///
+    /// # Errors
+    /// Returns an I/O error on spawn, capture failure, or output-cap overflow.
+    fn run_graph(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        self.run(spec)
+    }
 }
 
 /// Production runner backed by [`std::process::Command`].
@@ -78,60 +93,78 @@ pub struct StdProcessRunner;
 
 impl ProcessRunner for StdProcessRunner {
     fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
-        let started = Instant::now();
-        let mut child = spawn_contained(spec)?;
-        let stdout = child
-            .take_stdout()
-            .ok_or_else(|| io::Error::other("child stdout was not captured"))?;
-        let stderr = child
-            .take_stderr()
-            .ok_or_else(|| io::Error::other("child stderr was not captured"))?;
-        let (capture_sender, capture_receiver) = mpsc::channel();
-        let stdout_reader = spawn_capture(stdout, StreamKind::Stdout, capture_sender.clone());
-        let stderr_reader = spawn_capture(stderr, StreamKind::Stderr, capture_sender);
-
-        let mut capture = CaptureTracker::new();
-        let mut terminated_for_limit = false;
-        let mut capture_disconnected = false;
-        while !capture.is_complete() {
-            match capture_receiver.recv_timeout(Duration::from_millis(10)) {
-                Ok(event) => capture.observe(event),
-                Err(mpsc::RecvTimeoutError::Timeout) => {}
-                Err(mpsc::RecvTimeoutError::Disconnected) => {
-                    capture_disconnected = true;
-                }
-            }
-
-            terminate_capture_failure(
-                capture_disconnected || capture.requires_contained_termination(),
-                child.as_mut(),
-                &mut terminated_for_limit,
-            )?;
-
-            if capture_disconnected {
-                break;
-            }
-        }
-
-        join_capture_readers(stdout_reader, stderr_reader)?;
-        if capture_disconnected {
-            return Err(io::Error::other(
-                "child output capture closed before both streams completed",
-            ));
-        }
-
-        let (stdout, stderr) = capture.finish()?;
-        debug_assert!(
-            !terminated_for_limit,
-            "a contained termination must have a capture failure result"
-        );
-        Ok(ProcessOutput {
-            exit_status: child.wait()?.code(),
-            stdout: String::from_utf8_lossy(&stdout.bytes).into_owned(),
-            stderr: String::from_utf8_lossy(&stderr.bytes).into_owned(),
-            elapsed: started.elapsed(),
-        })
+        run_bounded(spec, PROCESS_OUTPUT_LIMIT_BYTES)
     }
+
+    fn run_graph(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        run_bounded(spec, GRAPH_OUTPUT_LIMIT_BYTES)
+    }
+}
+
+fn run_bounded(spec: &CommandSpec, stdout_limit: usize) -> io::Result<ProcessOutput> {
+    let started = Instant::now();
+    let mut child = spawn_contained(spec)?;
+    let stdout = child
+        .take_stdout()
+        .ok_or_else(|| io::Error::other("child stdout was not captured"))?;
+    let stderr = child
+        .take_stderr()
+        .ok_or_else(|| io::Error::other("child stderr was not captured"))?;
+    let (capture_sender, capture_receiver) = mpsc::channel();
+    let stdout_reader = spawn_capture(
+        stdout,
+        StreamKind::Stdout,
+        capture_sender.clone(),
+        stdout_limit,
+    );
+    let stderr_reader = spawn_capture(
+        stderr,
+        StreamKind::Stderr,
+        capture_sender,
+        PROCESS_OUTPUT_LIMIT_BYTES,
+    );
+
+    let mut capture = CaptureTracker::new();
+    let mut terminated_for_limit = false;
+    let mut capture_disconnected = false;
+    while !capture.is_complete() {
+        match capture_receiver.recv_timeout(Duration::from_millis(10)) {
+            Ok(event) => capture.observe(event),
+            Err(mpsc::RecvTimeoutError::Timeout) => {}
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                capture_disconnected = true;
+            }
+        }
+
+        terminate_capture_failure(
+            capture_disconnected || capture.requires_contained_termination(),
+            child.as_mut(),
+            &mut terminated_for_limit,
+        )?;
+
+        if capture_disconnected {
+            break;
+        }
+    }
+
+    join_capture_readers(stdout_reader, stderr_reader)?;
+    if capture_disconnected {
+        return Err(io::Error::other(
+            "child output capture closed before both streams completed",
+        ));
+    }
+
+    let (stdout, stderr) = capture.finish()?;
+    debug_assert!(
+        !terminated_for_limit,
+        "a contained termination must have a capture failure result"
+    );
+    Ok(ProcessOutput {
+        exit_status: child.wait()?.code(),
+        stdout: String::from_utf8_lossy(&stdout.bytes).into_owned(),
+        stderr: String::from_utf8_lossy(&stderr.bytes).into_owned(),
+        elapsed: started.elapsed(),
+    })
 }
 
 trait ManagedChild {
@@ -242,7 +275,7 @@ enum StreamKind {
 }
 
 enum CaptureEvent {
-    ExceededLimit,
+    ExceededLimit(usize),
     Completed(StreamKind, io::Result<CapturedStream>),
 }
 
@@ -256,6 +289,7 @@ enum CaptureState {
 
 struct CaptureTracker {
     state: CaptureState,
+    limit_bytes: usize,
     stdout: Option<io::Result<CapturedStream>>,
     stderr: Option<io::Result<CapturedStream>>,
 }
@@ -264,6 +298,7 @@ impl CaptureTracker {
     fn new() -> Self {
         Self {
             state: CaptureState::Waiting,
+            limit_bytes: PROCESS_OUTPUT_LIMIT_BYTES,
             stdout: None,
             stderr: None,
         }
@@ -271,7 +306,10 @@ impl CaptureTracker {
 
     fn observe(&mut self, event: CaptureEvent) {
         match event {
-            CaptureEvent::ExceededLimit => self.state = CaptureState::OutputLimitExceeded,
+            CaptureEvent::ExceededLimit(limit) => {
+                self.limit_bytes = limit;
+                self.state = CaptureState::OutputLimitExceeded;
+            }
             CaptureEvent::Completed(stream_kind, captured) => {
                 let is_reader_failure = captured.is_err();
                 let exceeded_limit = captured.as_ref().is_ok_and(|captured| captured.exceeded);
@@ -303,7 +341,7 @@ impl CaptureTracker {
 
     fn finish(self) -> io::Result<(CapturedStream, CapturedStream)> {
         if self.state == CaptureState::OutputLimitExceeded {
-            return Err(process_output_limit_error());
+            return Err(output_limit_error(self.limit_bytes));
         }
 
         let stdout = self
@@ -313,7 +351,7 @@ impl CaptureTracker {
             .stderr
             .expect("stderr completion checked before capture finalization")?;
         if stdout.exceeded || stderr.exceeded {
-            return Err(process_output_limit_error());
+            return Err(output_limit_error(self.limit_bytes));
         }
         Ok((stdout, stderr))
     }
@@ -323,12 +361,13 @@ fn spawn_capture<R>(
     stream: R,
     stream_kind: StreamKind,
     capture_sender: mpsc::Sender<CaptureEvent>,
+    limit_bytes: usize,
 ) -> thread::JoinHandle<()>
 where
     R: Read + Send + 'static,
 {
     thread::spawn(move || {
-        let captured = capture_stream(stream, &capture_sender);
+        let captured = capture_stream(stream, &capture_sender, limit_bytes);
         let _ = capture_sender.send(CaptureEvent::Completed(stream_kind, captured));
     })
 }
@@ -336,11 +375,12 @@ where
 fn capture_stream<R>(
     mut stream: R,
     capture_sender: &mpsc::Sender<CaptureEvent>,
+    limit_bytes: usize,
 ) -> io::Result<CapturedStream>
 where
     R: Read,
 {
-    let mut bytes = Vec::with_capacity(PROCESS_OUTPUT_LIMIT_BYTES);
+    let mut bytes = Vec::with_capacity(PROCESS_OUTPUT_LIMIT_BYTES.min(limit_bytes));
     let mut exceeded = false;
     let mut buffer = [0_u8; 8 * 1024];
     loop {
@@ -348,12 +388,12 @@ where
         if read == 0 {
             return Ok(CapturedStream { bytes, exceeded });
         }
-        let remaining = PROCESS_OUTPUT_LIMIT_BYTES.saturating_sub(bytes.len());
+        let remaining = limit_bytes.saturating_sub(bytes.len());
         let retained = read.min(remaining);
         bytes.extend_from_slice(&buffer[..retained]);
         if retained < read && !exceeded {
             exceeded = true;
-            let _ = capture_sender.send(CaptureEvent::ExceededLimit);
+            let _ = capture_sender.send(CaptureEvent::ExceededLimit(limit_bytes));
         }
     }
 }
@@ -373,12 +413,39 @@ fn join_capture_readers(
     stdout_result.and(stderr_result)
 }
 
+#[derive(Debug)]
+struct OutputLimitError(usize);
+
+impl std::fmt::Display for OutputLimitError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(OUTPUT_LIMIT_ERROR_MARKER)
+    }
+}
+
+impl std::error::Error for OutputLimitError {}
+
+fn output_limit_error(limit: usize) -> io::Error {
+    io::Error::other(OutputLimitError(limit))
+}
+
+#[cfg(test)]
 pub(crate) fn process_output_limit_error() -> io::Error {
-    io::Error::other(OUTPUT_LIMIT_ERROR_MARKER)
+    output_limit_error(PROCESS_OUTPUT_LIMIT_BYTES)
+}
+
+pub(crate) fn output_limit_bytes(error: &io::Error) -> Option<usize> {
+    error
+        .get_ref()
+        .and_then(|source| source.downcast_ref::<OutputLimitError>())
+        .map(|source| source.0)
+        .or_else(|| {
+            (error.kind() == io::ErrorKind::Other && error.to_string() == OUTPUT_LIMIT_ERROR_MARKER)
+                .then_some(PROCESS_OUTPUT_LIMIT_BYTES)
+        })
 }
 
 pub(crate) fn is_process_output_limit_error(error: &io::Error) -> bool {
-    error.kind() == io::ErrorKind::Other && error.to_string() == OUTPUT_LIMIT_ERROR_MARKER
+    output_limit_bytes(error).is_some()
 }
 
 #[cfg(test)]
@@ -399,13 +466,14 @@ mod tests {
         let (sender, receiver) = mpsc::channel();
         let stream = Cursor::new(vec![b'x'; PROCESS_OUTPUT_LIMIT_BYTES + 1]);
 
-        let captured = capture_stream(stream, &sender).expect("capture stream");
+        let captured =
+            capture_stream(stream, &sender, PROCESS_OUTPUT_LIMIT_BYTES).expect("capture stream");
 
         assert!(captured.exceeded);
         assert_eq!(captured.bytes.len(), PROCESS_OUTPUT_LIMIT_BYTES);
         assert!(matches!(
             receiver.try_recv(),
-            Ok(CaptureEvent::ExceededLimit)
+            Ok(CaptureEvent::ExceededLimit(PROCESS_OUTPUT_LIMIT_BYTES))
         ));
     }
 
@@ -444,7 +512,7 @@ mod tests {
     #[test]
     fn cap_breach_and_reader_failure_require_contained_termination() {
         let mut cap_breach = CaptureTracker::new();
-        cap_breach.observe(CaptureEvent::ExceededLimit);
+        cap_breach.observe(CaptureEvent::ExceededLimit(PROCESS_OUTPUT_LIMIT_BYTES));
         assert_eq!(cap_breach.state, CaptureState::OutputLimitExceeded);
         assert!(cap_breach.requires_contained_termination());
 

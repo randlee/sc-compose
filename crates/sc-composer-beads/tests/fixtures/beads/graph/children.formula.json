@@ -1,0 +1,18 @@
+{
+  "formula": "children",
+  "description": "Graph parser contract",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}",
+      "children": [
+        {
+          "id": "child",
+          "title": "Child"
+        }
+      ]
+    }
+  ]
+}

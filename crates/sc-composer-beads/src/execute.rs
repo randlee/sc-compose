@@ -4,18 +4,18 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use serde_json::Value;
-
 use crate::contract::{
     BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage,
     BeadStageOutcome, BeadStageReceipt, PourAuthorization,
 };
-use crate::error::BeadComposeError;
-use crate::render::{render_formula, validate_output_destination};
+use crate::error::{BeadComposeError, short_cause};
+use crate::paths::{public_path_buf, public_path_display};
+use crate::render::{render_formula_in_root, validate_output_destination};
 use crate::runner::{
     CommandSpec, PROCESS_OUTPUT_LIMIT_BYTES, ProcessOutput, ProcessRunner, StdProcessRunner,
     is_process_output_limit_error,
 };
+use crate::snapshot::InputSnapshot;
 
 const OUTPUT_EXCERPT_LIMIT: usize = 16 * 1024;
 
@@ -31,45 +31,81 @@ pub fn execute_bead_request(
     execute_bead_request_with_runner(request, &StdProcessRunner)
 }
 
+/// Execute a request and report typed graph failures retained in its receipt.
+///
+/// Diagnostic callbacks receive borrowed errors before they become receipt
+/// codes and stage excerpts. Receipt serialization is unchanged. Errors returned
+/// directly from this function remain available through its `Result`.
+///
+/// # Errors
+/// Returns the same request and process errors as [`execute_bead_request`].
+pub fn execute_bead_request_with_diagnostics(
+    request: &BeadComposeRequest,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_with_runner_and_diagnostics(request, &StdProcessRunner, diagnostics)
+}
+
 /// Execute a Beads request through an injected direct process runner.
 ///
 /// # Errors
 ///
 /// Returns a stable error for rejected request preconditions or an unavailable
 /// executable. Process failures return a failed receipt with stage evidence.
-#[allow(
-    clippy::too_many_lines,
-    reason = "The receipt-producing render, validate, registry, and pour progression is intentionally visible in one ordered function."
-)]
 pub fn execute_bead_request_with_runner(
     request: &BeadComposeRequest,
     runner: &dyn ProcessRunner,
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
-    let normalized = validate_request(request)?;
-    let mut stages = Vec::new();
-    let render_started = Instant::now();
-    if let Err(error) = render_formula(
-        &normalized.template,
-        &normalized.rendered_formula,
-        &request.compose_variables,
-    ) {
-        stages.push(render_receipt(
-            render_started,
-            BeadStageOutcome::Failed {
-                code: error.code().to_owned(),
-            },
-        ));
-        return Ok(receipt(
-            request,
-            normalized.rendered_formula,
-            stages,
-            BeadOutcome::Failed {
-                code: error.code().to_owned(),
-            },
-        ));
-    }
-    stages.push(render_receipt(render_started, BeadStageOutcome::Succeeded));
+    execute_with_runner_and_diagnostics(request, runner, &mut |_| {})
+}
 
+fn execute_with_runner_and_diagnostics(
+    request: &BeadComposeRequest,
+    runner: &dyn ProcessRunner,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    if crate::graph::is_attach(request.operation) {
+        execute_attach(request, runner, diagnostics)
+    } else {
+        execute_formula(request, runner, diagnostics)
+    }
+}
+
+/// `preview-attach` and `attach`: render, then build the graph.
+fn execute_attach(
+    request: &BeadComposeRequest,
+    runner: &dyn ProcessRunner,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    let normalized = validate_request(request, validate_attach_shape)?;
+    let (formula_input, stages) =
+        match render_stage(request, &normalized, crate::snapshot::output_error) {
+            Ok(rendered) => rendered,
+            Err(failed) => return Ok(*failed),
+        };
+    crate::graph::execute(
+        request,
+        runner,
+        &normalized,
+        &formula_input,
+        bd_executable(request),
+        stages,
+        diagnostics,
+    )
+}
+
+/// `render`, `validate`, `preview-pour` and `pour`.
+fn execute_formula(
+    request: &BeadComposeRequest,
+    runner: &dyn ProcessRunner,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    let normalized = validate_request(request, validate_formula_shape)?;
+    let (formula_input, mut stages) =
+        match render_stage(request, &normalized, |_destination, error| error) {
+            Ok(rendered) => rendered,
+            Err(failed) => return Ok(*failed),
+        };
     if request.operation == BeadOperation::Render {
         return Ok(receipt(
             request,
@@ -79,22 +115,24 @@ pub fn execute_bead_request_with_runner(
         ));
     }
 
-    let bd = request
-        .bd_executable
-        .clone()
-        .unwrap_or_else(|| PathBuf::from("bd"));
+    let bd = bd_executable(request);
+    let cook_input = if is_pour(request.operation) {
+        formula_input.path()
+    } else {
+        normalized.rendered_formula.as_path()
+    };
     let cook = CommandSpec {
         executable: bd.clone(),
-        args: cook_args(&normalized.rendered_formula, request),
+        args: cook_args(cook_input, request),
         working_directory: normalized.working_directory.clone(),
     };
-    if let Some(failed) = run_stage(
-        runner,
-        BeadStage::Validate,
-        &cook,
-        BeadComposeError::CookFailed { exit_status: None },
+    let cook_result = run_stage(runner, StageFailure::Cook, &cook, &mut stages)?;
+    present_snapshot_paths(
         &mut stages,
-    )? {
+        formula_input.path(),
+        &normalized.rendered_formula,
+    );
+    if let Some(failed) = cook_result {
         return Ok(receipt(
             request,
             normalized.rendered_formula,
@@ -111,94 +149,100 @@ pub fn execute_bead_request_with_runner(
         ));
     }
 
-    let formula_name = request
-        .formula_name
-        .as_deref()
-        .ok_or(BeadComposeError::FormulaNameRequired)?;
-    let where_spec = CommandSpec {
-        executable: bd.clone(),
-        args: vec![String::from("where"), String::from("--json")],
-        working_directory: normalized.working_directory.clone(),
-    };
-    let where_output = match run_stage_with_output(
-        runner,
-        BeadStage::ResolveActiveRegistry,
-        &where_spec,
-        BeadComposeError::ActiveRegistryResolutionFailed { exit_status: None },
-        &mut stages,
-    )? {
-        Ok(output) => output,
-        Err(outcome) => {
-            return Ok(receipt(
-                request,
-                normalized.rendered_formula,
-                stages,
-                outcome,
-            ));
-        }
-    };
-    let Some(active_beads_dir) =
-        parse_active_beads_dir(&where_output.stdout).and_then(|path| fs::canonicalize(path).ok())
-    else {
-        return Ok(failed_last_stage_receipt(
-            request,
-            normalized.rendered_formula,
-            stages,
-            &BeadComposeError::ActiveRegistryResolutionFailed { exit_status: None },
-        ));
-    };
-    if let Err(error) = validate_active_registry_path(
-        formula_name,
-        &normalized.rendered_formula,
-        &active_beads_dir,
-    ) {
-        return Ok(failed_last_stage_receipt(
-            request,
-            normalized.rendered_formula,
-            stages,
-            &error,
-        ));
-    }
-
-    let preview = request.operation == BeadOperation::PreviewPour;
-    let pour = CommandSpec {
-        executable: bd,
-        args: pour_args(formula_name, request, preview),
-        working_directory: normalized.working_directory,
-    };
-    let stage = if preview {
-        BeadStage::PreviewPour
-    } else {
-        BeadStage::Pour
-    };
-    let failed_error = if preview {
-        BeadComposeError::PreviewPourFailed { exit_status: None }
-    } else {
-        BeadComposeError::PourFailed { exit_status: None }
-    };
-    if let Some(failed) = run_stage(runner, stage, &pour, failed_error, &mut stages)? {
-        return Ok(receipt(
-            request,
-            normalized.rendered_formula,
-            stages,
-            failed,
-        ));
-    }
-    Ok(receipt(
+    crate::pour::execute_pour(
         request,
-        normalized.rendered_formula,
+        runner,
+        normalized,
+        &formula_input,
+        bd,
         stages,
-        BeadOutcome::Succeeded,
-    ))
+        diagnostics,
+    )
 }
 
-struct NormalizedRequest {
-    working_directory: PathBuf,
-    template: PathBuf,
-    rendered_formula: PathBuf,
+/// Render the formula into a private input and record the render stage.
+///
+/// `reserve_error` maps a failure to reserve the private input beside the
+/// destination; attach reports it as an output-path error. A render failure
+/// is returned as the finished failed receipt.
+fn render_stage(
+    request: &BeadComposeRequest,
+    normalized: &NormalizedRequest,
+    reserve_error: fn(&Path, BeadComposeError) -> BeadComposeError,
+) -> Result<(InputSnapshot, Vec<BeadStageReceipt>), Box<BeadComposeReceipt>> {
+    let render_started = Instant::now();
+    let rendered = (|| {
+        let input = InputSnapshot::reserve(&normalized.rendered_formula)
+            .map_err(|error| reserve_error(&normalized.rendered_formula, error))?;
+        render_formula_in_root(
+            &normalized.template,
+            input.path(),
+            &request.compose_variables,
+            &normalized.working_directory,
+        )?;
+        // Every operation writes the rendered formula exactly once and keeps
+        // the private input until bd has read it. A pour destination outside
+        // `working_directory` is permitted only in the active registry, which
+        // `bd where` reveals later, so `crate::pour` publishes it after that
+        // check.
+        if !normalized.defers_publish(request.operation) {
+            input.publish_copy(&normalized.rendered_formula)?;
+        }
+        Ok::<_, BeadComposeError>(input)
+    })();
+    match rendered {
+        Ok(input) => Ok((
+            input,
+            vec![render_receipt(
+                render_started,
+                BeadStageOutcome::Succeeded,
+                String::new(),
+            )],
+        )),
+        Err(error) => Err(Box::new(receipt(
+            request,
+            normalized.rendered_formula.clone(),
+            vec![render_receipt(
+                render_started,
+                BeadStageOutcome::Failed {
+                    code: error.code().to_owned(),
+                },
+                excerpt(&error.to_string()),
+            )],
+            BeadOutcome::Failed {
+                code: error.code().to_owned(),
+            },
+        ))),
+    }
 }
 
-fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, BeadComposeError> {
+fn bd_executable(request: &BeadComposeRequest) -> PathBuf {
+    request
+        .bd_executable
+        .clone()
+        .unwrap_or_else(|| PathBuf::from("bd"))
+}
+
+fn is_pour(operation: BeadOperation) -> bool {
+    matches!(operation, BeadOperation::PreviewPour | BeadOperation::Pour)
+}
+
+impl NormalizedRequest {
+    pub(crate) fn defers_publish(&self, operation: BeadOperation) -> bool {
+        is_pour(operation) && !self.rendered_formula.starts_with(&self.working_directory)
+    }
+}
+
+pub(crate) struct NormalizedRequest {
+    pub(crate) working_directory: PathBuf,
+    pub(crate) template: PathBuf,
+    pub(crate) rendered_formula: PathBuf,
+}
+
+fn validate_request(
+    request: &BeadComposeRequest,
+    validate_shape: fn(&BeadComposeRequest) -> Result<(), BeadComposeError>,
+) -> Result<NormalizedRequest, BeadComposeError> {
     if request.schema != BEADS_SCHEMA_V1 {
         return Err(BeadComposeError::UnknownSchema {
             actual: request.schema.clone(),
@@ -207,15 +251,18 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     if matches!(
         request.operation,
         BeadOperation::PreviewPour | BeadOperation::Pour
-    ) && request.formula_name.as_deref().is_none_or(str::is_empty)
+    ) && request.formula_name.is_none()
     {
         return Err(BeadComposeError::FormulaNameRequired);
     }
-    if request.operation == BeadOperation::Pour
-        && request.pour_authorization != Some(PourAuthorization::CreatePersistentBeads)
+    if matches!(
+        request.operation,
+        BeadOperation::Pour | BeadOperation::Attach
+    ) && request.pour_authorization != Some(PourAuthorization::CreatePersistentBeads)
     {
         return Err(BeadComposeError::PourAuthorizationRequired);
     }
+    validate_shape(request)?;
     for key in request.bead_variables.keys() {
         if !valid_bead_key(key) {
             return Err(BeadComposeError::BeadVariableKeyInvalid { key: key.clone() });
@@ -234,7 +281,12 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
             path: request.working_directory.clone(),
         }
     })?;
-    let template = fs::canonicalize(&request.template).map_err(|_error| {
+    let template_path = if request.template.is_absolute() {
+        request.template.clone()
+    } else {
+        working_directory.join(&request.template)
+    };
+    let template = fs::canonicalize(template_path).map_err(|_error| {
         BeadComposeError::TemplatePathInvalid {
             path: request.template.clone(),
         }
@@ -242,28 +294,39 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     validate_utf8_path(&working_directory)?;
     validate_utf8_path(&template)?;
     if !template.is_file() {
-        return Err(BeadComposeError::FormulaPathNotFile { path: template });
+        return Err(BeadComposeError::FormulaPathNotFile {
+            path: public_path_buf(&template),
+        });
     }
     if !template.starts_with(&working_directory) {
-        return Err(BeadComposeError::TemplateOutsideWorkingDirectory { path: template });
+        return Err(BeadComposeError::TemplateOutsideWorkingDirectory {
+            path: public_path_buf(&template),
+        });
     }
-    let rendered_formula = normalize_output(&request.rendered_formula)?;
+    let rendered_formula = normalize_output(&if request.rendered_formula.is_absolute() {
+        request.rendered_formula.clone()
+    } else {
+        working_directory.join(&request.rendered_formula)
+    })?;
     validate_utf8_path(&rendered_formula)?;
     if let Some(executable) = &request.bd_executable {
         validate_utf8_path(executable)?;
     }
     if !is_formula_path(&rendered_formula) {
         return Err(BeadComposeError::FormulaExtensionUnsupported {
-            path: rendered_formula,
+            path: public_path_buf(&rendered_formula),
         });
     }
     if matches!(
         request.operation,
-        BeadOperation::Render | BeadOperation::Validate
+        BeadOperation::Render
+            | BeadOperation::Validate
+            | BeadOperation::PreviewAttach
+            | BeadOperation::Attach
     ) && !rendered_formula.starts_with(&working_directory)
     {
         return Err(BeadComposeError::OutputOutsideWorkingDirectory {
-            path: rendered_formula,
+            path: public_path_buf(&rendered_formula),
         });
     }
     validate_output_destination(&rendered_formula)?;
@@ -274,23 +337,97 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
     })
 }
 
+fn validate_attach_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {
+    let shape_error = if request.parent.is_none() {
+        Some("attach requires parent")
+    } else if request.ref_.is_none() {
+        Some("attach requires ref")
+    } else if !request.bead_variables.is_empty() {
+        Some("attach forbids bead_variables")
+    } else {
+        None
+    };
+    shape_result(shape_error)
+}
+
+fn validate_formula_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {
+    let shape_error = if request.parent.is_some() {
+        Some("non-attach operations forbid parent")
+    } else if request.ref_.is_some() {
+        Some("non-attach operations forbid ref")
+    } else if matches!(
+        request.operation,
+        BeadOperation::Render | BeadOperation::Validate
+    ) && !request.relations.is_empty()
+    {
+        Some("render and validate forbid relations")
+    } else {
+        None
+    };
+    shape_result(shape_error)
+}
+
+fn shape_result(shape_error: Option<&str>) -> Result<(), BeadComposeError> {
+    match shape_error {
+        Some(message) => Err(BeadComposeError::RequestDeserializationFailed {
+            message: message.to_owned(),
+        }),
+        None => Ok(()),
+    }
+}
+
 fn validate_utf8_path(path: &Path) -> Result<(), BeadComposeError> {
     if path.to_str().is_some() {
         Ok(())
     } else {
-        Err(BeadComposeError::PathNotUtf8 { path: path.into() })
+        Err(BeadComposeError::PathNotUtf8 {
+            path: public_path_buf(path),
+        })
     }
 }
 
 fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
+    let public_path = public_path_buf(path);
     let parent = path
         .parent()
-        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
-    let parent = fs::canonicalize(parent)
-        .map_err(|_error| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+        .ok_or_else(|| BeadComposeError::OutputPathInvalid {
+            path: public_path.clone(),
+            rule: String::from("an existing parent directory and file name are required"),
+        })?;
+    let parent = fs::canonicalize(parent).map_err(|error| {
+        let rule = if error.kind() == std::io::ErrorKind::NotFound {
+            let parent_display = if parent.as_os_str().is_empty() {
+                path.display().to_string()
+            } else {
+                public_path_display(parent)
+            };
+            format!(
+                "parent directory `{parent_display}` for `{}` must exist",
+                public_path_display(path)
+            )
+        } else {
+            String::from("parent directory must be resolvable")
+        };
+        BeadComposeError::OutputPathInvalid {
+            path: public_path.clone(),
+            rule,
+        }
+    })?;
+    if !parent.is_dir() {
+        return Err(BeadComposeError::OutputPathInvalid {
+            path: public_path.clone(),
+            rule: format!(
+                "parent `{}` must be a directory",
+                public_path_display(&parent)
+            ),
+        });
+    }
     let name = path
         .file_name()
-        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+        .ok_or_else(|| BeadComposeError::OutputPathInvalid {
+            path: public_path.clone(),
+            rule: String::from("path must include a file name"),
+        })?;
     Ok(parent.join(name))
 }
 
@@ -309,7 +446,7 @@ fn is_formula_path(path: &Path) -> bool {
 fn cook_args(rendered_formula: &Path, request: &BeadComposeRequest) -> Vec<String> {
     let mut args = vec![
         String::from("cook"),
-        rendered_formula.to_string_lossy().into_owned(),
+        public_path_display(rendered_formula),
         String::from("--dry-run"),
         String::from("--json"),
     ];
@@ -317,47 +454,66 @@ fn cook_args(rendered_formula: &Path, request: &BeadComposeRequest) -> Vec<Strin
     args
 }
 
-fn pour_args(formula_name: &str, request: &BeadComposeRequest, preview: bool) -> Vec<String> {
-    let mut args = vec![
-        String::from("mol"),
-        String::from("pour"),
-        formula_name.to_owned(),
-    ];
-    if preview {
-        args.push(String::from("--dry-run"));
-    }
-    args.push(String::from("--json"));
-    append_variables(&mut args, request);
-    args
-}
-
-fn append_variables(args: &mut Vec<String>, request: &BeadComposeRequest) {
+pub(crate) fn append_variables(args: &mut Vec<String>, request: &BeadComposeRequest) {
     for (key, value) in &request.bead_variables {
         args.push(String::from("--var"));
         args.push(format!("{key}={value}"));
     }
 }
 
-fn run_stage(
+/// Closed mapping for process stages that return status-bearing failures.
+#[derive(Clone, Copy)]
+pub(crate) enum StageFailure {
+    Cook,
+    ResolveActiveRegistry,
+    PreviewPour,
+    Pour,
+}
+
+impl StageFailure {
+    fn stage(self) -> BeadStage {
+        match self {
+            Self::Cook => BeadStage::Validate,
+            Self::ResolveActiveRegistry => BeadStage::ResolveActiveRegistry,
+            Self::PreviewPour => BeadStage::PreviewPour,
+            Self::Pour => BeadStage::Pour,
+        }
+    }
+
+    fn error(self, exit_status: Option<i32>, diagnostic: &str) -> BeadComposeError {
+        match self {
+            Self::Cook => BeadComposeError::CookFailed {
+                exit_status,
+                cause: short_cause(diagnostic),
+            },
+            Self::ResolveActiveRegistry => {
+                BeadComposeError::ActiveRegistryResolutionFailed { exit_status }
+            }
+            Self::PreviewPour => BeadComposeError::PreviewPourFailed { exit_status },
+            Self::Pour => BeadComposeError::PourFailed { exit_status },
+        }
+    }
+}
+
+pub(crate) fn run_stage(
     runner: &dyn ProcessRunner,
-    stage: BeadStage,
+    failure: StageFailure,
     spec: &CommandSpec,
-    template_error: BeadComposeError,
     stages: &mut Vec<BeadStageReceipt>,
 ) -> Result<Option<BeadOutcome>, BeadComposeError> {
-    match run_stage_with_output(runner, stage, spec, template_error, stages)? {
+    match run_stage_with_output(runner, failure, spec, stages)? {
         Ok(_) => Ok(None),
         Err(outcome) => Ok(Some(outcome)),
     }
 }
 
-fn run_stage_with_output(
+pub(crate) fn run_stage_with_output(
     runner: &dyn ProcessRunner,
-    stage: BeadStage,
+    failure: StageFailure,
     spec: &CommandSpec,
-    template_error: BeadComposeError,
     stages: &mut Vec<BeadStageReceipt>,
 ) -> Result<Result<ProcessOutput, BeadOutcome>, BeadComposeError> {
+    let stage = failure.stage();
     let output = runner.run(spec).map_err(|error| {
         if is_process_output_limit_error(&error) {
             BeadComposeError::ProcessOutputLimitExceeded {
@@ -375,69 +531,106 @@ fn run_stage_with_output(
             }
         }
     })?;
-    let successful = output.exit_status == Some(0);
-    let code = error_with_status(template_error, output.exit_status)
-        .code()
-        .to_owned();
-    stages.push(process_receipt(
-        stage,
-        spec,
-        &output,
-        if successful {
-            BeadStageOutcome::Succeeded
-        } else {
-            BeadStageOutcome::Failed { code: code.clone() }
-        },
-    ));
-    if successful {
+    if output.exit_status == Some(0) {
+        stages.push(process_receipt(
+            stage,
+            spec,
+            &output,
+            BeadStageOutcome::Succeeded,
+        ));
         Ok(Ok(output))
     } else {
+        let diagnostic = if output.stderr.trim().is_empty() {
+            &output.stdout
+        } else {
+            &output.stderr
+        };
+        let code = failure
+            .error(output.exit_status, diagnostic)
+            .code()
+            .to_owned();
+        stages.push(process_receipt(
+            stage,
+            spec,
+            &output,
+            BeadStageOutcome::Failed { code: code.clone() },
+        ));
         Ok(Err(BeadOutcome::Failed { code }))
     }
 }
 
-fn error_with_status(error: BeadComposeError, exit_status: Option<i32>) -> BeadComposeError {
-    match error {
-        BeadComposeError::CookFailed { .. } => BeadComposeError::CookFailed { exit_status },
-        BeadComposeError::ActiveRegistryResolutionFailed { .. } => {
-            BeadComposeError::ActiveRegistryResolutionFailed { exit_status }
+fn present_snapshot_paths(stages: &mut [BeadStageReceipt], snapshot: &Path, source: &Path) {
+    let snapshot = public_path_display(snapshot);
+    let source = public_path_display(source);
+    for stage in stages {
+        for argument in &mut stage.argv {
+            if argument == snapshot.as_str() {
+                argument.clone_from(&source);
+            }
         }
-        BeadComposeError::PreviewPourFailed { .. } => {
-            BeadComposeError::PreviewPourFailed { exit_status }
-        }
-        BeadComposeError::PourFailed { .. } => BeadComposeError::PourFailed { exit_status },
-        other => other,
+        stage.stderr_excerpt = stage
+            .stderr_excerpt
+            .replace(snapshot.as_str(), source.as_ref());
+        stage.stdout_excerpt = stage
+            .stdout_excerpt
+            .replace(snapshot.as_str(), source.as_ref());
     }
 }
 
-fn receipt(
+pub(crate) fn receipt(
     request: &BeadComposeRequest,
     rendered_formula: PathBuf,
     stages: Vec<BeadStageReceipt>,
     outcome: BeadOutcome,
 ) -> BeadComposeReceipt {
+    let public_rendered_formula = public_path_display(&rendered_formula);
+    let private_rendered_formula = rendered_formula
+        .into_os_string()
+        .to_string_lossy()
+        .into_owned();
+    let mut stages = stages;
+    for stage in &mut stages {
+        for argument in &mut stage.argv {
+            if argument == private_rendered_formula.as_str() {
+                argument.clone_from(&public_rendered_formula);
+            }
+        }
+        stage.stderr_excerpt = stage
+            .stderr_excerpt
+            .replace(private_rendered_formula.as_str(), &public_rendered_formula);
+        stage.stdout_excerpt = stage
+            .stdout_excerpt
+            .replace(private_rendered_formula.as_str(), &public_rendered_formula);
+    }
     BeadComposeReceipt {
         schema: BEADS_SCHEMA_V1.to_owned(),
         operation: request.operation,
-        rendered_formula,
+        rendered_formula: PathBuf::from(public_rendered_formula),
         stages,
         outcome,
+        pour_mode: None,
+        graph: None,
+        missing_edges: Vec::new(),
     }
 }
 
-fn render_receipt(started: Instant, outcome: BeadStageOutcome) -> BeadStageReceipt {
+fn render_receipt(
+    started: Instant,
+    outcome: BeadStageOutcome,
+    stderr_excerpt: String,
+) -> BeadStageReceipt {
     BeadStageReceipt {
         stage: BeadStage::Render,
         argv: Vec::new(),
         exit_status: None,
         elapsed_ms: elapsed_ms(started.elapsed()),
         stdout_excerpt: String::new(),
-        stderr_excerpt: String::new(),
+        stderr_excerpt,
         outcome,
     }
 }
 
-fn process_receipt(
+pub(crate) fn process_receipt(
     stage: BeadStage,
     spec: &CommandSpec,
     output: &ProcessOutput,
@@ -460,7 +653,7 @@ fn mark_last_stage_failed(stages: &mut [BeadStageReceipt], code: String) {
     }
 }
 
-fn failed_last_stage_receipt(
+pub(crate) fn failed_last_stage_receipt(
     request: &BeadComposeRequest,
     rendered_formula: PathBuf,
     mut stages: Vec<BeadStageReceipt>,
@@ -480,41 +673,12 @@ fn elapsed_ms(duration: std::time::Duration) -> u64 {
     duration.as_millis().try_into().unwrap_or(u64::MAX)
 }
 
-fn excerpt(value: &str) -> String {
+pub(crate) fn excerpt(value: &str) -> String {
     value.chars().take(OUTPUT_EXCERPT_LIMIT).collect()
 }
 
-fn parse_active_beads_dir(stdout: &str) -> Option<PathBuf> {
-    let value: Value = serde_json::from_str(stdout).ok()?;
-    value.get("path").and_then(Value::as_str).map(PathBuf::from)
-}
-
-fn validate_active_registry_path(
-    formula_name: &str,
-    rendered_formula: &Path,
-    active_beads_dir: &Path,
-) -> Result<(), BeadComposeError> {
-    let toml = active_beads_dir
-        .join("formulas")
-        .join(format!("{formula_name}.formula.toml"));
-    let json = active_beads_dir
-        .join("formulas")
-        .join(format!("{formula_name}.formula.json"));
-    if toml.is_file() && json.is_file() {
-        return Err(BeadComposeError::FormulaRegistryAmbiguous {
-            formula_name: formula_name.to_owned(),
-        });
-    }
-    if rendered_formula != toml && rendered_formula != json {
-        return Err(BeadComposeError::FormulaOutsideActiveRegistry {
-            path: rendered_formula.into(),
-        });
-    }
-    Ok(())
-}
-
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use std::collections::{BTreeMap, VecDeque};
     use std::fs;
     use std::io;
@@ -528,6 +692,7 @@ mod tests {
     use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner};
     #[cfg(unix)]
     use crate::StdProcessRunner;
+    use crate::paths::public_path_display;
     use crate::{
         BeadComposeError, BeadComposeRequest, BeadOperation, BeadOutcome, CommandSpec,
         ProcessOutput, ProcessRunner,
@@ -535,14 +700,26 @@ mod tests {
 
     static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+    #[cfg(windows)]
+    #[test]
+    fn cook_arguments_use_the_same_public_path_as_receipts() {
+        let root = workspace();
+        let request = request(&root, BeadOperation::Validate);
+        let path = Path::new(r"\\?\C:\Users\test\example.formula.toml");
+        let args = super::cook_args(path, &request);
+        assert_eq!(args[1], public_path_display(path));
+        assert_eq!(args[1], r"C:\Users\test\example.formula.toml");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
     #[derive(Default)]
-    struct FakeRunner {
+    pub(crate) struct FakeRunner {
         outputs: Mutex<VecDeque<ProcessOutput>>,
-        calls: Mutex<Vec<CommandSpec>>,
+        pub(crate) calls: Mutex<Vec<CommandSpec>>,
     }
 
     impl FakeRunner {
-        fn with_outputs(outputs: impl IntoIterator<Item = ProcessOutput>) -> Self {
+        pub(crate) fn with_outputs(outputs: impl IntoIterator<Item = ProcessOutput>) -> Self {
             Self {
                 outputs: Mutex::new(outputs.into_iter().collect()),
                 calls: Mutex::default(),
@@ -588,7 +765,7 @@ mod tests {
         }
     }
 
-    fn success(stdout: &str) -> ProcessOutput {
+    pub(crate) fn success(stdout: &str) -> ProcessOutput {
         ProcessOutput {
             exit_status: Some(0),
             stdout: stdout.to_owned(),
@@ -606,11 +783,11 @@ mod tests {
         }
     }
 
-    fn where_output(active_beads_dir: &Path) -> ProcessOutput {
+    pub(crate) fn where_output(active_beads_dir: &Path) -> ProcessOutput {
         success(&serde_json::json!({ "path": active_beads_dir }).to_string())
     }
 
-    fn workspace() -> PathBuf {
+    pub(crate) fn workspace() -> PathBuf {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock")
@@ -624,7 +801,7 @@ mod tests {
         root
     }
 
-    fn request(root: &Path, operation: BeadOperation) -> BeadComposeRequest {
+    pub(crate) fn request(root: &Path, operation: BeadOperation) -> BeadComposeRequest {
         let template = root.join("example.formula.toml.j2");
         fs::write(
             &template,
@@ -638,14 +815,236 @@ mod tests {
             template,
             rendered_formula: root.join("example.formula.toml"),
             compose_variables: Map::from_iter([(String::from("people"), json!([{"name": "Ada"}]))]),
-            formula_name: Some(String::from("example")),
+            formula_name: Some(crate::FormulaName::new("example").expect("formula name")),
             bead_variables: BTreeMap::from([
                 (String::from("zebra"), String::from("last")),
                 (String::from("alpha"), String::from("first")),
             ]),
             bd_executable: Some(PathBuf::from("fake-bd")),
             pour_authorization: None,
+            parent: None,
+            ref_: None,
+            relations: Vec::new(),
         }
+    }
+
+    #[test]
+    fn graph_cook_failure_diagnostic_names_public_source_not_private_snapshot() {
+        struct FailingCook;
+        impl ProcessRunner for FailingCook {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                assert_eq!(spec.args[0], "cook");
+                assert!(spec.args[1].contains(".sc-compose-input-"));
+                let mut output = success("");
+                output.exit_status = Some(3);
+                output.stderr = format!("cannot cook {}\n", spec.args[1]);
+                Ok(output)
+            }
+        }
+        let root = fs::canonicalize(workspace()).unwrap();
+        let mut request = request(&root, BeadOperation::PreviewAttach);
+        request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+        request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+        request.bead_variables.clear();
+        fs::write(&request.template, "formula = \"example\"\n").unwrap();
+        let mut diagnostics = Vec::new();
+        let receipt =
+            super::execute_with_runner_and_diagnostics(&request, &FailingCook, &mut |error| {
+                assert!(!error.to_string().contains(".sc-compose-input-"));
+                diagnostics.push(serde_json::to_value(error).unwrap());
+            })
+            .unwrap();
+        let public = public_path_display(&request.rendered_formula);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0]["code"], "BEADS_COOK_FAILED");
+        assert!(
+            diagnostics[0]["message"]
+                .as_str()
+                .unwrap()
+                .contains(&public)
+        );
+        let wire = serde_json::to_string(&(receipt, diagnostics)).unwrap();
+        assert!(!wire.contains(".sc-compose-input-"), "{wire}");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn graph_create_diagnostic_names_public_plan_before_truncation() {
+        struct FailingCreate(FakeRunner);
+        impl ProcessRunner for FailingCreate {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                if spec.args[0] == "create" {
+                    assert!(spec.args[2].contains(".sc-compose-input-"));
+                    assert!(Path::new(&spec.args[2]).is_file());
+                    let mut output = success("{}");
+                    output.exit_status = Some(7);
+                    output.stderr = format!("cannot apply {} ", spec.args[2]).repeat(100);
+                    return Ok(output);
+                }
+                self.0.run(spec)
+            }
+        }
+        for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+            let root = fs::canonicalize(workspace()).unwrap();
+            let mut request = request(&root, operation);
+            request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+            request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+            request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+            request.bead_variables.clear();
+            fs::write(&request.template, "formula = \"example\"\n").unwrap();
+            let runner = FailingCreate(FakeRunner::with_outputs([
+                success(
+                    r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#,
+                ),
+                success(r#"[{"id":"proj-1"}]"#),
+            ]));
+            let mut diagnostics = Vec::new();
+            let receipt =
+                super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+                    assert!(matches!(error, BeadComposeError::GraphApplyFailed { .. }));
+                    assert!(!error.to_string().contains(".sc-compose-input-"));
+                    diagnostics.push(serde_json::to_value(error).unwrap());
+                })
+                .unwrap();
+            let public = public_path_display(&PathBuf::from(format!(
+                "{}.graph.json",
+                request.rendered_formula.display()
+            )));
+            assert_eq!(diagnostics.len(), 1);
+            let error = &diagnostics[0];
+            assert_eq!(error["details"]["command"][3], public);
+            assert!(
+                error["details"]["cause"]
+                    .as_str()
+                    .unwrap()
+                    .contains(&public)
+            );
+            assert!(error["message"].as_str().unwrap().contains(&public));
+            let wire = serde_json::to_string(&(receipt, diagnostics)).unwrap();
+            assert!(!wire.contains(".sc-compose-input-"), "{wire}");
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
+    fn exit_zero_apply_with_unusable_response_retains_unconfirmed_diagnostic() {
+        let root = fs::canonicalize(workspace()).unwrap();
+        let mut request = request(&root, BeadOperation::Attach);
+        request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+        request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+        request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+        request.bead_variables.clear();
+        fs::write(&request.template, "formula = \"example\"\n").unwrap();
+        let runner = FakeRunner::with_outputs([
+            success(r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#),
+            success(r#"[{"id":"proj-1"}]"#),
+            success("not-json"),
+        ]);
+        let mut diagnostics = Vec::new();
+        let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+            diagnostics.push(serde_json::to_value(error).unwrap());
+        })
+        .unwrap();
+        assert_eq!(
+            receipt.outcome,
+            BeadOutcome::Failed {
+                code: "BEADS_GRAPH_APPLY_UNCONFIRMED".into()
+            }
+        );
+        assert_eq!(diagnostics.len(), 1);
+        let error = &diagnostics[0];
+        assert_eq!(error["code"], "BEADS_GRAPH_APPLY_UNCONFIRMED");
+        assert_eq!(error["details"]["ids"], json!(["proj-1", "proj-1.chain-a"]));
+        assert!(
+            error["recovery"]
+                .as_str()
+                .unwrap()
+                .contains("Reconcile before pouring again")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn attach_output_refusal_retains_exact_path_in_typed_diagnostic() {
+        for operation in [BeadOperation::PreviewAttach, BeadOperation::Attach] {
+            let root = fs::canonicalize(workspace()).unwrap();
+            let mut request = request(&root, operation);
+            request.parent = Some(crate::BeadId::new("proj-1").unwrap());
+            request.ref_ = Some(crate::GraphRef::new("chain").unwrap());
+            request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+            request.bead_variables.clear();
+            fs::write(&request.template, "formula = \"example\"\n").unwrap();
+            let mut path = request.rendered_formula.as_os_str().to_os_string();
+            path.push(".graph.json");
+            let path = PathBuf::from(path);
+            fs::create_dir(&path).unwrap();
+            let public = crate::paths::public_path_buf(&path);
+            let runner = FakeRunner::with_outputs([
+                success(
+                    r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#,
+                ),
+                success(r#"[{"id":"proj-1"}]"#),
+            ]);
+            let mut diagnostics = Vec::new();
+            let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+                assert!(matches!(error, BeadComposeError::OutputPathInvalid { path: actual, .. } if actual == &public));
+                diagnostics.push(serde_json::to_value(error).unwrap());
+            }).unwrap();
+            assert_eq!(diagnostics.len(), 1);
+            assert_eq!(
+                diagnostics[0]["details"]["value"],
+                public.to_string_lossy().as_ref()
+            );
+            assert_eq!(
+                receipt.outcome,
+                BeadOutcome::Refused {
+                    code: "BEADS_OUTPUT_PATH_INVALID".into()
+                }
+            );
+            assert!(receipt.graph.is_none());
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
+    fn graph_diagnostic_callback_retains_typed_error_without_changing_receipt_json() {
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::PreviewAttach);
+        request.parent = Some(crate::BeadId::new("nosuch").unwrap());
+        request.ref_ = Some(crate::GraphRef::new("r").unwrap());
+        request.bead_variables.clear();
+        fs::write(&request.template, "formula = \"example\"\n").unwrap();
+        let runner = FakeRunner::with_outputs([
+            success(r#"{"formula":"example","type":"workflow","steps":[{"id":"a","title":"A"}]}"#),
+            success("[]"),
+        ]);
+        let mut diagnostics = Vec::new();
+        let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
+            assert!(matches!(error, BeadComposeError::GraphParentNotFound { parent } if parent.as_str() == "nosuch"));
+            diagnostics.push(serde_json::to_value(error).unwrap());
+        }).unwrap();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0]["details"], json!({"parent":"nosuch"}));
+        assert_eq!(
+            diagnostics[0]["recovery"],
+            "Create the parent or name an existing bead."
+        );
+        let wire = serde_json::to_value(&receipt).unwrap();
+        assert_eq!(
+            wire["outcome"],
+            json!({"refused":{"code":"BEADS_GRAPH_PARENT_NOT_FOUND"}})
+        );
+        assert!(wire.get("error").is_none());
+        assert!(wire.get("diagnostics").is_none());
+        assert!(
+            receipt
+                .stages
+                .last()
+                .unwrap()
+                .stderr_excerpt
+                .contains("graph parent `nosuch` does not exist")
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -681,7 +1080,7 @@ mod tests {
             calls[0].args,
             vec![
                 "cook",
-                canonical_output.to_string_lossy().as_ref(),
+                public_path_display(&canonical_output).as_str(),
                 "--dry-run",
                 "--json",
                 "--var",
@@ -709,115 +1108,6 @@ mod tests {
         );
         assert_eq!(result.stages.len(), 2);
         assert_eq!(runner.calls.lock().expect("calls lock").len(), 1);
-        fs::remove_dir_all(root).expect("cleanup");
-    }
-
-    #[test]
-    fn malformed_where_output_marks_the_attempted_stage_failed() {
-        let root = workspace();
-        let active_registry = root.join(".beads").join("formulas");
-        fs::create_dir_all(&active_registry).expect("create active registry");
-        let mut request = request(&root, BeadOperation::PreviewPour);
-        request.rendered_formula = active_registry.join("example.formula.toml");
-        let runner = FakeRunner::with_outputs([success("{}"), success("{\"not_path\":true}")]);
-
-        let result = execute_bead_request_with_runner(&request, &runner).expect("receipt");
-        assert_eq!(
-            result.outcome,
-            BeadOutcome::Failed {
-                code: String::from("BEADS_WHERE_FAILED")
-            }
-        );
-        assert_eq!(result.stages.len(), 3);
-        assert_eq!(
-            result.stages[2].outcome,
-            crate::BeadStageOutcome::Failed {
-                code: String::from("BEADS_WHERE_FAILED")
-            }
-        );
-        assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
-        fs::remove_dir_all(root).expect("cleanup");
-    }
-
-    #[test]
-    fn preview_uses_the_canonical_active_registry_and_direct_pour_argv() {
-        let root = workspace();
-        let active_beads_dir = root.join(".beads");
-        let registry = active_beads_dir.join("formulas");
-        fs::create_dir_all(&registry).expect("create active registry");
-        let mut request = request(&root, BeadOperation::PreviewPour);
-        request.rendered_formula = registry.join("example.formula.toml");
-        let runner = FakeRunner::with_outputs([
-            success("{}"),
-            where_output(&active_beads_dir),
-            success("{}"),
-        ]);
-
-        let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
-        assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
-        assert_eq!(receipt.stages.len(), 4);
-        let calls = runner.calls.lock().expect("calls lock");
-        assert_eq!(calls.len(), 3);
-        assert_eq!(
-            calls[2].args,
-            vec![
-                "mol",
-                "pour",
-                "example",
-                "--dry-run",
-                "--json",
-                "--var",
-                "alpha=first",
-                "--var",
-                "zebra=last",
-            ]
-        );
-        drop(calls);
-        fs::remove_dir_all(root).expect("cleanup");
-    }
-
-    #[test]
-    fn same_name_toml_json_pair_blocks_preview_before_pour() {
-        let root = workspace();
-        let active_beads_dir = root.join(".beads");
-        let registry = active_beads_dir.join("formulas");
-        fs::create_dir_all(&registry).expect("create active registry");
-        let toml = registry.join("example.formula.toml");
-        let json = registry.join("example.formula.json");
-        fs::write(&toml, "formula = \"example\"").expect("write TOML shadow");
-        fs::write(&json, "{\"formula\":\"example\"}").expect("write JSON shadow");
-        let mut request = request(&root, BeadOperation::PreviewPour);
-        request.rendered_formula = toml;
-        let runner = FakeRunner::with_outputs([success("{}"), where_output(&active_beads_dir)]);
-
-        let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
-        assert_eq!(
-            receipt.outcome,
-            BeadOutcome::Failed {
-                code: String::from("BEADS_FORMULA_REGISTRY_AMBIGUOUS")
-            }
-        );
-        assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
-        fs::remove_dir_all(root).expect("cleanup");
-    }
-
-    #[test]
-    fn preview_rejects_an_output_outside_the_active_registry_before_pour() {
-        let root = workspace();
-        let active_beads_dir = root.join(".beads");
-        fs::create_dir_all(active_beads_dir.join("formulas")).expect("create active registry");
-        let runner = FakeRunner::with_outputs([success("{}"), where_output(&active_beads_dir)]);
-
-        let receipt =
-            execute_bead_request_with_runner(&request(&root, BeadOperation::PreviewPour), &runner)
-                .expect("receipt");
-        assert_eq!(
-            receipt.outcome,
-            BeadOutcome::Failed {
-                code: String::from("BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY")
-            }
-        );
-        assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
         fs::remove_dir_all(root).expect("cleanup");
     }
 
@@ -867,6 +1157,80 @@ mod tests {
             }
         ));
         fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn registry_process_failures_preserve_stage_codes_status_and_evidence() {
+        for (operation, stage, code, successful_stages) in [
+            (
+                BeadOperation::Validate,
+                crate::BeadStage::Validate,
+                "BEADS_COOK_FAILED",
+                0,
+            ),
+            (
+                BeadOperation::PreviewPour,
+                crate::BeadStage::ResolveActiveRegistry,
+                "BEADS_WHERE_FAILED",
+                1,
+            ),
+            (
+                BeadOperation::PreviewPour,
+                crate::BeadStage::PreviewPour,
+                "BEADS_PREVIEW_POUR_FAILED",
+                2,
+            ),
+            (
+                BeadOperation::Pour,
+                crate::BeadStage::Pour,
+                "BEADS_POUR_FAILED",
+                2,
+            ),
+        ] {
+            for status in [Some(7), None] {
+                let root = workspace();
+                let beads_dir = root.join(".beads");
+                let registry = beads_dir.join("formulas");
+                fs::create_dir_all(&registry).expect("registry");
+                let mut request = request(&root, operation);
+                request.rendered_formula = registry.join("example.formula.toml");
+                request.pour_authorization = Some(crate::PourAuthorization::CreatePersistentBeads);
+                let mut outputs = Vec::new();
+                if successful_stages > 0 {
+                    outputs.push(success("{}"));
+                }
+                if successful_stages > 1 {
+                    outputs.push(where_output(&beads_dir));
+                }
+                let mut failed_output = failure();
+                failed_output.exit_status = status;
+                failed_output.stdout = "partial output".into();
+                outputs.push(failed_output);
+                let runner = FakeRunner::with_outputs(outputs);
+
+                let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+                assert_eq!(receipt.outcome, BeadOutcome::Failed { code: code.into() });
+                assert_eq!(receipt.stages.len(), successful_stages + 2);
+                let failed_stage = receipt.stages.last().expect("failed stage");
+                assert_eq!(failed_stage.stage, stage);
+                assert_eq!(
+                    failed_stage.outcome,
+                    crate::BeadStageOutcome::Failed { code: code.into() }
+                );
+                assert_eq!(failed_stage.exit_status, status);
+                assert_eq!(failed_stage.stdout_excerpt, "partial output");
+                assert_eq!(failed_stage.stderr_excerpt, "invalid formula");
+                assert_eq!(failed_stage.elapsed_ms, 2);
+                let calls = runner.calls.lock().expect("calls");
+                assert_eq!(calls.len(), successful_stages + 1);
+                assert_eq!(
+                    failed_stage.argv,
+                    calls.last().expect("attempted command").argv()
+                );
+                drop(calls);
+                fs::remove_dir_all(root).expect("cleanup");
+            }
+        }
     }
 
     #[test]
@@ -1034,5 +1398,192 @@ mod tests {
         assert!(matches!(error, BeadComposeError::PathNotUtf8 { .. }));
         assert!(runner.calls.lock().expect("calls lock").is_empty());
         fs::remove_dir_all(root).expect("cleanup");
+    }
+    #[test]
+    fn fuzz_012_relative_rendered_formula_is_under_working_directory() {
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula = PathBuf::from("nested/output.formula.toml");
+        fs::create_dir_all(root.join("nested")).expect("output directory");
+        let receipt = execute_bead_request_with_runner(&request, &FakeRunner::default())
+            .expect("render receipt");
+        assert!(
+            receipt
+                .rendered_formula
+                .ends_with("nested/output.formula.toml")
+        );
+        assert!(receipt.rendered_formula.is_file());
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+}
+
+#[cfg(test)]
+mod fuzz_055_tests {
+    use super::*;
+
+    #[test]
+    fn fuzz_055_snapshot_paths_are_not_exposed_in_stage_evidence() {
+        let snapshot = Path::new("/work/.sc-compose-input-1.formula.toml");
+        let source = Path::new("/work/rendered.formula.toml");
+        let snapshot_display = public_path_display(snapshot);
+        let mut stages = vec![BeadStageReceipt {
+            stage: BeadStage::Validate,
+            argv: vec!["cook".into(), snapshot_display.clone()],
+            exit_status: Some(7),
+            elapsed_ms: 0,
+            stdout_excerpt: snapshot_display.clone(),
+            stderr_excerpt: format!("failed {snapshot_display}"),
+            outcome: BeadStageOutcome::Failed {
+                code: "BEADS_COOK_FAILED".into(),
+            },
+        }];
+        present_snapshot_paths(&mut stages, snapshot, source);
+        let evidence = format!("{:?}", stages[0]);
+        assert!(evidence.contains("rendered.formula.toml"));
+        assert!(!evidence.contains(".sc-compose-input-"));
+    }
+}
+
+/// t40-f1: every user-visible error path derived from `fs::canonicalize` must
+/// pass through `public_path_display` so Windows never shows `\\?\` paths.
+///
+/// On non-Windows hosts canonical paths have no verbatim prefix, so the tests
+/// install `PUBLIC_PATH_MARKER`, which `public_path_display` prepends. A site
+/// that bypasses `public_path_display` therefore lacks the marker and fails.
+#[cfg(all(test, not(windows)))]
+mod public_path_error_tests {
+    use std::fs;
+
+    use super::execute_bead_request_with_runner;
+    use super::tests::{FakeRunner, request, workspace};
+    use crate::paths::PUBLIC_PATH_MARKER;
+    use crate::{BeadComposeError, BeadOperation};
+
+    const MARKER: &str = "PUBLIC-PATH<>";
+
+    struct MarkerGuard;
+
+    impl MarkerGuard {
+        fn install() -> Self {
+            PUBLIC_PATH_MARKER.with(|marker| *marker.borrow_mut() = Some(MARKER.to_owned()));
+            Self
+        }
+    }
+
+    impl Drop for MarkerGuard {
+        fn drop(&mut self) {
+            PUBLIC_PATH_MARKER.with(|marker| *marker.borrow_mut() = None);
+        }
+    }
+
+    fn assert_public(error: &BeadComposeError, code: &str) {
+        assert_eq!(error.code(), code);
+        let display = error.to_string();
+        let json = serde_json::to_string(error).expect("error JSON");
+        for text in [&display, &json] {
+            assert!(
+                text.contains(MARKER),
+                "path bypassed public_path_display: {text}"
+            );
+            assert!(!text.contains(r"\\?\"), "verbatim prefix leaked: {text}");
+        }
+    }
+
+    fn run(request: &crate::BeadComposeRequest) -> BeadComposeError {
+        execute_bead_request_with_runner(request, &FakeRunner::default())
+            .expect_err("request must be rejected")
+    }
+
+    #[test]
+    fn formula_path_not_file_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.template = root.join("directory.formula.toml.j2");
+        fs::create_dir(&request.template).expect("template directory");
+        assert_public(&run(&request), "BEADS_FORMULA_NOT_FILE");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn template_outside_working_directory_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let other = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.template = other.join("outside.formula.toml.j2");
+        fs::write(&request.template, "x = 1\n").expect("outside template");
+        assert_public(&run(&request), "BEADS_TEMPLATE_OUTSIDE_WORKING_DIR");
+        fs::remove_dir_all(root).expect("cleanup");
+        fs::remove_dir_all(other).expect("cleanup");
+    }
+
+    #[test]
+    fn formula_extension_unsupported_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula = root.join("example.invalid");
+        assert_public(&run(&request), "BEADS_FORMULA_EXTENSION_UNSUPPORTED");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn output_outside_working_directory_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let other = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula = other.join("outside.formula.toml");
+        assert_public(&run(&request), "BEADS_OUTPUT_OUTSIDE_WORKING_DIR");
+        fs::remove_dir_all(root).expect("cleanup");
+        fs::remove_dir_all(other).expect("cleanup");
+    }
+
+    #[test]
+    fn output_destination_directory_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let request = request(&root, BeadOperation::Render);
+        fs::create_dir(&request.rendered_formula).expect("destination directory");
+        assert_public(&run(&request), "BEADS_OUTPUT_PATH_INVALID");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn output_destination_symlink_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let request = request(&root, BeadOperation::Render);
+        std::os::unix::fs::symlink(&request.template, &request.rendered_formula)
+            .expect("destination symlink");
+        assert_public(&run(&request), "BEADS_OUTPUT_PATH_SYMLINK");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn non_utf8_path_uses_public_path() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let _guard = MarkerGuard::install();
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula =
+            root.join(OsString::from_vec(b"output-\xff.formula.toml".to_vec()));
+        assert_public(&run(&request), "BEADS_PATH_NOT_UTF8");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn snapshot_output_error_uses_public_path() {
+        let _guard = MarkerGuard::install();
+        let error = crate::snapshot::output_error(
+            std::path::Path::new("/work/rendered.formula.toml"),
+            BeadComposeError::RenderFailed {
+                message: String::from("boom"),
+            },
+        );
+        assert_public(&error, "BEADS_OUTPUT_PATH_INVALID");
     }
 }

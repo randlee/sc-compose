@@ -1,0 +1,22 @@
+{
+  "compose": {
+    "bond_points": [
+      {
+        "after_step": "build",
+        "id": "hook"
+      }
+    ]
+  },
+  "description": "Graph parser contract",
+  "formula": "compose",
+  "schema_version": 1,
+  "source": "<workspace>/compose.formula.json",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

@@ -1,0 +1,19 @@
+{
+  "description": "Graph parser contract",
+  "formula": "pointcuts",
+  "pointcuts": [
+    {
+      "glob": "build"
+    }
+  ],
+  "schema_version": 1,
+  "source": "<workspace>/pointcuts.formula.json",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

@@ -132,7 +132,7 @@ should expect:
   `sc-observability`. The CLI creates the logger, keeps file logging enabled for every
   command, suppresses the console sink whenever `--json` is active, and exposes
   `observability-health` for process-local sink/query health inspection.
-  The current standalone line uses `sc-observability` `1.2.0` directly rather
+  The current standalone line uses `sc-observability` `1.5.0` directly rather
   than adding the `sc-observe` facade at the CLI seam.
 - **Template whitespace behavior**: `trim_blocks` and `lstrip_blocks` are enabled by
   default. Block tags now strip the trailing newline after the block and the leading
@@ -144,6 +144,12 @@ should expect:
   `sc-composer` library API.
 - **CLI flags**: Some CLI flags have been renamed or added. See `docs/requirements.md` FR-7
   for the complete current flag specification.
+
+The CLI pins both `sc-observability` and `sc-observability-types` to crates.io
+`=1.5.0` with default features disabled. Its adapter uses the v2 logger and sink
+contracts, registering sinks with `SinkRegistration::typed(...)`. Logger builder
+and build failures produce usage exit 3 with the configured log root in context.
+The infallible health interface and JSON serialization fallback remain in place.
 
 ## Observability Cutover Notes
 
@@ -174,9 +180,9 @@ Downstream consumers that shell out to `sc-compose` should expect:
   durability-sensitive paths rely on `flush()` or `shutdown()`,
 - graceful shutdown to flush logger sinks before process exit while recording sink
   degradation in health counters instead of aborting command completion,
-- `Logger::shutdown(self)` to return `Logger<Stopped>` only after definitive
-  writer-thread join so post-shutdown health inspection remains available from
-  the stopped typestate.
+- v2 `Logger::shutdown(&self)` to return `Result<(), ShutdownError>` while
+  the CLI retains the logger for post-shutdown health inspection and tracks its
+  own running/stopped state; failures remain visible in health.
 - For the normative rotation semantics, including rename-then-open behavior and
   Windows file-lock handling, see `docs/architecture.md` `§19.3`.
 - Windows rotation compatibility is validated by the CI matrix on Windows, and the

@@ -1,0 +1,17 @@
+{
+  "description": "Graph parser contract",
+  "formula": "gate",
+  "schema_version": 1,
+  "source": "<workspace>/gate.formula.json",
+  "steps": [
+    {
+      "gate": {
+        "type": "human"
+      },
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

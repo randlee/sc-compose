@@ -1,0 +1,79 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-1 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0001&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 36, &quot;name&quot;: &quot;R1 attach twice == once&quot;, &quot;passed&quot;: 36}, {&quot;cases&quot;: 40, &quot;name&quot;: &quot;R2 relation order and inputs&quot;, &quot;passed&quot;: 40}, {&quot;cases&quot;: 48, &quot;name&quot;: &quot;R3 CRLF / lone CR revision&quot;, &quot;passed&quot;: 48}, {&quot;cases&quot;: 24, &quot;name&quot;: &quot;R4 preview == apply&quot;, &quot;passed&quot;: 24}, {&quot;cases&quot;: 60, &quot;name&quot;: &quot;R5 head vs origin/develop&quot;, &quot;passed&quot;: 51}, {&quot;cases&quot;: 37, &quot;name&quot;: &quot;R6 CLI vs Python receipts&quot;, &quot;passed&quot;: 37}, {&quot;cases&quot;: 25, &quot;name&quot;: &quot;R7 concurrency (append + attach)&quot;, &quot;passed&quot;: 19}, {&quot;cases&quot;: 14, &quot;name&quot;: &quot;R8 determinism&quot;, &quot;passed&quot;: 14}, {&quot;cases&quot;: 20, &quot;name&quot;: &quot;R9 extra metamorphic&quot;, &quot;passed&quot;: 20}], &quot;cases_run&quot;: 304, &quot;correlation_id&quot;: &quot;differential-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 15, &quot;finding_ids&quot;: [&quot;FUZZ-013&quot;, &quot;FUZZ-014&quot;, &quot;FUZZ-028&quot;, &quot;FUZZ-029&quot;, &quot;FUZZ-030&quot;, &quot;FUZZ-031&quot;, &quot;FUZZ-032&quot;, &quot;FUZZ-033&quot;], &quot;passed&quot;: 289, &quot;seed&quot;: 7023, &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;metamorphic and differential relations: attach twice == once, relation order, CRLF revision, preview == apply, Phase R registry pour vs origin/develop, CLI vs Python receipts, concurrency, determinism&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Workspaces difa..difg. Python binding built from head stood in for the Rust library (the optional scratch cargo harness was skipped to avoid writing outside the campaign dir). Concurrent render --append (8x25, 8x25 at 70 KB, 16x10) produced exact counts and no interleaving. CLI and Python receipts agreed in 37/37 cases.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">metamorphic and differential relations: attach twice == once, relation order, CRLF revision, preview == apply, Phase R registry pour vs origin/develop, CLI vs Python receipts, concurrency, determinism</th>
+        <td>304</td>
+        <td>289/304</td>
+        <td>
+          <span class="status status-error">FAIL: 2 confirmed bug(s)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">differential-probe/R1 attach twice == once</th><td><code>R1 attach twice == once</code></td><td>36/36 passed</td></tr>
+        <tr><th scope="row">differential-probe/R2 relation order and inputs</th><td><code>R2 relation order and inputs</code></td><td>40/40 passed</td></tr>
+        <tr><th scope="row">differential-probe/R3 CRLF / lone CR revision</th><td><code>R3 CRLF / lone CR revision</code></td><td>48/48 passed</td></tr>
+        <tr><th scope="row">differential-probe/R4 preview == apply</th><td><code>R4 preview == apply</code></td><td>24/24 passed</td></tr>
+        <tr><th scope="row">differential-probe/R5 head vs origin/develop</th><td><code>R5 head vs origin/develop</code></td><td>51/60 passed</td></tr>
+        <tr><th scope="row">differential-probe/R6 CLI vs Python receipts</th><td><code>R6 CLI vs Python receipts</code></td><td>37/37 passed</td></tr>
+        <tr><th scope="row">differential-probe/R7 concurrency (append + attach)</th><td><code>R7 concurrency (append + attach)</code></td><td>19/25 passed</td></tr>
+        <tr><th scope="row">differential-probe/R8 determinism</th><td><code>R8 determinism</code></td><td>14/14 passed</td></tr>
+        <tr><th scope="row">differential-probe/R9 extra metamorphic</th><td><code>R9 extra metamorphic</code></td><td>20/20 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-013</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;re g0&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A&quot;</code></dd>
+        <dt>Input</dt><dd><code>render request with &quot;formula_name&quot;:&quot;re g0&quot; (also &quot;café&quot;, &quot;a+b&quot;, &quot;&quot;)</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Decision 1: additive only; Phase R requests parse unchanged. Baseline accepts these requests (exit 0 render/validate/registry preview-pour).</dd>
+        <dt>Observed</dt><dd>Head: exit 3 BEADS_REQUEST_DESERIALIZATION_FAILED &#x27;invalid graph formula ...; follow ADR-0023&#x27; for every operation, including render, which never uses the name. formula_name &quot;&quot; now gives deserialization failure instead of BEADS_FORMULA_NAME_REQUIRED on pour. Reproduced 3/3 by the coordinator, head vs baseline.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Decision 1 and Consequences; ADR-0021 FormulaNameRequired</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Decision owner team-lead: either keep the grammar and amend ADR-0021/0023 (documenting the breaking change), or confine the grammar to the uses that need it (registry path, graph metadata).</dd>
+        <dt>Root cause</dt><dd>Commit e1b5168 made BeadComposeRequest.formula_name a validating FormulaName newtype, so serde rejects names outside [A-Za-z0-9_][A-Za-z0-9_.-]* during request parsing.</dd>
+        <dt>Recommended fix</dt><dd>Validate formula_name only where it becomes a path or bd argument, with a stable code, and keep Phase R parsing unchanged; or record the break in an ADR.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-014</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;x&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A {{{ tag }}}&quot;</code></dd>
+        <dt>Input</dt><dd><code>request k: ref race&lt;k&gt;, compose_variables {&quot;tag&quot;:&quot;T&lt;k&gt;&quot;}, rendered_formula &lt;ws&gt;/build/x.formula.toml</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Atomic apply and Revision: each request&#x27;s beads come from its own rendered text; GraphApplyFailed means bd wrote nothing.</dd>
+        <dt>Observed</dt><dd>Coordinator repro (3 trials): trial 1: a failed receipt (GraphApplyFailed, &#x27;nothing was written&#x27;) whose own bd create returned ids for the other request&#x27;s plan; trial 2: a succeeded receipt for ref race20 created a bead titled &#x27;A T21&#x27;, i.e. the other request&#x27;s content. Worker saw cross-contamination in 27/27 trials. Deterministic regression via a path-honest fake bd.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Decision 6, Graph plan, Revision, Errors (GraphApplyFailed); UC-9</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed for the invariant; if a shared rendered_formula is to be unsupported, document and refuse it.</dd>
+        <dt>Root cause</dt><dd>graph::run re-reads rendered_formula from disk and bd cooks it by path, and PendingCreate::execute writes then applies the fixed path &lt;rendered_formula&gt;.graph.json, so concurrent requests sharing the path race on both files.</dd>
+        <dt>Recommended fix</dt><dd>Hash and cook the bytes this request rendered (private copy), and write the plan to a per-invocation path or hold a lock across render-cook-apply.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

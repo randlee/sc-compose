@@ -1,0 +1,20 @@
+{
+  "formula": "compose",
+  "description": "Graph parser contract",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "compose": {
+    "bond_points": [
+      {
+        "id": "hook",
+        "after_step": "build"
+      }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "exit_status": 1,
+  "stdout": "",
+  "stderr": "Error: resolving formula: formula validation failed:\n  - steps[0] (build): needs references unknown step \"absent\"\n"
+}

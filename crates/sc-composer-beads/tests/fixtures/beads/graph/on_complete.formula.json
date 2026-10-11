@@ -1,0 +1,16 @@
+{
+  "formula": "on_complete",
+  "description": "Graph parser contract",
+  "version": 1,
+  "type": "workflow",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}",
+      "on_complete": {
+        "for_each": "output.items",
+        "bond": "worker"
+      }
+    }
+  ]
+}

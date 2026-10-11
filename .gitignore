@@ -20,6 +20,7 @@ target
 __pycache__/
 *.pyc
 bindings/python/python/sc_compose/_native*.so
+bindings/sc-composer-beads-python/python/sc_composer_beads/_native*.so
 bindings/sc-sha-go/native/*/libsc_sha_go.a
 bindings/sc-sha-go/native/*/sc_sha_go.lib
 bindings/sc-sha-go/native/*/sc_sha_go.a

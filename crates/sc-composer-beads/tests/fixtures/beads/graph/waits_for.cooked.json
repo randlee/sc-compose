@@ -1,0 +1,22 @@
+{
+  "description": "Graph parser contract",
+  "formula": "waits_for",
+  "schema_version": 1,
+  "source": "<workspace>/waits_for.formula.json",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build"
+    },
+    {
+      "id": "wait",
+      "needs": [
+        "build"
+      ],
+      "title": "Wait",
+      "waits_for": "all-children"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

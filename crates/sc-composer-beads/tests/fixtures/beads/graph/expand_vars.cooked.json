@@ -1,0 +1,17 @@
+{
+  "description": "Graph parser contract",
+  "formula": "expand_vars",
+  "schema_version": 1,
+  "source": "<workspace>/expand_vars.formula.json",
+  "steps": [
+    {
+      "expand_vars": {
+        "owner": "tester"
+      },
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

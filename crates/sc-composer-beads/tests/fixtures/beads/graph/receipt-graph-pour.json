@@ -1,0 +1,39 @@
+{
+  "schema": "sc-compose/beads/v1",
+  "operation": "pour",
+  "rendered_formula": "<workspace>/release.formula.toml",
+  "stages": [],
+  "outcome": "succeeded",
+  "pour_mode": "graph",
+  "graph": {
+    "mode": "pour",
+    "parent": "proj-100",
+    "ref": null,
+    "formula": "release",
+    "revision": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "plan_path": "<workspace>/release.formula.toml.graph.json",
+    "ids": {
+      "build": "proj-100.1"
+    },
+    "nodes": [
+      {
+        "step": null,
+        "id": "proj-100",
+        "action": "created"
+      },
+      {
+        "step": "build",
+        "id": "proj-100.1",
+        "action": "created"
+      }
+    ],
+    "edges": [
+      {
+        "from": "proj-100.1",
+        "to": "proj-100",
+        "type": "parent-child",
+        "action": "added"
+      }
+    ]
+  }
+}

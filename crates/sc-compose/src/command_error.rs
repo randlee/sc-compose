@@ -77,6 +77,24 @@ impl CommandError {
         }
     }
 
+    pub(crate) fn render_append(
+        error: Error,
+        diagnostic_code: DiagnosticCode,
+        recovery_hints: Vec<RecoveryHint>,
+    ) -> Self {
+        Self {
+            exit_code: crate::exit_codes::VALIDATION_OR_RENDER_FAIL,
+            diagnostic_code: Some(diagnostic_code),
+            diagnostics: vec![append_diagnostic(
+                diagnostic_code,
+                format!("{error:#}"),
+                &recovery_hints,
+            )],
+            recovery_hints,
+            error,
+        }
+    }
+
     pub(crate) fn render_check(error: sc_composer::OutputCheckError) -> Self {
         let diagnostic_code = error.diagnostics.first().map(|diagnostic| diagnostic.code);
         let message = error.to_string();
@@ -120,10 +138,30 @@ impl fmt::Display for CommandError {
 
 impl std::error::Error for CommandError {}
 
+/// Build the error diagnostic, naming the path of an inspect-path hint so the
+/// `--json` envelope, which carries diagnostics only, keeps the recovery target.
+fn append_diagnostic(
+    code: DiagnosticCode,
+    message: String,
+    recovery_hints: &[RecoveryHint],
+) -> Diagnostic {
+    let diagnostic = Diagnostic::new(DiagnosticSeverity::Error, code, message);
+    match recovery_hints.iter().find_map(|hint| match &hint.kind {
+        RecoveryHintKind::InspectPath { path } => Some(path.clone()),
+        _ => None,
+    }) {
+        Some(path) => diagnostic.with_path(path),
+        None => diagnostic,
+    }
+}
+
 fn format_recovery_hint(hint: &RecoveryHint) -> String {
     match &hint.kind {
         RecoveryHintKind::RunCommand { command } => format!("run `{command}`"),
-        RecoveryHintKind::InspectPath { path } => format!("inspect {}", path.display()),
+        RecoveryHintKind::InspectPath { path } => format!(
+            "inspect {}",
+            sc_composer_beads::error::escape_human_text(&path.display().to_string())
+        ),
         RecoveryHintKind::ProvideVariable { variable } => {
             format!("provide variable `{}`", variable.as_str())
         }

@@ -1,5 +1,9 @@
+#[path = "cli/bead.rs"]
+mod bead;
 #[path = "cli/extract.rs"]
 mod extract;
+#[path = "cli/fuzz_regressions.rs"]
+mod fuzz_regressions;
 #[path = "cli/help.rs"]
 mod help;
 #[path = "cli/observability.rs"]

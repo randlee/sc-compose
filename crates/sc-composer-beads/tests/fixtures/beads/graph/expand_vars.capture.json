@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"expand_vars\",\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/expand_vars.formula.json\",\n  \"steps\": [\n    {\n      \"expand_vars\": {\n        \"owner\": \"tester\"\n      },\n      \"id\": \"build\",\n      \"title\": \"Build {{literal}}\"\n    }\n  ],\n  \"type\": \"workflow\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

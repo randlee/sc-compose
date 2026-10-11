@@ -5,9 +5,572 @@
 )]
 use crate::support::*;
 use serde_json::Value;
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+
+#[test]
+fn render_append_writes_compact_json_line() {
+    let root = temp_root("append-json-record");
+    write_file(
+        &root.join("record.json.j2"),
+        "{\"name\": {{ name }}, \"count\": {{ count }}}",
+    );
+    let destination = root.join("records.jsonl");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--var",
+            "name=\"Ada\"",
+            "--var",
+            "count=2",
+            "--append",
+            destination.to_str().unwrap(),
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(&destination).unwrap(),
+        "{\"count\":\"2\",\"name\":\"\\\"Ada\\\"\"}\n"
+    );
+    let payload: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(payload["payload"]["appended"], true);
+}
+
+#[test]
+fn examples_and_templates_reject_append_without_changing_destination() {
+    let root = temp_root("append-unsupported-packs");
+    let destination = root.join("records.jsonl");
+    let original = "{\"old\":true}\n";
+    write_file(&destination, original);
+
+    for command in ["examples", "templates"] {
+        let output = sc_compose()
+            .args([command, "hello", "--append", destination.to_str().unwrap()])
+            .output()
+            .unwrap();
+
+        assert_eq!(
+            output.status.code(),
+            Some(3),
+            "{command} --append must be a usage error: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains("--append is only supported by sc-compose render"),
+            "{command} should explain why --append is rejected: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            fs::read_to_string(&destination).unwrap(),
+            original,
+            "{command} --append must leave the destination unchanged"
+        );
+    }
+}
+
+#[test]
+fn render_append_preserves_typed_var_file_values_and_escaped_strings() {
+    let root = temp_root("append-typed-var-file");
+    write_file(
+        &root.join("record.json.j2"),
+        r#"{"escaped": {{ escaped | tojson }}, "count": {{ count }}, "enabled": {{ enabled }}, "nothing": {{ nothing | tojson }}, "array": {{ array | tojson }}, "object": {{ object | tojson }}}"#,
+    );
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{"escaped":"quote: \"hello\", slash: \\path, line1\nline2","count":12,"enabled":true,"nothing":null,"array":[1,"two",false],"object":{"nested":true,"label":"ok"}}"#,
+    );
+    let destination = root.join("records.jsonl");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--var-file",
+            vars_file.to_str().unwrap(),
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let appended = fs::read_to_string(destination).unwrap();
+    let records: Vec<Value> = appended
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(records.len(), 1);
+    let record = &records[0];
+    assert_eq!(
+        record["escaped"],
+        "quote: \"hello\", slash: \\path, line1\nline2"
+    );
+    assert_eq!(record["count"], 12);
+    assert_eq!(record["enabled"], true);
+    assert!(record["nothing"].is_null());
+    assert_eq!(record["array"], serde_json::json!([1, "two", false]));
+    assert_eq!(
+        record["object"],
+        serde_json::json!({"nested": true, "label": "ok"})
+    );
+}
+
+#[test]
+fn render_append_rejects_non_object_without_changing_destination() {
+    let root = temp_root("append-non-object");
+    write_file(&root.join("record.json.j2"), "[1, 2]");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_RENDER_APPEND_NOT_OBJECT"));
+    assert_eq!(
+        fs::read_to_string(&destination).unwrap(),
+        "{\"old\":true}\n"
+    );
+}
+
+#[test]
+fn render_append_rejects_incomplete_destination_without_changing_it() {
+    let root = temp_root("append-incomplete");
+    write_file(&root.join("record.json.j2"), "{\"ok\":true}");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_RENDER_APPEND_NO_FINAL_NEWLINE"));
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains(&format!("recovery: inspect {}", destination.display())),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(fs::read_to_string(&destination).unwrap(), "{\"old\":true}");
+}
+
+#[test]
+fn render_append_keeps_prior_records_and_json_types() {
+    let root = temp_root("append-repeat");
+    write_file(
+        &root.join("record.json.j2"),
+        "{\"text\": {{ text }}, \"flag\": true, \"count\": 2}",
+    );
+    let destination = root.join("records.jsonl");
+    for value in ["\"first\\nline\"", "\"second\""] {
+        let output = sc_compose()
+            .args([
+                "render",
+                "--mode",
+                "file",
+                "--root",
+                root.to_str().unwrap(),
+                "--file",
+                "record.json.j2",
+                "--var",
+                &format!("text={value}"),
+                "--append",
+                destination.to_str().unwrap(),
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let records: Vec<Value> = fs::read_to_string(destination)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(records.len(), 2);
+    assert_eq!(records[0]["text"], "\"first\\nline\"");
+    assert_eq!(records[1]["count"], 2);
+    assert_eq!(records[1]["flag"], true);
+}
+
+#[test]
+fn render_append_rejects_non_json_without_changing_destination() {
+    let root = temp_root("append-invalid");
+    write_file(&root.join("text.md.j2"), "not json");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let invalid = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "text.md.j2",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(invalid.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&invalid.stderr).contains("ERR_RENDER_JSON_MALFORMED"));
+    assert_eq!(
+        fs::read_to_string(&destination).unwrap(),
+        "{\"old\":true}\n"
+    );
+}
+
+#[test]
+fn render_append_rejects_output_conflict_without_changing_destination() {
+    let root = temp_root("append-output-conflict");
+    write_file(&root.join("record.json.j2"), "{\"ok\":true}");
+    let destination = root.join("records.jsonl");
+    let original = b"{\"old\":true}\n";
+    fs::write(&destination, original).unwrap();
+    let output_path = root.join("rendered.json");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+            "--output",
+            output_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "--append with --output must be a usage error: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error:")
+            && stderr.contains("--append <APPEND>")
+            && stderr.contains("cannot be used with '--output <OUTPUT>'"),
+        "expected the --append/--output conflict diagnostic, got: {stderr}"
+    );
+    assert_eq!(fs::read(&destination).unwrap(), original);
+    assert!(
+        !output_path.exists(),
+        "conflicting --output must not create a file"
+    );
+
+    let json_output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+            "--output",
+            output_path.to_str().unwrap(),
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(json_output.status.code(), Some(3));
+    assert!(json_output.stderr.is_empty());
+    let envelope: Value = serde_json::from_slice(&json_output.stdout).unwrap();
+    assert_eq!(envelope["diagnostics"][0]["code"], "ERR_CONFIG_PARSE");
+    assert_eq!(fs::read(&destination).unwrap(), original);
+    assert!(!output_path.exists());
+}
+
+#[test]
+fn render_append_rejects_dry_run_conflict_without_changing_destination() {
+    let root = temp_root("append-dry-run-conflict");
+    write_file(&root.join("record.json.j2"), "{\"ok\":true}");
+    let destination = root.join("records.jsonl");
+    let original = b"{\"old\":true}\n";
+    fs::write(&destination, original).unwrap();
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+            "--dry-run",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "--append with --dry-run must be a usage error: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("error:")
+            && stderr.contains("--append <APPEND>")
+            && stderr.contains("cannot be used with '--dry-run'"),
+        "expected the --append/--dry-run conflict diagnostic, got: {stderr}"
+    );
+    assert_eq!(fs::read(&destination).unwrap(), original);
+
+    let json_output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+            "--dry-run",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(json_output.status.code(), Some(3));
+    assert!(json_output.stderr.is_empty());
+    let envelope: Value = serde_json::from_slice(&json_output.stdout).unwrap();
+    assert_eq!(envelope["diagnostics"][0]["code"], "ERR_CONFIG_PARSE");
+    assert_eq!(fs::read(&destination).unwrap(), original);
+}
+
+#[test]
+fn render_append_keeps_destination_unchanged_for_missing_variables() {
+    let root = temp_root("append-missing-variable");
+    write_file(
+        &root.join("record.json.j2"),
+        "---\nvariables:\n  name:\n    required: true\n---\n{\"name\": {{ name }}}",
+    );
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--strict",
+            "--unknown-var-mode",
+            "error",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_VAL_MISSING_REQUIRED"));
+    assert_eq!(fs::read(destination).unwrap(), b"{\"old\":true}\n");
+}
+
+#[test]
+fn render_append_keeps_destination_unchanged_for_invalid_var_file() {
+    let root = temp_root("append-invalid-var-file");
+    write_file(&root.join("record.json.j2"), "{\"name\": {{ name }}}");
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, "[\"not\", \"an object\"]\n");
+    let destination = root.join("records.jsonl");
+    let original = b"{\"old\":true}\n";
+    fs::write(&destination, original).unwrap();
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--var-file",
+            vars_file.to_str().unwrap(),
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_CONFIG_VARFILE"));
+    assert_eq!(fs::read(destination).unwrap(), original);
+}
+
+#[test]
+fn render_append_keeps_destination_unchanged_for_invalid_variables() {
+    let root = temp_root("append-invalid-variable");
+    write_file(&root.join("record.json.j2"), "{\"name\": {{ name }}}");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--var",
+            "name=\"Ada\"",
+            "--var",
+            "unexpected=true",
+            "--strict",
+            "--unknown-var-mode",
+            "error",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_VAL_EXTRA_INPUT"));
+    assert_eq!(fs::read_to_string(destination).unwrap(), "{\"old\":true}\n");
+}
+
+#[test]
+fn render_append_reports_write_error_for_read_only_destination() {
+    let root = temp_root("append-read-only");
+    write_file(&root.join("record.json.j2"), "{\"ok\":true}");
+    let destination = root.join("records.jsonl");
+    write_file(&destination, "{\"old\":true}\n");
+    let mut permissions = fs::metadata(&destination).unwrap().permissions();
+    permissions.set_readonly(true);
+    fs::set_permissions(&destination, permissions).unwrap();
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "record.json.j2",
+            "--append",
+            destination.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_RENDER_WRITE"));
+    assert_eq!(fs::read_to_string(destination).unwrap(), "{\"old\":true}\n");
+}
+
+#[test]
+fn render_append_serializes_sixteen_concurrent_processes() {
+    let root = temp_root("append-concurrent");
+    write_file(&root.join("record.json.j2"), "{\"id\": {{ id }}}");
+    let destination = root.join("records.jsonl");
+    let mut children = Vec::new();
+    for id in 0..16 {
+        children.push(
+            Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+                .args([
+                    "render",
+                    "--mode",
+                    "file",
+                    "--root",
+                    root.to_str().unwrap(),
+                    "--file",
+                    "record.json.j2",
+                    "--var",
+                    &format!("id={id}"),
+                    "--append",
+                    destination.to_str().unwrap(),
+                ])
+                .spawn()
+                .unwrap(),
+        );
+    }
+    for (index, mut child) in children.into_iter().enumerate() {
+        assert!(
+            child.wait().unwrap().success(),
+            "append process {index} failed"
+        );
+    }
+    let records: Vec<Value> = fs::read_to_string(destination)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(records.len(), 16);
+    let ids: BTreeSet<String> = records
+        .iter()
+        .map(|record| {
+            record["id"]
+                .as_str()
+                .expect("id must be a string")
+                .to_owned()
+        })
+        .collect();
+    assert_eq!(ids, (0..16).map(|id| id.to_string()).collect());
+}
 
 #[test]
 fn render_dry_run_does_not_create_output_file() {

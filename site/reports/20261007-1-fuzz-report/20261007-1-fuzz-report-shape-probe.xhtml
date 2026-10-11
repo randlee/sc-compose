@@ -1,0 +1,90 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-1 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0001&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 73, &quot;name&quot;: &quot;f1 request shape (render/validate)&quot;, &quot;passed&quot;: 73}, {&quot;cases&quot;: 50, &quot;name&quot;: &quot;f2 attach request shape&quot;, &quot;passed&quot;: 50}, {&quot;cases&quot;: 52, &quot;name&quot;: &quot;f3 attach ids (bd)&quot;, &quot;passed&quot;: 44}, {&quot;cases&quot;: 57, &quot;name&quot;: &quot;f4 step content (bd)&quot;, &quot;passed&quot;: 56}, {&quot;cases&quot;: 13, &quot;name&quot;: &quot;f5 attach re-run (bd)&quot;, &quot;passed&quot;: 12}, {&quot;cases&quot;: 14, &quot;name&quot;: &quot;f6 pour (bd)&quot;, &quot;passed&quot;: 13}, {&quot;cases&quot;: 53, &quot;name&quot;: &quot;f7 render --append&quot;, &quot;passed&quot;: 48}], &quot;cases_run&quot;: 312, &quot;correlation_id&quot;: &quot;shape-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 16, &quot;finding_ids&quot;: [&quot;FUZZ-015&quot;, &quot;FUZZ-016&quot;, &quot;FUZZ-017&quot;, &quot;FUZZ-034&quot;, &quot;FUZZ-035&quot;], &quot;passed&quot;: 296, &quot;seed&quot;: 7023, &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;request JSON shapes; Unicode/control characters in parent, ref, step ids, relation endpoints and metadata; render --append records&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Workspaces shpa..shpc. Request-shape errors exit 3 before any bd call; Unicode/control text round-trips literally into bd; re-runs up to 33 steps are idempotent; --append framing, newline and not-object refusals leave the destination byte-identical. Three harness-oracle mistakes were corrected.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">request JSON shapes; Unicode/control characters in parent, ref, step ids, relation endpoints and metadata; render --append records</th>
+        <td>312</td>
+        <td>296/312</td>
+        <td>
+          <span class="status status-error">FAIL: 3 confirmed bug(s)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">shape-probe/f1 request shape (render/validate)</th><td><code>f1 request shape (render/validate)</code></td><td>73/73 passed</td></tr>
+        <tr><th scope="row">shape-probe/f2 attach request shape</th><td><code>f2 attach request shape</code></td><td>50/50 passed</td></tr>
+        <tr><th scope="row">shape-probe/f3 attach ids (bd)</th><td><code>f3 attach ids (bd)</code></td><td>44/52 passed</td></tr>
+        <tr><th scope="row">shape-probe/f4 step content (bd)</th><td><code>f4 step content (bd)</code></td><td>56/57 passed</td></tr>
+        <tr><th scope="row">shape-probe/f5 attach re-run (bd)</th><td><code>f5 attach re-run (bd)</code></td><td>12/13 passed</td></tr>
+        <tr><th scope="row">shape-probe/f6 pour (bd)</th><td><code>f6 pour (bd)</code></td><td>13/14 passed</td></tr>
+        <tr><th scope="row">shape-probe/f7 render --append</th><td><code>f7 render --append</code></td><td>48/53 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-015</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>UC-8 loop: formula = &quot;batch&quot; ... {% for i in range(1, count + 1) %}[[steps]] id = &quot;item_{{{ i }}}&quot; ... needs = [&quot;item_{{{ i - 1 }}}&quot;]{% endfor %}</code></dd>
+        <dt>Input</dt><dd><code>attach, compose_variables {&quot;count&quot;:36}, parent &lt;epic&gt;, ref batch</code></dd>
+        <dt>Expected</dt><dd>FR-23.5 / ADR-0023 UC-4, UC-5: re-running an attach whose beads all exist succeeds and writes nothing; UC-8 generates many steps; no step limit is documented.</dd>
+        <dt>Observed</dt><dd>First attach creates 36 beads; every re-run or preview-attach exits 2 with BEADS_PROCESS_OUTPUT_LIMIT (&#x27;Beads Attach output exceeded the 65536-byte capture limit&#x27;) and no receipt. Threshold ~34 minimal steps (fewer with metadata). The 500-step attach fails even on its first run (bd show stderr for 500 missing ids ~101 KB) and a 500-step graph preview-pour fails on bd cook --json (78 KB). Reproduced 3/3 by the coordinator at count=36.</dd>
+        <dt>Requirement / ADR</dt><dd>FR-23.5, FR-23.6; ADR-0023 UC-4, UC-5, UC-8, UC-9, Conflict rules</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed for re-run; if a step ceiling remains, document it in ADR-0023 and the bead manual.</dd>
+        <dt>Root cause</dt><dd>GraphReader::issues issues one `bd show &lt;parent&gt; &lt;every planned id&gt; --json`; bd v1.3.1 prints ~1.9 KB per existing bead, beyond runner PROCESS_OUTPUT_LIMIT_BYTES (64 KiB per stream). The cook --json read hits the same cap for large formulas.</dd>
+        <dt>Recommended fix</dt><dd>Batch bd show reads, and size the capture limit for graph reads (or stream-parse) so attach scales to the documented use cases.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-016</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;one&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A&quot;</code></dd>
+        <dt>Input</dt><dd><code>attach request with &quot;parent&quot;:&quot;--help&quot; (or &quot;--version&quot;); or relation {&quot;from&quot;:&quot;step:a&quot;,&quot;to&quot;:&quot;bead:--db=/nonexistent&quot;,&quot;type&quot;:&quot;related&quot;}</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Conflict rules / Relation validation: a missing parent is BEADS_GRAPH_PARENT_NOT_FOUND and a missing bead: endpoint is GraphRelationInvalid(bead_not_found). BeadId only requires non-empty, no whitespace.</dd>
+        <dt>Observed</dt><dd>Exit 2 failed BEADS_GRAPH_READ_FAILED; argv [&#x27;bd&#x27;,&#x27;show&#x27;,&#x27;--help&#x27;,&#x27;--help.inj-a&#x27;,...] and [&#x27;bd&#x27;,&#x27;show&#x27;,&#x27;--db=/nonexistent&#x27;,...]: bd parsed the ids as options and, for --db=, opened a different database. Controls with ordinary missing ids give the documented codes. Reproduced 3/3 per variant by the coordinator. No write is reachable.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Conflict rules, Relation validation; BeadId contract</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>Request ids are spliced into `bd show &lt;ids...&gt; --json` and `bd dep list &lt;id&gt; --json` with no `--` separator.</dd>
+        <dt>Recommended fix</dt><dd>Pass ids after `--` (bd v1.3.1 accepts it) or reject bead ids starting with &#x27;-&#x27; at the BeadId boundary.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-017</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{&quot;id&quot;: 12345678901234567890123, &quot;amount&quot;: 0.10000000000000000001}</code></dd>
+        <dt>Input</dt><dd><code>no variables; destination absent</code></dd>
+        <dt>Expected</dt><dd>help render &#x27;Appending JSON records&#x27; step 2: the object is parsed and re-serialized and only its key order may differ; FR-7 render --append.</dd>
+        <dt>Observed</dt><dd>Exit 0; appended {&quot;amount&quot;:0.1,&quot;id&quot;:1.2345678901234568e+22}. Integers above u64 become lossy floats, long decimals round, 1e2 -&gt; 100.0, -0 -&gt; -0.0. Plain render passes the body unchanged. Reproduced 3/3 by the coordinator; --append does not exist on origin/develop.</dd>
+        <dt>Requirement / ADR</dt><dd>FR-7 render --append; FR-8a; help render &#x27;Appending JSON records&#x27;</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed; if normalization is intended, the manual must say so.</dd>
+        <dt>Root cause</dt><dd>append_json_record parses into serde_json::Value without arbitrary_precision and re-serializes.</dd>
+        <dt>Recommended fix</dt><dd>Validate the object but keep the original number tokens (arbitrary_precision or RawValue plus minification).</dd>
+      </dl>
+    </article>
+  </section>
+</section>

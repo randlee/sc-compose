@@ -1,0 +1,89 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-2 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0002&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 60, &quot;name&quot;: &quot;A render TOML/JSON fidelity vs generator (data-driven loops, Unicode, literal {{ }}) [seed 7023]&quot;, &quot;passed&quot;: 60}, {&quot;cases&quot;: 30, &quot;name&quot;: &quot;A render TOML/JSON fidelity [seed 48611]&quot;, &quot;passed&quot;: 30}, {&quot;cases&quot;: 60, &quot;name&quot;: &quot;B2 preview-attach/preview-pour parity + explicit plan endpoint states + relations + human success parity [seed 7023]&quot;, &quot;passed&quot;: 59}, {&quot;cases&quot;: 60, &quot;name&quot;: &quot;B2 preview-attach/preview-pour parity + endpoint states + relations + human parity (2 batches) [seed 48611]&quot;, &quot;passed&quot;: 60}, {&quot;cases&quot;: 54, &quot;name&quot;: &quot;C ADR-0023 formula grammar refusals x TOML/JSON x preview-attach/preview-pour (+human code/rc parity) [seed 7023]&quot;, &quot;passed&quot;: 51}, {&quot;cases&quot;: 25, &quot;name&quot;: &quot;G whitespace control / delimiters / macros / includes (render, exact-output oracle) [seed 7023]&quot;, &quot;passed&quot;: 20}, {&quot;cases&quot;: 12, &quot;name&quot;: &quot;H special text through real attach (control chars, CRLF, bidi, 20k desc, literal braces) + re-run [seed 7023]&quot;, &quot;passed&quot;: 11}, {&quot;cases&quot;: 6, &quot;name&quot;: &quot;J graph pour with literal {{ }} text, root molecule, bd show/mol show, second pour new ids [seed 7023]&quot;, &quot;passed&quot;: 6}, {&quot;cases&quot;: 6, &quot;name&quot;: &quot;J graph pour literal braces [seed 48611]&quot;, &quot;passed&quot;: 6}, {&quot;cases&quot;: 12, &quot;name&quot;: &quot;M every shipped help-bead recipe/example executed (release-under-epic, chain N, review chains, optional, @include, per-sprint loop, relations, pour, request example) [seed 7023]&quot;, &quot;passed&quot;: 11}, {&quot;cases&quot;: 40, &quot;name&quot;: &quot;D2 real attach + relations, idempotent re-run (human+JSON), bd show/dep fidelity, TOML/JSON bd parity, partial-delete recovery, removed-edge recovery [seed 7023]&quot;, &quot;passed&quot;: 39}, {&quot;cases&quot;: 20, &quot;name&quot;: &quot;D2 real attach + mutations [seed 48611]&quot;, &quot;passed&quot;: 20}, {&quot;cases&quot;: 15, &quot;name&quot;: &quot;P real graph pour + relations, bd dep fidelity, human pour output [seed 7023]&quot;, &quot;passed&quot;: 15}, {&quot;cases&quot;: 20, &quot;name&quot;: &quot;P real graph pour + relations [seed 48611]&quot;, &quot;passed&quot;: 20}, {&quot;cases&quot;: 42, &quot;name&quot;: &quot;R every refusal/error type: human vs --json (rc, code, message, details, recovery, bd dep add lines) [seed 7023]&quot;, &quot;passed&quot;: 21}, {&quot;cases&quot;: 10, &quot;name&quot;: &quot;L large formulas 12..500 steps (range loops, fan-out/fan-in, chains): preview/attach/re-run/preview-pour/pour [seed 7023]&quot;, &quot;passed&quot;: 2}, {&quot;cases&quot;: 40, &quot;name&quot;: &quot;T nested loops/conditionals/filters, metamorphic lstrip_blocks indentation variant, graph parity [seed 7023]&quot;, &quot;passed&quot;: 40}, {&quot;cases&quot;: 60, &quot;name&quot;: &quot;T nested loops/conditionals/filters, metamorphic variant [seed 48611]&quot;, &quot;passed&quot;: 60}, {&quot;cases&quot;: 10, &quot;name&quot;: &quot;misc: known-finding probes (FUZZ-012/013/016/019), FUZZ-014 race, non-object metadata/null fields, manual partial-delete walkthrough [seed 7023]&quot;, &quot;passed&quot;: 5}], &quot;cases_run&quot;: 582, &quot;correlation_id&quot;: &quot;template-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 46, &quot;finding_ids&quot;: [&quot;FUZZ-039&quot;, &quot;FUZZ-042&quot;, &quot;FUZZ-048&quot;], &quot;known_findings_status&quot;: [{&quot;evidence&quot;: &quot;preview-attach run from a cwd other than working_directory -&gt; BEADS_TEMPLATE_PATH_INVALID &#x27;invalid template path: tpl/r.formula.toml.j2&#x27;&quot;, &quot;id&quot;: &quot;FUZZ-012&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;Phase R render request with formula_name &#x27;my formula&#x27;: baseline renders OK; head refuses BEADS_REQUEST_DESERIALIZATION_FAILED &#x27;invalid graph formula&#x27;&quot;, &quot;id&quot;: &quot;FUZZ-013&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;30 concurrent preview-attach of two templates sharing one rendered_formula: 16/30 receipts list the other template&#x27;s step ids&quot;, &quot;id&quot;: &quot;FUZZ-014&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;attach re-run of 33 steps (L31_*) and of 20 steps with long Unicode text + relations (D035) -&gt; BEADS_PROCESS_OUTPUT_LIMIT; 500-step formula fails at Validate (attach) and PreviewPour/Pour (65536-byte limit)&quot;, &quot;id&quot;: &quot;FUZZ-015&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;parent &#x27;--help&#x27; -&gt; argv [&#x27;bd&#x27;,&#x27;show&#x27;,&#x27;--help&#x27;,&#x27;--help.k-a&#x27;,...] -&gt; BEADS_GRAPH_READ_FAILED &#x27;unknown flag&#x27;&quot;, &quot;id&quot;: &quot;FUZZ-016&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;not exercised (render --append outside this focus)&quot;, &quot;id&quot;: &quot;FUZZ-017&quot;, &quot;still_reproduces&quot;: null}, {&quot;evidence&quot;: &quot;manual recipe &#x27;Shared step blocks&#x27;: &#x27;@shared_steps.toml&#x27; left literally in the rendered formula -&gt; BEADS_COOK_FAILED; render family at_include output &#x27;@frag.toml.j2&#x27;&quot;, &quot;id&quot;: &quot;FUZZ-018&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;template &#x27;{% if %}&#x27; -&gt; failed BEADS_RENDER_FAILED with empty render stage stderr_excerpt&quot;, &quot;id&quot;: &quot;FUZZ-019&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;needs/relation cycle, bogus step type, 2000-char title -&gt; BEADS_GRAPH_APPLY_FAILED &#x27;graph apply failed (Some(1)): {;&#x27; (bd&#x27;s real error: &#x27;graph contains a blocking dependency cycle involving node \&quot;s5\&quot;&#x27;)&quot;, &quot;id&quot;: &quot;FUZZ-020&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;ref &#x27;a.b&#x27; -&gt; BEADS_REQUEST_DESERIALIZATION_FAILED exit 3 (manual/ADR table: BEADS_GRAPH_ID_INVALID exit 2)&quot;, &quot;id&quot;: &quot;FUZZ-021&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;undefined {{{ nope }}} renders TOML &#x27;&#x27; vs JSON &#x27;null&#x27;, success with no diagnostic&quot;, &quot;id&quot;: &quot;FUZZ-033&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;macro output re-escaped: &#x27;[[steps]]\\nid = \\\&quot;a\\\&quot;...&#x27; in TOML render&quot;, &quot;id&quot;: &quot;FUZZ-036&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;labels = [\&quot;{#tag\&quot;] -&gt; BEADS_RENDER_FAILED (TOML and JSON)&quot;, &quot;id&quot;: &quot;FUZZ-037&quot;, &quot;still_reproduces&quot;: true}], &quot;passed&quot;: 536, &quot;per_seed&quot;: {&quot;48611&quot;: {&quot;cases&quot;: 196, &quot;passed&quot;: 196}, &quot;7023&quot;: {&quot;cases&quot;: 386, &quot;passed&quot;: 340}}, &quot;seed&quot;: [7023, 48611], &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;bead templates (loops, conditionals, includes, 12..500 steps), TOML/JSON parity, every shipped help-bead recipe, human vs --json for every refusal&quot;, &quot;tested_head&quot;: &quot;d47d35ed4ff0145141c0517451b576c5815c6a79&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Run 2: every manual recipe executed; only @&lt;path&gt; include fails (FUZZ-018). FUZZ-017 not exercised by this focus. Cases per seed: 7023 = 386 (340 passed), 48611 = 196 (196 passed).">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">bead templates (loops, conditionals, includes, 12..500 steps), TOML/JSON parity, every shipped help-bead recipe, human vs --json for every refusal</th>
+        <td>582</td>
+        <td>536/582</td>
+        <td>
+          <span class="status status-error">FAIL: 2 new confirmed bug(s); 46 failing cases incl. known findings</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">template-probe/A render TOML/JSON fidelity vs generator (data-driven loops, Unicode, literal {{ }}) [seed 7023]</th><td><code>A render TOML/JSON fidelity vs generator (data-driven loops, Unicode, literal {{ }}) [seed 7023]</code></td><td>60/60 passed</td></tr>
+        <tr><th scope="row">template-probe/A render TOML/JSON fidelity [seed 48611]</th><td><code>A render TOML/JSON fidelity [seed 48611]</code></td><td>30/30 passed</td></tr>
+        <tr><th scope="row">template-probe/B2 preview-attach/preview-pour parity + explicit plan endpoint states + relations + human success parity [seed 7023]</th><td><code>B2 preview-attach/preview-pour parity + explicit plan endpoint states + relations + human success parity [seed 7023]</code></td><td>59/60 passed</td></tr>
+        <tr><th scope="row">template-probe/B2 preview-attach/preview-pour parity + endpoint states + relations + human parity (2 batches) [seed 48611]</th><td><code>B2 preview-attach/preview-pour parity + endpoint states + relations + human parity (2 batches) [seed 48611]</code></td><td>60/60 passed</td></tr>
+        <tr><th scope="row">template-probe/C ADR-0023 formula grammar refusals x TOML/JSON x preview-attach/preview-pour (+human code/rc parity) [seed 7023]</th><td><code>C ADR-0023 formula grammar refusals x TOML/JSON x preview-attach/preview-pour (+human code/rc parity) [seed 7023]</code></td><td>51/54 passed</td></tr>
+        <tr><th scope="row">template-probe/G whitespace control / delimiters / macros / includes (render, exact-output oracle) [seed 7023]</th><td><code>G whitespace control / delimiters / macros / includes (render, exact-output oracle) [seed 7023]</code></td><td>20/25 passed</td></tr>
+        <tr><th scope="row">template-probe/H special text through real attach (control chars, CRLF, bidi, 20k desc, literal braces) + re-run [seed 7023]</th><td><code>H special text through real attach (control chars, CRLF, bidi, 20k desc, literal braces) + re-run [seed 7023]</code></td><td>11/12 passed</td></tr>
+        <tr><th scope="row">template-probe/J graph pour with literal {{ }} text, root molecule, bd show/mol show, second pour new ids [seed 7023]</th><td><code>J graph pour with literal {{ }} text, root molecule, bd show/mol show, second pour new ids [seed 7023]</code></td><td>6/6 passed</td></tr>
+        <tr><th scope="row">template-probe/J graph pour literal braces [seed 48611]</th><td><code>J graph pour literal braces [seed 48611]</code></td><td>6/6 passed</td></tr>
+        <tr><th scope="row">template-probe/M every shipped help-bead recipe/example executed (release-under-epic, chain N, review chains, optional, @include, per-sprint loop, relations, pour, request example) [seed 7023]</th><td><code>M every shipped help-bead recipe/example executed (release-under-epic, chain N, review chains, optional, @include, per-sprint loop, relations, pour, request example) [seed 7023]</code></td><td>11/12 passed</td></tr>
+        <tr><th scope="row">template-probe/D2 real attach + relations, idempotent re-run (human+JSON), bd show/dep fidelity, TOML/JSON bd parity, partial-delete recovery, removed-edge recovery [seed 7023]</th><td><code>D2 real attach + relations, idempotent re-run (human+JSON), bd show/dep fidelity, TOML/JSON bd parity, partial-delete recovery, removed-edge recovery [seed 7023]</code></td><td>39/40 passed</td></tr>
+        <tr><th scope="row">template-probe/D2 real attach + mutations [seed 48611]</th><td><code>D2 real attach + mutations [seed 48611]</code></td><td>20/20 passed</td></tr>
+        <tr><th scope="row">template-probe/P real graph pour + relations, bd dep fidelity, human pour output [seed 7023]</th><td><code>P real graph pour + relations, bd dep fidelity, human pour output [seed 7023]</code></td><td>15/15 passed</td></tr>
+        <tr><th scope="row">template-probe/P real graph pour + relations [seed 48611]</th><td><code>P real graph pour + relations [seed 48611]</code></td><td>20/20 passed</td></tr>
+        <tr><th scope="row">template-probe/R every refusal/error type: human vs --json (rc, code, message, details, recovery, bd dep add lines) [seed 7023]</th><td><code>R every refusal/error type: human vs --json (rc, code, message, details, recovery, bd dep add lines) [seed 7023]</code></td><td>21/42 passed</td></tr>
+        <tr><th scope="row">template-probe/L large formulas 12..500 steps (range loops, fan-out/fan-in, chains): preview/attach/re-run/preview-pour/pour [seed 7023]</th><td><code>L large formulas 12..500 steps (range loops, fan-out/fan-in, chains): preview/attach/re-run/preview-pour/pour [seed 7023]</code></td><td>2/10 passed</td></tr>
+        <tr><th scope="row">template-probe/T nested loops/conditionals/filters, metamorphic lstrip_blocks indentation variant, graph parity [seed 7023]</th><td><code>T nested loops/conditionals/filters, metamorphic lstrip_blocks indentation variant, graph parity [seed 7023]</code></td><td>40/40 passed</td></tr>
+        <tr><th scope="row">template-probe/T nested loops/conditionals/filters, metamorphic variant [seed 48611]</th><td><code>T nested loops/conditionals/filters, metamorphic variant [seed 48611]</code></td><td>60/60 passed</td></tr>
+        <tr><th scope="row">template-probe/misc: known-finding probes (FUZZ-012/013/016/019), FUZZ-014 race, non-object metadata/null fields, manual partial-delete walkthrough [seed 7023]</th><td><code>misc: known-finding probes (FUZZ-012/013/016/019), FUZZ-014 race, non-object metadata/null fields, manual partial-delete walkthrough [seed 7023]</code></td><td>5/10 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-039</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;m&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A&quot;</code></dd>
+        <dt>Input</dt><dd><code>preview_attach with parent &#x27;tpj-nosuch&#x27; (or relation bead:&lt;P&gt; -&gt; bead:&lt;P&gt;)</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 line 314: each reason is a closed snake_case enum &#x27;...; the CLI prints its text form.&#x27; FR-8 human-readable message.</dd>
+        <dt>Observed</dt><dd>Human output is only &#x27;outcome: refused&#x27; and &#x27;stage PreviewAttach: failed (BEADS_GRAPH_PARENT_NOT_FOUND)&#x27;; the reason/id/cause/recovery is only in the --json stderr_excerpt. Same for every receipt-level graph code except EDGE_MISSING (boundary 33/33, template 20/20 types + 166/166 grammar refusals). Exit codes correct. Coordinator 3/3.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Errors (line 314); FR-8; FR-23.10</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>print_human_receipt prints stage codes and missing_edges commands only; record_error text in stderr_excerpt is never printed; human_bead_error (cfef41c) covers only the Err path.</dd>
+        <dt>Recommended fix</dt><dd>Print the failing stage&#x27;s message (reason text, id, recovery) in human mode.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-042</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula = &quot;m&quot; / version = 1 / type = &quot;workflow&quot; / [[steps]] id = &quot;a&quot; title = &quot;A&quot;</code></dd>
+        <dt>Input</dt><dd><code>render request with rendered_formula &lt;wd&gt;/missing_dir/m.formula.toml (template exists)</code></dd>
+        <dt>Expected</dt><dd>ADR-0021 line 170: TemplatePathInvalid means the *template* path is missing/malformed; FR-8 stable diagnostics.</dd>
+        <dt>Observed</dt><dd>exit 3 BEADS_TEMPLATE_PATH_INVALID &#x27;invalid template path: &lt;wd&gt;/missing_dir/m.formula.toml&#x27; for every operation. Coordinator 3/3; baseline identical.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 error table; FR-23.2; FR-8</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>normalize_output maps every parent()/canonicalize()/file_name() failure of rendered_formula to TemplatePathInvalid.</dd>
+        <dt>Recommended fix</dt><dd>Report an output-path code naming rendered_formula.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

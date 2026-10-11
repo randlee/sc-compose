@@ -2,9 +2,36 @@ name: CI
 
 on:
   pull_request:
-    branches: [develop, main, "integrate/*", "sprint/*"]
+    # `branches` filters on the PR *base*. Any branch a stacked layer can sit
+    # on must be listed, or that layer's PR gets no CI at all. `*` does not
+    # match `/`, which the lower-case naming rule already forbids in slugs.
+    branches:
+      - develop
+      - main
+      - "integrate/*"
+      - "integration/*"
+      - "sprint/*"
+      - "fix/*"
+      - "hotfix/*"
+      - "feature/*"
+      - "plan/*"
+      - "docs/*"
+      - "chore/*"
+      - "ci/*"
+      - "release/*"
+      - "merge/*"
+      - "evidence/*"
+      - "triage/*"
   push:
     branches: [develop, main]
+
+# One live run per ref: a new push to a PR branch cancels the queued/running
+# run for the superseded commit instead of stacking a full matrix behind it.
+# Pushes to develop/main are never cancelled (every landed commit gets a run,
+# classified by its own change set like a PR).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   fmt:
@@ -139,6 +166,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python for cross-platform test helpers
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Set up lint toolchain
         uses: ./.github/actions/setup-lint-toolchain
 
@@ -172,6 +204,11 @@ jobs:
 
       - name: Run workspace tests
         run: cargo test --workspace --features sc-compose/external-lint-cli-tests
+        env:
+          BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
+
+      - name: Run real Beads CLI integration
+        run: cargo test -p sc-compose --test cli bead
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
@@ -392,6 +429,12 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
           SC_COMPOSER_BEADS_ARTIFACT_DIR: ${{ github.workspace }}/dist
+
+      - name: Run installed-wheel attach integration
+        working-directory: bindings/sc-composer-beads-python
+        run: python -m pytest -q tests/test_attach_e2e.py
+        env:
+          BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
   sc-sha-go-plan:
     name: sc-sha Go native target plan

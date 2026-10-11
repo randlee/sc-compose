@@ -1,0 +1,14 @@
+{
+  "description": "Graph parser contract",
+  "formula": "unknown_step",
+  "schema_version": 1,
+  "source": "<workspace>/unknown_step.formula.json",
+  "steps": [
+    {
+      "id": "build",
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

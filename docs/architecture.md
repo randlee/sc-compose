@@ -99,6 +99,13 @@ dependency on `sc-observability`.
 - exclusive ownership of the `help_topics` module and ordered manual-topic
   registry; `sc-composer` and `bindings/python` do not define, import, or
   mutate manual-topic metadata.
+- `render --append` (FR-7, FR-7b, FR-8a): validated, compacted JSON Lines
+  append under an exclusive `std::fs::File::lock`. All file I/O stays in the
+  CLI; `sc-composer` only contributes the two additive `DiagnosticCode`
+  variants `ErrRenderAppendNotObject` and `ErrRenderAppendNoFinalNewline`.
+- the `bead preview-attach` / `bead attach` subcommands, which, like the other
+  `bead` subcommands, read one request file and print the
+  `sc-composer-beads` receipt.
 
 ### 3.3 `bindings/python`
 
@@ -161,6 +168,30 @@ the `bd` executable.
 It must not depend on `sc-compose`, a Python or Go adapter, Beads source or a
 Beads database library, ATM/runtime code, or any CLI argument type. The CLI
 and foreign-language bindings are callers of this library, never dependencies.
+
+Operations are split by family: `execute.rs` holds request validation,
+dispatch and the shared stage helpers; `pour.rs` holds `preview-pour` / `pour`
+(registry mode unchanged, plus selection of graph mode for a formula outside
+the active registry); `graph.rs` holds the graph engine used by graph-mode pour
+and by `preview-attach` / `attach` ([ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md)).
+The graph engine:
+
+1. reads the rendered formula through `bd cook <path> --json` (bd's own
+   parser; no TOML dependency) and checks the flat-formula subset; `<path>` is
+   a private `.sc-compose-input-*` snapshot of the rendered text, shown as the
+   public path in receipts and diagnostics (ADR-0023 Errata);
+2. computes the planned nodes (attach ids `<parent>.<ref>-<step>`, provenance
+   under `sc_compose_graph`) and edges (`needs` -> `blocks`, `relations[]`);
+3. reads existing state with `bd show` / `bd dep list` and classifies each node
+   and edge (`existing`, to create, conflict, missing edge), refusing before
+   any write; only `bd`'s not-found response means absent, and any other read
+   failure is `BEADS_GRAPH_READ_FAILED`;
+4. when something is missing, writes it as one bd graph plan beside the
+   rendered formula and applies it with a single `bd create --graph`
+   transaction (`--dry-run` for previews); a no-op writes nothing.
+
+It issues no other mutating `bd` command and never passes `--var` for graph
+operations: structure and values come from the sc-compose template.
 
 For bounded subprocess output, the library contains the child process tree on
 supported platforms: Unix uses a dedicated process group and Windows uses a
@@ -1772,6 +1803,8 @@ Canonical failures must map to stable error families and stable codes.
 | Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
+| JSON Lines append rendered a non-object value | `RenderError` | `ERR_RENDER_APPEND_NOT_OBJECT` |
+| JSON Lines append target has no final newline | `RenderError` | `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
 | Text/config file exists but is not readable as valid text | `ConfigError` | `ERR_CONFIG_READ` |
@@ -1814,9 +1847,16 @@ Architecture rules:
   provide their own implementations.
 - `sc-observe` and `sc-observability-otlp` are not part of this initial
   release architecture.
-- The current CLI uplift targets `sc-observability` `1.2.0` directly and does
+- The current CLI uplift targets `sc-observability` `1.5.0` directly and does
   not add the `sc-observe` facade because `sc-compose` still owns concrete
   logger construction and sink registration at this seam.
+
+Both observability dependencies are pinned to crates.io `=1.5.0` with
+`default-features = false`; the CLI uses `sc_observability::v2::Logger` and
+`sc_observability::v2::LogSink` with `SinkRegistration::typed(...)`. Both
+`Logger::builder(...)` and `.build()` failures map to `CommandError::usage`
+(exit 3), including the configured log root in the error context. Health querying
+remains infallible and JSON serialization retains its fallback (ADR-0001).
 
 ### 19.1 Dependency Graph
 
@@ -1837,9 +1877,9 @@ sc-observability -----> sc-observability-types
   `QueryHealthReport`, and `QueryHealthState` through its public re-export
   surface.
 - `sc-compose` depends on both `sc-composer` and `sc-observability`.
-- `sc-compose` adapts to the `Logger<Running>` / `Logger<Stopped>` typestate by
-  keeping the CLI observer responsible for the shutdown-state transition while
-  preserving post-shutdown health inspection.
+- The v2 logger uses shared-reference shutdown rather than logger typestates.
+  The CLI observer tracks its own running/stopped state and retains the logger
+  for post-shutdown health inspection; shutdown failures remain in health.
 - The CLI observer adapter now routes direct lifecycle logging through
   `Logger::log(...)`; `Logger::emit(...)` remains only as an upstream
   compatibility path and is not the primary `sc-compose` call surface.
@@ -1917,7 +1957,7 @@ Required library behavior:
 
 ### 19.3 CLI Wiring
 
-`sc-compose` constructs `sc-observability::Logger` during CLI startup, wraps it
+`sc-compose` constructs `sc-observability::v2::Logger` during CLI startup, wraps it
 in a CLI-owned adapter that implements `sc_composer::observer::ObservationSink`
 or `sc_composer::observer::CompositionObserver`, then passes that adapter into
 `compose_with_observer(...)`.

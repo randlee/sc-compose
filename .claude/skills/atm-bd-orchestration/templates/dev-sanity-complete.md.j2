@@ -1,0 +1,88 @@
+---
+name: dev-sanity-complete
+version: 1.2.1
+description: Sanity check report; the body of `atm task close <task-id> completed`. PASS closes the sanity check bead; FAIL leaves it open; dev-sanity has reopened the checked bead and filed these findings under it.
+format: markdown
+required_variables:
+  - generated_at
+  - task_id
+  - checked_bead
+  - sprint
+  - branch
+  - commit
+  - verdict
+  - findings_count
+  - findings_md
+  - lint_md
+optional_variables:
+  - run_id
+  - reviewer
+  - notes_md
+  - finding_bead_ids
+defaults:
+  run_id: "legacy"
+  reviewer: "sanity-llm"
+  notes_md: ""
+  finding_bead_ids: []
+  selection: []
+metadata:
+  type: dev-sanity-complete
+  tags:
+    - stage:dev-sanity
+    - orchestration:beads
+  workflow:
+    scope:
+      kind: sprint
+      variable: sprint
+    state: dev-sanity-complete
+    stage: dev-sanity
+    transition: complete
+---
+{% if verdict not in ["PASS", "FAIL"] %}{{ verdict | verdict_must_be_PASS_or_FAIL }}ERROR: verdict must be PASS or FAIL, got {{ verdict }}
+{% endif %}# Dev Sanity Check {{ verdict }}
+
+Generated: {{ generated_at }}
+Run: {{ run_id }} · Operational reviewer: {{ reviewer }}
+Bead: {{ task_id }} (sprint {{ sprint }})
+Checked: {{ checked_bead }} on `{{ branch }}` at `{{ commit }}`
+Verdict: **{{ verdict }}** ({{ findings_count }} findings)
+
+## Machine Status (JSON)
+```json
+{
+  "run_id": {{ run_id | tojson }},
+  "reviewer": {{ reviewer | tojson }},
+  "task": {{ task_id | tojson }},
+  "checked_bead": {{ checked_bead | tojson }},
+  "sprint": {{ sprint | tojson }},
+  "branch": {{ branch | tojson }},
+  "commit": {{ commit | tojson }},
+  "verdict": {{ verdict | tojson }},
+  "findings": {{ findings_count }},
+  "selection": {{ (selection or []) | tojson }},
+  "finding_bead_ids": {{ finding_bead_ids | tojson }}
+}
+```
+
+## Selection
+{% for item in selection or [] %}
+- D{{ item.deliverable }}: LLM={{ item.llm }}, JEV={{ item.jev }}, selected={{ item.selected }}, checker_defect={{ item.checker_defect }}{% if item.reason %}; {{ item.reason }}{% endif %}
+{% endfor %}
+
+## Checker Defects
+{% set checker_defects = (selection or []) | selectattr("checker_defect") | list %}
+{% for item in checker_defects %}
+- D{{ item.deliverable }}: {{ item.reason }}
+{% else %}
+- None.
+{% endfor %}
+
+## Findings
+{{ findings_md }}
+
+## Lint
+{{ lint_md }}
+{% if notes_md %}
+## Notes
+{{ notes_md }}
+{% endif %}

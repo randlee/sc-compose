@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"waits_for\",\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/waits_for.formula.json\",\n  \"steps\": [\n    {\n      \"id\": \"build\",\n      \"title\": \"Build\"\n    },\n    {\n      \"id\": \"wait\",\n      \"needs\": [\n        \"build\"\n      ],\n      \"title\": \"Wait\",\n      \"waits_for\": \"all-children\"\n    }\n  ],\n  \"type\": \"workflow\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

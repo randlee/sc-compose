@@ -1,0 +1,8 @@
+{
+  "id": "comp-d-4-sanity",
+  "parent": "comp-phase-d",
+  "dev_bead": "comp-d-4",
+  "phase": "d",
+  "sprint": "d-4",
+  "stack": "phase-d"
+}

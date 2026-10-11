@@ -37,7 +37,12 @@ Rendering options are `--output PATH`, `--guidance TEXT`,
 
 JSON templates are always checked before ordinary `render` emits stdout or
 creates an output file. A malformed result fails closed with
-`ERR_RENDER_JSON_MALFORMED`; the rendered body is never emitted. The
+`ERR_RENDER_JSON_MALFORMED`; the rendered body is never emitted. JSON supports
+at most 127 nested objects or arrays, counting the root container as level 1.
+Exceeding this bound during parsing fails with
+`ERR_RENDER_JSON_DEPTH_LIMIT` (exit `2`) naming the limit, rather than claiming
+the body is malformed. This limit also applies to `--append`; a depth failure
+leaves its destination unchanged. The
 `--check-render` flag also applies this gate to non-JSON text and includes a
 `render_check` object in JSON output. A successful check reports
 `state: "render_checked"`; callers must not treat a static validation result
@@ -60,6 +65,47 @@ sc-compose render --all --file staged.md.j2 \
   --pass 1 --var name=first --pass 2 --var name=second
 ```
 
+## Appending JSON records
+
+`--append PATH` adds the rendered result to a JSON Lines file as one record. It
+is meant for logs and ledgers that several processes write at once, such as
+one record per test run or review.
+
+```shell
+sc-compose render --file run-record.json.j2 --var-file run.json --strict \
+  --append logs/runs.jsonl
+```
+
+In order, `render --append`:
+
+1. renders and validates exactly as an ordinary render does, including
+   `--strict` and the JSON template checks; nothing is opened yet;
+2. requires the result to be exactly one JSON object
+   (`ERR_RENDER_JSON_MALFORMED` if it is not JSON,
+   `ERR_RENDER_APPEND_NOT_OBJECT` if it is an array, string or number);
+   because the object is parsed and re-serialized, its key order may differ
+   from the rendered source order;
+3. writes it as one compact UTF-8 line (embedded newlines stay escaped)
+   followed by `\n`;
+4. opens the file for append (creating it if needed) and holds an exclusive
+   cross-process lock across the check and the write, so concurrent appends
+   never interleave and none is lost;
+5. refuses, unchanged, a non-empty file whose last byte is not `\n`
+   (`ERR_RENDER_APPEND_NO_FINAL_NEWLINE`): repair the file's last line first.
+
+Guarantees: any failure before the write leaves existing content
+byte-for-byte unchanged (a file that did not exist may be left empty after an
+open or lock failure). A lock or write failure is `ERR_RENDER_WRITE`; if a
+write fails part-way, the file is truncated back to its previous length, or
+the diagnostic says a partial last line may remain if that also fails. All of
+these exit `2`. Nothing stronger is claimed for arbitrary disk failures.
+
+`--append` cannot be combined with `--output` or `--dry-run`, and is not
+accepted by `examples` or `templates` (usage errors, exit `3`). With `--json`,
+the payload reports `output_path` (the file), `bytes_written` (including the
+final newline) and `appended: true`, and carries no rendered body. Timestamps
+in records come from your inputs; sc-compose adds none.
+
 ## Common failures
 
 - `ERR_CONFIG_MODE` means the selected file/profile mode does not match the
@@ -68,13 +114,15 @@ sc-compose render --all --file staged.md.j2 \
   profile could not be resolved uniquely.
 - `ERR_VAL_MISSING_REQUIRED`, `ERR_VAL_UNDECLARED_TOKEN`, and related
   `ERR_VAL_*` diagnostics identify input or strict-validation failures.
-- `ERR_RENDER_WRITE` identifies an output-file or standard-output write
-  failure. Invalid option combinations and malformed pass groups use
+- `ERR_RENDER_WRITE` identifies an output-file, standard-output, append-lock
+  or append-write failure. Invalid option combinations and malformed pass groups use
   `ERR_CONFIG_PARSE`.
 - `WARN_JSON_LEGACY_ESCAPE_MODE` identifies a quoted-placeholder shape or
   explicit legacy mode that should be migrated to bare placeholders and
   `auto`. `ERR_JSON_ESCAPE_MODE_NON_JSON` means a JSON mode was selected for a
   non-JSON template.
+- `ERR_RENDER_JSON_DEPTH_LIMIT` identifies output exceeding 127 nested JSON
+  objects or arrays; its diagnostic gives the limit and source location.
 - `ERR_RENDER_JSON_MALFORMED` identifies a complete rendered JSON body that
   failed parsing. Its diagnostic includes the template, line, column, and byte
   offset but does not echo rendered values.

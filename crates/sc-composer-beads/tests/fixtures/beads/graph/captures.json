@@ -1,0 +1,202 @@
+{
+  "binary": "gastownhall/beads v1.3.1 darwin_arm64",
+  "archive_sha256": "508ba807996e2b9c992c538a6f405f2fc7d2e16cf8b4e5b0d1bf9fe860367007",
+  "command": [
+    "bd",
+    "cook",
+    "<input>",
+    "--json"
+  ],
+  "normalization": "Replace absolute capture workspace with <workspace>; preserve remaining stdout/stderr.",
+  "cases": [
+    {
+      "name": "allowed_top",
+      "input": "allowed_top.formula.json",
+      "capture": "allowed_top.capture.json",
+      "cooked": "allowed_top.cooked.json",
+      "expected_graph_result": "accepted"
+    },
+    {
+      "name": "allowed_step",
+      "input": "allowed_step.formula.json",
+      "capture": "allowed_step.capture.json",
+      "cooked": "allowed_step.cooked.json",
+      "expected_graph_result": "accepted"
+    },
+    {
+      "name": "needs_depends_on",
+      "input": "needs_depends_on.formula.json",
+      "capture": "needs_depends_on.capture.json",
+      "cooked": "needs_depends_on.cooked.json",
+      "expected_graph_result": "accepted"
+    },
+    {
+      "name": "vars_declared",
+      "input": "vars_declared.formula.json",
+      "capture": "vars_declared.capture.json",
+      "cooked": "vars_declared.cooked.json",
+      "expected_graph_result": "vars_declared"
+    },
+    {
+      "name": "bead_variables_set",
+      "input": "bead_variables_set.formula.json",
+      "capture": "bead_variables_set.capture.json",
+      "cooked": "bead_variables_set.cooked.json",
+      "expected_graph_result": "bead_variables_set (request metadata; parser output unchanged)"
+    },
+    {
+      "name": "template",
+      "input": "template.formula.json",
+      "capture": "template.capture.json",
+      "cooked": "template.cooked.json",
+      "expected_graph_result": "composition"
+    },
+    {
+      "name": "compose",
+      "input": "compose.formula.json",
+      "capture": "compose.capture.json",
+      "cooked": "compose.cooked.json",
+      "expected_graph_result": "composition"
+    },
+    {
+      "name": "advice",
+      "input": "advice.formula.json",
+      "capture": "advice.capture.json",
+      "cooked": "advice.cooked.json",
+      "expected_graph_result": "composition"
+    },
+    {
+      "name": "pointcuts",
+      "input": "pointcuts.formula.json",
+      "capture": "pointcuts.capture.json",
+      "cooked": "pointcuts.cooked.json",
+      "expected_graph_result": "composition"
+    },
+    {
+      "name": "other_type",
+      "input": "other_type.formula.json",
+      "capture": "other_type.capture.json",
+      "cooked": "other_type.cooked.json",
+      "expected_graph_result": "composition"
+    },
+    {
+      "name": "unknown_top",
+      "input": "unknown_top.formula.json",
+      "capture": "unknown_top.capture.json",
+      "cooked": "unknown_top.cooked.json",
+      "expected_graph_result": "accepted after bd discards the unknown input key; unknown_key applies only to keys present in parsed JSON"
+    },
+    {
+      "name": "unknown_step",
+      "input": "unknown_step.formula.json",
+      "capture": "unknown_step.capture.json",
+      "cooked": "unknown_step.cooked.json",
+      "expected_graph_result": "accepted after bd discards the unknown input key; unknown_key applies only to keys present in parsed JSON"
+    },
+    {
+      "name": "children",
+      "input": "children.formula.json",
+      "capture": "children.capture.json",
+      "cooked": "children.cooked.json",
+      "expected_graph_result": "step_construct"
+    },
+    {
+      "name": "expand_vars",
+      "input": "expand_vars.formula.json",
+      "capture": "expand_vars.capture.json",
+      "cooked": "expand_vars.cooked.json",
+      "expected_graph_result": "step_construct"
+    },
+    {
+      "name": "condition",
+      "input": "condition.formula.json",
+      "capture": "condition.capture.json",
+      "cooked": "condition.cooked.json",
+      "expected_graph_result": "step_construct"
+    },
+    {
+      "name": "gate",
+      "input": "gate.formula.json",
+      "capture": "gate.capture.json",
+      "cooked": "gate.cooked.json",
+      "expected_graph_result": "step_construct"
+    },
+    {
+      "name": "on_complete",
+      "input": "on_complete.formula.json",
+      "capture": "on_complete.capture.json",
+      "cooked": "on_complete.cooked.json",
+      "expected_graph_result": "step_construct"
+    },
+    {
+      "name": "waits_for",
+      "input": "waits_for.formula.json",
+      "capture": "waits_for.capture.json",
+      "cooked": "waits_for.cooked.json",
+      "expected_graph_result": "step_construct"
+    },
+    {
+      "name": "reserved_metadata",
+      "input": "reserved_metadata.formula.json",
+      "capture": "reserved_metadata.capture.json",
+      "cooked": "reserved_metadata.cooked.json",
+      "expected_graph_result": "reserved_metadata"
+    },
+    {
+      "name": "label_comma",
+      "input": "label_comma.formula.json",
+      "capture": "label_comma.capture.json",
+      "cooked": "label_comma.cooked.json",
+      "expected_graph_result": "label_comma"
+    },
+    {
+      "name": "no_steps",
+      "input": "no_steps.formula.json",
+      "capture": "no_steps.capture.json",
+      "cooked": "no_steps.cooked.json",
+      "expected_graph_result": "step_graph"
+    },
+    {
+      "name": "duplicate_step",
+      "input": "duplicate_step.formula.json",
+      "capture": "duplicate_step.capture.json",
+      "cooked": null,
+      "expected_graph_result": "BEADS_COOK_FAILED (bd parser refusal)"
+    },
+    {
+      "name": "unknown_need",
+      "input": "unknown_need.formula.json",
+      "capture": "unknown_need.capture.json",
+      "cooked": null,
+      "expected_graph_result": "BEADS_COOK_FAILED (bd parser refusal)"
+    },
+    {
+      "name": "unknown_dependency",
+      "input": "unknown_dependency.formula.json",
+      "capture": "unknown_dependency.capture.json",
+      "cooked": null,
+      "expected_graph_result": "BEADS_COOK_FAILED (bd parser refusal)"
+    },
+    {
+      "name": "extends",
+      "input": "extends.formula.json",
+      "capture": "extends.capture.json",
+      "cooked": "extends.cooked.json",
+      "expected_graph_result": "accepted"
+    },
+    {
+      "name": "loop",
+      "input": "loop.formula.json",
+      "capture": "loop.capture.json",
+      "cooked": "loop.cooked.json",
+      "expected_graph_result": "GraphIdInvalid (step contains dot)"
+    },
+    {
+      "name": "expand",
+      "input": "expand.formula.json",
+      "capture": "expand.capture.json",
+      "cooked": "expand.cooked.json",
+      "expected_graph_result": "GraphIdInvalid (step contains dot)"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20261007-2 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;: &quot;t7-20261007-0002&quot;, &quot;case_families&quot;: [{&quot;cases&quot;: 77, &quot;name&quot;: &quot;f1_request_shape (render request shapes, raw docs, FUZZ-013/022/035 probes, human/JSON parity) [seed 7023]&quot;, &quot;passed&quot;: 75}, {&quot;cases&quot;: 70, &quot;name&quot;: &quot;f1r_random_request_mutation (seeded field delete/null/wrong-type/dup-key/relations; determinism + human parity) [seed 7023]&quot;, &quot;passed&quot;: 70}, {&quot;cases&quot;: 45, &quot;name&quot;: &quot;f1r_random_request_mutation [seed 48611]&quot;, &quot;passed&quot;: 45}, {&quot;cases&quot;: 49, &quot;name&quot;: &quot;f2_attach_request_shape (parent/ref/relations/auth shapes, Unicode whitespace classes) [seed 7023]&quot;, &quot;passed&quot;: 49}, {&quot;cases&quot;: 52, &quot;name&quot;: &quot;f3_attach_ids_bd (Unicode/control/look-alike/option-like parent and relation endpoints, scope) [seed 7023]&quot;, &quot;passed&quot;: 44}, {&quot;cases&quot;: 57, &quot;name&quot;: &quot;f4_step_content_bd (generated step ids, titles/labels/metadata with C0/DEL/NUL/bidi/ZW/combining/non-BMP, reserved metadata) [seed 7023]&quot;, &quot;passed&quot;: 56}, {&quot;cases&quot;: 47, &quot;name&quot;: &quot;f4_step_content_bd [seed 48611]&quot;, &quot;passed&quot;: 46}, {&quot;cases&quot;: 13, &quot;name&quot;: &quot;f5_attach_rerun_bd (real attach, bd round-trip fidelity, idempotent re-run, chain size) [seed 7023]&quot;, &quot;passed&quot;: 12}, {&quot;cases&quot;: 12, &quot;name&quot;: &quot;f5_attach_rerun_bd [seed 48611]&quot;, &quot;passed&quot;: 11}, {&quot;cases&quot;: 15, &quot;name&quot;: &quot;f6_pour_bd (graph/registry pour shapes, mixed key/id plan endpoints) [seed 7023]&quot;, &quot;passed&quot;: 14}, {&quot;cases&quot;: 65, &quot;name&quot;: &quot;f7_render_append (record shapes, escapes, numbers, destinations, non-objects, seeded random objects, sequential appends) [seed 7023]&quot;, &quot;passed&quot;: 60}, {&quot;cases&quot;: 71, &quot;name&quot;: &quot;f7_render_append [seed 48611]&quot;, &quot;passed&quot;: 66}, {&quot;cases&quot;: 87, &quot;name&quot;: &quot;f8_request_file_encoding (BOM, UTF-16/32, Latin-1, overlong, CESU, NUL, CRLF/CR, trailing garbage, 40 MB, dir/000/loop/FIFO/unicode/newline paths, non-UTF-8 path, seeded byte mutations vs Python strict-JSON oracle; human/JSON parity) [seed 7023]&quot;, &quot;passed&quot;: 85}, {&quot;cases&quot;: 87, &quot;name&quot;: &quot;f8_request_file_encoding [seed 48611]&quot;, &quot;passed&quot;: 85}, {&quot;cases&quot;: 160, &quot;name&quot;: &quot;f10_missing_edge_recovery (20 parent ids with shell metachars/quotes/C0/DEL/bidi/ZW/NFC/NFD/emoji; removed edges; receipt missing_edges, stage message, human recovery lines, argv-exact recovery then no-op re-run) [seed 7023]&quot;, &quot;passed&quot;: 144}, {&quot;cases&quot;: 96, &quot;name&quot;: &quot;f10_missing_edge_recovery [seed 48611]&quot;, &quot;passed&quot;: 86}, {&quot;cases&quot;: 16, &quot;name&quot;: &quot;f11_endpoint_states (resume after deleting first/middle/last/two steps; plan *_key vs *_id per endpoint, relation endpoints both directions, node actions, no-op re-run) [seed 7023]&quot;, &quot;passed&quot;: 16}, {&quot;cases&quot;: 8, &quot;name&quot;: &quot;f11_endpoint_states [seed 48611]&quot;, &quot;passed&quot;: 8}], &quot;cases_run&quot;: 1027, &quot;correlation_id&quot;: &quot;shape-probe&quot;, &quot;error&quot;: null, &quot;failed&quot;: 55, &quot;finding_ids&quot;: [&quot;FUZZ-038&quot;, &quot;FUZZ-040&quot;, &quot;FUZZ-046&quot;], &quot;known_findings_status&quot;: [{&quot;evidence&quot;: &quot;f1-074/f1-075 (seed 7023): a render request with formula_name &#x27;café&#x27; or &#x27;re g0&#x27; exits 3 BEADS_REQUEST_DESERIALIZATION_FAILED.&quot;, &quot;id&quot;: &quot;FUZZ-013&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;Re-running a 36-step chain (7023 f5-013) and a 40-step chain (48611 f5-012) fails with BEADS_PROCESS_OUTPUT_LIMIT. A preview-attach with a 100k-character title fails the same way (7023 f4-050, 48611 f4-040). A 10-, 12- or 33-step re-run passes.&quot;, &quot;id&quot;: &quot;FUZZ-015&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;7023 f3-018..f3-023: parents &#x27;--help&#x27;, &#x27;-h&#x27;, &#x27;--version&#x27;, &#x27;--json&#x27;, &#x27;--db=/nonexistent&#x27; and &#x27;-&#x27; give exit 2 BEADS_GRAPH_READ_FAILED, not PARENT_NOT_FOUND. The bd argv is [&#x27;bd&#x27;,&#x27;show&#x27;,&#x27;--help&#x27;,...]. Relation endpoints bead:--help and bead:--db=... behave the same (f3-036, f3-037).&quot;, &quot;id&quot;: &quot;FUZZ-016&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;Both seeds, f7-012..015 and f7-017: 2^64 is appended as 1.8446744073709552e+19, a 23-digit integer as 1.2345678901234568e+22, 12345678901234.5678 as 12345678901234.568, 0.10000000000000000001 as 0.1, and -0 as -0.0.&quot;, &quot;id&quot;: &quot;FUZZ-017&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;A bead render of the template &#x27;{% if %}&#x27; gives stage outcome failed BEADS_RENDER_FAILED with stderr_excerpt &#x27;&#x27;. Checked by hand under campaign_dir/tmp/f19.&quot;, &quot;id&quot;: &quot;FUZZ-019&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;Not exercised. No shape case reached GraphApplyFailed against real bd: an empty title was refused earlier as BEADS_COOK_FAILED (f4-051).&quot;, &quot;id&quot;: &quot;FUZZ-020&quot;, &quot;still_reproduces&quot;: null}, {&quot;evidence&quot;: &quot;f2 ref cases (empty, 33 chars, &#x27;.&#x27;, space, fullwidth, combining, ZWSP, non-BMP digit, NUL, Arabic-Indic digit, &#x27;/&#x27;) all exit 3 BEADS_REQUEST_DESERIALIZATION_FAILED. ADR-0023 lists GraphIdInvalid as a refused receipt with exit 2.&quot;, &quot;id&quot;: &quot;FUZZ-021&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;A duplicate top-level key is refused with RDF. A duplicate compose_variables key is accepted silently and the last value wins (f1-036: {\&quot;version\&quot;:\&quot;1\&quot;,\&quot;version\&quot;:\&quot;2\&quot;} renders &#x27;Build 2&#x27;). A duplicate bead_variables key is refused with BEADS_VARIABLE_KEY_DUPLICATE.&quot;, &quot;id&quot;: &quot;FUZZ-022&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;7023 f3-024: a parent containing NUL gives exit 2 BEADS_PROCESS_ARGUMENT_INVALID.&quot;, &quot;id&quot;: &quot;FUZZ-034&quot;, &quot;still_reproduces&quot;: true}, {&quot;evidence&quot;: &quot;f1-076/077: compose_variables version 18446744073709551616 renders &#x27;Build 18446744073709552000.0&#x27;, and 123456789012345678901234567890 renders &#x27;Build 123456789012345680000000000000.0&#x27;. Exit is 0 with no diagnostic.&quot;, &quot;id&quot;: &quot;FUZZ-035&quot;, &quot;still_reproduces&quot;: true}], &quot;passed&quot;: 972, &quot;per_seed&quot;: {&quot;48611&quot;: {&quot;cases&quot;: 366, &quot;passed&quot;: 347}, &quot;7023&quot;: {&quot;cases&quot;: 661, &quot;passed&quot;: 625}}, &quot;seed&quot;: [7023, 48611], &quot;status&quot;: &quot;success&quot;, &quot;target&quot;: &quot;request JSON shapes, Unicode/control ids, request-file encodings (ba13841), missing-edge recovery commands (c77838a), endpoint states (2e8f60b), render --append records&quot;, &quot;tested_head&quot;: &quot;d47d35ed4ff0145141c0517451b576c5815c6a79&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Run 2: workspaces spb/spc/spe/spf/sph/spi on the throwaway Dolt (spa/spd abandoned after an interrupted init). Cases per seed: 7023 = 661 (625 passed), 48611 = 366 (347 passed).">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">request JSON shapes, Unicode/control ids, request-file encodings (ba13841), missing-edge recovery commands (c77838a), endpoint states (2e8f60b), render --append records</th>
+        <td>1027</td>
+        <td>972/1027</td>
+        <td>
+          <span class="status status-error">FAIL: 2 new confirmed bug(s); 55 failing cases incl. known findings</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">shape-probe/f1_request_shape (render request shapes, raw docs, FUZZ-013/022/035 probes, human/JSON parity) [seed 7023]</th><td><code>f1_request_shape (render request shapes, raw docs, FUZZ-013/022/035 probes, human/JSON parity) [seed 7023]</code></td><td>75/77 passed</td></tr>
+        <tr><th scope="row">shape-probe/f1r_random_request_mutation (seeded field delete/null/wrong-type/dup-key/relations; determinism + human parity) [seed 7023]</th><td><code>f1r_random_request_mutation (seeded field delete/null/wrong-type/dup-key/relations; determinism + human parity) [seed 7023]</code></td><td>70/70 passed</td></tr>
+        <tr><th scope="row">shape-probe/f1r_random_request_mutation [seed 48611]</th><td><code>f1r_random_request_mutation [seed 48611]</code></td><td>45/45 passed</td></tr>
+        <tr><th scope="row">shape-probe/f2_attach_request_shape (parent/ref/relations/auth shapes, Unicode whitespace classes) [seed 7023]</th><td><code>f2_attach_request_shape (parent/ref/relations/auth shapes, Unicode whitespace classes) [seed 7023]</code></td><td>49/49 passed</td></tr>
+        <tr><th scope="row">shape-probe/f3_attach_ids_bd (Unicode/control/look-alike/option-like parent and relation endpoints, scope) [seed 7023]</th><td><code>f3_attach_ids_bd (Unicode/control/look-alike/option-like parent and relation endpoints, scope) [seed 7023]</code></td><td>44/52 passed</td></tr>
+        <tr><th scope="row">shape-probe/f4_step_content_bd (generated step ids, titles/labels/metadata with C0/DEL/NUL/bidi/ZW/combining/non-BMP, reserved metadata) [seed 7023]</th><td><code>f4_step_content_bd (generated step ids, titles/labels/metadata with C0/DEL/NUL/bidi/ZW/combining/non-BMP, reserved metadata) [seed 7023]</code></td><td>56/57 passed</td></tr>
+        <tr><th scope="row">shape-probe/f4_step_content_bd [seed 48611]</th><td><code>f4_step_content_bd [seed 48611]</code></td><td>46/47 passed</td></tr>
+        <tr><th scope="row">shape-probe/f5_attach_rerun_bd (real attach, bd round-trip fidelity, idempotent re-run, chain size) [seed 7023]</th><td><code>f5_attach_rerun_bd (real attach, bd round-trip fidelity, idempotent re-run, chain size) [seed 7023]</code></td><td>12/13 passed</td></tr>
+        <tr><th scope="row">shape-probe/f5_attach_rerun_bd [seed 48611]</th><td><code>f5_attach_rerun_bd [seed 48611]</code></td><td>11/12 passed</td></tr>
+        <tr><th scope="row">shape-probe/f6_pour_bd (graph/registry pour shapes, mixed key/id plan endpoints) [seed 7023]</th><td><code>f6_pour_bd (graph/registry pour shapes, mixed key/id plan endpoints) [seed 7023]</code></td><td>14/15 passed</td></tr>
+        <tr><th scope="row">shape-probe/f7_render_append (record shapes, escapes, numbers, destinations, non-objects, seeded random objects, sequential appends) [seed 7023]</th><td><code>f7_render_append (record shapes, escapes, numbers, destinations, non-objects, seeded random objects, sequential appends) [seed 7023]</code></td><td>60/65 passed</td></tr>
+        <tr><th scope="row">shape-probe/f7_render_append [seed 48611]</th><td><code>f7_render_append [seed 48611]</code></td><td>66/71 passed</td></tr>
+        <tr><th scope="row">shape-probe/f8_request_file_encoding (BOM, UTF-16/32, Latin-1, overlong, CESU, NUL, CRLF/CR, trailing garbage, 40 MB, dir/000/loop/FIFO/unicode/newline paths, non-UTF-8 path, seeded byte mutations vs Python strict-JSON oracle; human/JSON parity) [seed 7023]</th><td><code>f8_request_file_encoding (BOM, UTF-16/32, Latin-1, overlong, CESU, NUL, CRLF/CR, trailing garbage, 40 MB, dir/000/loop/FIFO/unicode/newline paths, non-UTF-8 path, seeded byte mutations vs Python strict-JSON oracle; human/JSON parity) [seed 7023]</code></td><td>85/87 passed</td></tr>
+        <tr><th scope="row">shape-probe/f8_request_file_encoding [seed 48611]</th><td><code>f8_request_file_encoding [seed 48611]</code></td><td>85/87 passed</td></tr>
+        <tr><th scope="row">shape-probe/f10_missing_edge_recovery (20 parent ids with shell metachars/quotes/C0/DEL/bidi/ZW/NFC/NFD/emoji; removed edges; receipt missing_edges, stage message, human recovery lines, argv-exact recovery then no-op re-run) [seed 7023]</th><td><code>f10_missing_edge_recovery (20 parent ids with shell metachars/quotes/C0/DEL/bidi/ZW/NFC/NFD/emoji; removed edges; receipt missing_edges, stage message, human recovery lines, argv-exact recovery then no-op re-run) [seed 7023]</code></td><td>144/160 passed</td></tr>
+        <tr><th scope="row">shape-probe/f10_missing_edge_recovery [seed 48611]</th><td><code>f10_missing_edge_recovery [seed 48611]</code></td><td>86/96 passed</td></tr>
+        <tr><th scope="row">shape-probe/f11_endpoint_states (resume after deleting first/middle/last/two steps; plan *_key vs *_id per endpoint, relation endpoints both directions, node actions, no-op re-run) [seed 7023]</th><td><code>f11_endpoint_states (resume after deleting first/middle/last/two steps; plan *_key vs *_id per endpoint, relation endpoints both directions, node actions, no-op re-run) [seed 7023]</code></td><td>16/16 passed</td></tr>
+        <tr><th scope="row">shape-probe/f11_endpoint_states [seed 48611]</th><td><code>f11_endpoint_states [seed 48611]</code></td><td>8/8 passed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-038</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>n/a</code></dd>
+        <dt>Input</dt><dd><code>request path argv containing one non-UTF-8 byte (0xFF), file absent</code></dd>
+        <dt>Expected</dt><dd>help bead: request-file read failures use BEADS_REQUEST_READ_FAILED (exit 3) with details.path/kind and recovery; FR-7 stable envelope, never a panic. Baseline 080f261: exit 3 envelope.</dd>
+        <dt>Observed</dt><dd>Exit 101, empty stdout: thread &#x27;main&#x27; panicked at crates/sc-composer-beads/src/error_json.rs:25:17: called Result::unwrap() on Err &#x27;path contains invalid UTF-8 characters&#x27;. JSON and human mode. Coordinator 3/3; baseline exit 3.</dd>
+        <dt>Requirement / ADR</dt><dd>help bead Request-file read failures; ADR-0023 Request errors; FR-7</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>impl Serialize for BeadComposeError builds json!({&quot;path&quot;: path, ...}) for RequestReadFailed; json! unwraps serde_json::to_value(PathBuf), which fails for non-UTF-8 paths. Reached via print_json and human_bead_error.</dd>
+        <dt>Recommended fix</dt><dd>Serialize the path lossily (to_string_lossy) or as bytes and never unwrap in the error serializer.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-040</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>formula u: step &#x27;head&#x27;, step &#x27;tail&#x27; needs [&#x27;head&#x27;]</code></dd>
+        <dt>Input</dt><dd><code>existing parent with bd-accepted id &#x27;spc-$(id)58&#x27; (also &#x27;spc-a;b90&#x27;, &#x27;spc-x&quot;q65&#x27;, ESC/bidi/C0 ids); attach, bd dep remove tail head, re-run</code></dd>
+        <dt>Expected</dt><dd>ADR-0023 Errors: GraphEdgeMissing recovery is &#x27;run the bd dep add command the message gives&#x27;; the message lists &#x27;the exact command&#x27;. help bead: each recovery command printed on its own line.</dd>
+        <dt>Observed</dt><dd>Printed &#x27;bd dep add spc-$(id)58.rdollar_subshellv2-tail spc-$(id)58.rdollar_subshellv2-head --type blocks&#x27; unquoted: a shell runs `id`; &#x27;;&#x27; splits the command; quotes merge args; control/bidi characters reach the terminal raw. Receipt missing_edges data itself is correct. Coordinator 3/3.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0023 Errors (GraphEdgeMissing); help bead human output</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR needed.</dd>
+        <dt>Root cause</dt><dd>Commands built with plain Display format!(&quot;bd dep add {} {} --type {}&quot;) with no shell quoting or control escaping; BeadId only forbids whitespace.</dd>
+        <dt>Recommended fix</dt><dd>Shell-quote each argument (and escape control characters) in the human and message forms, or reject such ids at BeadId.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

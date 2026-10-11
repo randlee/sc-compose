@@ -1,0 +1,12 @@
+{
+  "task_id": "comp-d-4",
+  "sprint": "d-4",
+  "stack": "phase-d",
+  "pr_target": "integrate/phase-d",
+  "worktree_path": "../sc-compose-worktrees/sprint/d-4-otlp-sync-exporter",
+  "branch": "sprint/d-4-otlp-sync-exporter",
+  "primary_checkout": "/path/to/sc-compose",
+  "phase_root": "comp-phase-d",
+  "test_command": "make test",
+  "policy_path": ".claude/project/quality-policy.md"
+}

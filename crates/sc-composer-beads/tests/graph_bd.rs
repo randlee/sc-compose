@@ -1,0 +1,625 @@
+//! Production bd graph use cases from ADR-0023; opt in with `BD_EXECUTABLE`.
+use sc_composer_beads::{
+    BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadGraphMode, BeadId, BeadNodeAction,
+    BeadOperation, BeadOutcome, BeadPourMode, BeadStage, GraphRef, PourAuthorization,
+    execute_bead_request,
+};
+use serde_json::{Value, json};
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output, Stdio};
+use std::sync::{
+    Mutex,
+    atomic::{AtomicU64, Ordering},
+};
+use std::time::{Duration, Instant};
+
+static SERIAL: Mutex<()> = Mutex::new(());
+static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+const BD_COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
+const PIPE_DRAIN_TEST_TIMEOUT: Duration = Duration::from_secs(10);
+const PIPE_DRAIN_TEST_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_PIPE_DRAIN_CHILD";
+const PIPE_DRAIN_TEST_OUTPUT_BYTES: usize = 256 * 1024;
+const WORKSPACE_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_WORKSPACE_CHILD";
+const FORMULA: &str = "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build {{literal}}\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\nneeds = [\"build\"]\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\nneeds = [\"verify\"]\n";
+struct Workspace {
+    root: PathBuf,
+    beads_dir: PathBuf,
+    bd: PathBuf,
+}
+impl Drop for Workspace {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.root);
+    }
+}
+impl Workspace {
+    fn new(binary: &Path) -> Self {
+        let root = std::env::temp_dir().join(format!(
+            "sc-graph-bd-{}-{}",
+            std::process::id(),
+            SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir_all(root.join("build")).expect("workspace");
+        let beads_dir = root.join(".beads");
+        let ws = Self {
+            root: fs::canonicalize(root).expect("canonical root"),
+            beads_dir,
+            bd: binary.to_path_buf(),
+        };
+        ws.command(&[
+            "init",
+            "--non-interactive",
+            "--quiet",
+            "--skip-agents",
+            "--skip-hooks",
+            "--prefix",
+            "graph",
+        ]);
+        fs::write(ws.root.join("release.formula.toml.j2"), FORMULA).expect("template");
+        ws
+    }
+    fn command(&self, args: &[&str]) -> String {
+        let mut command = Command::new(&self.bd);
+        command
+            .args(args)
+            .current_dir(&self.root)
+            .env("BEADS_NO_DAEMON", "1")
+            .env("BEADS_DIR", &self.beads_dir);
+        let out = run_command_with_timeout(&mut command, args, BD_COMMAND_TIMEOUT);
+        assert!(
+            out.status.success(),
+            "{args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8(out.stdout).expect("UTF-8")
+    }
+    fn json(&self, args: &[&str]) -> Value {
+        serde_json::from_str(&self.command(args)).expect("bd JSON")
+    }
+    fn parent(&self) -> BeadId {
+        BeadId::new(
+            self.json(&["create", "Parent", "--type", "epic", "--json"])["id"]
+                .as_str()
+                .expect("created id"),
+        )
+        .expect("id")
+    }
+    fn request(&self, operation: BeadOperation, parent: Option<BeadId>) -> BeadComposeRequest {
+        BeadComposeRequest {
+            schema: BEADS_SCHEMA_V1.into(),
+            operation,
+            working_directory: self.root.clone(),
+            template: self.root.join("release.formula.toml.j2"),
+            rendered_formula: self.root.join("build/release.formula.toml"),
+            compose_variables: serde_json::Map::new(),
+            formula_name: Some(
+                sc_composer_beads::FormulaName::new("release").expect("formula name"),
+            ),
+            bead_variables: BTreeMap::new(),
+            bd_executable: Some(self.bd.clone()),
+            pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
+            ref_: parent
+                .as_ref()
+                .map(|_| GraphRef::new("release").expect("ref")),
+            parent,
+            relations: Vec::new(),
+        }
+    }
+    fn run(&self, req: &BeadComposeRequest) -> BeadComposeReceipt {
+        assert_eq!(req.working_directory, self.root);
+        execute_bead_request(req).expect("valid request")
+    }
+    fn success(&self, req: &BeadComposeRequest) -> BeadComposeReceipt {
+        let receipt = self.run(req);
+        assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+        receipt
+    }
+    fn snapshot(&self) -> Value {
+        let beads = self.json(&["list", "--all", "-n", "0", "--json"]);
+        let mut edges = BTreeMap::new();
+        for bead in beads.as_array().expect("beads") {
+            let id = bead["id"].as_str().expect("bead id");
+            edges.insert(id, self.json(&["dep", "list", id, "--json"]));
+        }
+        json!({"beads": beads, "edges": edges})
+    }
+    fn refuse(&self, req: &BeadComposeRequest, code: &str) -> BeadComposeReceipt {
+        let before = self.snapshot();
+        let result = self.run(req);
+        assert_eq!(
+            result.outcome,
+            BeadOutcome::Refused { code: code.into() },
+            "{result:#?}"
+        );
+        assert_eq!(self.snapshot(), before, "refusal changes no beads or edges");
+        result
+    }
+}
+
+fn assert_dependency(w: &Workspace, from: &BeadId, to: &BeadId, kind: &str) {
+    let dependencies = w.json(&["dep", "list", from.as_str(), "--json"]);
+    assert!(
+        dependencies
+            .as_array()
+            .expect("dependency rows")
+            .iter()
+            .any(|row| { row["id"] == to.as_str() && row["dependency_type"] == kind }),
+        "expected {from} -> {to} ({kind}), got {dependencies:#}"
+    );
+}
+
+fn assert_persisted_graph(w: &Workspace, graph: &sc_composer_beads::BeadGraph) {
+    let parent = graph.parent.as_ref().expect("graph parent");
+    let children = w.json(&["children", parent.as_str(), "--json"]);
+    let actual = children
+        .as_array()
+        .expect("children")
+        .iter()
+        .map(|child| child["id"].as_str().expect("child id"))
+        .collect::<BTreeSet<_>>();
+    let expected = graph
+        .ids
+        .values()
+        .map(BeadId::as_str)
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual, expected, "children are exactly the graph steps");
+    for id in graph.ids.values() {
+        assert_dependency(w, id, parent, "parent-child");
+    }
+    let build = &graph.ids[&sc_composer_beads::StepId::new("build").expect("step")];
+    let verify = &graph.ids[&sc_composer_beads::StepId::new("verify").expect("step")];
+    let publish = &graph.ids[&sc_composer_beads::StepId::new("publish").expect("step")];
+    assert_dependency(w, verify, build, "blocks");
+    assert_dependency(w, publish, verify, "blocks");
+}
+
+fn run_command_with_timeout(command: &mut Command, args: &[&str], timeout: Duration) -> Output {
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = command.spawn().expect("bd spawn");
+    let mut stdout = child.stdout.take().expect("piped bd stdout");
+    let mut stderr = child.stderr.take().expect("piped bd stderr");
+    let stdout_reader = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        stdout.read_to_end(&mut bytes).expect("bd stdout");
+        bytes
+    });
+    let stderr_reader = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        stderr.read_to_end(&mut bytes).expect("bd stderr");
+        bytes
+    });
+    let started = Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if started.elapsed() <= timeout => {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = stdout_reader.join();
+                let _ = stderr_reader.join();
+                panic!("bd command timed out: {args:?}");
+            }
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = stdout_reader.join();
+                let _ = stderr_reader.join();
+                panic!("bd status: {error}");
+            }
+        }
+    };
+    let stdout = stdout_reader.join().expect("bd stdout reader");
+    let stderr = stderr_reader.join().expect("bd stderr reader");
+
+    Output {
+        status,
+        stdout,
+        stderr,
+    }
+}
+
+#[test]
+fn pipe_drain_child_emits_large_stdout_and_stderr() {
+    if std::env::var_os(PIPE_DRAIN_TEST_CHILD_ENV).is_none() {
+        return;
+    }
+    let stdout = vec![b'o'; PIPE_DRAIN_TEST_OUTPUT_BYTES];
+    let stderr = vec![b'e'; PIPE_DRAIN_TEST_OUTPUT_BYTES];
+    std::io::stdout()
+        .lock()
+        .write_all(&stdout)
+        .expect("write test stdout");
+    std::io::stderr()
+        .lock()
+        .write_all(&stderr)
+        .expect("write test stderr");
+}
+
+#[test]
+fn bd_command_drains_both_pipes_before_waiting_for_exit() {
+    let executable = std::env::current_exe().expect("test executable");
+    let mut command = Command::new(executable);
+    command
+        .args([
+            "--exact",
+            "pipe_drain_child_emits_large_stdout_and_stderr",
+            "--nocapture",
+        ])
+        .env(PIPE_DRAIN_TEST_CHILD_ENV, "1");
+
+    let output = run_command_with_timeout(
+        &mut command,
+        &["test child emitting large output"],
+        PIPE_DRAIN_TEST_TIMEOUT,
+    );
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stdout.len() >= PIPE_DRAIN_TEST_OUTPUT_BYTES);
+    assert!(output.stderr.len() >= PIPE_DRAIN_TEST_OUTPUT_BYTES);
+}
+
+fn with_workspace(test: impl FnOnce(&Workspace)) {
+    let Some(binary) = std::env::var_os("BD_EXECUTABLE") else {
+        eprintln!("skipping graph integration: BD_EXECUTABLE not configured");
+        return;
+    };
+    if let Some(root) = std::env::var_os(WORKSPACE_CHILD_ENV) {
+        let root = PathBuf::from(root);
+        let beads_dir = root.join(".beads");
+        assert_eq!(
+            std::env::var_os("BEADS_DIR"),
+            Some(beads_dir.clone().into())
+        );
+        assert_eq!(std::env::var("BEADS_NO_DAEMON").as_deref(), Ok("1"));
+        test(&Workspace {
+            root: fs::canonicalize(root).expect("canonical child root"),
+            beads_dir,
+            bd: PathBuf::from(binary),
+        });
+        return;
+    }
+    assert!(
+        std::env::var_os("BEADS_DIR").is_none(),
+        "graph integration refuses ambient BEADS_DIR; unset it before running"
+    );
+    let _guard = SERIAL
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let workspace = Workspace::new(Path::new(&binary));
+    let thread = std::thread::current();
+    let name = thread.name().expect("libtest test name");
+    let mut child = Command::new(std::env::current_exe().expect("test executable"));
+    // The child environment isolates both helper commands and engine-launched bd.
+    // Use the original temp path: canonical paths have a verbatim prefix on Windows.
+    child
+        .args(["--exact", name, "--nocapture"])
+        .env(
+            WORKSPACE_CHILD_ENV,
+            workspace.beads_dir.parent().expect("root"),
+        )
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1");
+    let output = run_command_with_timeout(&mut child, &[name], BD_COMMAND_TIMEOUT);
+    assert!(
+        output.status.success(),
+        "isolated {name}: {}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn graph_integration_refuses_ambient_beads_dir_before_launching_bd() {
+    let mut child = Command::new(std::env::current_exe().expect("test executable"));
+    child
+        .args([
+            "--exact",
+            "uc1_render_and_pour_outside_registry",
+            "--nocapture",
+        ])
+        .env_remove(WORKSPACE_CHILD_ENV)
+        .env("BD_EXECUTABLE", "must-not-be-launched")
+        .env("BEADS_DIR", "must-not-be-used");
+    let output = run_command_with_timeout(
+        &mut child,
+        &["ambient BEADS_DIR guard"],
+        PIPE_DRAIN_TEST_TIMEOUT,
+    );
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains("graph integration refuses ambient BEADS_DIR"),
+        "{output:?}"
+    );
+}
+#[test]
+fn uc1_render_and_pour_outside_registry() {
+    with_workspace(|w| {
+        let r = w.request(BeadOperation::Render, None);
+        w.success(&r);
+        let before_preview = w.snapshot();
+        let preview = w.success(&w.request(BeadOperation::PreviewPour, None));
+        assert_eq!(preview.pour_mode, Some(BeadPourMode::Graph));
+        assert!(preview.graph.expect("graph").ids.is_empty());
+        assert_eq!(w.snapshot(), before_preview, "preview-pour must not write");
+        let applied = w.success(&w.request(BeadOperation::Pour, None));
+        let graph = applied.graph.expect("graph");
+        assert_eq!(graph.ids.len(), 3);
+        assert_eq!(graph.mode, BeadGraphMode::Pour);
+        let root = w.json(&[
+            "show",
+            graph.parent.as_ref().expect("root").as_str(),
+            "--json",
+        ]);
+        assert_eq!(root[0]["issue_type"], "molecule");
+        let persisted = w.json(&["list", "--all", "-n", "0", "--json"]);
+        let persisted = persisted.as_array().expect("workspace beads");
+        assert_eq!(persisted.len(), graph.ids.len() + 1);
+        for id in graph.ids.values() {
+            assert!(
+                persisted.iter().any(|bead| bead["id"] == id.as_str()),
+                "engine-created {id} must land in the workspace database"
+            );
+        }
+        assert_persisted_graph(w, &graph);
+    });
+}
+
+#[test]
+fn graph_pour_ignores_same_name_toml_and_json_registry_formulas() {
+    with_workspace(|w| {
+        let registry = w.root.join(".beads/formulas");
+        fs::create_dir_all(&registry).expect("registry");
+        fs::write(registry.join("release.formula.toml"), FORMULA).expect("registry TOML");
+        fs::write(
+            registry.join("release.formula.json"),
+            r#"{"formula":"release","version":1,"type":"workflow","steps":[{"id":"build","title":"Build"}]}"#,
+        )
+        .expect("registry JSON");
+
+        let r = w.request(BeadOperation::Render, None);
+        w.success(&r);
+        let receipt = w.success(&w.request(BeadOperation::Pour, None));
+        assert_eq!(receipt.pour_mode, Some(BeadPourMode::Graph));
+        assert_persisted_graph(w, &receipt.graph.expect("graph"));
+    });
+}
+#[test]
+fn uc2_attach_children_directly_under_parent() {
+    with_workspace(|w| {
+        let parent = w.parent();
+        let r = w.request(BeadOperation::Attach, Some(parent.clone()));
+        let g = w.success(&r).graph.expect("graph");
+        assert_eq!(g.ids.len(), 3);
+        let children = w.json(&["children", parent.as_str(), "--json"]);
+        assert_eq!(children.as_array().expect("children").len(), 3);
+        assert_eq!(
+            g.ids[&sc_composer_beads::StepId::new("build").expect("step")].as_str(),
+            format!("{parent}.release-build")
+        );
+        assert_persisted_graph(w, &g);
+    });
+}
+#[test]
+fn uc3_preview_creates_no_beads() {
+    with_workspace(|w| {
+        let r = w.request(BeadOperation::PreviewAttach, Some(w.parent()));
+        let before = w.snapshot();
+        let g = w.success(&r).graph.expect("graph");
+        assert!(g.nodes.iter().all(|n| n.action == BeadNodeAction::Create));
+        assert!(g.plan_path.expect("plan").is_file());
+        assert_eq!(w.snapshot(), before);
+    });
+}
+#[test]
+fn uc4_rerun_preserves_closed_annotated_beads() {
+    with_workspace(|w| {
+        let r = w.request(BeadOperation::Attach, Some(w.parent()));
+        let g = w.success(&r).graph.expect("graph");
+        let id = g.ids.values().next().expect("id");
+        w.command(&[
+            "update",
+            id.as_str(),
+            "--notes",
+            "retained evidence",
+            "--assignee",
+            "tester",
+        ]);
+        w.command(&["close", id.as_str(), "--actor", "tester"]);
+        let before = w.snapshot();
+        let plan = g.plan_path.expect("original plan");
+        let bytes = fs::read(&plan).expect("plan bytes");
+        let next = w.success(&r).graph.expect("graph");
+        assert!(next.plan_path.is_none());
+        assert!(
+            next.nodes
+                .iter()
+                .all(|n| n.action == BeadNodeAction::Existing)
+        );
+        assert_eq!(w.snapshot(), before);
+        assert_eq!(fs::read(plan).expect("unchanged plan"), bytes);
+    });
+}
+#[test]
+fn uc5_resume_recreates_only_missing_child() {
+    with_workspace(|w| {
+        let r = w.request(BeadOperation::Attach, Some(w.parent()));
+        let g = w.success(&r).graph.expect("graph");
+        let id = g.ids[&sc_composer_beads::StepId::new("publish").expect("step")].clone();
+        w.command(&["delete", id.as_str(), "--force"]);
+        let next = w.success(&r).graph.expect("graph");
+        assert_eq!(
+            next.nodes
+                .iter()
+                .filter(|n| n.action == BeadNodeAction::Created)
+                .count(),
+            1
+        );
+    });
+}
+#[test]
+fn uc6_changed_revision_scope_and_relations_are_refused() {
+    with_workspace(|w| {
+        let mut r = w.request(BeadOperation::Attach, Some(w.parent()));
+        w.success(&r);
+        fs::write(&r.template, FORMULA.replace("Verify", "Verify changed"))
+            .expect("changed formula");
+        w.refuse(&r, "BEADS_GRAPH_CONFLICT");
+        fs::write(&r.template, FORMULA).expect("restore template");
+        r.compose_variables.insert("ref".into(), json!("other"));
+        w.refuse(&r, "BEADS_GRAPH_SCOPE_MISMATCH");
+        r.compose_variables.clear();
+        let external = w.parent();
+        r.relations = serde_json::from_value(
+            json!([{"from":"step:build","to":format!("bead:{external}"),"type":"related"}]),
+        )
+        .expect("relation");
+        w.refuse(&r, "BEADS_GRAPH_CONFLICT");
+    });
+}
+#[test]
+fn uc7_relations_in_both_directions_preserve_external_fields() {
+    with_workspace(|w| {
+        let mut r = w.request(BeadOperation::Attach, Some(w.parent()));
+        let external = w.parent();
+        r.relations=serde_json::from_value(json!([{"from":"step:build","to":format!("bead:{external}"),"type":"related"},{"from":format!("bead:{external}"),"to":"step:verify","type":"validates"}])).expect("relations");
+        w.command(&[
+            "update",
+            external.as_str(),
+            "--notes",
+            "unchanged",
+            "--assignee",
+            "tester",
+        ]);
+        let before = w.json(&["show", external.as_str(), "--json"]);
+        w.success(&r);
+        let after = w.json(&["show", external.as_str(), "--json"]);
+        for field in ["title", "status", "notes", "assignee"] {
+            assert_eq!(before[0][field], after[0][field]);
+        }
+        w.success(&r);
+    });
+}
+#[test]
+fn uc8_template_loop_and_hyphenated_ref() {
+    with_workspace(|w| {
+        let mut r = w.request(BeadOperation::Attach, Some(w.parent()));
+        r.ref_ = Some(GraphRef::new("qa1-f1-r1").expect("ref"));
+        fs::write(&r.template,"formula = \"batch\"\nversion = 1\ntype = \"workflow\"\n{% for i in range(1, 11) %}\n[[steps]]\nid = \"item_{{{ i }}}\"\ntitle = \"Item {{{ i }}}\"\n{% if i > 1 %}needs = [\"item_{{{ i - 1 }}}\"]\n{% endif %}{% endfor %}").expect("loop template");
+        let g = w.success(&r).graph.expect("graph");
+        assert_eq!(g.ids.len(), 10);
+        assert!(
+            g.ids
+                .values()
+                .all(|id| id.as_str().contains(".qa1-f1-r1-item_"))
+        );
+    });
+}
+#[test]
+fn uc9_attach_one_workflow_under_three_parents() {
+    with_workspace(|w| {
+        let parents = [w.parent(), w.parent(), w.parent()];
+        for parent in &parents {
+            w.success(&w.request(BeadOperation::Attach, Some(parent.clone())));
+        }
+        let before = w.snapshot();
+        for parent in parents {
+            w.success(&w.request(BeadOperation::Attach, Some(parent)));
+        }
+        assert_eq!(w.snapshot(), before);
+    });
+}
+#[test]
+fn uc10_receipt_maps_every_generated_id_and_parent() {
+    with_workspace(|w| {
+        let g = w
+            .success(&w.request(BeadOperation::Pour, None))
+            .graph
+            .expect("graph");
+        for (step, id) in &g.ids {
+            let row = w.json(&["show", id.as_str(), "--json"]);
+            assert_eq!(
+                row[0]["metadata"]["sc_compose_graph"]["step"],
+                step.as_str()
+            );
+            assert_eq!(
+                row[0]["parent"],
+                g.parent.as_ref().expect("parent").as_str()
+            );
+        }
+    });
+}
+#[test]
+fn inherited_steps_attach_and_bd_loop_is_refused() {
+    with_workspace(|w| {
+        fs::create_dir_all(w.root.join(".beads/formulas")).expect("registry");
+        fs::write(
+            w.root.join(".beads/formulas/base.formula.json"),
+            include_str!("fixtures/beads/graph/base.formula.json"),
+        )
+        .expect("base");
+        let r = w.request(BeadOperation::Attach, Some(w.parent()));
+        fs::write(&r.template,"formula = \"release\"\nversion = 1\ntype = \"workflow\"\nextends = [\"base\"]\n[[steps]]\nid = \"build\"\ntitle = \"Build\"\n").expect("extends");
+        assert_eq!(w.success(&r).graph.expect("graph").ids.len(), 2);
+        fs::write(&r.template,"formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"loop\"\ntitle = \"Loop\"\n[steps.loop]\ncount = 2\n[[steps.loop.body]]\nid = \"check\"\ntitle = \"Check\"\n").expect("loop");
+        w.refuse(&r, "BEADS_GRAPH_ID_INVALID");
+    });
+}
+
+#[test]
+fn refusals_preserve_beads_and_edges() {
+    with_workspace(|w| {
+        let parent = w.parent();
+        let mut r = w.request(BeadOperation::Attach, Some(parent.clone()));
+        r.parent = Some(BeadId::new("graph-missing").expect("id"));
+        w.refuse(&r, "BEADS_GRAPH_PARENT_NOT_FOUND");
+        r.parent = Some(parent);
+        r.relations = serde_json::from_value(json!([
+            {"from":"step:build","to":"step:build","type":"blocks"}
+        ]))
+        .expect("relation");
+        w.refuse(&r, "BEADS_GRAPH_RELATION_INVALID");
+        r.relations = serde_json::from_value(json!([
+            {"from":"step:build","to":"bead:graph-missing","type":"related"}
+        ]))
+        .expect("missing bead relation");
+        let receipt = w.refuse(&r, "BEADS_GRAPH_RELATION_INVALID");
+        let stage = receipt.stages.last().expect("plan-stage receipt");
+        assert_eq!(stage.stage, BeadStage::Attach);
+        assert!(
+            stage.stderr_excerpt.contains("graph-missing")
+                && stage.stderr_excerpt.contains("not found"),
+            "missing bead relation must fail at planning: {stage:#?}"
+        );
+        r.relations.clear();
+        fs::write(
+            &r.template,
+            FORMULA.replace(
+                "version = 1",
+                "version = 1\n[vars.release]\ndefault = \"v1\"",
+            ),
+        )
+        .expect("unsupported formula");
+        w.refuse(&r, "BEADS_GRAPH_FORMULA_UNSUPPORTED");
+        fs::write(&r.template, FORMULA).expect("restore formula");
+        let graph = w.success(&r).graph.expect("graph");
+        let build = graph.ids[&sc_composer_beads::StepId::new("build").expect("step")].as_str();
+        let verify = graph.ids[&sc_composer_beads::StepId::new("verify").expect("step")].as_str();
+        w.command(&["dep", "remove", verify, build]);
+        w.refuse(&r, "BEADS_GRAPH_EDGE_MISSING");
+        w.command(&["dep", "add", verify, build, "--type", "related"]);
+        w.refuse(&r, "BEADS_GRAPH_EDGE_CONFLICT");
+        w.command(&[
+            "update",
+            build,
+            "--metadata",
+            r#"{"sc_compose_graph":null}"#,
+        ]);
+        w.refuse(&r, "BEADS_GRAPH_CONFLICT");
+    });
+}

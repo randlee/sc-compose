@@ -1,0 +1,17 @@
+{
+  "description": "Graph parser contract",
+  "formula": "label_comma",
+  "schema_version": 1,
+  "source": "<workspace>/label_comma.formula.json",
+  "steps": [
+    {
+      "id": "build",
+      "labels": [
+        "first,second"
+      ],
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

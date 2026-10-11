@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import json
 import os
 import shutil
@@ -13,7 +14,8 @@ import sc_composer_beads as beads
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-FIXTURE_ROOT = REPOSITORY_ROOT / "crates" / "sc-composer-beads" / "tests" / "fixtures" / "beads"
+FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"
+GRAPH_FIXTURE_ROOT = FIXTURE_ROOT / "graph"
 
 
 def _write_fake_bd(root: Path) -> tuple[Path, Path]:
@@ -76,6 +78,197 @@ def test_import_surface_exposes_versioned_beads_contract() -> None:
     assert beads.BEADS_SCHEMA_V1 == "sc-compose/beads/v1"
     assert beads.BeadOperation.VALIDATE == "validate"
     assert beads.PourAuthorization.CREATE_PERSISTENT_BEADS == "CreatePersistentBeads"
+    assert beads.BeadOperation.PREVIEW_ATTACH == "preview_attach"
+    assert beads.BeadOperation.ATTACH == "attach"
+    assert {
+        "BEADS_GRAPH_PARENT_NOT_FOUND": beads.BEADS_GRAPH_PARENT_NOT_FOUND,
+        "BEADS_GRAPH_ID_INVALID": beads.BEADS_GRAPH_ID_INVALID,
+        "BEADS_GRAPH_SCOPE_MISMATCH": beads.BEADS_GRAPH_SCOPE_MISMATCH,
+        "BEADS_GRAPH_FORMULA_UNSUPPORTED": beads.BEADS_GRAPH_FORMULA_UNSUPPORTED,
+        "BEADS_GRAPH_RELATION_INVALID": beads.BEADS_GRAPH_RELATION_INVALID,
+        "BEADS_GRAPH_CONFLICT": beads.BEADS_GRAPH_CONFLICT,
+        "BEADS_GRAPH_EDGE_CONFLICT": beads.BEADS_GRAPH_EDGE_CONFLICT,
+        "BEADS_GRAPH_EDGE_MISSING": beads.BEADS_GRAPH_EDGE_MISSING,
+        "BEADS_GRAPH_READ_FAILED": beads.BEADS_GRAPH_READ_FAILED,
+        "BEADS_GRAPH_APPLY_FAILED": beads.BEADS_GRAPH_APPLY_FAILED,
+        "BEADS_GRAPH_APPLY_UNCONFIRMED": beads.BEADS_GRAPH_APPLY_UNCONFIRMED,
+    } == {
+        "BEADS_GRAPH_PARENT_NOT_FOUND": "BEADS_GRAPH_PARENT_NOT_FOUND",
+        "BEADS_GRAPH_ID_INVALID": "BEADS_GRAPH_ID_INVALID",
+        "BEADS_GRAPH_SCOPE_MISMATCH": "BEADS_GRAPH_SCOPE_MISMATCH",
+        "BEADS_GRAPH_FORMULA_UNSUPPORTED": "BEADS_GRAPH_FORMULA_UNSUPPORTED",
+        "BEADS_GRAPH_RELATION_INVALID": "BEADS_GRAPH_RELATION_INVALID",
+        "BEADS_GRAPH_CONFLICT": "BEADS_GRAPH_CONFLICT",
+        "BEADS_GRAPH_EDGE_CONFLICT": "BEADS_GRAPH_EDGE_CONFLICT",
+        "BEADS_GRAPH_EDGE_MISSING": "BEADS_GRAPH_EDGE_MISSING",
+        "BEADS_GRAPH_READ_FAILED": "BEADS_GRAPH_READ_FAILED",
+        "BEADS_GRAPH_APPLY_FAILED": "BEADS_GRAPH_APPLY_FAILED",
+        "BEADS_GRAPH_APPLY_UNCONFIRMED": "BEADS_GRAPH_APPLY_UNCONFIRMED",
+    }
+
+
+@pytest.mark.parametrize(
+    ("name", "pour_mode", "outcome_code"),
+    [
+        ("receipt-graph-pour.json", "graph", None),
+        ("receipt-registry.json", "registry", None),
+        ("receipt-conflict.json", "graph", beads.BEADS_GRAPH_CONFLICT),
+        ("receipt-edge-missing.json", "graph", beads.BEADS_GRAPH_EDGE_MISSING),
+    ],
+)
+def test_graph_receipt_fixtures_remain_json_contracts(
+    name: str, pour_mode: str, outcome_code: str | None
+) -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / name).read_text(encoding="utf-8"))
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+
+    assert receipt.to_json() == fixture
+    assert receipt.pour_mode == pour_mode
+    assert receipt.graph == fixture.get("graph")
+    if outcome_code is not None:
+        assert receipt.outcome.code == outcome_code
+
+
+def test_request_getters_expose_parent_ref_and_relations(tmp_path: Path) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+    request = beads.BeadComposeRequest(
+        tmp_path,
+        tmp_path / "template.formula.toml.j2",
+        tmp_path / "output.formula.toml",
+        {},
+        bd_executable=executable,
+        parent="comp-parent",
+        ref="attach-ref",
+        relations=[
+            {"from": "step:child", "to": "bead:comp-dependency", "type": "blocks"}
+        ],
+    )
+
+    assert request.parent == "comp-parent"
+    assert request.ref == "attach-ref"
+    assert request.relations == [
+        {"from": "step:child", "to": "bead:comp-dependency", "type": "blocks"}
+    ]
+
+    empty_request = beads.BeadComposeRequest(
+        tmp_path,
+        tmp_path / "template.formula.toml.j2",
+        tmp_path / "output.formula.toml",
+        {},
+        bd_executable=executable,
+    )
+    assert empty_request.parent is None
+    assert empty_request.ref is None
+    assert empty_request.relations == []
+    assert empty_request.pour_authorization is None
+
+
+def test_pour_authorization_getter_returns_the_stored_token(tmp_path: Path) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+    request = beads.BeadComposeRequest(
+        tmp_path,
+        tmp_path / "template.formula.toml.j2",
+        tmp_path / "output.formula.toml",
+        {},
+        bd_executable=executable,
+        pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+    )
+
+    assert request.pour_authorization == beads.PourAuthorization.CREATE_PERSISTENT_BEADS
+
+
+def test_receipt_decode_errors_have_a_receipt_code_and_stage() -> None:
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeReceipt.from_json("{}")
+
+    assert raised.value.code == "BEADS_RECEIPT_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "receipt"
+    assert raised.value.message.startswith("failed to decode receipt:")
+
+
+@pytest.mark.parametrize("name", ["render", "validate", "preview_pour", "pour", "preview_attach", "attach"])
+def test_operation_names_preserve_the_wire_contract(tmp_path: Path, name: str) -> None:
+    request = beads.BeadComposeRequest(
+        tmp_path, tmp_path / "template.j2", tmp_path / "output.toml", {}, operation=name
+    )
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
+    fixture["operation"] = name
+
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+
+    assert request.operation == getattr(beads.BeadOperation, name.upper()) == name
+    assert receipt.operation == receipt.to_json()["operation"] == name
+
+
+@pytest.mark.parametrize("name", ["render", "validate", "resolve_active_registry", "preview_pour", "pour", "preview_attach", "attach"])
+@pytest.mark.parametrize("kind", ["succeeded", "skipped", "failed"])
+def test_stage_names_and_outcomes_preserve_the_wire_contract(name: str, kind: str) -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
+    fixture["stages"] = [{
+        "stage": name, "argv": [], "exit_status": None, "elapsed_ms": 0,
+        "stdout_excerpt": "", "stderr_excerpt": "",
+        "outcome": {kind: {"code": "test-code"}} if kind == "failed" else kind,
+    }]
+
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+
+    assert receipt.stages[0].stage == getattr(beads.BeadStage, name.upper()) == name
+    assert receipt.stages[0].outcome.kind == kind
+    assert receipt.stages[0].outcome.code == ("test-code" if kind == "failed" else None)
+    assert receipt.to_json() == fixture
+
+
+@pytest.mark.parametrize("kind", ["succeeded", "refused", "failed"])
+def test_receipt_outcome_names_preserve_the_wire_contract(kind: str) -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
+    fixture["outcome"] = kind if kind == "succeeded" else {kind: {"code": "test-code"}}
+
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+
+    assert receipt.outcome.kind == kind
+    assert receipt.outcome.code == (None if kind == "succeeded" else "test-code")
+    assert receipt.to_json() == fixture
+
+
+@pytest.mark.parametrize("name", ["", "unknown", "preview-attach", "Render"])
+def test_unknown_operation_preserves_the_request_error(tmp_path: Path, name: str) -> None:
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path, tmp_path / "template.j2", tmp_path / "output.toml", {}, operation=name
+        )
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+    assert raised.value.message == "operation must be render, validate, preview_pour, pour, preview_attach, or attach"
+
+
+@pytest.mark.parametrize("failure", ["import", "loads"])
+def test_graph_receipt_conversion_failures_raise_bead_compose_error(
+    monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    wire = (GRAPH_FIXTURE_ROOT / "receipt-graph-pour.json").read_text(encoding="utf-8")
+    message = f"injected graph JSON {failure} failure"
+    if failure == "import":
+        original_import = builtins.__import__
+
+        def fail_json_import(name: str, *args: object, **kwargs: object) -> object:
+            if name == "json":
+                raise ImportError(message)
+            return original_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", fail_json_import)
+    else:
+        def fail_json_loads(*args: object, **kwargs: object) -> object:
+            raise ValueError(message)
+
+        monkeypatch.setattr(json, "loads", fail_json_loads)
+
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeReceipt.from_json(wire)
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+    assert message in raised.value.message
 
 
 def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
@@ -201,6 +394,135 @@ def test_compose_variables_reject_non_string_object_keys(tmp_path: Path) -> None
     assert raised.value.message == "compose_variables object keys must be strings"
 
 
+def test_attach_request_fields_reach_the_rust_graph_plan(tmp_path: Path) -> None:
+    cooked = {
+        "schema_version": 1,
+        "formula": "release",
+        "type": "workflow",
+        "steps": [
+            {"id": "build", "title": "Build"},
+            {"id": "verify", "title": "Verify"},
+        ],
+    }
+    responses = {
+        "cook": cooked,
+        "show": [{"id": "proj-100"}, {"id": "proj-200"}],
+        "create": {},
+    }
+    if os.name == "nt":
+        executable = tmp_path / "fake-graph-bd.cmd"
+        executable.write_text(
+            "@echo off\r\n"
+            + "".join(
+                f'if /I "%~1"=="{command}" (echo {json.dumps(response)} & exit /b 0)\r\n'
+                for command, response in responses.items()
+            )
+            + "exit /b 1\r\n",
+            encoding="utf-8",
+            newline="",
+        )
+    else:
+        executable = tmp_path / "fake-graph-bd"
+        executable.write_text(
+            '#!/bin/sh\ncase "$1" in\n'
+            + "".join(
+                f"{command}) printf '%s\\n' '{json.dumps(response)}';;\n"
+                for command, response in responses.items()
+            )
+            + "*) exit 1;;\nesac\n",
+            encoding="utf-8",
+        )
+        executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
+    template = tmp_path / "release.formula.json.j2"
+    template.write_text(json.dumps(cooked), encoding="utf-8")
+    request = beads.BeadComposeRequest(
+        tmp_path,
+        template,
+        tmp_path / "release.formula.json",
+        {},
+        operation="preview_attach",
+        parent="proj-100",
+        ref="release_1",
+        relations=[
+            {"from": "step:verify", "to": "step:build", "type": "blocks"},
+            {"from": "step:build", "to": "bead:proj-200", "type": "related"},
+        ],
+        bd_executable=executable,
+    )
+
+    receipt = beads.execute(request)
+
+    assert receipt.operation == "preview_attach"
+    assert receipt.outcome.kind == "succeeded"
+    assert receipt.graph["parent"] == "proj-100"
+    assert receipt.graph["ref"] == "release_1"
+    assert receipt.graph["ids"] == {
+        "build": "proj-100.release_1-build",
+        "verify": "proj-100.release_1-verify",
+    }
+    edges = {(edge["from"], edge["to"], edge["type"]) for edge in receipt.graph["edges"]}
+    assert ("proj-100.release_1-verify", "proj-100.release_1-build", "blocks") in edges
+    assert ("proj-100.release_1-build", "proj-200", "related") in edges
+    assert receipt.stages[-1].argv[1] == "create"
+    assert "--dry-run" in receipt.stages[-1].argv
+
+
+@pytest.mark.parametrize(
+    ("parent", "reference"),
+    [(parent, "release_1") for parent in ["", " ", "invalid parent", "bad\tparent", "bad\nparent", "bad\rparent"]]
+    + [("proj-100", "invalid.ref")],
+)
+def test_attach_request_rejects_invalid_parent_and_ref(
+    tmp_path: Path, parent: str, reference: str
+) -> None:
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.toml.j2",
+            tmp_path / "output.toml",
+            {},
+            operation="preview_attach",
+            parent=parent,
+            ref=reference,
+        )
+
+    assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
+    assert raised.value.stage == "validate"
+    if parent != "proj-100":
+        assert raised.value.details == {"field": "bead", "value": parent, "rule": "bead ids are non-empty without whitespace"}
+        assert "bead ids are non-empty without whitespace" in str(raised.value)
+    else:
+        assert raised.value.details == {"field": "ref", "value": reference, "rule": "ref is [A-Za-z0-9_-]{1,32}"}
+
+
+
+@pytest.mark.parametrize(
+    "relation, expected_code",
+    [
+        ({"from": "root", "to": "bead:parent", "type": "blocks"}, "BEADS_RELATION_ENDPOINT_INVALID"),
+        ({"from": "step:build", "to": "", "type": "blocks"}, "BEADS_RELATION_ENDPOINT_INVALID"),
+        ({"from": "step:build", "to": "bead:child", "type": "unknown"}, "BEADS_REQUEST_DESERIALIZATION_FAILED"),
+    ],
+)
+def test_relations_reject_malformed_endpoints_and_unknown_types(
+    tmp_path: Path, relation: dict[str, str], expected_code: str
+) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.toml.j2",
+            tmp_path / "output.toml",
+            {},
+            relations=[relation],
+            bd_executable=executable,
+        )
+
+    assert raised.value.code == expected_code
+    assert raised.value.stage == "request"
+
+
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
 def test_compose_variables_reject_non_finite_floats(tmp_path: Path, value: float) -> None:
     executable, _trace = _write_fake_bd(tmp_path)
@@ -238,3 +560,80 @@ def test_installed_wheel_runs_the_pinned_beads_fixture(tmp_path: Path, monkeypat
         "resolve_active_registry",
         "preview_pour",
     ]
+
+
+def test_invalid_authorization_uses_stable_error_code(tmp_path: Path) -> None:
+    output = tmp_path / "output.formula.toml"
+    with pytest.raises(beads.BeadComposeError) as caught:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.formula.toml.j2",
+            output,
+            {},
+            operation="pour",
+            formula_name="workflow",
+            pour_authorization="invalid",
+        )
+    assert caught.value.code == "BEADS_POUR_AUTH_INVALID"
+    assert caught.value.stage == "request"
+    assert not output.exists()
+
+
+def test_identifier_refused_receipt_accepts_additive_canonical_error() -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-conflict.json").read_text(encoding="utf-8"))
+    fixture["outcome"] = {"refused": {"code": "BEADS_GRAPH_ID_INVALID"}}
+    fixture["error"] = {
+        "code": "BEADS_GRAPH_ID_INVALID",
+        "message": "invalid ref `a.b`: ref is [A-Za-z0-9_-]{1,32}",
+        "details": {"field": "ref", "value": "a.b", "rule": "ref is [A-Za-z0-9_-]{1,32}"},
+    }
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+    assert receipt.to_json()["outcome"] == fixture["outcome"]
+    assert receipt.outcome.code == beads.BEADS_GRAPH_ID_INVALID
+
+
+@pytest.mark.parametrize("operation", ["render", "validate", "preview_pour", "pour"])
+@pytest.mark.parametrize("name", ["café", "re g0", "a+b", "workflow"])
+def test_constructor_keeps_legacy_formula_names_for_non_attach(tmp_path, operation, name) -> None:
+    request = beads.BeadComposeRequest(
+        tmp_path, tmp_path / "f.formula.toml.j2", tmp_path / "f.formula.toml", {},
+        operation=operation, formula_name=name,
+    )
+    assert request.formula_name == name
+
+
+@pytest.mark.parametrize("operation", ["render", "validate", "preview_pour", "pour"])
+def test_constructor_treats_empty_formula_name_as_absent_for_non_attach(tmp_path, operation) -> None:
+    request = beads.BeadComposeRequest(
+        tmp_path, tmp_path / "f.formula.toml.j2", tmp_path / "f.formula.toml", {},
+        operation=operation, formula_name="",
+    )
+    assert request.formula_name is None
+
+
+@pytest.mark.parametrize("operation", ["attach", "preview_attach"])
+@pytest.mark.parametrize("name", ["café", "a+b", ""])
+def test_constructor_requires_portable_formula_name_for_attach(tmp_path, operation, name) -> None:
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path, tmp_path / "f.formula.toml.j2", tmp_path / "f.formula.toml", {},
+            operation=operation, parent="proj-1", ref="valid", formula_name=name,
+        )
+    assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
+    assert raised.value.details["field"] == "formula"
+    assert raised.value.details["value"] == name
+    assert raised.value.details["rule"]
+
+
+def test_receipt_exposes_missing_edges_without_to_json() -> None:
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-edge-missing.json").read_text(encoding="utf-8"))
+    edges = [
+        {"from": "proj-1.release-verify", "to": "proj-1.release-build", "type": "blocks"},
+        {"from": "proj-1.release-publish", "to": "proj-1.release-verify", "type": "validates"},
+    ]
+    fixture["missing_edges"] = edges
+    receipt = beads.BeadComposeReceipt.from_json(json.dumps(fixture))
+    assert receipt.missing_edges == edges
+    assert receipt.to_json()["missing_edges"] == edges
+    registry = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
+    assert beads.BeadComposeReceipt.from_json(json.dumps(registry)).missing_edges == []

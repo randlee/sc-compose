@@ -23,6 +23,8 @@ when a script needs the same topic names as one stable, newline-delimited list.
 - [Templates](templates.md) — import, list, and render user template packs.
 - [Reports](reports.md) — create, materialize, verify, and publish report
   artifacts.
+- [Beads](bead.md) — render Beads formulas, pour new workflows, and attach
+  workflows under existing beads.
 - [Observability health](observability-health.md) — inspect process-local
   logger, sink, queue, and retained-log maintenance health.
 

@@ -1,0 +1,1558 @@
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "campaign_id": "t7-20261007-0001",
+    "session_id": "sc-compose-fuzz-20261007-1",
+    "date": "2026-10-07",
+    "bead": "comp-t-7.group-dev",
+    "sprint": "t-7",
+    "worktree_path": "/Users/randlee/github/sc-compose-worktrees/sprint/t-7-phase-fuzz",
+    "head": "58e3b49",
+    "target": "full",
+    "baseline_ref": "origin/develop",
+    "baseline_commit": "080f261f7890d981ce778c1ab8ce1f55c6415a64",
+    "seed": 7023,
+    "max_workers": 4,
+    "cases_per_worker": 200,
+    "per_worker_timeout_s": 600,
+    "promote_regressions": true,
+    "environment": "bd v1.3.1 in scratch workspaces bound to a throwaway dolt sql-server on 127.0.0.1:62888 (stopped after the campaign); isolated HOME; DO_NOT_TRACK=1 (bd metrics off); no network services.",
+    "provenance": "original_campaign"
+  },
+  "summary": {
+    "status": "FAIL",
+    "description": "Phase T t-7 full campaign over bead attach / by-path pour (ADR-0023) and render --append: 9 confirmed bugs promoted as ignored regressions.",
+    "iterations": 1149,
+    "passed": 1083,
+    "failed": 66,
+    "all_successful": true,
+    "confirmed_bugs": 9,
+    "intentional_boundaries": 7,
+    "inconclusive": 10,
+    "failed_workers": 0,
+    "promoted_tests": 9
+  },
+  "workers": [
+    {
+      "session_id": "sc-compose-fuzz-20261007-1",
+      "agent_id": "boundary-probe",
+      "worker_correlation_id": "boundary-probe",
+      "correlation_id": "boundary-probe",
+      "target": "ADR-0023 negative contract (id, scope, relation, conflict rows), path confinement and symlinks, render --append failures, exit 3 vs exit 2",
+      "status": "success",
+      "cases_run": 285,
+      "finding_ids": [
+        "FUZZ-012",
+        "FUZZ-021",
+        "FUZZ-022",
+        "FUZZ-023",
+        "FUZZ-024",
+        "FUZZ-025",
+        "FUZZ-026",
+        "FUZZ-027"
+      ],
+      "error": null,
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "ADR-0023 negative contract (id, scope, relation, conflict rows), path confinement and symlinks, render --append failures, exit 3 vs exit 2",
+      "iterations": 285,
+      "passed": 270,
+      "failed": 15,
+      "result": "FAIL: 1 confirmed bug(s)",
+      "context_text": "285 recorded checks (~250 sc-compose invocations) on bd v1.3.1 workspaces bnda..bndd. Every refusal left bd byte-identical (list + dep list snapshots). No timeouts, panics or hangs. 18 first-pass harness-expectation errors were rescored. Not testable on APFS: non-UTF-8 file names.",
+      "test_inputs": [
+        {
+          "case_id": "boundary-probe/id_rule_ref",
+          "description": "id_rule_ref",
+          "outcome": "6/14 passed"
+        },
+        {
+          "case_id": "boundary-probe/id_rule_parent",
+          "description": "id_rule_parent",
+          "outcome": "2/7 passed"
+        },
+        {
+          "case_id": "boundary-probe/id_rule_step",
+          "description": "id_rule_step",
+          "outcome": "8/8 passed"
+        },
+        {
+          "case_id": "boundary-probe/scope",
+          "description": "scope",
+          "outcome": "18/18 passed"
+        },
+        {
+          "case_id": "boundary-probe/request_shape",
+          "description": "request_shape",
+          "outcome": "29/29 passed"
+        },
+        {
+          "case_id": "boundary-probe/relation_request",
+          "description": "relation_request",
+          "outcome": "10/10 passed"
+        },
+        {
+          "case_id": "boundary-probe/relations",
+          "description": "relations",
+          "outcome": "14/14 passed"
+        },
+        {
+          "case_id": "boundary-probe/relation_types",
+          "description": "relation_types",
+          "outcome": "18/18 passed"
+        },
+        {
+          "case_id": "boundary-probe/pour_mode",
+          "description": "pour_mode",
+          "outcome": "7/7 passed"
+        },
+        {
+          "case_id": "boundary-probe/conflict (real bd)",
+          "description": "conflict (real bd)",
+          "outcome": "39/39 passed"
+        },
+        {
+          "case_id": "boundary-probe/ids_bd",
+          "description": "ids_bd",
+          "outcome": "15/15 passed"
+        },
+        {
+          "case_id": "boundary-probe/paths",
+          "description": "paths",
+          "outcome": "41/42 passed"
+        },
+        {
+          "case_id": "boundary-probe/append",
+          "description": "append",
+          "outcome": "63/64 passed"
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-012",
+          "minimal_template": "wf/m.formula.toml.j2: formula = \"m\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"A\"",
+          "minimal_input": "{\"operation\":\"render\",\"working_directory\":\"<ws>\",\"template\":\"wf/m.formula.toml.j2\",\"rendered_formula\":\"<ws>/build/out.formula.toml\",\"compose_variables\":{},\"bead_variables\":{}}  (process cwd != working_directory)",
+          "expected_oracle": "A relative template resolves against working_directory, so the render succeeds from any cwd (ADR-0021 line 207 'All paths resolve relative to working_directory'; help bead request table).",
+          "observed_result": "Exit 3 BEADS_TEMPLATE_PATH_INVALID 'invalid template path: wf/m.formula.toml.j2'. Succeeds only when cwd == working_directory. origin/develop behaves the same (pre-existing). Reproduced 3/3 by the coordinator.",
+          "requirement_trace": "ADR-0021 paths paragraph; help bead request table; ADR-0023 Authorization and confinement",
+          "requirement_follow_up": "No new ADR needed; the contract already states the rule.",
+          "root_cause": "validate_request canonicalizes request.template (and normalize_output the rendered_formula) as given, so relative paths resolve against the process cwd.",
+          "recommended_fix": "Join relative template/rendered_formula onto the canonical working_directory before canonicalizing and confining."
+        }
+      ],
+      "evidence_envelope": {
+        "correlation_id": "boundary-probe",
+        "campaign_id": "t7-20261007-0001",
+        "seed": 7023,
+        "target": "ADR-0023 negative contract (id, scope, relation, conflict rows), path confinement and symlinks, render --append failures, exit 3 vs exit 2",
+        "status": "success",
+        "cases_run": 285,
+        "passed": 270,
+        "failed": 15,
+        "case_families": [
+          {
+            "name": "id_rule_ref",
+            "cases": 14,
+            "passed": 6
+          },
+          {
+            "name": "id_rule_parent",
+            "cases": 7,
+            "passed": 2
+          },
+          {
+            "name": "id_rule_step",
+            "cases": 8,
+            "passed": 8
+          },
+          {
+            "name": "scope",
+            "cases": 18,
+            "passed": 18
+          },
+          {
+            "name": "request_shape",
+            "cases": 29,
+            "passed": 29
+          },
+          {
+            "name": "relation_request",
+            "cases": 10,
+            "passed": 10
+          },
+          {
+            "name": "relations",
+            "cases": 14,
+            "passed": 14
+          },
+          {
+            "name": "relation_types",
+            "cases": 18,
+            "passed": 18
+          },
+          {
+            "name": "pour_mode",
+            "cases": 7,
+            "passed": 7
+          },
+          {
+            "name": "conflict (real bd)",
+            "cases": 39,
+            "passed": 39
+          },
+          {
+            "name": "ids_bd",
+            "cases": 15,
+            "passed": 15
+          },
+          {
+            "name": "paths",
+            "cases": 42,
+            "passed": 41
+          },
+          {
+            "name": "append",
+            "cases": 64,
+            "passed": 63
+          }
+        ],
+        "finding_ids": [
+          "FUZZ-012",
+          "FUZZ-021",
+          "FUZZ-022",
+          "FUZZ-023",
+          "FUZZ-024",
+          "FUZZ-025",
+          "FUZZ-026",
+          "FUZZ-027"
+        ],
+        "error": null
+      },
+      "copy_json": "{\"campaign_id\": \"t7-20261007-0001\", \"case_families\": [{\"cases\": 14, \"name\": \"id_rule_ref\", \"passed\": 6}, {\"cases\": 7, \"name\": \"id_rule_parent\", \"passed\": 2}, {\"cases\": 8, \"name\": \"id_rule_step\", \"passed\": 8}, {\"cases\": 18, \"name\": \"scope\", \"passed\": 18}, {\"cases\": 29, \"name\": \"request_shape\", \"passed\": 29}, {\"cases\": 10, \"name\": \"relation_request\", \"passed\": 10}, {\"cases\": 14, \"name\": \"relations\", \"passed\": 14}, {\"cases\": 18, \"name\": \"relation_types\", \"passed\": 18}, {\"cases\": 7, \"name\": \"pour_mode\", \"passed\": 7}, {\"cases\": 39, \"name\": \"conflict (real bd)\", \"passed\": 39}, {\"cases\": 15, \"name\": \"ids_bd\", \"passed\": 15}, {\"cases\": 42, \"name\": \"paths\", \"passed\": 41}, {\"cases\": 64, \"name\": \"append\", \"passed\": 63}], \"cases_run\": 285, \"correlation_id\": \"boundary-probe\", \"error\": null, \"failed\": 15, \"finding_ids\": [\"FUZZ-012\", \"FUZZ-021\", \"FUZZ-022\", \"FUZZ-023\", \"FUZZ-024\", \"FUZZ-025\", \"FUZZ-026\", \"FUZZ-027\"], \"passed\": 270, \"seed\": 7023, \"status\": \"success\", \"target\": \"ADR-0023 negative contract (id, scope, relation, conflict rows), path confinement and symlinks, render --append failures, exit 3 vs exit 2\"}"
+    },
+    {
+      "session_id": "sc-compose-fuzz-20261007-1",
+      "agent_id": "differential-probe",
+      "worker_correlation_id": "differential-probe",
+      "correlation_id": "differential-probe",
+      "target": "metamorphic and differential relations: attach twice == once, relation order, CRLF revision, preview == apply, Phase R registry pour vs origin/develop, CLI vs Python receipts, concurrency, determinism",
+      "status": "success",
+      "cases_run": 304,
+      "finding_ids": [
+        "FUZZ-013",
+        "FUZZ-014",
+        "FUZZ-028",
+        "FUZZ-029",
+        "FUZZ-030",
+        "FUZZ-031",
+        "FUZZ-032",
+        "FUZZ-033"
+      ],
+      "error": null,
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "metamorphic and differential relations: attach twice == once, relation order, CRLF revision, preview == apply, Phase R registry pour vs origin/develop, CLI vs Python receipts, concurrency, determinism",
+      "iterations": 304,
+      "passed": 289,
+      "failed": 15,
+      "result": "FAIL: 2 confirmed bug(s)",
+      "context_text": "Workspaces difa..difg. Python binding built from head stood in for the Rust library (the optional scratch cargo harness was skipped to avoid writing outside the campaign dir). Concurrent render --append (8x25, 8x25 at 70 KB, 16x10) produced exact counts and no interleaving. CLI and Python receipts agreed in 37/37 cases.",
+      "test_inputs": [
+        {
+          "case_id": "differential-probe/R1 attach twice == once",
+          "description": "R1 attach twice == once",
+          "outcome": "36/36 passed"
+        },
+        {
+          "case_id": "differential-probe/R2 relation order and inputs",
+          "description": "R2 relation order and inputs",
+          "outcome": "40/40 passed"
+        },
+        {
+          "case_id": "differential-probe/R3 CRLF / lone CR revision",
+          "description": "R3 CRLF / lone CR revision",
+          "outcome": "48/48 passed"
+        },
+        {
+          "case_id": "differential-probe/R4 preview == apply",
+          "description": "R4 preview == apply",
+          "outcome": "24/24 passed"
+        },
+        {
+          "case_id": "differential-probe/R5 head vs origin/develop",
+          "description": "R5 head vs origin/develop",
+          "outcome": "51/60 passed"
+        },
+        {
+          "case_id": "differential-probe/R6 CLI vs Python receipts",
+          "description": "R6 CLI vs Python receipts",
+          "outcome": "37/37 passed"
+        },
+        {
+          "case_id": "differential-probe/R7 concurrency (append + attach)",
+          "description": "R7 concurrency (append + attach)",
+          "outcome": "19/25 passed"
+        },
+        {
+          "case_id": "differential-probe/R8 determinism",
+          "description": "R8 determinism",
+          "outcome": "14/14 passed"
+        },
+        {
+          "case_id": "differential-probe/R9 extra metamorphic",
+          "description": "R9 extra metamorphic",
+          "outcome": "20/20 passed"
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-013",
+          "minimal_template": "formula = \"re g0\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"A\"",
+          "minimal_input": "render request with \"formula_name\":\"re g0\" (also \"café\", \"a+b\", \"\")",
+          "expected_oracle": "ADR-0023 Decision 1: additive only; Phase R requests parse unchanged. Baseline accepts these requests (exit 0 render/validate/registry preview-pour).",
+          "observed_result": "Head: exit 3 BEADS_REQUEST_DESERIALIZATION_FAILED 'invalid graph formula ...; follow ADR-0023' for every operation, including render, which never uses the name. formula_name \"\" now gives deserialization failure instead of BEADS_FORMULA_NAME_REQUIRED on pour. Reproduced 3/3 by the coordinator, head vs baseline.",
+          "requirement_trace": "ADR-0023 Decision 1 and Consequences; ADR-0021 FormulaNameRequired",
+          "requirement_follow_up": "Decision owner team-lead: either keep the grammar and amend ADR-0021/0023 (documenting the breaking change), or confine the grammar to the uses that need it (registry path, graph metadata).",
+          "root_cause": "Commit e1b5168 made BeadComposeRequest.formula_name a validating FormulaName newtype, so serde rejects names outside [A-Za-z0-9_][A-Za-z0-9_.-]* during request parsing.",
+          "recommended_fix": "Validate formula_name only where it becomes a path or bd argument, with a stable code, and keep Phase R parsing unchanged; or record the break in an ADR."
+        },
+        {
+          "finding_id": "FUZZ-014",
+          "minimal_template": "formula = \"x\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"A {{{ tag }}}\"",
+          "minimal_input": "request k: ref race<k>, compose_variables {\"tag\":\"T<k>\"}, rendered_formula <ws>/build/x.formula.toml",
+          "expected_oracle": "ADR-0023 Atomic apply and Revision: each request's beads come from its own rendered text; GraphApplyFailed means bd wrote nothing.",
+          "observed_result": "Coordinator repro (3 trials): trial 1: a failed receipt (GraphApplyFailed, 'nothing was written') whose own bd create returned ids for the other request's plan; trial 2: a succeeded receipt for ref race20 created a bead titled 'A T21', i.e. the other request's content. Worker saw cross-contamination in 27/27 trials. Deterministic regression via a path-honest fake bd.",
+          "requirement_trace": "ADR-0023 Decision 6, Graph plan, Revision, Errors (GraphApplyFailed); UC-9",
+          "requirement_follow_up": "No new ADR needed for the invariant; if a shared rendered_formula is to be unsupported, document and refuse it.",
+          "root_cause": "graph::run re-reads rendered_formula from disk and bd cooks it by path, and PendingCreate::execute writes then applies the fixed path <rendered_formula>.graph.json, so concurrent requests sharing the path race on both files.",
+          "recommended_fix": "Hash and cook the bytes this request rendered (private copy), and write the plan to a per-invocation path or hold a lock across render-cook-apply."
+        }
+      ],
+      "evidence_envelope": {
+        "correlation_id": "differential-probe",
+        "campaign_id": "t7-20261007-0001",
+        "seed": 7023,
+        "target": "metamorphic and differential relations: attach twice == once, relation order, CRLF revision, preview == apply, Phase R registry pour vs origin/develop, CLI vs Python receipts, concurrency, determinism",
+        "status": "success",
+        "cases_run": 304,
+        "passed": 289,
+        "failed": 15,
+        "case_families": [
+          {
+            "name": "R1 attach twice == once",
+            "cases": 36,
+            "passed": 36
+          },
+          {
+            "name": "R2 relation order and inputs",
+            "cases": 40,
+            "passed": 40
+          },
+          {
+            "name": "R3 CRLF / lone CR revision",
+            "cases": 48,
+            "passed": 48
+          },
+          {
+            "name": "R4 preview == apply",
+            "cases": 24,
+            "passed": 24
+          },
+          {
+            "name": "R5 head vs origin/develop",
+            "cases": 60,
+            "passed": 51
+          },
+          {
+            "name": "R6 CLI vs Python receipts",
+            "cases": 37,
+            "passed": 37
+          },
+          {
+            "name": "R7 concurrency (append + attach)",
+            "cases": 25,
+            "passed": 19
+          },
+          {
+            "name": "R8 determinism",
+            "cases": 14,
+            "passed": 14
+          },
+          {
+            "name": "R9 extra metamorphic",
+            "cases": 20,
+            "passed": 20
+          }
+        ],
+        "finding_ids": [
+          "FUZZ-013",
+          "FUZZ-014",
+          "FUZZ-028",
+          "FUZZ-029",
+          "FUZZ-030",
+          "FUZZ-031",
+          "FUZZ-032",
+          "FUZZ-033"
+        ],
+        "error": null
+      },
+      "copy_json": "{\"campaign_id\": \"t7-20261007-0001\", \"case_families\": [{\"cases\": 36, \"name\": \"R1 attach twice == once\", \"passed\": 36}, {\"cases\": 40, \"name\": \"R2 relation order and inputs\", \"passed\": 40}, {\"cases\": 48, \"name\": \"R3 CRLF / lone CR revision\", \"passed\": 48}, {\"cases\": 24, \"name\": \"R4 preview == apply\", \"passed\": 24}, {\"cases\": 60, \"name\": \"R5 head vs origin/develop\", \"passed\": 51}, {\"cases\": 37, \"name\": \"R6 CLI vs Python receipts\", \"passed\": 37}, {\"cases\": 25, \"name\": \"R7 concurrency (append + attach)\", \"passed\": 19}, {\"cases\": 14, \"name\": \"R8 determinism\", \"passed\": 14}, {\"cases\": 20, \"name\": \"R9 extra metamorphic\", \"passed\": 20}], \"cases_run\": 304, \"correlation_id\": \"differential-probe\", \"error\": null, \"failed\": 15, \"finding_ids\": [\"FUZZ-013\", \"FUZZ-014\", \"FUZZ-028\", \"FUZZ-029\", \"FUZZ-030\", \"FUZZ-031\", \"FUZZ-032\", \"FUZZ-033\"], \"passed\": 289, \"seed\": 7023, \"status\": \"success\", \"target\": \"metamorphic and differential relations: attach twice == once, relation order, CRLF revision, preview == apply, Phase R registry pour vs origin/develop, CLI vs Python receipts, concurrency, determinism\"}"
+    },
+    {
+      "session_id": "sc-compose-fuzz-20261007-1",
+      "agent_id": "shape-probe",
+      "worker_correlation_id": "shape-probe",
+      "correlation_id": "shape-probe",
+      "target": "request JSON shapes; Unicode/control characters in parent, ref, step ids, relation endpoints and metadata; render --append records",
+      "status": "success",
+      "cases_run": 312,
+      "finding_ids": [
+        "FUZZ-015",
+        "FUZZ-016",
+        "FUZZ-017",
+        "FUZZ-034",
+        "FUZZ-035"
+      ],
+      "error": null,
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "request JSON shapes; Unicode/control characters in parent, ref, step ids, relation endpoints and metadata; render --append records",
+      "iterations": 312,
+      "passed": 296,
+      "failed": 16,
+      "result": "FAIL: 3 confirmed bug(s)",
+      "context_text": "Workspaces shpa..shpc. Request-shape errors exit 3 before any bd call; Unicode/control text round-trips literally into bd; re-runs up to 33 steps are idempotent; --append framing, newline and not-object refusals leave the destination byte-identical. Three harness-oracle mistakes were corrected.",
+      "test_inputs": [
+        {
+          "case_id": "shape-probe/f1 request shape (render/validate)",
+          "description": "f1 request shape (render/validate)",
+          "outcome": "73/73 passed"
+        },
+        {
+          "case_id": "shape-probe/f2 attach request shape",
+          "description": "f2 attach request shape",
+          "outcome": "50/50 passed"
+        },
+        {
+          "case_id": "shape-probe/f3 attach ids (bd)",
+          "description": "f3 attach ids (bd)",
+          "outcome": "44/52 passed"
+        },
+        {
+          "case_id": "shape-probe/f4 step content (bd)",
+          "description": "f4 step content (bd)",
+          "outcome": "56/57 passed"
+        },
+        {
+          "case_id": "shape-probe/f5 attach re-run (bd)",
+          "description": "f5 attach re-run (bd)",
+          "outcome": "12/13 passed"
+        },
+        {
+          "case_id": "shape-probe/f6 pour (bd)",
+          "description": "f6 pour (bd)",
+          "outcome": "13/14 passed"
+        },
+        {
+          "case_id": "shape-probe/f7 render --append",
+          "description": "f7 render --append",
+          "outcome": "48/53 passed"
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-015",
+          "minimal_template": "UC-8 loop: formula = \"batch\" ... {% for i in range(1, count + 1) %}[[steps]] id = \"item_{{{ i }}}\" ... needs = [\"item_{{{ i - 1 }}}\"]{% endfor %}",
+          "minimal_input": "attach, compose_variables {\"count\":36}, parent <epic>, ref batch",
+          "expected_oracle": "FR-23.5 / ADR-0023 UC-4, UC-5: re-running an attach whose beads all exist succeeds and writes nothing; UC-8 generates many steps; no step limit is documented.",
+          "observed_result": "First attach creates 36 beads; every re-run or preview-attach exits 2 with BEADS_PROCESS_OUTPUT_LIMIT ('Beads Attach output exceeded the 65536-byte capture limit') and no receipt. Threshold ~34 minimal steps (fewer with metadata). The 500-step attach fails even on its first run (bd show stderr for 500 missing ids ~101 KB) and a 500-step graph preview-pour fails on bd cook --json (78 KB). Reproduced 3/3 by the coordinator at count=36.",
+          "requirement_trace": "FR-23.5, FR-23.6; ADR-0023 UC-4, UC-5, UC-8, UC-9, Conflict rules",
+          "requirement_follow_up": "No new ADR needed for re-run; if a step ceiling remains, document it in ADR-0023 and the bead manual.",
+          "root_cause": "GraphReader::issues issues one `bd show <parent> <every planned id> --json`; bd v1.3.1 prints ~1.9 KB per existing bead, beyond runner PROCESS_OUTPUT_LIMIT_BYTES (64 KiB per stream). The cook --json read hits the same cap for large formulas.",
+          "recommended_fix": "Batch bd show reads, and size the capture limit for graph reads (or stream-parse) so attach scales to the documented use cases."
+        },
+        {
+          "finding_id": "FUZZ-016",
+          "minimal_template": "formula = \"one\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"A\"",
+          "minimal_input": "attach request with \"parent\":\"--help\" (or \"--version\"); or relation {\"from\":\"step:a\",\"to\":\"bead:--db=/nonexistent\",\"type\":\"related\"}",
+          "expected_oracle": "ADR-0023 Conflict rules / Relation validation: a missing parent is BEADS_GRAPH_PARENT_NOT_FOUND and a missing bead: endpoint is GraphRelationInvalid(bead_not_found). BeadId only requires non-empty, no whitespace.",
+          "observed_result": "Exit 2 failed BEADS_GRAPH_READ_FAILED; argv ['bd','show','--help','--help.inj-a',...] and ['bd','show','--db=/nonexistent',...]: bd parsed the ids as options and, for --db=, opened a different database. Controls with ordinary missing ids give the documented codes. Reproduced 3/3 per variant by the coordinator. No write is reachable.",
+          "requirement_trace": "ADR-0023 Conflict rules, Relation validation; BeadId contract",
+          "requirement_follow_up": "No new ADR needed.",
+          "root_cause": "Request ids are spliced into `bd show <ids...> --json` and `bd dep list <id> --json` with no `--` separator.",
+          "recommended_fix": "Pass ids after `--` (bd v1.3.1 accepts it) or reject bead ids starting with '-' at the BeadId boundary."
+        },
+        {
+          "finding_id": "FUZZ-017",
+          "minimal_template": "{\"id\": 12345678901234567890123, \"amount\": 0.10000000000000000001}",
+          "minimal_input": "no variables; destination absent",
+          "expected_oracle": "help render 'Appending JSON records' step 2: the object is parsed and re-serialized and only its key order may differ; FR-7 render --append.",
+          "observed_result": "Exit 0; appended {\"amount\":0.1,\"id\":1.2345678901234568e+22}. Integers above u64 become lossy floats, long decimals round, 1e2 -> 100.0, -0 -> -0.0. Plain render passes the body unchanged. Reproduced 3/3 by the coordinator; --append does not exist on origin/develop.",
+          "requirement_trace": "FR-7 render --append; FR-8a; help render 'Appending JSON records'",
+          "requirement_follow_up": "No new ADR needed; if normalization is intended, the manual must say so.",
+          "root_cause": "append_json_record parses into serde_json::Value without arbitrary_precision and re-serializes.",
+          "recommended_fix": "Validate the object but keep the original number tokens (arbitrary_precision or RawValue plus minification)."
+        }
+      ],
+      "evidence_envelope": {
+        "correlation_id": "shape-probe",
+        "campaign_id": "t7-20261007-0001",
+        "seed": 7023,
+        "target": "request JSON shapes; Unicode/control characters in parent, ref, step ids, relation endpoints and metadata; render --append records",
+        "status": "success",
+        "cases_run": 312,
+        "passed": 296,
+        "failed": 16,
+        "case_families": [
+          {
+            "name": "f1 request shape (render/validate)",
+            "cases": 73,
+            "passed": 73
+          },
+          {
+            "name": "f2 attach request shape",
+            "cases": 50,
+            "passed": 50
+          },
+          {
+            "name": "f3 attach ids (bd)",
+            "cases": 52,
+            "passed": 44
+          },
+          {
+            "name": "f4 step content (bd)",
+            "cases": 57,
+            "passed": 56
+          },
+          {
+            "name": "f5 attach re-run (bd)",
+            "cases": 13,
+            "passed": 12
+          },
+          {
+            "name": "f6 pour (bd)",
+            "cases": 14,
+            "passed": 13
+          },
+          {
+            "name": "f7 render --append",
+            "cases": 53,
+            "passed": 48
+          }
+        ],
+        "finding_ids": [
+          "FUZZ-015",
+          "FUZZ-016",
+          "FUZZ-017",
+          "FUZZ-034",
+          "FUZZ-035"
+        ],
+        "error": null
+      },
+      "copy_json": "{\"campaign_id\": \"t7-20261007-0001\", \"case_families\": [{\"cases\": 73, \"name\": \"f1 request shape (render/validate)\", \"passed\": 73}, {\"cases\": 50, \"name\": \"f2 attach request shape\", \"passed\": 50}, {\"cases\": 52, \"name\": \"f3 attach ids (bd)\", \"passed\": 44}, {\"cases\": 57, \"name\": \"f4 step content (bd)\", \"passed\": 56}, {\"cases\": 13, \"name\": \"f5 attach re-run (bd)\", \"passed\": 12}, {\"cases\": 14, \"name\": \"f6 pour (bd)\", \"passed\": 13}, {\"cases\": 53, \"name\": \"f7 render --append\", \"passed\": 48}], \"cases_run\": 312, \"correlation_id\": \"shape-probe\", \"error\": null, \"failed\": 16, \"finding_ids\": [\"FUZZ-015\", \"FUZZ-016\", \"FUZZ-017\", \"FUZZ-034\", \"FUZZ-035\"], \"passed\": 296, \"seed\": 7023, \"status\": \"success\", \"target\": \"request JSON shapes; Unicode/control characters in parent, ref, step ids, relation endpoints and metadata; render --append records\"}"
+    },
+    {
+      "session_id": "sc-compose-fuzz-20261007-1",
+      "agent_id": "template-probe",
+      "worker_correlation_id": "template-probe",
+      "correlation_id": "template-probe",
+      "target": "bead templates with loops, conditionals and includes producing formulas up to 500 steps; TOML/JSON parity; formula grammar refusals",
+      "status": "success",
+      "cases_run": 248,
+      "finding_ids": [
+        "FUZZ-018",
+        "FUZZ-019",
+        "FUZZ-020",
+        "FUZZ-036",
+        "FUZZ-037"
+      ],
+      "error": null,
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "bead templates with loops, conditionals and includes producing formulas up to 500 steps; TOML/JSON parity; formula grammar refusals",
+      "iterations": 248,
+      "passed": 228,
+      "failed": 20,
+      "result": "FAIL: 3 confirmed bug(s)",
+      "context_text": "Workspaces tpla, tplb. TOML/JSON parity held for ids, nodes, edges, plan nodes and bd content across 53 previews, 12 attaches and 6 graph pours. Every ADR-0023 grammar refusal matched in both formats and modes. 300-step attach and pour pass; 500-step attach/pour fail (FUZZ-015).",
+      "test_inputs": [
+        {
+          "case_id": "template-probe/A render fidelity",
+          "description": "A render fidelity",
+          "outcome": "60/60 passed"
+        },
+        {
+          "case_id": "template-probe/B TOML vs JSON preview parity",
+          "description": "B TOML vs JSON preview parity",
+          "outcome": "53/53 passed"
+        },
+        {
+          "case_id": "template-probe/C formula grammar refusals",
+          "description": "C formula grammar refusals",
+          "outcome": "45/45 passed"
+        },
+        {
+          "case_id": "template-probe/D/E real attach + re-run fidelity",
+          "description": "D/E real attach + re-run fidelity",
+          "outcome": "11/12 passed"
+        },
+        {
+          "case_id": "template-probe/scale 30-500 steps",
+          "description": "scale 30-500 steps",
+          "outcome": "5/10 passed"
+        },
+        {
+          "case_id": "template-probe/G whitespace/delimiters/includes",
+          "description": "G whitespace/delimiters/includes",
+          "outcome": "21/25 passed"
+        },
+        {
+          "case_id": "template-probe/H special text through attach",
+          "description": "H special text through attach",
+          "outcome": "12/12 passed"
+        },
+        {
+          "case_id": "template-probe/I step-id case",
+          "description": "I step-id case",
+          "outcome": "1/1 passed"
+        },
+        {
+          "case_id": "template-probe/J graph pour parity",
+          "description": "J graph pour parity",
+          "outcome": "6/6 passed"
+        },
+        {
+          "case_id": "template-probe/K ref id rule and scope",
+          "description": "K ref id rule and scope",
+          "outcome": "10/15 passed"
+        },
+        {
+          "case_id": "template-probe/revision CRLF",
+          "description": "revision CRLF",
+          "outcome": "3/3 passed"
+        },
+        {
+          "case_id": "template-probe/misc includes/paths",
+          "description": "misc includes/paths",
+          "outcome": "1/6 passed"
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-018",
+          "minimal_template": "main.formula.toml.j2: formula = \"inc\" / version = 1 / type = \"workflow\" / @<frag/common.toml.j2> / [[steps]] id = \"local\" ...; frag/common.toml.j2: [[steps]] id = \"shared\" title = \"Shared step\"",
+          "minimal_input": "render request, compose_variables {}",
+          "expected_oracle": "help bead 'Shared step blocks': include fragments with sc-compose's @<path> include syntax; FR-23.1 (structure from loops, conditionals, includes); FR-3.",
+          "observed_result": "Exit 0 but the rendered formula keeps the literal line '@<frag/common.toml.j2>'; the same text through plain `sc-compose render` expands the include. A later preview-attach fails with BEADS_COOK_FAILED. Reproduced 3/3 by the coordinator; origin/develop renders the same.",
+          "requirement_trace": "FR-23.1, FR-3, bead manual 'Shared step blocks', ADR-0023 step_construct guidance",
+          "requirement_follow_up": "No new ADR needed.",
+          "root_cause": "render_formula calls Renderer::render_named on the raw template text and bypasses sc-composer's include-expansion pipeline.",
+          "recommended_fix": "Run include expansion (confined to working_directory) before rendering bead templates."
+        },
+        {
+          "finding_id": "FUZZ-019",
+          "minimal_template": "{% if %}",
+          "minimal_input": "render request, compose_variables {}",
+          "expected_oracle": "FR-8: diagnostics carry a human-readable message; RenderFailed has a cause message.",
+          "observed_result": "Exit 2, BEADS_RENDER_FAILED, render stage stderr_excerpt and stdout_excerpt empty; text mode prints only 'stage Render: failed (BEADS_RENDER_FAILED)'. Reproduced 3/3 by the coordinator; same on baseline.",
+          "requirement_trace": "FR-8 Determinism and Diagnostics",
+          "requirement_follow_up": "No new ADR needed.",
+          "root_cause": "The receipt built for a render failure drops RenderFailed.message.",
+          "recommended_fix": "Record the render error message in the render stage's stderr_excerpt, as graph stages do via record_error."
+        },
+        {
+          "finding_id": "FUZZ-020",
+          "minimal_template": "formula = \"g\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"T a\" needs = [\"a\"]",
+          "minimal_input": "preview_attach under an existing epic, ref gcx",
+          "expected_oracle": "ADR-0023 Errors: GraphApplyFailed carries bd's failure cause so the caller can fix it.",
+          "observed_result": "Exit 2 BEADS_GRAPH_APPLY_FAILED with message 'graph apply failed (Some(1)): {; [argv]': the cause is '{', the first line of bd's pretty-printed JSON; the real error (blocking dependency cycle) appears only in stdout_excerpt. Reproduced 3/3 by the coordinator.",
+          "requirement_trace": "ADR-0023 Errors (GraphApplyFailed, GraphReadFailed)",
+          "requirement_follow_up": "No new ADR needed.",
+          "root_cause": "process_failure_cause falls back to stdout and short_cause takes its first non-empty line.",
+          "recommended_fix": "Parse bd's JSON error object (the `error` field) before falling back to the first line."
+        }
+      ],
+      "evidence_envelope": {
+        "correlation_id": "template-probe",
+        "campaign_id": "t7-20261007-0001",
+        "seed": 7023,
+        "target": "bead templates with loops, conditionals and includes producing formulas up to 500 steps; TOML/JSON parity; formula grammar refusals",
+        "status": "success",
+        "cases_run": 248,
+        "passed": 228,
+        "failed": 20,
+        "case_families": [
+          {
+            "name": "A render fidelity",
+            "cases": 60,
+            "passed": 60
+          },
+          {
+            "name": "B TOML vs JSON preview parity",
+            "cases": 53,
+            "passed": 53
+          },
+          {
+            "name": "C formula grammar refusals",
+            "cases": 45,
+            "passed": 45
+          },
+          {
+            "name": "D/E real attach + re-run fidelity",
+            "cases": 12,
+            "passed": 11
+          },
+          {
+            "name": "scale 30-500 steps",
+            "cases": 10,
+            "passed": 5
+          },
+          {
+            "name": "G whitespace/delimiters/includes",
+            "cases": 25,
+            "passed": 21
+          },
+          {
+            "name": "H special text through attach",
+            "cases": 12,
+            "passed": 12
+          },
+          {
+            "name": "I step-id case",
+            "cases": 1,
+            "passed": 1
+          },
+          {
+            "name": "J graph pour parity",
+            "cases": 6,
+            "passed": 6
+          },
+          {
+            "name": "K ref id rule and scope",
+            "cases": 15,
+            "passed": 10
+          },
+          {
+            "name": "revision CRLF",
+            "cases": 3,
+            "passed": 3
+          },
+          {
+            "name": "misc includes/paths",
+            "cases": 6,
+            "passed": 1
+          }
+        ],
+        "finding_ids": [
+          "FUZZ-018",
+          "FUZZ-019",
+          "FUZZ-020",
+          "FUZZ-036",
+          "FUZZ-037"
+        ],
+        "error": null
+      },
+      "copy_json": "{\"campaign_id\": \"t7-20261007-0001\", \"case_families\": [{\"cases\": 60, \"name\": \"A render fidelity\", \"passed\": 60}, {\"cases\": 53, \"name\": \"B TOML vs JSON preview parity\", \"passed\": 53}, {\"cases\": 45, \"name\": \"C formula grammar refusals\", \"passed\": 45}, {\"cases\": 12, \"name\": \"D/E real attach + re-run fidelity\", \"passed\": 11}, {\"cases\": 10, \"name\": \"scale 30-500 steps\", \"passed\": 5}, {\"cases\": 25, \"name\": \"G whitespace/delimiters/includes\", \"passed\": 21}, {\"cases\": 12, \"name\": \"H special text through attach\", \"passed\": 12}, {\"cases\": 1, \"name\": \"I step-id case\", \"passed\": 1}, {\"cases\": 6, \"name\": \"J graph pour parity\", \"passed\": 6}, {\"cases\": 15, \"name\": \"K ref id rule and scope\", \"passed\": 10}, {\"cases\": 3, \"name\": \"revision CRLF\", \"passed\": 3}, {\"cases\": 6, \"name\": \"misc includes/paths\", \"passed\": 1}], \"cases_run\": 248, \"correlation_id\": \"template-probe\", \"error\": null, \"failed\": 20, \"finding_ids\": [\"FUZZ-018\", \"FUZZ-019\", \"FUZZ-020\", \"FUZZ-036\", \"FUZZ-037\"], \"passed\": 228, \"seed\": 7023, \"status\": \"success\", \"target\": \"bead templates with loops, conditionals and includes producing formulas up to 500 steps; TOML/JSON parity; formula grammar refusals\"}"
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "FUZZ-012",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "confirmed_bug",
+      "severity": "medium",
+      "subsystem": "bead request path resolution",
+      "seed": 7023,
+      "command": "cd <ws>/other && sc-compose bead render --request <ws>/request.json --json",
+      "minimal_template": "wf/m.formula.toml.j2: formula = \"m\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"A\"",
+      "minimal_input": "{\"operation\":\"render\",\"working_directory\":\"<ws>\",\"template\":\"wf/m.formula.toml.j2\",\"rendered_formula\":\"<ws>/build/out.formula.toml\",\"compose_variables\":{},\"bead_variables\":{}}  (process cwd != working_directory)",
+      "expected_oracle": "A relative template resolves against working_directory, so the render succeeds from any cwd (ADR-0021 line 207 'All paths resolve relative to working_directory'; help bead request table).",
+      "observed_result": "Exit 3 BEADS_TEMPLATE_PATH_INVALID 'invalid template path: wf/m.formula.toml.j2'. Succeeds only when cwd == working_directory. origin/develop behaves the same (pre-existing). Reproduced 3/3 by the coordinator.",
+      "diagnostic_code": "BEADS_TEMPLATE_PATH_INVALID",
+      "requirement_trace": "ADR-0021 paths paragraph; help bead request table; ADR-0023 Authorization and confinement",
+      "requirement_follow_up": "No new ADR needed; the contract already states the rule.",
+      "root_cause": "validate_request canonicalizes request.template (and normalize_output the rendered_formula) as given, so relative paths resolve against the process cwd.",
+      "recommended_fix": "Join relative template/rendered_formula onto the canonical working_directory before canonicalizing and confining.",
+      "owning_file": "crates/sc-composer-beads/src/execute.rs (validate_request, normalize_output)",
+      "reproduction_count": 3,
+      "promoted_test": {
+        "test_path": "crates/sc-compose/tests/fuzz_regressions.rs",
+        "test_name": "fuzz_012_bead_request_template_is_relative_to_working_directory",
+        "ignore": "#[ignore = \"FUZZ-012\"]"
+      },
+      "merged_worker_candidates": [
+        "boundary-02",
+        "template-03"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-013",
+      "worker_correlation_id": "differential-probe",
+      "classification": "confirmed_bug",
+      "severity": "medium",
+      "subsystem": "bead request contract (formula_name), Phase R regression",
+      "seed": 7023,
+      "command": "sc-compose bead render --request render.json --json   (vs origin/develop 080f261)",
+      "minimal_template": "formula = \"re g0\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"A\"",
+      "minimal_input": "render request with \"formula_name\":\"re g0\" (also \"café\", \"a+b\", \"\")",
+      "expected_oracle": "ADR-0023 Decision 1: additive only; Phase R requests parse unchanged. Baseline accepts these requests (exit 0 render/validate/registry preview-pour).",
+      "observed_result": "Head: exit 3 BEADS_REQUEST_DESERIALIZATION_FAILED 'invalid graph formula ...; follow ADR-0023' for every operation, including render, which never uses the name. formula_name \"\" now gives deserialization failure instead of BEADS_FORMULA_NAME_REQUIRED on pour. Reproduced 3/3 by the coordinator, head vs baseline.",
+      "diagnostic_code": "BEADS_REQUEST_DESERIALIZATION_FAILED",
+      "requirement_trace": "ADR-0023 Decision 1 and Consequences; ADR-0021 FormulaNameRequired",
+      "requirement_follow_up": "Decision owner team-lead: either keep the grammar and amend ADR-0021/0023 (documenting the breaking change), or confine the grammar to the uses that need it (registry path, graph metadata).",
+      "root_cause": "Commit e1b5168 made BeadComposeRequest.formula_name a validating FormulaName newtype, so serde rejects names outside [A-Za-z0-9_][A-Za-z0-9_.-]* during request parsing.",
+      "recommended_fix": "Validate formula_name only where it becomes a path or bd argument, with a stable code, and keep Phase R parsing unchanged; or record the break in an ADR.",
+      "owning_file": "crates/sc-composer-beads/src/contract.rs (FormulaName, BeadComposeRequest.formula_name)",
+      "reproduction_count": 3,
+      "promoted_test": {
+        "test_path": "crates/sc-composer-beads/tests/contract.rs",
+        "test_name": "fuzz_013_phase_r_render_request_keeps_accepting_its_formula_name",
+        "ignore": "#[ignore = \"FUZZ-013\"]"
+      },
+      "merged_worker_candidates": [
+        "differential-01"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-014",
+      "worker_correlation_id": "differential-probe",
+      "classification": "confirmed_bug",
+      "severity": "medium",
+      "subsystem": "graph engine apply, shared rendered_formula",
+      "seed": 7023,
+      "command": "two concurrent `sc-compose bead attach` requests with the same parent and rendered_formula, different ref and compose_variables.tag",
+      "minimal_template": "formula = \"x\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"A {{{ tag }}}\"",
+      "minimal_input": "request k: ref race<k>, compose_variables {\"tag\":\"T<k>\"}, rendered_formula <ws>/build/x.formula.toml",
+      "expected_oracle": "ADR-0023 Atomic apply and Revision: each request's beads come from its own rendered text; GraphApplyFailed means bd wrote nothing.",
+      "observed_result": "Coordinator repro (3 trials): trial 1: a failed receipt (GraphApplyFailed, 'nothing was written') whose own bd create returned ids for the other request's plan; trial 2: a succeeded receipt for ref race20 created a bead titled 'A T21', i.e. the other request's content. Worker saw cross-contamination in 27/27 trials. Deterministic regression via a path-honest fake bd.",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Decision 6, Graph plan, Revision, Errors (GraphApplyFailed); UC-9",
+      "requirement_follow_up": "No new ADR needed for the invariant; if a shared rendered_formula is to be unsupported, document and refuse it.",
+      "root_cause": "graph::run re-reads rendered_formula from disk and bd cooks it by path, and PendingCreate::execute writes then applies the fixed path <rendered_formula>.graph.json, so concurrent requests sharing the path race on both files.",
+      "recommended_fix": "Hash and cook the bytes this request rendered (private copy), and write the plan to a per-invocation path or hold a lock across render-cook-apply.",
+      "owning_file": "crates/sc-composer-beads/src/graph.rs (run, PendingCreate::execute); crates/sc-composer-beads/src/render.rs",
+      "reproduction_count": 3,
+      "promoted_test": {
+        "test_path": "crates/sc-composer-beads/tests/graph.rs",
+        "test_name": "fuzz_014_graph_is_built_from_this_requests_rendered_text",
+        "ignore": "#[ignore = \"FUZZ-014\"]"
+      },
+      "merged_worker_candidates": [
+        "differential-02"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-015",
+      "worker_correlation_id": "shape-probe",
+      "classification": "confirmed_bug",
+      "severity": "high",
+      "subsystem": "graph engine reads vs 64 KiB process capture limit",
+      "seed": 7023,
+      "command": "sc-compose bead attach --request req.json --json   (run 1 exit 0; runs 2-4 exit 2)",
+      "minimal_template": "UC-8 loop: formula = \"batch\" ... {% for i in range(1, count + 1) %}[[steps]] id = \"item_{{{ i }}}\" ... needs = [\"item_{{{ i - 1 }}}\"]{% endfor %}",
+      "minimal_input": "attach, compose_variables {\"count\":36}, parent <epic>, ref batch",
+      "expected_oracle": "FR-23.5 / ADR-0023 UC-4, UC-5: re-running an attach whose beads all exist succeeds and writes nothing; UC-8 generates many steps; no step limit is documented.",
+      "observed_result": "First attach creates 36 beads; every re-run or preview-attach exits 2 with BEADS_PROCESS_OUTPUT_LIMIT ('Beads Attach output exceeded the 65536-byte capture limit') and no receipt. Threshold ~34 minimal steps (fewer with metadata). The 500-step attach fails even on its first run (bd show stderr for 500 missing ids ~101 KB) and a 500-step graph preview-pour fails on bd cook --json (78 KB). Reproduced 3/3 by the coordinator at count=36.",
+      "diagnostic_code": "BEADS_PROCESS_OUTPUT_LIMIT",
+      "requirement_trace": "FR-23.5, FR-23.6; ADR-0023 UC-4, UC-5, UC-8, UC-9, Conflict rules",
+      "requirement_follow_up": "No new ADR needed for re-run; if a step ceiling remains, document it in ADR-0023 and the bead manual.",
+      "root_cause": "GraphReader::issues issues one `bd show <parent> <every planned id> --json`; bd v1.3.1 prints ~1.9 KB per existing bead, beyond runner PROCESS_OUTPUT_LIMIT_BYTES (64 KiB per stream). The cook --json read hits the same cap for large formulas.",
+      "recommended_fix": "Batch bd show reads, and size the capture limit for graph reads (or stream-parse) so attach scales to the documented use cases.",
+      "owning_file": "crates/sc-composer-beads/src/graph.rs (GraphReader::issues, run); crates/sc-composer-beads/src/runner.rs (PROCESS_OUTPUT_LIMIT_BYTES)",
+      "reproduction_count": 3,
+      "promoted_test": {
+        "test_path": "crates/sc-composer-beads/tests/graph.rs",
+        "test_name": "fuzz_015_rerun_of_a_40_step_attach_is_not_capped_by_the_output_limit",
+        "ignore": "#[ignore = \"FUZZ-015\"]"
+      },
+      "merged_worker_candidates": [
+        "shape-01",
+        "shape-02",
+        "template-01"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-016",
+      "worker_correlation_id": "shape-probe",
+      "classification": "confirmed_bug",
+      "severity": "medium",
+      "subsystem": "graph plan-stage bd argv (option-like bead ids)",
+      "seed": 7023,
+      "command": "sc-compose bead preview-attach --request inj_parent.json --json",
+      "minimal_template": "formula = \"one\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"A\"",
+      "minimal_input": "attach request with \"parent\":\"--help\" (or \"--version\"); or relation {\"from\":\"step:a\",\"to\":\"bead:--db=/nonexistent\",\"type\":\"related\"}",
+      "expected_oracle": "ADR-0023 Conflict rules / Relation validation: a missing parent is BEADS_GRAPH_PARENT_NOT_FOUND and a missing bead: endpoint is GraphRelationInvalid(bead_not_found). BeadId only requires non-empty, no whitespace.",
+      "observed_result": "Exit 2 failed BEADS_GRAPH_READ_FAILED; argv ['bd','show','--help','--help.inj-a',...] and ['bd','show','--db=/nonexistent',...]: bd parsed the ids as options and, for --db=, opened a different database. Controls with ordinary missing ids give the documented codes. Reproduced 3/3 per variant by the coordinator. No write is reachable.",
+      "diagnostic_code": "BEADS_GRAPH_READ_FAILED",
+      "requirement_trace": "ADR-0023 Conflict rules, Relation validation; BeadId contract",
+      "requirement_follow_up": "No new ADR needed.",
+      "root_cause": "Request ids are spliced into `bd show <ids...> --json` and `bd dep list <id> --json` with no `--` separator.",
+      "recommended_fix": "Pass ids after `--` (bd v1.3.1 accepts it) or reject bead ids starting with '-' at the BeadId boundary.",
+      "owning_file": "crates/sc-composer-beads/src/graph.rs (impl GraphReader for Runtime: issues, dependencies)",
+      "reproduction_count": 3,
+      "promoted_test": {
+        "test_path": "crates/sc-composer-beads/tests/graph.rs",
+        "test_name": "fuzz_016_option_like_bead_ids_are_never_parsed_as_bd_options",
+        "ignore": "#[ignore = \"FUZZ-016\"]"
+      },
+      "merged_worker_candidates": [
+        "shape-03"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-017",
+      "worker_correlation_id": "shape-probe",
+      "classification": "confirmed_bug",
+      "severity": "medium",
+      "subsystem": "render --append record serialization",
+      "seed": 7023,
+      "command": "sc-compose render --file rec.json.j2 --append log.jsonl",
+      "minimal_template": "{\"id\": 12345678901234567890123, \"amount\": 0.10000000000000000001}",
+      "minimal_input": "no variables; destination absent",
+      "expected_oracle": "help render 'Appending JSON records' step 2: the object is parsed and re-serialized and only its key order may differ; FR-7 render --append.",
+      "observed_result": "Exit 0; appended {\"amount\":0.1,\"id\":1.2345678901234568e+22}. Integers above u64 become lossy floats, long decimals round, 1e2 -> 100.0, -0 -> -0.0. Plain render passes the body unchanged. Reproduced 3/3 by the coordinator; --append does not exist on origin/develop.",
+      "diagnostic_code": null,
+      "requirement_trace": "FR-7 render --append; FR-8a; help render 'Appending JSON records'",
+      "requirement_follow_up": "No new ADR needed; if normalization is intended, the manual must say so.",
+      "root_cause": "append_json_record parses into serde_json::Value without arbitrary_precision and re-serializes.",
+      "recommended_fix": "Validate the object but keep the original number tokens (arbitrary_precision or RawValue plus minification).",
+      "owning_file": "crates/sc-compose/src/commands/compose_output.rs (append_json_record)",
+      "reproduction_count": 3,
+      "promoted_test": {
+        "test_path": "crates/sc-compose/tests/fuzz_regressions.rs",
+        "test_name": "fuzz_017_render_append_keeps_exact_number_values",
+        "ignore": "#[ignore = \"FUZZ-017\"]"
+      },
+      "merged_worker_candidates": [
+        "shape-04",
+        "boundary-03 (numbers)"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-018",
+      "worker_correlation_id": "template-probe",
+      "classification": "confirmed_bug",
+      "severity": "medium",
+      "subsystem": "bead renderer includes",
+      "seed": 7023,
+      "command": "sc-compose bead render --request req.json --json",
+      "minimal_template": "main.formula.toml.j2: formula = \"inc\" / version = 1 / type = \"workflow\" / @<frag/common.toml.j2> / [[steps]] id = \"local\" ...; frag/common.toml.j2: [[steps]] id = \"shared\" title = \"Shared step\"",
+      "minimal_input": "render request, compose_variables {}",
+      "expected_oracle": "help bead 'Shared step blocks': include fragments with sc-compose's @<path> include syntax; FR-23.1 (structure from loops, conditionals, includes); FR-3.",
+      "observed_result": "Exit 0 but the rendered formula keeps the literal line '@<frag/common.toml.j2>'; the same text through plain `sc-compose render` expands the include. A later preview-attach fails with BEADS_COOK_FAILED. Reproduced 3/3 by the coordinator; origin/develop renders the same.",
+      "diagnostic_code": null,
+      "requirement_trace": "FR-23.1, FR-3, bead manual 'Shared step blocks', ADR-0023 step_construct guidance",
+      "requirement_follow_up": "No new ADR needed.",
+      "root_cause": "render_formula calls Renderer::render_named on the raw template text and bypasses sc-composer's include-expansion pipeline.",
+      "recommended_fix": "Run include expansion (confined to working_directory) before rendering bead templates.",
+      "owning_file": "crates/sc-composer-beads/src/render.rs (render_formula)",
+      "reproduction_count": 3,
+      "promoted_test": {
+        "test_path": "crates/sc-compose/tests/fuzz_regressions.rs",
+        "test_name": "fuzz_018_bead_render_expands_at_path_includes",
+        "ignore": "#[ignore = \"FUZZ-018\"]"
+      },
+      "merged_worker_candidates": [
+        "template-02"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-019",
+      "worker_correlation_id": "template-probe",
+      "classification": "confirmed_bug",
+      "severity": "low",
+      "subsystem": "bead receipt render-stage diagnostics",
+      "seed": 7023,
+      "command": "sc-compose bead render --request req.json --json",
+      "minimal_template": "{% if %}",
+      "minimal_input": "render request, compose_variables {}",
+      "expected_oracle": "FR-8: diagnostics carry a human-readable message; RenderFailed has a cause message.",
+      "observed_result": "Exit 2, BEADS_RENDER_FAILED, render stage stderr_excerpt and stdout_excerpt empty; text mode prints only 'stage Render: failed (BEADS_RENDER_FAILED)'. Reproduced 3/3 by the coordinator; same on baseline.",
+      "diagnostic_code": "BEADS_RENDER_FAILED",
+      "requirement_trace": "FR-8 Determinism and Diagnostics",
+      "requirement_follow_up": "No new ADR needed.",
+      "root_cause": "The receipt built for a render failure drops RenderFailed.message.",
+      "recommended_fix": "Record the render error message in the render stage's stderr_excerpt, as graph stages do via record_error.",
+      "owning_file": "crates/sc-composer-beads/src/execute.rs (render failure receipt)",
+      "reproduction_count": 3,
+      "promoted_test": {
+        "test_path": "crates/sc-compose/tests/fuzz_regressions.rs",
+        "test_name": "fuzz_019_bead_render_failure_reports_the_template_error",
+        "ignore": "#[ignore = \"FUZZ-019\"]"
+      },
+      "merged_worker_candidates": [
+        "template-04"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-020",
+      "worker_correlation_id": "template-probe",
+      "classification": "confirmed_bug",
+      "severity": "low",
+      "subsystem": "graph engine apply diagnostics",
+      "seed": 7023,
+      "command": "sc-compose bead preview-attach --request self.json --json",
+      "minimal_template": "formula = \"g\" / version = 1 / type = \"workflow\" / [[steps]] id = \"a\" title = \"T a\" needs = [\"a\"]",
+      "minimal_input": "preview_attach under an existing epic, ref gcx",
+      "expected_oracle": "ADR-0023 Errors: GraphApplyFailed carries bd's failure cause so the caller can fix it.",
+      "observed_result": "Exit 2 BEADS_GRAPH_APPLY_FAILED with message 'graph apply failed (Some(1)): {; [argv]': the cause is '{', the first line of bd's pretty-printed JSON; the real error (blocking dependency cycle) appears only in stdout_excerpt. Reproduced 3/3 by the coordinator.",
+      "diagnostic_code": "BEADS_GRAPH_APPLY_FAILED",
+      "requirement_trace": "ADR-0023 Errors (GraphApplyFailed, GraphReadFailed)",
+      "requirement_follow_up": "No new ADR needed.",
+      "root_cause": "process_failure_cause falls back to stdout and short_cause takes its first non-empty line.",
+      "recommended_fix": "Parse bd's JSON error object (the `error` field) before falling back to the first line.",
+      "owning_file": "crates/sc-composer-beads/src/graph.rs (process_failure_cause); crates/sc-composer-beads/src/error.rs (short_cause)",
+      "reproduction_count": 3,
+      "promoted_test": {
+        "test_path": "crates/sc-composer-beads/tests/graph.rs",
+        "test_name": "fuzz_020_apply_failure_cause_is_bds_error_text",
+        "ignore": "#[ignore = \"FUZZ-020\"]"
+      },
+      "merged_worker_candidates": [
+        "template-05"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-021",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "request id validation (ref/parent)",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "An invalid ref (e.g. 'a.b', '', 33 chars) gives exit 3 BEADS_REQUEST_DESERIALIZATION_FAILED, while the ADR-0023 Id rule and Errors table say GraphIdInvalid, refused, exit 2. The ADR also makes GraphRef a serde try_from newtype and classifies serde failures as exit 3, so it contradicts itself.",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Id rule, Errors table, Request errors paragraph; FR-23.10",
+      "requirement_follow_up": "Decision owner team-lead: amend the ADR row/manual or map the serde error to GraphIdInvalid.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/contract.rs; docs/adrs/0023-beads-attach-and-by-path-pour.md",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "boundary-01",
+        "shape-06",
+        "template-08"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-022",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "render --append duplicate keys",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "A duplicate key in the appended object is silently collapsed to the last value; bead compose_variables also accept duplicate keys silently, unlike bead_variables. No documented rule.",
+      "diagnostic_code": null,
+      "requirement_trace": "FR-7 render --append; help render",
+      "requirement_follow_up": "Decision owner team-lead: refuse or document last-wins.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-compose/src/commands/compose_output.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "boundary-03 (duplicate keys)",
+        "shape-05"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-023",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "render --append destination symlinks",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "--append follows a final-component symlink (and a dangling one creates the target), like --output. No contract on symlinks for plain render.",
+      "diagnostic_code": null,
+      "requirement_trace": "FR-7, FR-7b ERR_RENDER_WRITE",
+      "requirement_follow_up": "Decision owner team-lead.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-compose/src/commands/compose_output.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "boundary-04"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-024",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "intentional_boundary",
+      "severity": "low",
+      "subsystem": "graph pour confinement order",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "A graph-mode preview-pour with rendered_formula outside working_directory writes the file and runs bd cook --dry-run before refusing with BEADS_OUTPUT_OUTSIDE_WORKING_DIR at resolve_active_registry; this follows the Phase R registry exception (mode known only after bd where). The refusal code differs from baseline (BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY).",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Pour mode selection; ADR-0021 paths",
+      "requirement_follow_up": "No new doc needed; optional follow-up to refuse before writing.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/execute.rs, pour.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "boundary-05"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-025",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "intentional_boundary",
+      "severity": "low",
+      "subsystem": "graph plan file confinement",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "A pre-existing <rendered>.graph.json symlink is refused with BEADS_OUTPUT_PATH_SYMLINK; the outside target is untouched and no bd create runs. Confinement holds.",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Authorization and confinement",
+      "requirement_follow_up": "None.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/graph.rs",
+      "reproduction_count": 1,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "boundary-06"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-026",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "bead request schema strictness",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "Unknown request and relation fields (e.g. misspelled 'relatoins') are silently ignored, so misspelled relations drop edges without error.",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Request errors; ADR-0021 request contract",
+      "requirement_follow_up": "Decision owner team-lead (deny_unknown_fields would change Phase R parsing).",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/contract.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "boundary-07"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-027",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "render --append stdout echo",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "render --append (and --output) without --json also prints the rendered body to stdout; pre-existing for --output.",
+      "diagnostic_code": null,
+      "requirement_trace": "FR-7 render",
+      "requirement_follow_up": "Decision owner team-lead.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-compose/src/commands/compose_output.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "boundary-08"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-028",
+      "worker_correlation_id": "differential-probe",
+      "classification": "intentional_boundary",
+      "severity": "low",
+      "subsystem": "parallel attaches under Dolt",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "Concurrent attaches with distinct refs and distinct rendered paths: most fail BEADS_GRAPH_APPLY_FAILED with Dolt 'Error 1213 (40001) serialization failure'; nothing partial is written and re-runs succeed, as the ADR's recovery says.",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Atomic apply, Errors",
+      "requirement_follow_up": "Optional: document retry for parallel callers.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "bd v1.3.1 / crates/sc-composer-beads/src/graph.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "differential-03"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-029",
+      "worker_correlation_id": "differential-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "concurrent identical attaches",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "In 1 of 9 trials two identical concurrent attaches both reported nodes 'created'; final bd state equals one attach (no duplicates). Nondeterministic; ADR race paragraph says bd refuses the second plan.",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Conflict rules (race)",
+      "requirement_follow_up": "Decision owner team-lead: reword the ADR race paragraph.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "docs/adrs/0023-beads-attach-and-by-path-pour.md; bd v1.3.1",
+      "reproduction_count": 1,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "differential-04"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-030",
+      "worker_correlation_id": "differential-probe",
+      "classification": "intentional_boundary",
+      "severity": "low",
+      "subsystem": "receipt edge order",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "Permuting relations keeps provenance inputs identical and re-attach is existing (8/8); receipt edges and plan bytes follow request order, which the contract allows ('in plan order').",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Inputs, BeadGraph.edges",
+      "requirement_follow_up": "None.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/graph/plan.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "differential-05"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-031",
+      "worker_correlation_id": "differential-probe",
+      "classification": "intentional_boundary",
+      "severity": "low",
+      "subsystem": "pour authorization code (head vs baseline)",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "pour_authorization 'yes' gives BEADS_POUR_AUTH_INVALID on head (correct per ADR-0021) vs BEADS_REQUEST_DESERIALIZATION_FAILED on baseline: an intended fix.",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0021 errors",
+      "requirement_follow_up": "None.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/contract.rs",
+      "reproduction_count": 1,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "differential-06"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-032",
+      "worker_correlation_id": "differential-probe",
+      "classification": "intentional_boundary",
+      "severity": "low",
+      "subsystem": "lone-CR TOML formula",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "A TOML formula with lone-CR line endings is refused by bd's TOML parser (BEADS_COOK_FAILED, nothing written); CRLF in TOML/JSON and lone CR in JSON keep the revision (32/32).",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Revision",
+      "requirement_follow_up": "None.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "bd v1.3.1 TOML parser",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "differential-07"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-033",
+      "worker_correlation_id": "differential-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "bead render undefined variables",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "An undefined {{{ var }}} renders silently: empty in TOML templates, 'null' in JSON templates (TOML/JSON asymmetry); failures surface later as cook or step_graph errors. Plain render warns. No normative rule for bead templates.",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Context item 1; FR-23.1",
+      "requirement_follow_up": "Decision owner team-lead: strict undefined or receipt warning.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/render.rs; crates/sc-composer/src/renderer.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "differential-08",
+        "template-06"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-034",
+      "worker_correlation_id": "shape-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "BeadId control characters",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "parent containing NUL gives exit 2 BEADS_PROCESS_ARGUMENT_INVALID (no receipt) rather than a request error; other controls give PARENT_NOT_FOUND. BeadId only forbids whitespace.",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0023 Contract (BeadId)",
+      "requirement_follow_up": "Decision owner team-lead: reject control characters in BeadId.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/contract.rs",
+      "reproduction_count": 1,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "shape-07"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-035",
+      "worker_correlation_id": "shape-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "compose_variables numeric fidelity",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "compose_variables {\"n\": 12345678901234567890123} renders as 12345678901234568000000.0 in the formula (same root cause as FUZZ-017: no arbitrary_precision). No documented numeric contract for bead inputs.",
+      "diagnostic_code": null,
+      "requirement_trace": "FR-23.1; FR-12",
+      "requirement_follow_up": "Decision owner team-lead.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/contract.rs; workspace serde_json features",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "shape-08"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-036",
+      "worker_correlation_id": "template-probe",
+      "classification": "inconclusive",
+      "severity": "low",
+      "subsystem": "bead renderer macros / |safe",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "Macro output interpolated with {{{ ... | safe }}} is TOML-string-escaped again, so macros cannot emit step blocks. No contract for macros.",
+      "diagnostic_code": null,
+      "requirement_trace": "FR-23.1; bead manual 'Shared step blocks'",
+      "requirement_follow_up": "Decision owner team-lead.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer/src/renderer.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "template-07"
+      ]
+    },
+    {
+      "finding_id": "FUZZ-037",
+      "worker_correlation_id": "template-probe",
+      "classification": "intentional_boundary",
+      "severity": "low",
+      "subsystem": "Jinja syntax in literal Beads text",
+      "seed": 7023,
+      "command": null,
+      "minimal_template": null,
+      "minimal_input": null,
+      "expected_oracle": null,
+      "observed_result": "Literal '{#' or '{%' in bead text fails render (Jinja blocks/comments remain active, ADR-0021); {{ x }} literals survive render, attach and graph pour (FR-23.1 verified in bd).",
+      "diagnostic_code": null,
+      "requirement_trace": "ADR-0021 Rendering; FR-23.1",
+      "requirement_follow_up": "Optional manual note: use {% raw %}.",
+      "root_cause": null,
+      "recommended_fix": null,
+      "owning_file": "crates/sc-composer-beads/src/render.rs",
+      "reproduction_count": 3,
+      "promoted_test": null,
+      "merged_worker_candidates": [
+        "template-09"
+      ]
+    }
+  ],
+  "promoted_tests": [
+    {
+      "finding_id": "FUZZ-012",
+      "test_path": "crates/sc-compose/tests/fuzz_regressions.rs",
+      "test_name": "fuzz_012_bead_request_template_is_relative_to_working_directory",
+      "ignore": "#[ignore = \"FUZZ-012\"]"
+    },
+    {
+      "finding_id": "FUZZ-013",
+      "test_path": "crates/sc-composer-beads/tests/contract.rs",
+      "test_name": "fuzz_013_phase_r_render_request_keeps_accepting_its_formula_name",
+      "ignore": "#[ignore = \"FUZZ-013\"]"
+    },
+    {
+      "finding_id": "FUZZ-014",
+      "test_path": "crates/sc-composer-beads/tests/graph.rs",
+      "test_name": "fuzz_014_graph_is_built_from_this_requests_rendered_text",
+      "ignore": "#[ignore = \"FUZZ-014\"]"
+    },
+    {
+      "finding_id": "FUZZ-015",
+      "test_path": "crates/sc-composer-beads/tests/graph.rs",
+      "test_name": "fuzz_015_rerun_of_a_40_step_attach_is_not_capped_by_the_output_limit",
+      "ignore": "#[ignore = \"FUZZ-015\"]"
+    },
+    {
+      "finding_id": "FUZZ-016",
+      "test_path": "crates/sc-composer-beads/tests/graph.rs",
+      "test_name": "fuzz_016_option_like_bead_ids_are_never_parsed_as_bd_options",
+      "ignore": "#[ignore = \"FUZZ-016\"]"
+    },
+    {
+      "finding_id": "FUZZ-017",
+      "test_path": "crates/sc-compose/tests/fuzz_regressions.rs",
+      "test_name": "fuzz_017_render_append_keeps_exact_number_values",
+      "ignore": "#[ignore = \"FUZZ-017\"]"
+    },
+    {
+      "finding_id": "FUZZ-018",
+      "test_path": "crates/sc-compose/tests/fuzz_regressions.rs",
+      "test_name": "fuzz_018_bead_render_expands_at_path_includes",
+      "ignore": "#[ignore = \"FUZZ-018\"]"
+    },
+    {
+      "finding_id": "FUZZ-019",
+      "test_path": "crates/sc-compose/tests/fuzz_regressions.rs",
+      "test_name": "fuzz_019_bead_render_failure_reports_the_template_error",
+      "ignore": "#[ignore = \"FUZZ-019\"]"
+    },
+    {
+      "finding_id": "FUZZ-020",
+      "test_path": "crates/sc-composer-beads/tests/graph.rs",
+      "test_name": "fuzz_020_apply_failure_cause_is_bds_error_text",
+      "ignore": "#[ignore = \"FUZZ-020\"]"
+    }
+  ],
+  "unresolved_candidates": [
+    {
+      "finding_id": "FUZZ-012",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-013",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-014",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-015",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-016",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-017",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-018",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-019",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-020",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-021",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-022",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-023",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-026",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-027",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-029",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-033",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-034",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-035",
+      "next_owner": "team-lead"
+    },
+    {
+      "finding_id": "FUZZ-036",
+      "next_owner": "team-lead"
+    }
+  ]
+}

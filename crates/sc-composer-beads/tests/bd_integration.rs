@@ -31,9 +31,7 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
         eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
         return;
     };
-    let _guard = PINNED_BD_TEST_LOCK
-        .lock()
-        .expect("lock pinned bd scenarios");
+    let _guard = lock_pinned_bd_scenarios();
     let root = temporary_workspace();
     let bd = isolated_bd(&root, &pinned_bd);
     initialize_beads(&bd, &root);
@@ -99,9 +97,7 @@ fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
         eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
         return;
     };
-    let _guard = PINNED_BD_TEST_LOCK
-        .lock()
-        .expect("lock pinned bd scenarios");
+    let _guard = lock_pinned_bd_scenarios();
     let root = temporary_workspace();
     let bd = isolated_bd(&root, &pinned_bd);
     initialize_beads(&bd, &root);
@@ -119,7 +115,7 @@ fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
         .join("formulas")
         .join("missing-release-name.formula.toml");
     let mut missing_variable = request(&root, &template, output, "missing-release-name", &bd);
-    // `bd` v1.2.2 permits unresolved placeholders for cook and dry-run pour.
+    // `bd` v1.3.1 permits unresolved placeholders for cook and dry-run pour.
     // The real missing-required-variable rejection occurs before a persistent
     // pour; this isolated temporary registry prevents any lasting state.
     missing_variable.operation = BeadOperation::Pour;
@@ -436,10 +432,15 @@ fn request(
                 ]),
             ),
         ]),
-        formula_name: Some(formula_name.to_owned()),
+        formula_name: Some(
+            sc_composer_beads::FormulaName::new(formula_name).expect("formula name"),
+        ),
         bead_variables: BTreeMap::from([(String::from("release_name"), String::from("1.5.0"))]),
         bd_executable: Some(bd.into()),
         pour_authorization: None,
+        parent: None,
+        ref_: None,
+        relations: Vec::new(),
     }
 }
 
@@ -461,6 +462,12 @@ fn initialize_beads(bd: &Path, root: &Path) {
         String::from_utf8_lossy(&output.stderr)
     );
     fs::create_dir_all(root.join(".beads").join("formulas")).expect("create formula registry");
+}
+
+fn lock_pinned_bd_scenarios() -> std::sync::MutexGuard<'static, ()> {
+    PINNED_BD_TEST_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 fn copy_fixture(name: &str, destination: &Path) {

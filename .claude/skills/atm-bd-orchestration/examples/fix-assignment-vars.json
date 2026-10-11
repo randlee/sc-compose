@@ -1,0 +1,20 @@
+{
+  "task_id": "comp-d-4-qa1-f1",
+  "sprint": "d-4",
+  "stack": "phase-d",
+  "pr_target": "integrate/phase-d",
+  "worktree_path": "../sc-compose-worktrees/fix/d-4-qa1-f1-retry-jitter",
+  "branch": "fix/d-4-qa1-f1-retry-jitter",
+  "primary_checkout": "/path/to/sc-compose",
+  "phase_root": "comp-phase-d",
+  "test_command": "make test",
+  "policy_path": ".claude/project/quality-policy.md",
+  "requirements_globs": [
+    "docs/requirements.md",
+    "docs/*/requirements.md"
+  ],
+  "adr_globs": [
+    "docs/architecture.md",
+    "docs/*/architecture.md"
+  ]
+}

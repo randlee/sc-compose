@@ -1,0 +1,5 @@
+{
+  "exit_status": 1,
+  "stdout": "",
+  "stderr": "Error: resolving formula: formula validation failed:\n  - steps[1]: duplicate id \"build\" (first defined at steps[0])\n"
+}

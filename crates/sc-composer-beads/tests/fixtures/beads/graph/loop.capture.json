@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"loop\",\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/loop.formula.json\",\n  \"steps\": [\n    {\n      \"id\": \"build.iter1.check\",\n      \"title\": \"Check\"\n    },\n    {\n      \"id\": \"build.iter2.check\",\n      \"needs\": [\n        \"build.iter1.check\"\n      ],\n      \"title\": \"Check\"\n    }\n  ],\n  \"type\": \"workflow\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}

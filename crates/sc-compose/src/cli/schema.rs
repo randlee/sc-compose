@@ -74,8 +74,12 @@ pub(crate) enum BeadSubcommand {
     Validate(BeadRequestArgs),
     #[command(about = "Render, validate, and preview a Beads formula pour")]
     PreviewPour(BeadRequestArgs),
+    #[command(about = "Render, validate, and preview Beads graph attachment")]
+    PreviewAttach(BeadRequestArgs),
     #[command(about = "Render, validate, and persist an authorized Beads formula pour")]
     Pour(BeadRequestArgs),
+    #[command(about = "Render, validate, and persist authorized Beads graph attachment")]
+    Attach(BeadRequestArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -217,6 +221,8 @@ pub(crate) struct RenderBehaviorArgs {
         help = "Write rendered output to the given path instead of stdout"
     )]
     pub(crate) output: Option<PathBuf>,
+    #[arg(long, conflicts_with_all = ["output", "dry_run"], help = "Append one rendered JSON object to a JSON Lines file")]
+    pub(crate) append: Option<PathBuf>,
     #[arg(long, help = "Append a guidance block after the rendered body")]
     pub(crate) guidance: Option<String>,
     #[arg(long, help = "Read the guidance block from a file or stdin")]

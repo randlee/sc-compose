@@ -67,7 +67,9 @@ const fn bead_wants_json(args: &BeadArgs) -> bool {
         BeadSubcommand::Render(args)
         | BeadSubcommand::Validate(args)
         | BeadSubcommand::PreviewPour(args)
-        | BeadSubcommand::Pour(args) => args.json,
+        | BeadSubcommand::Pour(args)
+        | BeadSubcommand::PreviewAttach(args)
+        | BeadSubcommand::Attach(args) => args.json,
     }
 }
 
@@ -289,6 +291,42 @@ mod tests {
             (
                 &["sc-compose", "bead", "pour", "--request", "request.json"],
                 false,
+            ),
+            (
+                &[
+                    "sc-compose",
+                    "bead",
+                    "preview-attach",
+                    "--request",
+                    "request.json",
+                ],
+                false,
+            ),
+            (
+                &[
+                    "sc-compose",
+                    "bead",
+                    "preview-attach",
+                    "--request",
+                    "request.json",
+                    "--json",
+                ],
+                true,
+            ),
+            (
+                &["sc-compose", "bead", "attach", "--request", "request.json"],
+                false,
+            ),
+            (
+                &[
+                    "sc-compose",
+                    "bead",
+                    "attach",
+                    "--request",
+                    "request.json",
+                    "--json",
+                ],
+                true,
             ),
             (
                 &[

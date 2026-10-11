@@ -1,0 +1,18 @@
+{
+  "description": "Graph parser contract",
+  "formula": "on_complete",
+  "schema_version": 1,
+  "source": "<workspace>/on_complete.formula.json",
+  "steps": [
+    {
+      "id": "build",
+      "on_complete": {
+        "bond": "worker",
+        "for_each": "output.items"
+      },
+      "title": "Build {{literal}}"
+    }
+  ],
+  "type": "workflow",
+  "version": 1
+}

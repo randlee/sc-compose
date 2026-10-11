@@ -1,0 +1,5 @@
+{
+  "exit_status": 0,
+  "stdout": "{\n  \"compose\": {\n    \"bond_points\": [\n      {\n        \"after_step\": \"build\",\n        \"id\": \"hook\"\n      }\n    ]\n  },\n  \"description\": \"Graph parser contract\",\n  \"formula\": \"compose\",\n  \"schema_version\": 1,\n  \"source\": \"<workspace>/compose.formula.json\",\n  \"steps\": [\n    {\n      \"id\": \"build\",\n      \"title\": \"Build {{literal}}\"\n    }\n  ],\n  \"type\": \"workflow\",\n  \"version\": 1\n}\n",
+  "stderr": ""
+}
