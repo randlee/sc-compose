@@ -22,6 +22,15 @@ def test_request_accepts_bd_variable_rendering(tmp_path: Path) -> None:
     )
     assert request.bead_variable_rendering == "bd"
 
+
+def test_request_rejects_unknown_bead_variable_rendering(tmp_path: Path) -> None:
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path, tmp_path / "template.formula.toml.j2", tmp_path / "output.formula.toml", {},
+            bead_variable_rendering="unknown",
+        )
+    assert "bead_variable_rendering" in str(raised.value)
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"
 GRAPH_FIXTURE_ROOT = FIXTURE_ROOT / "graph"

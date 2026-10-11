@@ -59,6 +59,11 @@ By default, sc-compose renders declared ordinary `{{ name }}` expressions from
 `bead_variables`. Set `bead_variable_rendering` to `"bd"`, or pass
 `--true-bd-render`, to leave those expressions for `bd` instead; the values are
 still passed to registry pour as `--var name=value`.
+In this mode, ordinary `{{ name }}` expressions do not need a sc-compose
+frontmatter declaration. Attach and graph pour likewise leave them for `bd
+cook`; registry pour passes the values through to `bd`. Beads currently only
+substitutes tight `{{name}}` syntax reliably in this path, not padded
+`{{ name }}` syntax (beads#21).
 
 Values supplied in `compose_variables` and `bead_variables` stay literal across
 the two render passes. A template literal or `replace()` expression therefore

@@ -4,9 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
 - Beads requests can opt into `bead_variable_rendering: "bd"` (or the
   `--true-bd-render` CLI flag) to preserve ordinary `{{ variable }}`
-  expressions for Beads while still composing triple-brace expressions.
+  expressions for Beads while still composing triple-brace expressions. In
+  this mode, `bd` does not substitute padded `{{ name }}` expressions
+  ([beads#21](https://github.com/steveyegge/beads/issues/21)); supplied values
+  containing literal braces remain literal under filters; and attach/graph
+  pour leave ordinary expressions for `bd cook`.
 
 ### Fixed
 
