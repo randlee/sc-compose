@@ -36,13 +36,13 @@ tag. Therefore `go get` alone is not a complete installation.
 Unsupported targets and missing or mismatched libraries fail during build with
 a diagnostic naming the target and the supported remediation.
 
-Install a released target bundle in a consumer module. Replace `v1.5.0` with
+Install a released target bundle in a consumer module. Replace `v1.7.0` with
 the desired release and choose the asset matching the consumer host:
 
 ```sh
 go mod init example.invalid/my-consumer
 module='github.com/randlee/sc-compose/bindings/sc-sha-go'
-version='v1.5.0'
+version='v1.7.0'
 asset='sc-sha-go-x86_64-unknown-linux-gnu.zip'
 bundle="$PWD/.sc-sha-go"
 mkdir -p "$bundle"

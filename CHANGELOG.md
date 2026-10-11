@@ -26,6 +26,10 @@ All notable changes to this project will be documented in this file.
   `diagnostics[].path`.
 - The `sc-composer-beads` Python adapter exposes attach and graph pour,
   including `missing_edges` on receipts.
+- GitHub Releases now attach the per-target `sc-sha-go` Go module bundles
+  (`sc-sha-go-<rust-target>.zip` for Linux/amd64, macOS/arm64 and
+  Windows/amd64). Earlier releases documented these assets but never attached
+  them. Install steps are in `docs/integrations/sc-sha-go.md`.
 - The CLI moves to the `sc-observability` v2 logger; the observability
   contract (FR-9 to FR-11) is unchanged.
 - New error codes are registered in `docs/error-code-registry.md`: every
