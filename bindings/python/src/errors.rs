@@ -2,8 +2,8 @@ use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use sc_composer::{
-    ComposeError, ConfigError, DiagnosticCode, ExtractError, IncludeError, RecoveryHintKind,
-    RenderError, ResolveError, ValidationError,
+    ComposeError, ConfigError, DiagnosticCode, ExtractError, IncludeError, OutputCheckError,
+    RecoveryHintKind, RenderError, ResolveError, ValidationError,
 };
 
 #[derive(Default)]
@@ -275,6 +275,24 @@ pub(crate) fn include_error_to_pyerr(error: IncludeError) -> PyErr {
 )]
 pub(crate) fn validation_error_to_pyerr(error: ValidationError) -> PyErr {
     exception_with_attrs::<ScValidationError>(error.message(), Some(error.code().as_str()))
+}
+
+/// Raise a checked-render rejection with the CLI's diagnostic code
+/// (`ERR_RENDER_JSON_MALFORMED`, ...) and its redacted location message.
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "These helpers accept owned error values from map_err and enum matching."
+)]
+pub(crate) fn output_check_error_to_pyerr(error: OutputCheckError) -> PyErr {
+    let diagnostic = error.diagnostics.first();
+    let message = diagnostic.map_or_else(
+        || error.to_string(),
+        |diagnostic| format!("{error}: {}", diagnostic.message),
+    );
+    exception_with_attrs::<ScRenderError>(
+        &message,
+        diagnostic.map(|diagnostic| diagnostic.code.as_str()),
+    )
 }
 
 #[allow(

@@ -8,7 +8,7 @@ use sc_composer::{
 };
 
 use super::compose_output::emit_render_output;
-use super::{context_summary, render_check_meta};
+use super::context_summary;
 use crate::cli::{RenderArgs, RenderBehaviorArgs};
 use crate::path_utils::to_forward_slash;
 use crate::{CommandError, exit_codes};
@@ -188,7 +188,7 @@ fn checked_render_output(
     ),
     CommandError,
 > {
-    let meta = render_check_meta(request, resolved_path);
+    let meta = sc_composer::RenderCheckMeta::for_request(request, resolved_path);
     let should_check = args.check_render || meta.output_format() == sc_composer::OutputFormat::Json;
     if !should_check {
         let checked = sc_composer::check_rendered_output(
