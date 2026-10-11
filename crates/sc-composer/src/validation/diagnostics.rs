@@ -43,27 +43,21 @@ pub(super) fn collect_policy_diagnostics(
     warnings.extend(default_usage_diagnostics(state));
     errors.extend(super::required_paths::required_path_diagnostics(state));
 
+    // Strict is the only mode: a referenced variable that is undeclared or
+    // unbound is always an error, so no render can silently skip one.
     for variable in undeclared_referenced_variables(state) {
-        let diagnostic = Diagnostic::new(
-            if request.policy.strict_undeclared_variables {
-                DiagnosticSeverity::Error
-            } else {
-                DiagnosticSeverity::Warning
-            },
-            DiagnosticCode::ErrValUndeclaredToken,
-            format!("undeclared referenced token: {variable}"),
-        )
-        .with_path(resolved_path.to_path_buf());
-
-        if request.policy.strict_undeclared_variables {
-            errors.push(diagnostic);
-        } else {
-            warnings.push(diagnostic);
-        }
+        errors.push(
+            Diagnostic::new(
+                DiagnosticSeverity::Error,
+                DiagnosticCode::ErrValUndeclaredToken,
+                format!("undeclared referenced token: {variable}"),
+            )
+            .with_path(resolved_path.to_path_buf()),
+        );
     }
 
     push_extra_input_diagnostics(request, state, resolved_path, &mut warnings, &mut errors);
-    push_unbound_variable_diagnostics(request, state, resolved_path, &mut warnings, &mut errors);
+    push_unbound_variable_diagnostics(state, resolved_path, &mut errors);
 
     (warnings, errors)
 }
@@ -223,47 +217,32 @@ fn quoted_json_placeholder_expressions(body: &str) -> Vec<String> {
 }
 
 fn push_unbound_variable_diagnostics(
-    request: &ComposeRequest,
     state: &ValidationState,
     resolved_path: &Path,
-    warnings: &mut Vec<Diagnostic>,
     errors: &mut Vec<Diagnostic>,
 ) {
-    let policy = request
-        .policy
-        .unbound_variable_policy
-        .unwrap_or(request.policy.unknown_variable_policy);
-    if matches!(policy, UnknownVariablePolicy::Ignore) {
-        return;
-    }
-
     let referenced = per_pass_referenced_variables(state).map_or_else(
         || state.referenced_variables.clone(),
         |by_pass| by_pass.values().flatten().cloned().collect(),
     );
     for variable in referenced {
+        // A required variable that is not bound already has its
+        // missing-required error.
         if is_builtin_variable(&variable)
+            || state.required_origins.contains_key(&variable)
             || super::required_paths::is_bound_path(&state.context, &variable)
         {
             continue;
         }
 
-        let diagnostic = Diagnostic::new(
-            match policy {
-                UnknownVariablePolicy::Error => DiagnosticSeverity::Error,
-                UnknownVariablePolicy::Warn => DiagnosticSeverity::Warning,
-                UnknownVariablePolicy::Ignore => unreachable!(),
-            },
-            DiagnosticCode::ErrValUnboundVariable,
-            format!("unbound variable: {variable}"),
-        )
-        .with_path(resolved_path.to_path_buf());
-
-        match policy {
-            UnknownVariablePolicy::Error => errors.push(diagnostic),
-            UnknownVariablePolicy::Warn => warnings.push(diagnostic),
-            UnknownVariablePolicy::Ignore => unreachable!(),
-        }
+        errors.push(
+            Diagnostic::new(
+                DiagnosticSeverity::Error,
+                DiagnosticCode::ErrValUnboundVariable,
+                format!("unbound variable: {variable}"),
+            )
+            .with_path(resolved_path.to_path_buf()),
+        );
     }
 }
 
@@ -436,7 +415,8 @@ fn undeclared_referenced_variables(state: &ValidationState) -> Vec<VariableName>
     let Some(referenced_variables_by_pass) = per_pass_referenced_variables(state) else {
         return state
             .referenced_variables
-            .difference(&state.declared_variables)
+            .iter()
+            .filter(|variable| !is_declared(&state.declared_variables, variable))
             .cloned()
             .collect();
     };
@@ -448,11 +428,32 @@ fn undeclared_referenced_variables(state: &ValidationState) -> Vec<VariableName>
                 .declared_variables_by_pass
                 .get(pass_number)
                 .unwrap_or(&state.declared_variables);
-            variables.difference(declared).cloned()
+            variables
+                .iter()
+                .filter(|variable| !is_declared(declared, variable))
+                .cloned()
         })
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect()
+}
+
+/// A declared path covers its parents and children: declaring `project`
+/// declares `project.name`, and declaring `sections.key` declares the
+/// `sections` a template loops over.
+fn is_declared(declared: &BTreeSet<VariableName>, referenced: &VariableName) -> bool {
+    let referenced = referenced.as_str();
+    declared.iter().any(|declared| {
+        let declared = declared.as_str();
+        declared == referenced
+            || is_path_prefix(declared, referenced)
+            || is_path_prefix(referenced, declared)
+    })
+}
+
+fn is_path_prefix(prefix: &str, path: &str) -> bool {
+    path.strip_prefix(prefix)
+        .is_some_and(|rest| rest.starts_with('.'))
 }
 
 fn default_used_by_reference(state: &ValidationState, variable: &VariableName) -> bool {
@@ -571,9 +572,46 @@ mod tests {
     }
 
     #[test]
-    fn default_mode_preserves_undeclared_tokens_as_warnings() {
-        let root = temp_root("diagnostics_default_undeclared");
-        write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    fn default_policy_rejects_undeclared_and_unbound_references() {
+        let root = temp_root("diagnostics_default_strict");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - name\n---\nhello {{ name }} and {{ missing }}\n",
+        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request
+            .vars_input
+            .insert(crate::VariableName::new("name").unwrap(), json!("x"));
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok, "a missing variable was accepted: {report:?}");
+        for code in [
+            DiagnosticCode::ErrValUndeclaredToken,
+            DiagnosticCode::ErrValUnboundVariable,
+        ] {
+            assert!(
+                report
+                    .errors
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == code
+                        && diagnostic.message.ends_with("missing")
+                        && diagnostic
+                            .path
+                            .as_deref()
+                            .is_some_and(|path| path.ends_with("template.md.j2"))),
+                "{code:?} missing from {report:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn missing_required_variable_is_reported_once() {
+        let root = temp_root("diagnostics_missing_required_once");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+        );
 
         let report = validate(&request_for_file(
             &root,
@@ -582,14 +620,43 @@ mod tests {
         ))
         .unwrap();
 
-        assert!(report.ok);
-        assert!(report.errors.is_empty());
-        assert!(
-            report
-                .warnings
-                .iter()
-                .any(|diagnostic| { diagnostic.code == DiagnosticCode::ErrValUndeclaredToken })
+        let codes = report
+            .errors
+            .iter()
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>();
+        assert_eq!(codes, [DiagnosticCode::ErrValMissingRequired], "{report:?}");
+    }
+
+    #[test]
+    fn declared_paths_cover_their_parents_and_children() {
+        let root = temp_root("diagnostics_declared_path_cover");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - project\n  - sections.key\n---\n{{ project.name }}{% for s in sections %}{{ s.key }}{% endfor %}{{ projects }}\n",
         );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("project").unwrap(),
+            json!({ "name": "p" }),
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("sections").unwrap(),
+            json!([{ "key": "k" }]),
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("projects").unwrap(), json!("x"));
+
+        let report = validate(&request).unwrap();
+
+        let undeclared = report
+            .errors
+            .iter()
+            .filter(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUndeclaredToken)
+            .map(|diagnostic| diagnostic.message.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(undeclared, ["undeclared referenced token: projects"]);
     }
 
     #[test]
@@ -626,80 +693,6 @@ mod tests {
     }
 
     #[test]
-    fn unknown_warn_policy_distinguishes_referenced_but_unbound_variables() {
-        let root = temp_root("diagnostics_unbound_warn");
-        write_file(&root.join("template.md.j2"), "Missing: {{ missing }}\n");
-
-        let report = validate(&request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                unknown_variable_policy: UnknownVariablePolicy::Warn,
-                ..ComposePolicy::default()
-            },
-        ))
-        .unwrap();
-
-        assert!(
-            report.ok,
-            "warn policy should remain renderable: {report:?}"
-        );
-        assert!(report.warnings.iter().any(|diagnostic| {
-            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
-                && diagnostic.message.contains("missing")
-        }));
-    }
-
-    #[test]
-    fn explicit_unbound_policy_is_independent_of_extra_input_policy() {
-        let root = temp_root("diagnostics_unbound_policy_independent");
-        write_file(&root.join("template.md.j2"), "Missing: {{ missing }}\n");
-
-        let mut error_request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                unknown_variable_policy: UnknownVariablePolicy::Ignore,
-                unbound_variable_policy: Some(UnknownVariablePolicy::Error),
-                ..ComposePolicy::default()
-            },
-        );
-        error_request
-            .vars_input
-            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
-        let error_report = validate(&error_request).unwrap();
-        assert!(
-            error_report
-                .errors
-                .iter()
-                .any(|diagnostic| { diagnostic.code == DiagnosticCode::ErrValUnboundVariable })
-        );
-        assert!(
-            !error_report
-                .errors
-                .iter()
-                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
-        );
-
-        let ignore_report = validate(&request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                unknown_variable_policy: UnknownVariablePolicy::Error,
-                unbound_variable_policy: Some(UnknownVariablePolicy::Ignore),
-                ..ComposePolicy::default()
-            },
-        ))
-        .unwrap();
-        assert!(
-            !ignore_report
-                .errors
-                .iter()
-                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable)
-        );
-    }
-
-    #[test]
     fn bound_defaults_and_locals_are_not_reported_as_unbound() {
         let root = temp_root("diagnostics_bound_scopes");
         write_file(
@@ -707,14 +700,7 @@ mod tests {
             "---\ndefaults:\n  fallback: default\nrequired_variables:\n  - items\n---\n{% for item in items %}{{ item.name }}{% endfor %}{% set local = fallback %}{{ local }}\n",
         );
 
-        let mut request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                unbound_variable_policy: Some(UnknownVariablePolicy::Error),
-                ..ComposePolicy::default()
-            },
-        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
         request.vars_input.insert(
             crate::VariableName::new("items").unwrap(),
             json!([{ "name": "one" }]),
@@ -739,15 +725,7 @@ mod tests {
             "---\nrequired_variables:\n  - declared_missing\n---\n{{ declared_missing }} {{ supplied_undeclared }}\n",
         );
 
-        let mut request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                strict_undeclared_variables: true,
-                unbound_variable_policy: Some(UnknownVariablePolicy::Error),
-                ..ComposePolicy::default()
-            },
-        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
         request.vars_input.insert(
             crate::VariableName::new("supplied_undeclared").unwrap(),
             json!("present"),
@@ -756,7 +734,7 @@ mod tests {
         let report = validate(&request).unwrap();
 
         assert!(report.errors.iter().any(|diagnostic| {
-            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+            diagnostic.code == DiagnosticCode::ErrValMissingRequired
                 && diagnostic.message.contains("declared_missing")
         }));
         assert!(report.errors.iter().any(|diagnostic| {
@@ -777,10 +755,7 @@ mod tests {
         let report = validate(&request_for_file(
             &root,
             "template.md.j2",
-            ComposePolicy {
-                strict_undeclared_variables: true,
-                ..ComposePolicy::default()
-            },
+            ComposePolicy::default(),
         ))
         .unwrap();
 
@@ -1150,10 +1125,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(report.warnings[0].code, DiagnosticCode::InfoValDefaultUsed);
-        assert_eq!(
-            report.warnings[1].code,
-            DiagnosticCode::ErrValUndeclaredToken
-        );
+        assert_eq!(report.errors[0].code, DiagnosticCode::ErrValUndeclaredToken);
     }
 
     #[test]
@@ -1176,11 +1148,15 @@ mod tests {
             .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
 
         let report = validate(&request).unwrap();
-        assert_eq!(
-            report.warnings[0].code,
-            DiagnosticCode::ErrValUndeclaredToken
+        assert_eq!(report.errors[0].code, DiagnosticCode::ErrValUndeclaredToken);
+        assert_eq!(report.warnings[0].code, DiagnosticCode::ErrValExtraInput);
+        assert!(
+            report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable),
+            "the extra-input policy never relaxes an unbound reference: {report:?}"
         );
-        assert_eq!(report.warnings[1].code, DiagnosticCode::ErrValExtraInput);
     }
 
     fn request_for_file(root: &Path, file: &str, policy: ComposePolicy) -> ComposeRequest {

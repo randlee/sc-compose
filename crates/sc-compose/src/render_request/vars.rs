@@ -13,17 +13,11 @@ use crate::var_file::{load_var_file, parse_var_file_contents};
 
 pub(super) fn compose_policy(input: &InputArgs) -> sc_composer::ComposePolicy {
     sc_composer::ComposePolicy {
-        strict_undeclared_variables: input.strict,
         unknown_variable_policy: match input.unknown_var_mode {
             UnknownVarMode::Error => UnknownVariablePolicy::Error,
             UnknownVarMode::Warn => UnknownVariablePolicy::Warn,
             UnknownVarMode::Ignore => UnknownVariablePolicy::Ignore,
         },
-        unbound_variable_policy: Some(match input.unknown_var_mode {
-            UnknownVarMode::Error => UnknownVariablePolicy::Error,
-            UnknownVarMode::Warn => UnknownVariablePolicy::Warn,
-            UnknownVarMode::Ignore => UnknownVariablePolicy::Ignore,
-        }),
         ..sc_composer::ComposePolicy::default()
     }
 }

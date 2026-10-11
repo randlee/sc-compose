@@ -90,7 +90,7 @@ fn validate_check_render_fails_closed_for_malformed_json() {
     let root = temp_root("validate-check-render-invalid");
     write_file(
         &root.join("payload.json.j2"),
-        "{\"value\": \"{{ value }}\"}",
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
     );
 
     let output = sc_compose()

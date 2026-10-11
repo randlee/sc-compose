@@ -969,9 +969,9 @@ fn fuzz_014_concurrent_attaches_keep_complete_inputs_and_receipts() {
         w.req.template = w.root.join(format!("sample.formula.{suffix}.j2"));
         w.req.rendered_formula = w.root.join(format!("sample.formula.{suffix}"));
         fs::write(&w.req.template, if suffix == "toml" {
-            "formula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\ndescription = \"{{{ description }}}\"\n"
+            "---\nrequired_variables:\n  - step\n  - title\n  - description\n---\nformula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\ndescription = \"{{{ description }}}\"\n"
         } else {
-            r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}","description":"{{{ description }}}"}]}"#
+            concat!("---\nrequired_variables:\n  - step\n  - title\n  - description\n---\n", r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}","description":"{{{ description }}}"}]}"#)
         }).expect("template");
         let (tx_a, rx_a) = std::sync::mpsc::channel();
         let (tx_b, rx_b) = std::sync::mpsc::channel();
@@ -1280,9 +1280,9 @@ fn fuzz_014b_concurrent_bypath_pours_validate_their_own_initial_cook_inputs() {
             w.req.template = w.root.join(format!("sample.formula.{suffix}.j2"));
             w.req.rendered_formula = w.root.join(format!("sample.formula.{suffix}"));
             fs::write(&w.req.template, if suffix == "toml" {
-                "formula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\n"
+                "---\nrequired_variables:\n  - step\n  - title\n---\nformula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\n"
             } else {
-                r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}"}]}"#
+                concat!("---\nrequired_variables:\n  - step\n  - title\n---\n", r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}"}]}"#)
             }).expect("template");
             let registry = w.root.join(".beads");
             fs::create_dir(&registry).expect("registry");

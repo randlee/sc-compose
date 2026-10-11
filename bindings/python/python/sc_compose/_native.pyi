@@ -163,22 +163,19 @@ class ComposeMode:
     def name(self) -> str | None: ...
 
 
+# Strict is the only mode: a referenced variable that is undeclared or unbound
+# always raises ScValidationError. unknown_variable_policy governs only extra,
+# unused caller variables.
 class ComposePolicy:
     def __init__(
         self,
-        strict_undeclared_variables: bool = False,
         unknown_variable_policy: str = "ignore",
-        unbound_variable_policy: str | None = None,
         max_include_depth: int = 32,
         allowed_roots: list[str | PathLike[str] | ConfiningRoot] | None = None,
         passes: list[PassConfig] | None = None,
     ) -> None: ...
     @property
-    def strict_undeclared_variables(self) -> bool: ...
-    @property
     def unknown_variable_policy(self) -> str: ...
-    @property
-    def unbound_variable_policy(self) -> str | None: ...
     @property
     def max_include_depth(self) -> int: ...
     @property

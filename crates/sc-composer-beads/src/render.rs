@@ -109,10 +109,9 @@ pub(crate) fn render_formula_in_root(
         CLOSE_DELIMITER,
         escape_mode(template),
     )
-    // A composition variable with no caller value and no frontmatter default
-    // would otherwise render as `""` or `"null"` and reach bd as a valid
-    // formula; bead rendering refuses it (TMPL5-02).
-    .map(sc_composer::Renderer::refusing_undefined)
+    // The renderer refuses to print an undefined composition variable, so
+    // one with no caller value and no frontmatter default never reaches bd
+    // as `""` or `"null"` (TMPL5-02).
     .and_then(|renderer| {
         renderer.render_named(&template.to_string_lossy(), &expanded.text, context)
     })
@@ -316,10 +315,11 @@ mod tests {
         fs::remove_dir_all(root).expect("cleanup");
     }
 
-    // TMPL5-02: without frontmatter an undefined composition variable must be
-    // refused too, not rendered as `""` (TOML) or `"null"` (JSON).
+    // Without frontmatter a composition variable is undeclared, so it is
+    // refused whether or not the caller supplies it: never rendered as `""`
+    // (TOML) or `"null"` (JSON), and never accepted without a declaration.
     #[test]
-    fn undefined_variable_without_frontmatter_is_refused() {
+    fn undeclared_variable_without_frontmatter_is_refused() {
         let root = temporary_directory();
         for (name, body) in [
             ("undefined.formula.toml.j2", "title = \"{{{ title }}}\"\n"),
@@ -331,25 +331,18 @@ mod tests {
             let template = root.join(name);
             let output = root.join(name.trim_end_matches(".j2"));
             fs::write(&template, body).expect("write template");
-            let error = render_formula(&template, &output, &Map::new())
-                .expect_err("undefined variable must be refused");
-            assert!(
-                matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("title")),
-                "{name}: {error:?}"
-            );
-            assert!(!output.exists(), "{name}: nothing is written on refusal");
-
-            render_formula(
-                &template,
-                &output,
-                &Map::from_iter([(String::from("title"), json!("set"))]),
-            )
-            .expect("a defined variable still renders");
-            assert!(
-                fs::read_to_string(&output)
-                    .expect("read output")
-                    .contains("set")
-            );
+            for variables in [
+                Map::new(),
+                Map::from_iter([(String::from("title"), json!("set"))]),
+            ] {
+                let error = render_formula(&template, &output, &variables)
+                    .expect_err("an undeclared variable must be refused");
+                assert!(
+                    matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("title")),
+                    "{name}: {error:?}"
+                );
+                assert!(!output.exists(), "{name}: nothing is written on refusal");
+            }
         }
         fs::remove_dir_all(root).expect("cleanup");
     }
@@ -487,7 +480,7 @@ mod tests {
         let output = root.join("example.formula.json");
         fs::write(
             &template,
-            r#"{ "title": "{{{ title }}}", "runtime": "{{ bead_var }}" }"#,
+            "---\nrequired_variables:\n  - title\n---\n{ \"title\": \"{{{ title }}}\", \"runtime\": \"{{ bead_var }}\" }",
         )
         .expect("write template");
         render_formula(
@@ -516,7 +509,7 @@ mod tests {
         let output = root.join("example.formula.toml");
         fs::write(
             &template,
-            "single = \"{{{ x }}}\"\nmultiline = \"\"\"{{{ x }}}\"\"\"",
+            "---\nrequired_variables:\n  - x\n---\nsingle = \"{{{ x }}}\"\nmultiline = \"\"\"{{{ x }}}\"\"\"",
         )
         .expect("write template");
         let hostile = "has \"quotes\" and \\backslash\nwith a second line";
@@ -593,7 +586,7 @@ mod tests {
         .expect("first include");
         fs::write(
             root.join("templates/parts/two.toml.j2"),
-            "title = \"{{{ title }}}\"\nruntime = \"{{ bead_var }}\"\n",
+            "---\nrequired_variables:\n  - title\n---\ntitle = \"{{{ title }}}\"\nruntime = \"{{ bead_var }}\"\n",
         )
         .expect("relative include");
         fs::write(root.join("shared/root.toml.j2"), "root = true\n")

@@ -805,7 +805,7 @@ pub(crate) mod tests {
         let template = root.join("example.formula.toml.j2");
         fs::write(
             &template,
-            "{% for person in people %}- {{{ person.name }}}\\n{% endfor %}runtime = \"{{ bead_var }}\"\\n",
+            "---\nrequired_variables:\n  - people\n---\n{% for person in people %}- {{{ person.name }}}\\n{% endfor %}runtime = \"{{ bead_var }}\"\\n",
         )
         .expect("write template");
         BeadComposeRequest {

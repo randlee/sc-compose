@@ -183,7 +183,7 @@ fn validate_json_check_render_fails_closed_for_malformed_json() {
     let root = temp_root("validate-json-check-render-invalid");
     write_file(
         &root.join("payload.json.j2"),
-        "{\"value\": \"{{ value }}\"}",
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
     );
 
     let output = sc_compose()
@@ -224,7 +224,7 @@ fn validate_lint_json_allows_matching_or_undeclared_include_mode() {
     let root = temp_root("validate-json-include-mode-compatible");
     write_file(
         &root.join("payload.json.j2"),
-        "---\njson_escape_mode: auto\n---\n{\n  \"value\": {{ value }},\n@<fragment.json.j2>\n}\n",
+        "---\njson_escape_mode: auto\nrequired_variables:\n  - value\n---\n{\n  \"value\": {{ value }},\n@<fragment.json.j2>\n}\n",
     );
     write_file(
         &root.join("fragment.json.j2"),
@@ -294,7 +294,7 @@ fn validate_json_reports_legacy_json_migration_warning() {
     let root = temp_root("validate-json-legacy-warning");
     write_file(
         &root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
     );
 
     let output = sc_compose()
@@ -331,7 +331,7 @@ fn validate_json_reports_one_legacy_warning_for_multiple_quoted_placeholders() {
     let root = temp_root("validate-json-legacy-warning-once");
     write_file(
         &root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"first\": \"{{ first }}\", \"second\": \"{{ second }}\"}",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - first\n  - second\n---\n{\"first\": \"{{ first }}\", \"second\": \"{{ second }}\"}",
     );
 
     let output = sc_compose()
@@ -367,7 +367,7 @@ fn validate_json_reports_legacy_warning_for_dotted_and_filtered_placeholders() {
     let root = temp_root("validate-json-legacy-expression-warning");
     write_file(
         &root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"name\": \"{{ user.name | default('unknown') }}\"}",
+        "---\njson_escape_mode: legacy\ndefaults:\n  user:\n    name: Ada\n---\n{\"name\": \"{{ user.name | default('unknown') }}\"}",
     );
 
     let output = sc_compose()
@@ -399,7 +399,7 @@ fn validate_lint_json_reports_the_same_legacy_json_warning() {
     let root = temp_root("validate-lint-json-legacy-warning");
     write_file(
         &root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
     );
 
     let output = sc_compose()
@@ -437,7 +437,7 @@ fn validate_lint_json_cli_auto_override_supersedes_legacy_frontmatter() {
     let root = temp_root("validate-lint-json-cli-auto-overrides-legacy");
     write_file(
         &root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
     );
 
     let output = sc_compose()
@@ -485,7 +485,7 @@ fn validate_lint_json_reports_ambiguous_quoted_placeholder_conservatively() {
     let root = temp_root("validate-lint-json-ambiguous-quoted-placeholder");
     write_file(
         &root.join("payload.json.j2"),
-        r#"{"value": "{{ value.foo["key"] }}"}"#,
+        "---\ndefaults:\n  value:\n    foo:\n      key: bar\n---\n{\"value\": \"{{ value.foo[\"key\"] }}\"}",
     );
 
     let output = sc_compose()

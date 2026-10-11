@@ -458,7 +458,7 @@ mod tests {
         let root = temp_root("partial-write-on-render-failure");
         write_file(
             &root.join("reports").join("templates").join("panel.html.j2"),
-            "<article>{{ metadata.title }}|{% include metadata.partial %}|{{ body }}</article>\n",
+            "<article>{% set title = metadata.title %}{% set panels = [] %}{{ title }}|{% include metadata.partial %}|{{ body }}</article>\n",
         );
         write_file(
             &root.join("docs").join("a.txt"),
@@ -472,10 +472,13 @@ mod tests {
         let error = render_many(&request(&root, "reports/templates/panel.html.j2")).unwrap_err();
 
         let surfaced = surfaced_error(&error);
-        assert!(surfaced.contains(&format!(
-            "failed to render source entry {}",
-            crate::path_utils::to_forward_slash(&Path::new("docs").join("b.txt"))
-        )));
+        assert!(
+            surfaced.contains(&format!(
+                "failed to render source entry {}",
+                crate::path_utils::to_forward_slash(&Path::new("docs").join("b.txt"))
+            )),
+            "surfaced: {surfaced}"
+        );
         assert!(
             surfaced.contains("template not found"),
             "surfaced: {surfaced}"

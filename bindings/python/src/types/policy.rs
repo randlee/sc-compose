@@ -48,13 +48,8 @@ pub(crate) fn compose_mode_repr(mode: &ComposeMode) -> String {
 
 pub(crate) fn compose_policy_repr(policy: &ComposePolicy) -> String {
     format!(
-        "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={}, unbound_variable_policy={}, max_include_depth={}, allowed_roots={:?}, resolver_policy={}, passes={}, json_escape_mode={})",
-        python_bool_repr(policy.strict_undeclared_variables),
+        "ComposePolicy(unknown_variable_policy={}, max_include_depth={}, allowed_roots={:?}, resolver_policy={}, passes={}, json_escape_mode={})",
         python_string_repr(unknown_variable_policy_str(policy.unknown_variable_policy)),
-        policy.unbound_variable_policy.map_or_else(
-            || "None".to_owned(),
-            |value| python_string_repr(unknown_variable_policy_str(value)),
-        ),
         policy.max_include_depth.get(),
         policy
             .allowed_roots
@@ -243,11 +238,9 @@ pub(crate) struct PyComposePolicy {
 #[pymethods]
 impl PyComposePolicy {
     #[new]
-    #[pyo3(signature = (strict_undeclared_variables=false, unknown_variable_policy="ignore", unbound_variable_policy=None, max_include_depth=32, allowed_roots=None, passes=None, json_escape_mode=None))]
+    #[pyo3(signature = (unknown_variable_policy="ignore", max_include_depth=32, allowed_roots=None, passes=None, json_escape_mode=None))]
     fn new(
-        strict_undeclared_variables: bool,
         unknown_variable_policy: &str,
-        unbound_variable_policy: Option<&str>,
         max_include_depth: u16,
         allowed_roots: Option<&Bound<'_, PyAny>>,
         passes: Option<&Bound<'_, PyAny>>,
@@ -255,11 +248,7 @@ impl PyComposePolicy {
     ) -> PyResult<Self> {
         Ok(Self {
             inner: ComposePolicy {
-                strict_undeclared_variables,
                 unknown_variable_policy: parse_unknown_variable_policy(unknown_variable_policy)?,
-                unbound_variable_policy: unbound_variable_policy
-                    .map(parse_unknown_variable_policy)
-                    .transpose()?,
                 max_include_depth: sc_composer::IncludeDepth::new(max_include_depth),
                 allowed_roots: extract_allowed_roots(allowed_roots)?,
                 resolver_policy: ResolverPolicy::default(),
@@ -270,20 +259,8 @@ impl PyComposePolicy {
     }
 
     #[getter]
-    fn strict_undeclared_variables(&self) -> bool {
-        self.inner.strict_undeclared_variables
-    }
-
-    #[getter]
     fn unknown_variable_policy(&self) -> String {
         unknown_variable_policy_str(self.inner.unknown_variable_policy).to_owned()
-    }
-
-    #[getter]
-    fn unbound_variable_policy(&self) -> Option<String> {
-        self.inner
-            .unbound_variable_policy
-            .map(|value| unknown_variable_policy_str(value).to_owned())
     }
 
     #[getter]
@@ -439,10 +416,7 @@ mod tests {
             },
         };
         let policy = PyComposePolicy {
-            inner: ComposePolicy {
-                strict_undeclared_variables: true,
-                ..ComposePolicy::default()
-            },
+            inner: ComposePolicy::default(),
         };
         let request = PyComposeRequest {
             inner: ComposeRequest {

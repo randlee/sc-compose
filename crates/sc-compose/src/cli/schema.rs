@@ -141,13 +141,15 @@ pub(crate) struct InputArgs {
         help = "Absorb environment variables that match the given prefix"
     )]
     pub(crate) env_prefix: Option<String>,
-    #[arg(long, help = "Treat undeclared referenced variables as errors")]
+    /// Accepted for existing callers; strict is the only mode, so undeclared
+    /// and unbound referenced variables are always errors.
+    #[arg(long, hide = true)]
     pub(crate) strict: bool,
     #[arg(
         long,
         value_enum,
         default_value = "ignore",
-        help = "Control how extra caller-provided and referenced-but-unbound variables are reported"
+        help = "Control how extra caller-provided variables are reported"
     )]
     pub(crate) unknown_var_mode: UnknownVarMode,
 }

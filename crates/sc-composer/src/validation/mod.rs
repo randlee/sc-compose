@@ -102,14 +102,7 @@ mod tests {
             "---\nrequired_variables:\n  - items\n---\n{% for item in items %}{{ loop }} {{ loop.index }} {{ loop.index0 }} {{ loop.revindex }} {{ loop.revindex0 }} {{ loop.first }} {{ loop.last }} {{ loop.length }} {{ loop.depth }} {{ loop.depth0 }} {{ loop.cycle(\"odd\", \"even\") }}:{{ item }}{% endfor %}\n",
         );
 
-        let mut request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                strict_undeclared_variables: true,
-                ..ComposePolicy::default()
-            },
-        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
         request.vars_input.insert(
             crate::VariableName::new("items").unwrap(),
             json!(["one", "two"]),
@@ -134,14 +127,7 @@ mod tests {
             "---\nrequired_variables:\n  - groups\n---\n{% for group in groups %}{{ group.name }}{% for item in group.items %}{{ group.name }}={{ item.name }}:{{ loop.depth }}:{{ loop.last }}{% endfor %}{% endfor %}\n",
         );
 
-        let mut request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                strict_undeclared_variables: true,
-                ..ComposePolicy::default()
-            },
-        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
         request.vars_input.insert(
             crate::VariableName::new("groups").unwrap(),
             json!([{ "name": "one", "items": [{ "name": "a" }] }]),
@@ -161,14 +147,7 @@ mod tests {
             "---\nrequired_variables:\n  - items\n---\noutside={{ loop.last }}\n{% for item in items %}inside={{ loop.anything }}{% endfor %}\n",
         );
 
-        let mut request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                strict_undeclared_variables: true,
-                ..ComposePolicy::default()
-            },
-        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
         request
             .vars_input
             .insert(crate::VariableName::new("items").unwrap(), json!(["one"]));
@@ -201,12 +180,18 @@ mod tests {
         ))
         .unwrap();
 
-        assert!(report.ok, "{report:?}");
-        assert!(report.errors.is_empty(), "{report:?}");
-        assert!(report.warnings.iter().any(|diagnostic| {
+        assert!(!report.ok, "{report:?}");
+        assert!(report.errors.iter().any(|diagnostic| {
             diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
                 && diagnostic.message.contains("missing_team")
         }));
+        assert!(
+            !report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.message.ends_with(": task")),
+            "{report:?}"
+        );
         assert!(
             !report.warnings.iter().any(|diagnostic| {
                 diagnostic.code == DiagnosticCode::InfoValDefaultUsed
@@ -227,10 +212,7 @@ mod tests {
         let report = validate(&request_for_file(
             &root,
             "template.md.j2",
-            ComposePolicy {
-                strict_undeclared_variables: true,
-                ..ComposePolicy::default()
-            },
+            ComposePolicy::default(),
         ))
         .unwrap();
 
@@ -607,10 +589,7 @@ mod tests {
         let report = validate(&request_for_file(
             &root,
             "template.md.j2",
-            ComposePolicy {
-                strict_undeclared_variables: true,
-                ..ComposePolicy::default()
-            },
+            ComposePolicy::default(),
         ))
         .unwrap();
 
@@ -633,12 +612,18 @@ mod tests {
         ))
         .unwrap();
 
-        assert!(report.ok, "{report:?}");
-        assert!(report.errors.is_empty(), "{report:?}");
-        assert!(report.warnings.iter().any(|diagnostic| {
+        assert!(!report.ok, "{report:?}");
+        assert!(report.errors.iter().any(|diagnostic| {
             diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
                 && diagnostic.message.contains("missing_team")
         }));
+        assert!(
+            !report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.message.ends_with(": task")),
+            "{report:?}"
+        );
     }
 
     #[test]

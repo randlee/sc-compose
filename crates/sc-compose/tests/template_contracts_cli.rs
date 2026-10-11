@@ -7,7 +7,7 @@ fn validate_lint_auto_mode_quoted_placeholder_is_nonzero_with_location() {
     let fixture = TempFixture::new("template-contracts-validate");
     write_file(
         &fixture.path.join("payload.json.j2"),
-        "{\"value\": \"{{ value }}\"}\n",
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}\n",
     );
     let output = sc_compose()
         .args([
@@ -38,7 +38,7 @@ fn validate_lint_auto_mode_quoted_placeholder_is_nonzero_with_location() {
         })
         .expect("quoted placeholder diagnostic");
     assert_eq!(diagnostic["severity"], "error");
-    assert_eq!(diagnostic["line"], 1);
+    assert_eq!(diagnostic["line"], 5);
     assert_eq!(diagnostic["column"], 12);
     assert!(
         diagnostic["message"]
