@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Map;
 
+use crate::BeadVariableRendering;
 use crate::error::BeadComposeError;
 use crate::paths::public_path_buf;
 
@@ -66,11 +67,36 @@ pub(crate) fn render_formula_in_root_with_bead_variables(
     bead_variables: &BTreeMap<String, String>,
     working_directory: &Path,
 ) -> Result<(), BeadComposeError> {
+    render_formula_in_root_with_bead_variables_and_mode(
+        template,
+        rendered_formula,
+        compose_variables,
+        bead_variables,
+        BeadVariableRendering::ScCompose,
+        working_directory,
+    )
+}
+
+/// Render with an explicit owner for ordinary Beads variable expressions.
+#[allow(
+    clippy::too_many_lines,
+    reason = "the two deliberately ordered rendering passes share validation and atomic-write setup"
+)]
+pub(crate) fn render_formula_in_root_with_bead_variables_and_mode(
+    template: &Path,
+    rendered_formula: &Path,
+    compose_variables: &Map<String, serde_json::Value>,
+    bead_variables: &BTreeMap<String, String>,
+    bead_variable_rendering: BeadVariableRendering,
+    working_directory: &Path,
+) -> Result<(), BeadComposeError> {
     let root =
         sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
     let mut variables = BTreeMap::new();
-    for (name, value) in bead_variables {
-        variables.insert(name.clone(), serde_json::Value::String(value.clone()));
+    if bead_variable_rendering == BeadVariableRendering::ScCompose {
+        for (name, value) in bead_variables {
+            variables.insert(name.clone(), serde_json::Value::String(value.clone()));
+        }
     }
     for (name, value) in compose_variables {
         variables.insert(name.clone(), value.clone());
@@ -108,16 +134,18 @@ pub(crate) fn render_formula_in_root_with_bead_variables(
     if !report.ok {
         return Err(validation_error(&report));
     }
-    let double_brace_report = sc_composer::validate_with_observer_and_delimiters(
-        &request,
-        &mut sc_composer::NoopObserver,
-        Some(("{{", "}}")),
-    )
-    .map_err(|error| BeadComposeError::RenderFailed {
-        message: error.to_string(),
-    })?;
-    if !double_brace_report.ok {
-        return Err(validation_error(&double_brace_report));
+    if bead_variable_rendering == BeadVariableRendering::ScCompose {
+        let double_brace_report = sc_composer::validate_with_observer_and_delimiters(
+            &request,
+            &mut sc_composer::NoopObserver,
+            Some(("{{", "}}")),
+        )
+        .map_err(|error| BeadComposeError::RenderFailed {
+            message: error.to_string(),
+        })?;
+        if !double_brace_report.ok {
+            return Err(validation_error(&double_brace_report));
+        }
     }
     let mut context = BTreeMap::new();
     if let Some(frontmatter) = expanded.frontmatters.iter().find_map(|(path, passes)| {
@@ -158,13 +186,21 @@ pub(crate) fn render_formula_in_root_with_bead_variables(
         )
     })
     .and_then(|rendered| {
-        sc_composer::Renderer::with_delimiters_and_escape_mode("{{", "}}", escape_mode(template))
+        if bead_variable_rendering == BeadVariableRendering::Bd {
+            Ok(rendered)
+        } else {
+            sc_composer::Renderer::with_delimiters_and_escape_mode(
+                "{{",
+                "}}",
+                escape_mode(template),
+            )
             // The renderer refuses to print an undefined composition variable, so
             // one with no caller value and no frontmatter default never reaches bd
             // as `""` or `"null"` (TMPL5-02).
             .and_then(|renderer| {
                 renderer.render_named(&template.to_string_lossy(), &rendered, protected_context)
             })
+        }
     })
     .map_err(|error| BeadComposeError::RenderFailed {
         message: error.message().to_owned(),
@@ -192,7 +228,9 @@ fn literal_brace_token(text: &str, context: &BTreeMap<String, serde_json::Value>
     const FIRST: u32 = 0xE000;
     const LAST: u32 = 0xF8FF;
     let range = LAST - FIRST + 1;
-    let start = TEMPORARY_OUTPUT_SEQUENCE.fetch_add(1, Ordering::Relaxed) as u32 % range;
+    let sequence = TEMPORARY_OUTPUT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let start = u32::try_from(sequence % u64::from(range))
+        .expect("private-use range remainder fits in u32");
     for offset in 0..range {
         let token = char::from_u32(FIRST + (start + offset) % range)
             .expect("private-use range is valid Unicode");
@@ -414,6 +452,7 @@ mod tests {
 
     use super::{
         render_formula, render_formula_in_root, render_formula_in_root_with_bead_variables,
+        render_formula_in_root_with_bead_variables_and_mode,
     };
 
     #[test]
@@ -439,6 +478,34 @@ mod tests {
         assert_eq!(
             fs::read_to_string(&output).expect("read output"),
             "title = \"release-x\"\ndescription = \"release-x\"\nlabel = \"RELEASE-X\"\nproject = \"sc-compose\""
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn bd_variable_rendering_leaves_ordinary_placeholders_untouched() {
+        let root = temporary_directory();
+        let template = root.join("bd-vars.formula.toml.j2");
+        let output = root.join("bd-vars.formula.toml");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - title\n---\ntitle = \"{{{ title }}}\"\nruntime = \"{{ bd_only }}\"\n",
+        )
+        .expect("write template");
+
+        render_formula_in_root_with_bead_variables_and_mode(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("title"), json!("Composed"))]),
+            &BTreeMap::from([(String::from("bd_only"), String::from("runtime"))]),
+            crate::BeadVariableRendering::Bd,
+            &root,
+        )
+        .expect("bd owns ordinary placeholders");
+
+        assert_eq!(
+            fs::read_to_string(&output).expect("read output"),
+            "title = \"Composed\"\nruntime = \"{{ bd_only }}\""
         );
         fs::remove_dir_all(root).expect("cleanup");
     }
@@ -478,7 +545,7 @@ mod tests {
         let output = root.join("literal-brace-filters.formula.toml");
         fs::write(
             &template,
-            "---\nrequired_variables:\n  - compose_value\n  - bead_value\n---\ncompose_lower = \"{{{ compose_value | lower }}}\"\ncompose_length = \"{{{ compose_value | length }}}\"\ncompose_truncate = \"{{{ compose_value | truncate(3) }}}\"\nbead_lower = \"{{ bead_value | lower }}\"\nbead_length = \"{{ bead_value | length }}\"\nbead_truncate = \"{{ bead_value | truncate(3) }}\"\n",
+            "---\nrequired_variables:\n  - compose_value\n  - bead_value\n---\ncompose_lower = \"{{{ compose_value | lower }}}\"\ncompose_length = \"{{{ compose_value | length }}}\"\ncompose_slice = \"{{{ compose_value[:3] }}}\"\nbead_lower = \"{{ bead_value | lower }}\"\nbead_length = \"{{ bead_value | length }}\"\nbead_slice = \"{{ bead_value[:3] }}\"\n",
         )
         .expect("write template");
         let value = "A{BC";
@@ -494,7 +561,7 @@ mod tests {
 
         assert_eq!(
             fs::read_to_string(&output).expect("read output"),
-            "compose_lower = \"a{bc\"\ncompose_length = \"4\"\ncompose_truncate = \"A{B\"\nbead_lower = \"a{bc\"\nbead_length = \"4\"\nbead_truncate = \"A{B\""
+            "compose_lower = \"a{bc\"\ncompose_length = \"4\"\ncompose_slice = \"A{B\"\nbead_lower = \"a{bc\"\nbead_length = \"4\"\nbead_slice = \"A{B\""
         );
         fs::remove_dir_all(root).expect("cleanup");
     }

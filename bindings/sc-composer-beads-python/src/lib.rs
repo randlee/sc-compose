@@ -9,7 +9,7 @@ use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
     BeadComposeRequest, BeadOperation, BeadOutcome, BeadPourMode, BeadStage, BeadStageOutcome,
-    BeadStageReceipt, PourAuthorization, execute_bead_request,
+    BeadStageReceipt, BeadVariableRendering, PourAuthorization, execute_bead_request,
 };
 use serde_json::Value;
 
@@ -443,7 +443,7 @@ struct PyBeadComposeRequest {
 #[pymethods]
 impl PyBeadComposeRequest {
     #[new]
-    #[pyo3(signature = (working_directory, template, rendered_formula, compose_variables, *, operation=BeadOperation::Render.as_str(), formula_name=None, bead_variables=None, bd_executable=None, pour_authorization=None, parent=None, r#ref=None, relations=None, schema=BEADS_SCHEMA_V1))]
+    #[pyo3(signature = (working_directory, template, rendered_formula, compose_variables, *, operation=BeadOperation::Render.as_str(), formula_name=None, bead_variables=None, bead_variable_rendering="sc-compose", bd_executable=None, pour_authorization=None, parent=None, r#ref=None, relations=None, schema=BEADS_SCHEMA_V1))]
     #[allow(
         clippy::too_many_arguments,
         reason = "The Python constructor mirrors the complete versioned Rust request contract."
@@ -457,6 +457,7 @@ impl PyBeadComposeRequest {
         operation: &str,
         formula_name: Option<String>,
         bead_variables: Option<&Bound<'_, PyAny>>,
+        bead_variable_rendering: &str,
         bd_executable: Option<&Bound<'_, PyAny>>,
         pour_authorization: Option<&str>,
         parent: Option<String>,
@@ -474,6 +475,16 @@ impl PyBeadComposeRequest {
             .transpose()
             .map_err(|error| rust_error_to_pyerr(py, &error))?;
         let operation = operation_from_str(py, operation)?;
+        let bead_variable_rendering = match bead_variable_rendering {
+            "sc-compose" => BeadVariableRendering::ScCompose,
+            "bd" => BeadVariableRendering::Bd,
+            _ => {
+                return Err(request_error(
+                    py,
+                    "bead_variable_rendering must be 'sc-compose' or 'bd'",
+                ));
+            }
+        };
         let formula_name = formula_name
             .map(|name| sc_composer_beads::FormulaName::for_operation(operation, name))
             .transpose()
@@ -489,6 +500,7 @@ impl PyBeadComposeRequest {
                 compose_variables,
                 formula_name,
                 bead_variables: parse_bead_variables(py, bead_variables)?,
+                bead_variable_rendering,
                 bd_executable: bd_executable
                     .map(|value| coerce_path(py, value, "bd_executable"))
                     .transpose()?,
@@ -552,6 +564,14 @@ impl PyBeadComposeRequest {
     #[getter]
     fn bead_variables(&self) -> BTreeMap<String, String> {
         self.inner.bead_variables.clone()
+    }
+
+    #[getter]
+    fn bead_variable_rendering(&self) -> &'static str {
+        match self.inner.bead_variable_rendering {
+            BeadVariableRendering::ScCompose => "sc-compose",
+            BeadVariableRendering::Bd => "bd",
+        }
     }
 
     #[getter]
@@ -779,6 +799,7 @@ mod tests {
             .clone(),
             formula_name: None,
             bead_variables: BTreeMap::from([(String::from("release_name"), String::from("1.7.0"))]),
+            bead_variable_rendering: BeadVariableRendering::ScCompose,
             bd_executable: None,
             pour_authorization: None,
             parent: None,

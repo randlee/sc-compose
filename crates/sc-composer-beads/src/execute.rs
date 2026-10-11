@@ -10,7 +10,9 @@ use crate::contract::{
 };
 use crate::error::{BeadComposeError, short_cause};
 use crate::paths::{public_path_buf, public_path_display};
-use crate::render::{render_formula_in_root_with_bead_variables, validate_output_destination};
+use crate::render::{
+    render_formula_in_root_with_bead_variables_and_mode, validate_output_destination,
+};
 use crate::runner::{
     CommandSpec, PROCESS_OUTPUT_LIMIT_BYTES, ProcessOutput, ProcessRunner, StdProcessRunner,
     is_process_output_limit_error,
@@ -174,11 +176,12 @@ fn render_stage(
     let rendered = (|| {
         let input = InputSnapshot::reserve(&normalized.rendered_formula)
             .map_err(|error| reserve_error(&normalized.rendered_formula, error))?;
-        render_formula_in_root_with_bead_variables(
+        render_formula_in_root_with_bead_variables_and_mode(
             &normalized.template,
             input.path(),
             &request.compose_variables,
             &request.bead_variables,
+            request.bead_variable_rendering,
             &normalized.working_directory,
         )?;
         // Every operation writes the rendered formula exactly once and keeps
@@ -822,6 +825,7 @@ pub(crate) mod tests {
                 (String::from("alpha"), String::from("first")),
                 (String::from("bead_var"), String::from("runtime")),
             ]),
+            bead_variable_rendering: crate::BeadVariableRendering::ScCompose,
             bd_executable: Some(PathBuf::from("fake-bd")),
             pour_authorization: None,
             parent: None,

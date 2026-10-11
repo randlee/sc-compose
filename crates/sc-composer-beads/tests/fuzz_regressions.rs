@@ -67,6 +67,7 @@ impl Workspace {
                 compose_variables: serde_json::Map::new(),
                 formula_name: Some(FormulaName::new("sample").expect("formula name")),
                 bead_variables: BTreeMap::new(),
+                bead_variable_rendering: sc_composer_beads::BeadVariableRendering::ScCompose,
                 bd_executable: Some(PathBuf::from("fake-bd")),
                 pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
                 parent: Some(BeadId::new("proj-1").expect("parent")),

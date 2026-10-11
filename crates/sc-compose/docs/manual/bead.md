@@ -55,6 +55,11 @@ they are also passed to `bd --var` for its required-variable checks.
 `bead_variables` is unavailable for attach and graph-mode pour, whose request
 objects must leave it empty.
 
+By default, sc-compose renders declared ordinary `{{ name }}` expressions from
+`bead_variables`. Set `bead_variable_rendering` to `"bd"`, or pass
+`--true-bd-render`, to leave those expressions for `bd` instead; the values are
+still passed to registry pour as `--var name=value`.
+
 Values supplied in `compose_variables` and `bead_variables` stay literal across
 the two render passes. A template literal or `replace()` expression therefore
 cannot match a `{` character inside a supplied value.

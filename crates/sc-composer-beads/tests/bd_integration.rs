@@ -436,6 +436,7 @@ fn request(
             sc_composer_beads::FormulaName::new(formula_name).expect("formula name"),
         ),
         bead_variables: BTreeMap::from([(String::from("release_name"), String::from("1.5.0"))]),
+        bead_variable_rendering: sc_composer_beads::BeadVariableRendering::ScCompose,
         bd_executable: Some(bd.into()),
         pour_authorization: None,
         parent: None,

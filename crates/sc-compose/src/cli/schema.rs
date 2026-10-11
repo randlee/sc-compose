@@ -92,6 +92,11 @@ pub(crate) struct BeadRequestArgs {
     pub(crate) request: PathBuf,
     #[arg(
         long,
+        help = "Leave ordinary {{ variable }} expressions for bd to render"
+    )]
+    pub(crate) true_bd_render: bool,
+    #[arg(
+        long,
         help = "Emit the Beads receipt in the standard diagnostic JSON envelope"
     )]
     pub(crate) json: bool,

@@ -6,8 +6,8 @@ use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadErrorClass,
     BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome,
-    RefusedBeadComposeReceipt, RequestParseOutcome, execute_bead_request_with_diagnostics,
-    parse_request_for_operation,
+    BeadVariableRendering, RefusedBeadComposeReceipt, RequestParseOutcome,
+    execute_bead_request_with_diagnostics, parse_request_for_operation,
 };
 
 use crate::CommandError;
@@ -17,15 +17,43 @@ use crate::print_json;
 
 /// Run one Beads request selected by the CLI subcommand.
 pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
-    let (request_path, operation, json) = match &args.command {
-        BeadSubcommand::Render(args) => (&args.request, BeadOperation::Render, args.json),
-        BeadSubcommand::Validate(args) => (&args.request, BeadOperation::Validate, args.json),
-        BeadSubcommand::PreviewPour(args) => (&args.request, BeadOperation::PreviewPour, args.json),
-        BeadSubcommand::PreviewAttach(args) => {
-            (&args.request, BeadOperation::PreviewAttach, args.json)
-        }
-        BeadSubcommand::Pour(args) => (&args.request, BeadOperation::Pour, args.json),
-        BeadSubcommand::Attach(args) => (&args.request, BeadOperation::Attach, args.json),
+    let (request_path, operation, json, true_bd_render) = match &args.command {
+        BeadSubcommand::Render(args) => (
+            &args.request,
+            BeadOperation::Render,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::Validate(args) => (
+            &args.request,
+            BeadOperation::Validate,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::PreviewPour(args) => (
+            &args.request,
+            BeadOperation::PreviewPour,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::PreviewAttach(args) => (
+            &args.request,
+            BeadOperation::PreviewAttach,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::Pour(args) => (
+            &args.request,
+            BeadOperation::Pour,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::Attach(args) => (
+            &args.request,
+            BeadOperation::Attach,
+            args.json,
+            args.true_bd_render,
+        ),
     };
     let input = match fs::read_to_string(request_path) {
         Ok(input) => input,
@@ -52,6 +80,9 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         Err(error) => return print_bead_error(&error, operation, json),
     };
     request.operation = operation;
+    if true_bd_render {
+        request.bead_variable_rendering = BeadVariableRendering::Bd;
+    }
 
     let mut diagnostics = Vec::new();
     let mut identifier_diagnostic = None;

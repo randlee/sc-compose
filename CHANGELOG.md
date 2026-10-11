@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Beads requests can opt into `bead_variable_rendering: "bd"` (or the
+  `--true-bd-render` CLI flag) to preserve ordinary `{{ variable }}`
+  expressions for Beads while still composing triple-brace expressions.
+
 ### Fixed
 
 - `sc-compose bead` now renders declared `bead_variables` in both padded
