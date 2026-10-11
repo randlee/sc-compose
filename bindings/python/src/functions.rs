@@ -9,7 +9,7 @@ use crate::convert::{
 use crate::enums::parse_extract_format;
 use crate::errors::{
     compose_error_to_pyerr, config_error, config_error_with_recovery_hints, extract_error_to_pyerr,
-    render_error_to_pyerr, validation_error,
+    output_check_error_to_pyerr, render_error_to_pyerr, validation_error,
 };
 use crate::types::{
     PyComposePolicy, PyComposeRequest, PyComposeResult, PyExpandedTemplate, PyExtractionReport,
@@ -30,9 +30,17 @@ use crate::types::{
     reason = "PyO3 extracted arguments use owned PyRef values."
 )]
 fn compose(request: PyRef<'_, PyComposeRequest>) -> PyResult<PyComposeResult> {
-    sc_composer::compose(&request.inner)
-        .map(|inner| PyComposeResult { inner })
-        .map_err(compose_error_to_pyerr)
+    let inner = sc_composer::compose(&request.inner).map_err(compose_error_to_pyerr)?;
+    // Same checked-render contract as `sc-compose render`: a JSON output that
+    // is not one complete JSON document is an error, never a returned body.
+    let meta = sc_composer::RenderCheckMeta::for_request(
+        &request.inner,
+        &inner.resolve_result.resolved_path,
+    );
+    sc_composer::check_rendered_output_with_meta(meta, &inner.rendered_text).map_err(|error| {
+        output_check_error_to_pyerr(error.with_failing_pass(inner.failing_pass))
+    })?;
+    Ok(PyComposeResult { inner })
 }
 
 #[pyfunction]
@@ -123,9 +131,12 @@ fn extract_variables(
 fn render_loaded_template(
     request: PyRef<'_, PyLoadedTemplateRequest>,
 ) -> PyResult<PyRenderedArtifact> {
-    sc_composer::render_loaded_template(request.inner.clone())
-        .map(|inner| PyRenderedArtifact { inner })
-        .map_err(render_error_to_pyerr)
+    let inner = sc_composer::render_loaded_template(request.inner.clone())
+        .map_err(render_error_to_pyerr)?;
+    let format = sc_composer::OutputFormat::from_template_path(Path::new(&inner.template_name));
+    sc_composer::check_rendered_output(format, Path::new(&inner.template_name), &inner.rendered)
+        .map_err(output_check_error_to_pyerr)?;
+    Ok(PyRenderedArtifact { inner })
 }
 
 #[pyfunction]
