@@ -463,6 +463,105 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: python -m twine upload --repository testpypi --skip-existing dist/*.whl dist/*.tar.gz
 
+  go-native-plan:
+    needs: gate-and-tag
+    runs-on: ubuntu-latest
+    outputs:
+      target_matrix: ${{ steps.matrix.outputs.target_matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.build_ref }}
+      - id: matrix
+        name: Read Go native target matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "target_matrix=$(python3 .github/scripts/go_native_module.py target-matrix --manifest "${RELEASE_ARTIFACT_MANIFEST}" --config release/go-native-module.toml)" >> "$GITHUB_OUTPUT"
+
+  # Builds the per-target sc-sha Go module bundles documented in
+  # docs/integrations/sc-sha-go.md and hands them to the release job as
+  # `sc-sha-go-<rust-target>.zip` assets. Each bundle is verified from its
+  # zipped form with an independent consumer module before upload.
+  build-go-bundles:
+    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
+    needs: [gate-and-tag, go-native-plan]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.go-native-plan.outputs.target_matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.build_ref }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+          targets: ${{ matrix.target }}
+
+      - name: Build the target-native static adapter
+        run: cargo build --release -p ${{ matrix.cargo_package }} --target ${{ matrix.target }}
+
+      - name: Stage and zip the Go module bundle
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='${{ needs.gate-and-tag.outputs.release_version }}'
+          bundle="$RUNNER_TEMP/${{ matrix.artifact_prefix }}-${{ matrix.target }}"
+          archive="$RUNNER_TEMP/dist/${{ matrix.artifact_prefix }}-${{ matrix.target }}.zip"
+          python3 .github/scripts/go_native_module.py stage \
+            --config release/go-native-module.toml \
+            --target '${{ matrix.target }}' \
+            --native-library "target/${{ matrix.target }}/release/${{ matrix.library }}" \
+            --output "$bundle" \
+            --version "$version"
+          mkdir -p "$RUNNER_TEMP/dist"
+          python3 - "$bundle" "$archive" <<'PY'
+          import sys
+          import zipfile
+          from pathlib import Path
+
+          source, archive = map(Path, sys.argv[1:])
+          with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
+              for path in sorted(source.rglob("*")):
+                  if path.is_file():
+                      output.write(path, path.relative_to(source))
+          PY
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the zipped bundle with an independent consumer module
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          set -euo pipefail
+          extracted="$RUNNER_TEMP/extracted/module"
+          mkdir -p "$extracted"
+          python3 -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" \
+            '${{ steps.bundle.outputs.archive }}' "$extracted"
+          (cd "$extracted" && go test ./...)
+          consumer="$RUNNER_TEMP/consumer"
+          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
+          cd "$consumer"
+          module='${{ matrix.module }}'
+          go mod edit -replace "$module=$extracted"
+          go get "$module/go/sc_sha_go@v${{ steps.bundle.outputs.version }}"
+          go run .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: go-bundle-${{ matrix.target }}
+          path: ${{ steps.bundle.outputs.archive }}
+
   release:
     # Runs whenever every needed job succeeded or was legitimately skipped
     # (crates or Python legs may be absent for this consumer). The GitHub
@@ -472,8 +571,9 @@ jobs:
     if: >-
       ${{ !failure() && !cancelled() &&
           needs.gate-and-tag.outputs.release_target == 'production' &&
-          needs.build.result == 'success' }}
-    needs: [gate-and-tag, build, build-python-wheels, build-python-sdists]
+          needs.build.result == 'success' &&
+          needs.build-go-bundles.result == 'success' }}
+    needs: [gate-and-tag, build, build-python-wheels, build-python-sdists, build-go-bundles]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
