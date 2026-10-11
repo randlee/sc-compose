@@ -51,8 +51,9 @@ blocks use ordinary `{% ... %}`. `bead_variables` are ordinary, declared
 double-brace Minijinja values: `{{ name }}` and `{{name}}` are rendered by
 sc-compose before `bd` receives the formula, including normal filters and
 conditionals. Declare them in frontmatter alongside other referenced values;
-they are also passed to `bd --var` for its required-variable checks. Attach
-and graph-mode pour still require an empty `bead_variables` object.
+they are also passed to `bd --var` for its required-variable checks.
+`bead_variables` is unavailable for attach and graph-mode pour, whose request
+objects must leave it empty.
 
 ## The request
 

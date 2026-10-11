@@ -132,6 +132,16 @@ pub(crate) fn render_formula_in_root_with_bead_variables(
     for (name, value) in &variables {
         context.insert(name.clone(), value.clone());
     }
+    let literal_brace_token = literal_brace_token(&expanded.text, &context);
+    let protected_context = context
+        .iter()
+        .map(|(name, value)| {
+            (
+                name.clone(),
+                protect_literal_braces(value, &literal_brace_token),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
     // Render triple-brace composition first so its loops and conditionals keep
     // their local bindings. The subsequent exact-match two-brace pass sees
     // only ordinary Beads placeholders; triple-brace syntax never matches it.
@@ -141,7 +151,11 @@ pub(crate) fn render_formula_in_root_with_bead_variables(
         escape_mode(template),
     )
     .and_then(|renderer| {
-        renderer.render_named(&template.to_string_lossy(), &expanded.text, context.clone())
+        renderer.render_named(
+            &template.to_string_lossy(),
+            &expanded.text,
+            protected_context.clone(),
+        )
     })
     .and_then(|rendered| {
         sc_composer::Renderer::with_delimiters_and_escape_mode("{{", "}}", escape_mode(template))
@@ -149,13 +163,16 @@ pub(crate) fn render_formula_in_root_with_bead_variables(
             // one with no caller value and no frontmatter default never reaches bd
             // as `""` or `"null"` (TMPL5-02).
             .and_then(|renderer| {
-                renderer.render_named(&template.to_string_lossy(), &rendered, context)
+                renderer.render_named(&template.to_string_lossy(), &rendered, protected_context)
             })
     })
     .map_err(|error| BeadComposeError::RenderFailed {
         message: error.message().to_owned(),
     })?;
-    atomic_write(rendered_formula, rendered.as_bytes())
+    atomic_write(
+        rendered_formula,
+        restore_literal_braces(&rendered, &literal_brace_token).as_bytes(),
+    )
 }
 
 fn validation_error(report: &sc_composer::ValidationReport) -> BeadComposeError {
@@ -167,6 +184,53 @@ fn validation_error(report: &sc_composer::ValidationReport) -> BeadComposeError 
             .collect::<Vec<_>>()
             .join("; "),
     }
+}
+
+/// Build a per-render marker that cannot collide with source text or values.
+fn literal_brace_token(text: &str, context: &BTreeMap<String, serde_json::Value>) -> String {
+    loop {
+        let sequence = TEMPORARY_OUTPUT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let token = format!("__SC_COMPOSE_LITERAL_BRACE_{sequence}__");
+        if !text.contains(&token) && !context.values().any(|value| value_contains(value, &token)) {
+            return token;
+        }
+    }
+}
+
+fn value_contains(value: &serde_json::Value, needle: &str) -> bool {
+    match value {
+        serde_json::Value::String(value) => value.contains(needle),
+        serde_json::Value::Array(values) => {
+            values.iter().any(|value| value_contains(value, needle))
+        }
+        serde_json::Value::Object(values) => {
+            values.values().any(|value| value_contains(value, needle))
+        }
+        _ => false,
+    }
+}
+
+fn protect_literal_braces(value: &serde_json::Value, token: &str) -> serde_json::Value {
+    match value {
+        serde_json::Value::String(value) => serde_json::Value::String(value.replace('{', token)),
+        serde_json::Value::Array(values) => serde_json::Value::Array(
+            values
+                .iter()
+                .map(|value| protect_literal_braces(value, token))
+                .collect(),
+        ),
+        serde_json::Value::Object(values) => serde_json::Value::Object(
+            values
+                .iter()
+                .map(|(name, value)| (name.clone(), protect_literal_braces(value, token)))
+                .collect(),
+        ),
+        value => value.clone(),
+    }
+}
+
+fn restore_literal_braces(rendered: &str, token: &str) -> String {
+    rendered.replace(token, "{")
 }
 
 /// Reject a final output component that would redirect a renderer write.
@@ -367,6 +431,34 @@ mod tests {
         assert_eq!(
             fs::read_to_string(&output).expect("read output"),
             "title = \"release-x\"\ndescription = \"release-x\"\nlabel = \"RELEASE-X\"\nproject = \"sc-compose\""
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn supplied_values_with_jinja_syntax_remain_literal_across_both_passes() {
+        let root = temporary_directory();
+        let template = root.join("literal-values.formula.toml.j2");
+        let output = root.join("literal-values.formula.toml");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - compose_value\n  - bead_value\n---\ncompose = \"{{{ compose_value }}}\"\nbead = \"{{ bead_value }}\"\n",
+        )
+        .expect("write template");
+        let literal = "literal {{ x }} {% if x %}";
+
+        render_formula_in_root_with_bead_variables(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("compose_value"), json!(literal))]),
+            &BTreeMap::from([(String::from("bead_value"), literal.to_owned())]),
+            &root,
+        )
+        .expect("render literal Jinja syntax");
+
+        assert_eq!(
+            fs::read_to_string(&output).expect("read output"),
+            format!("compose = \"{literal}\"\nbead = \"{literal}\"")
         );
         fs::remove_dir_all(root).expect("cleanup");
     }

@@ -12,6 +12,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Every `{{ name }}` expression in a Beads template must now be declared in
+  frontmatter, including Beads-native `[vars]` placeholders. Undeclared
+  expressions are refused in every Beads operation, including attach and graph
+  pour; use `{% raw %}{{ name }}{% endraw %}` for literal double braces.
 - Strict is the only render mode (#783): no render can silently skip a
   variable. In `sc-compose render`/`validate`, the `sc-composer` library, the
   Python `sc_compose` package and `sc-compose bead`:
