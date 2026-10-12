@@ -45,7 +45,9 @@ pub(super) fn walk_template<F>(
         };
         let after_start = &cursor[start + start_delimiter.len()..];
         let end = match delimiter {
-            Delimiter::Expression => find_exact_delimiter(after_start, end_delimiter),
+            // A closing triple-brace delimiter may be immediately followed by
+            // a literal `}`; consume the first delimiter in that run.
+            Delimiter::Expression => after_start.find(end_delimiter),
             Delimiter::Statement => after_start.find(end_delimiter),
         };
         let Some(end) = end else { break };
@@ -95,11 +97,10 @@ fn find_exact_delimiter(text: &str, delimiter: &str) -> Option<usize> {
         let found = text[cursor..].find(delimiter)?;
         let absolute = cursor + found;
         let after = absolute + delimiter.len();
-        if delimiter.len() == 2
-            && text
-                .as_bytes()
-                .get(after)
-                .is_some_and(|byte| *byte == repeated_byte)
+        if text
+            .as_bytes()
+            .get(after)
+            .is_some_and(|byte| *byte == repeated_byte)
         {
             cursor = after;
             continue;

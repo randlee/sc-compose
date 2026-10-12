@@ -302,6 +302,12 @@ mod tests {
     }
 
     #[test]
+    fn higher_brace_opening_runs_are_not_lower_pass_tokens() {
+        let tokens = discover_tokens_with_brace_count("{{{{ org }}}} {{{ team }}}", 3);
+        assert_eq!(tokens, [crate::VariableName::new("team").unwrap()].into());
+    }
+
+    #[test]
     fn filter_names_are_not_discovered_as_variables() {
         let tokens = discover_tokens("{{ x | e }} {{ x | e | lower }}");
 
