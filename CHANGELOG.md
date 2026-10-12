@@ -49,8 +49,9 @@ All notable changes to this project will be documented in this file.
   (`o[0].k`), literal or grouped member access (`({...}).a`, `(x).upper()`),
   or locals following four closing braces. Four-brace tokens remain exact at
   brace count three.
-- A blocked `.graph.json` graph-plan path now reports its plan-path diagnostic
-  and recovery instead of misidentifying `rendered_formula`.
+- A blocked `.graph.json` graph-plan path is refused before `bd` runs and now
+  reports its plan-path diagnostic and recovery instead of misidentifying
+  `rendered_formula`.
 - `sc-compose bead` now renders declared `bead_variables` in both padded
   `{{ key }}` and tight `{{key}}` formula placeholders before invoking `bd`,
   while still passing them as `--var` for Beads runtime checks (#618).

@@ -85,16 +85,16 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     }
 
     let mut diagnostics = Vec::new();
-    let mut identifier_diagnostic = None;
+    let mut refusal_diagnostic = None;
     let result = execute_bead_request_with_diagnostics(&request, &mut |error| {
-        identifier_diagnostic = BeadDiagnostic::graph_id_invalid(error);
+        refusal_diagnostic = BeadDiagnostic::refused(error);
         if !json {
             diagnostics.push(serde_json::to_value(error));
         }
     });
     match result {
         Ok(receipt) => {
-            if let Some(error) = identifier_diagnostic {
+            if let Some(error) = refusal_diagnostic {
                 return print_refused_receipt(RefusedBeadComposeReceipt { receipt, error }, json);
             }
             let diagnostics = diagnostics

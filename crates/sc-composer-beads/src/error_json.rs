@@ -30,8 +30,10 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             json!({ "path": path.to_string_lossy(), "kind": format!("{:?}", source.kind()) }),
             "Check that the request path names an existing UTF-8 JSON file and that you have permission to read it.",
         )),
-        BeadComposeError::OutputPathInvalid { path, rule } => {
-            let plan_path = path.to_string_lossy().ends_with(".graph.json");
+        BeadComposeError::OutputPathInvalid { path, rule }
+        | BeadComposeError::GraphPlanPathInvalid { path, rule } => {
+            let plan_path = matches!(error, BeadComposeError::GraphPlanPathInvalid { .. })
+                || path.to_string_lossy().ends_with(".graph.json");
             Some((
                 json!({ "field": if plan_path { "graph_plan" } else { "rendered_formula" }, "value": path.to_string_lossy(), "rule": rule }),
                 if plan_path {
@@ -114,6 +116,24 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
 }
 
 impl crate::BeadDiagnostic {
+    /// Retain an error whose refused receipt must expose structured details.
+    #[must_use]
+    pub fn refused(error: &BeadComposeError) -> Option<Self> {
+        match error {
+            BeadComposeError::GraphIdInvalid { .. } => Self::graph_id_invalid(error),
+            BeadComposeError::GraphPlanPathInvalid { .. } => {
+                let envelope = error_envelope(error);
+                Some(Self {
+                    code: envelope.code.into(),
+                    message: envelope.message,
+                    details: envelope.details,
+                    recovery: envelope.recovery.map(str::to_owned),
+                })
+            }
+            _ => None,
+        }
+    }
+
     /// Retain a canonical identifier diagnostic, including its native rule.
     /// Returns `None` for errors outside the identifier-refusal contract.
     #[must_use]

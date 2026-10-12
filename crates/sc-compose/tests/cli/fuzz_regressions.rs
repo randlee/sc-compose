@@ -350,7 +350,7 @@ fn fuzz_171_13_rendered_formula_equal_to_template_is_refused_without_writes() {
     use std::os::unix::fs::PermissionsExt;
 
     let root = temp_root("fuzz-171-13-template-overwrite");
-    let template = root.join("same.formula.toml.j2");
+    let template = root.join("same.formula.toml");
     let original = b"formula = \"same\"\n";
     write_file(&template, std::str::from_utf8(original).unwrap());
     let trace = root.join("bd.trace");
@@ -394,10 +394,72 @@ fn fuzz_171_13_rendered_formula_equal_to_template_is_refused_without_writes() {
     let mut expected = vec![
         std::ffi::OsString::from("fake-bd"),
         std::ffi::OsString::from("request.json"),
-        std::ffi::OsString::from("same.formula.toml.j2"),
+        std::ffi::OsString::from("same.formula.toml"),
     ];
     expected.sort();
     assert_eq!(entries, expected, "refusal must create no output files");
+}
+
+// FUZZ-171-21: a blocked graph plan is named before `bd` is invoked.
+#[cfg(unix)]
+#[test]
+fn fuzz_171_21_preview_attach_refuses_blocked_graph_plan_before_bd() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = temp_root("fuzz-171-21-graph-plan-path");
+    let template = root.join("m.formula.toml.j2");
+    write_file(&template, "formula = \"m\"\n");
+    let rendered_formula = root.join("out.formula.toml");
+    let graph_plan = root.join("out.formula.toml.graph.json");
+    std::fs::create_dir(&graph_plan).unwrap();
+    let trace = root.join("bd.trace");
+    let bd = root.join("fake-bd");
+    write_file(
+        &bd,
+        &format!("#!/bin/sh\nprintf called >> '{}'\n", trace.display()),
+    );
+    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let request = root.join("request.json");
+    write_file(
+        &request,
+        &serde_json::json!({
+            "schema":"sc-compose/beads/v1", "operation":"preview_attach",
+            "working_directory":root, "template":template,
+            "rendered_formula":rendered_formula, "compose_variables":{}, "bead_variables":{},
+            "parent":"proj-1", "ref":"r", "bd_executable":bd
+        })
+        .to_string(),
+    );
+
+    let output = sc_compose()
+        .args(["bead", "preview-attach", "--request"])
+        .arg(&request)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let diagnostic = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        diagnostic.contains("invalid graph plan output path"),
+        "{diagnostic}"
+    );
+    assert!(
+        diagnostic.contains(graph_plan.to_str().unwrap()),
+        "{diagnostic}"
+    );
+    assert!(!trace.exists(), "bd must not run before graph-plan refusal");
+
+    let output = sc_compose()
+        .args(["bead", "preview-attach", "--json", "--request"])
+        .arg(&request)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let receipt = parse_stdout(&output);
+    assert_eq!(
+        receipt["payload"]["error"]["details"]["field"], "graph_plan",
+        "{receipt}"
+    );
 }
 
 // FUZZ-171-17: control characters in graph IDs are refused before `bd` runs.

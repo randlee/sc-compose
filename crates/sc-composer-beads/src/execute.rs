@@ -999,7 +999,7 @@ pub(crate) mod tests {
             ]);
             let mut diagnostics = Vec::new();
             let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
-                assert!(matches!(error, BeadComposeError::OutputPathInvalid { path: actual, .. } if actual == &public));
+                assert!(matches!(error, BeadComposeError::GraphPlanPathInvalid { path: actual, .. } if actual == &public));
                 diagnostics.push(serde_json::to_value(error).unwrap());
             }).unwrap();
             assert_eq!(diagnostics.len(), 1);
