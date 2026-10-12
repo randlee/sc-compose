@@ -281,6 +281,11 @@ mod tests {
     }
 
     #[test]
+    fn attribute_access_on_literal_is_not_a_variable() {
+        assert!(discover_tokens(r#"{{ {"a": {"b": 1}}.a.b }}"#).is_empty());
+    }
+
+    #[test]
     fn filter_names_are_not_discovered_as_variables() {
         let tokens = discover_tokens("{{ x | e }} {{ x | e | lower }}");
 
