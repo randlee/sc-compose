@@ -313,6 +313,12 @@ fn validate_request(
         working_directory.join(&request.rendered_formula)
     })?;
     validate_utf8_path(&rendered_formula)?;
+    if rendered_formula == template {
+        return Err(BeadComposeError::OutputPathInvalid {
+            path: public_path_buf(&rendered_formula),
+            rule: "rendered_formula must not overwrite the template".into(),
+        });
+    }
     if let Some(executable) = &request.bd_executable {
         validate_utf8_path(executable)?;
     }

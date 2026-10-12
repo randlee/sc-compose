@@ -67,13 +67,14 @@ pub(super) fn collect_identifiers(
         .flat_map(|scope| scope.bound_names.iter().map(String::as_str))
         .collect::<BTreeSet<_>>();
 
-    let masked_expression = mask_calls_and_keyword_arguments(&mask_test_names(&mask_filter_names(
-        &mask_quoted_literals(expression),
-    )));
+    let masked_expression = collapse_numeric_indexes(&mask_calls_and_keyword_arguments(
+        &mask_test_names(&mask_filter_names(&mask_quoted_literals(expression))),
+    ));
     for candidate in masked_expression.split(|character: char| {
         !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
     }) {
         if candidate.is_empty()
+            || candidate.starts_with('.')
             || KEYWORDS.contains(&candidate)
             || !candidate
                 .chars()
@@ -90,6 +91,31 @@ pub(super) fn collect_identifiers(
             tokens.insert(variable);
         }
     }
+}
+
+/// Treat an array index as part of its surrounding dotted path for declaration
+/// discovery: `items[0].name` is covered by `items.name`.
+fn collapse_numeric_indexes(expression: &str) -> String {
+    let chars = expression.chars().collect::<Vec<_>>();
+    let mut result = String::with_capacity(expression.len());
+    let mut index = 0;
+    while index < chars.len() {
+        if chars[index] == '[' {
+            let end = chars[index + 1..]
+                .iter()
+                .position(|character| *character == ']')
+                .map(|offset| index + offset + 1);
+            if let Some(end) = end
+                && chars[index + 1..end].iter().all(char::is_ascii_digit)
+            {
+                index = end + 1;
+                continue;
+            }
+        }
+        result.push(chars[index]);
+        index += 1;
+    }
+    result
 }
 
 fn is_loop_context_name(candidate: &str, expression: &str, scopes: &[LoopScope]) -> bool {

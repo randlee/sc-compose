@@ -275,6 +275,12 @@ mod tests {
     }
 
     #[test]
+    fn numeric_subscripts_keep_the_surrounding_declared_path() {
+        let tokens = discover_tokens("{{ o[0].k }}");
+        assert_eq!(tokens, [crate::VariableName::new("o.k").unwrap()].into());
+    }
+
+    #[test]
     fn filter_names_are_not_discovered_as_variables() {
         let tokens = discover_tokens("{{ x | e }} {{ x | e | lower }}");
 
