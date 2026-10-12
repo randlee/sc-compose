@@ -49,9 +49,9 @@ All notable changes to this project will be documented in this file.
   (`o[0].k`), literal or grouped member access (`({...}).a`, `(x).upper()`),
   or locals following four closing braces. Four-brace tokens remain exact at
   brace count three.
-- A blocked `.graph.json` graph-plan path is refused before `bd` runs and now
-  reports its plan-path diagnostic and recovery instead of misidentifying
-  `rendered_formula`.
+- A blocked `.graph.json` graph-plan path is refused before `bd` runs, as a
+  refused receipt with exit 2, and now reports its plan-path diagnostic and
+  recovery instead of misidentifying `rendered_formula`.
 - `sc-compose bead` now renders declared `bead_variables` in both padded
   `{{ key }}` and tight `{{key}}` formula placeholders before invoking `bd`,
   while still passing them as `--var` for Beads runtime checks (#618).
@@ -101,6 +101,9 @@ No major version bump.
   `ComposePolicy.unbound_variable_policy` are removed.
   `Renderer::refusing_undefined()` is removed; every renderer refuses to print
   an undefined value.
+- `sc-composer-beads`: `BeadComposeRequest` gains
+  `bead_variable_rendering` (`BeadVariableRendering`, default
+  `sc-compose`); Rust struct-literal construction must set it.
 - Python `sc_compose.ComposePolicy`: the `strict_undeclared_variables` and
   `unbound_variable_policy` arguments and attributes are removed; passing them
   raises `TypeError`.
