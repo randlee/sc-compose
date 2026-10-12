@@ -147,12 +147,7 @@ fn find_exact_delimiter(text: &str, delimiter: &str) -> Option<usize> {
             // the leftmost opening delimiter when that third brace clearly
             // starts a quoted dictionary key; otherwise a longer brace run
             // belongs to a higher-brace pass.
-            if delimiter == "{{"
-                && matches!(
-                    text[after + 1..].trim_start().chars().next(),
-                    Some('\'' | '\"')
-                )
-            {
+            if delimiter == "{{" && starts_quoted_dictionary_key(&text[after + 1..]) {
                 return Some(absolute);
             }
             cursor = after;
@@ -161,6 +156,30 @@ fn find_exact_delimiter(text: &str, delimiter: &str) -> Option<usize> {
         return Some(absolute);
     }
     None
+}
+
+fn starts_quoted_dictionary_key(text: &str) -> bool {
+    let text = text.trim_start();
+    let Some(quote) = text
+        .chars()
+        .next()
+        .filter(|character| matches!(character, '\'' | '\"'))
+    else {
+        return false;
+    };
+    let mut escaped = false;
+    for (index, character) in text[quote.len_utf8()..].char_indices() {
+        if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == quote {
+            return text[quote.len_utf8() + index + character.len_utf8()..]
+                .trim_start()
+                .starts_with(':');
+        }
+    }
+    false
 }
 
 /// Return the offset just past the `{% endraw %}` tag (with optional

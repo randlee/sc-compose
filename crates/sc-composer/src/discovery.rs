@@ -16,6 +16,16 @@ use scope::{
     parse_with_scope,
 };
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ScopeKind {
+    Root,
+    For,
+    With,
+    Macro,
+    Call,
+    Block,
+}
+
 /// Discover declared template variable tokens without running full validation.
 ///
 /// Returns the set of variable names referenced by `text` using the standard
@@ -49,6 +59,7 @@ pub fn discover_tokens_with_delimiters(
 
     let mut tokens = BTreeSet::new();
     let mut scopes = vec![LoopScope::default()];
+    let mut scope_kinds = vec![ScopeKind::Root];
     let expression_delimiters =
         ExpressionDelimiters::with_delimiters(open_delimiter, close_delimiter);
     walk_template(text, &expression_delimiters, |delimiter, expression| {
@@ -57,39 +68,42 @@ pub fn discover_tokens_with_delimiters(
             Delimiter::Statement => {
                 if let Some(loop_scope) = parse_for_loop_scope(expression, &scopes, &mut tokens) {
                     scopes.push(loop_scope.scope);
+                    scope_kinds.push(ScopeKind::For);
                 } else if expression.starts_with("endfor") {
-                    if scopes.len() > 1 {
-                        scopes.pop();
-                    }
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::For);
                 } else if let Some(names) = parse_set_scope(expression, &scopes, &mut tokens) {
                     if let Some(scope) = scopes.last_mut() {
                         scope.bound_names.extend(names);
                     }
                 } else if let Some(scope) = parse_with_scope(expression, &scopes, &mut tokens) {
                     scopes.push(scope);
+                    scope_kinds.push(ScopeKind::With);
                 } else if expression.starts_with("endwith") {
-                    if scopes.len() > 1 {
-                        scopes.pop();
-                    }
-                } else if let Some((name, scope)) = parse_macro_scope(expression) {
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::With);
+                } else if let Some((name, scope)) =
+                    parse_macro_scope(expression, &scopes, &mut tokens)
+                {
                     if let Some(current_scope) = scopes.last_mut() {
                         current_scope.bound_names.insert(name);
                     }
                     scopes.push(scope);
+                    scope_kinds.push(ScopeKind::Macro);
                 } else if expression.starts_with("endmacro") {
-                    if scopes.len() > 1 {
-                        scopes.pop();
-                    }
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::Macro);
                 } else if matches!(statement_name(expression), Some("call")) {
                     let arguments = statement_arguments(expression);
                     collect_identifiers(&mask_leading_identifier(arguments), &scopes, &mut tokens);
                     scopes.push(LoopScope {
                         bound_names: ["caller".to_owned()].into(),
                     });
+                    scope_kinds.push(ScopeKind::Call);
                 } else if expression.starts_with("endcall") {
-                    if scopes.len() > 1 {
-                        scopes.pop();
-                    }
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::Call);
+                } else if matches!(statement_name(expression), Some("block")) {
+                    scopes.push(LoopScope::default());
+                    scope_kinds.push(ScopeKind::Block);
+                } else if expression.starts_with("endblock") {
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::Block);
                 } else {
                     let arguments = statement_arguments(expression);
                     if matches!(statement_name(expression), Some("filter" | "call")) {
@@ -107,6 +121,13 @@ pub fn discover_tokens_with_delimiters(
         false
     });
     tokens
+}
+
+fn pop_scope(scopes: &mut Vec<LoopScope>, scope_kinds: &mut Vec<ScopeKind>, expected: ScopeKind) {
+    if scope_kinds.last() == Some(&expected) {
+        scopes.pop();
+        scope_kinds.pop();
+    }
 }
 
 /// Drop the leading tag name of a statement (`if`, `autoescape`,
@@ -519,6 +540,31 @@ mod tests {
     }
 
     #[test]
+    fn macro_default_parameters_bind_names_and_keep_defaults_referenced() {
+        let tokens =
+            discover_tokens("{% macro m(a, b=fallback) %}{{ a }}{{ b }}{% endmacro %}{{ m(1) }}");
+
+        assert_eq!(
+            tokens,
+            [crate::VariableName::new("fallback").unwrap()].into()
+        );
+    }
+
+    #[test]
+    fn unmatched_closing_tag_does_not_pop_another_scope_kind() {
+        let tokens = discover_tokens("{% for x in xs %}{% endwith %}{{ x }}{% endfor %}");
+
+        assert_eq!(tokens, [crate::VariableName::new("xs").unwrap()].into());
+    }
+
+    #[test]
+    fn block_locals_do_not_leak_past_endblock() {
+        let tokens = discover_tokens("{% block b %}{% set y = 1 %}{{ y }}{% endblock %}{{ y }}");
+
+        assert_eq!(tokens, [crate::VariableName::new("y").unwrap()].into());
+    }
+
+    #[test]
     fn quoted_closing_delimiters_do_not_hide_later_identifiers() {
         for (template, brace_count) in [
             (r#"{{ "}}" ~ u }}"#, 2),
@@ -539,6 +585,7 @@ mod tests {
             discover_tokens_with_brace_count(r#"{{{"a": u}["a"] }}"#, 2),
             [crate::VariableName::new("u").unwrap()].into()
         );
+        assert!(discover_tokens_with_brace_count(r#"{{{ "x" ~ y }}}"#, 2).is_empty());
         assert!(discover_tokens_with_brace_count("{{{{ outer }}}}", 3).is_empty());
     }
 
