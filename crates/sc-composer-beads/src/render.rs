@@ -78,10 +78,13 @@ pub(crate) fn render_formula_in_root_with_bead_variables(
 }
 
 /// Render with an explicit owner for ordinary Beads variable expressions.
-#[allow(
-    clippy::too_many_lines,
-    reason = "the two deliberately ordered rendering passes share validation and atomic-write setup"
-)]
+///
+/// The formula renders in one pass with the `{{{ }}}` composition delimiters.
+/// When sc-compose owns ordinary Beads expressions, each source `{{ expr }}`
+/// is first folded into `{{{ expr }}}`, so both forms share one context, one
+/// strict validation scan and one render, and no rendered value is parsed
+/// again. When bd owns them, `{{ expr }}` is plain text to the renderer and
+/// reaches bd byte-for-byte.
 pub(crate) fn render_formula_in_root_with_bead_variables_and_mode(
     template: &Path,
     rendered_formula: &Path,
@@ -90,27 +93,33 @@ pub(crate) fn render_formula_in_root_with_bead_variables_and_mode(
     bead_variable_rendering: BeadVariableRendering,
     working_directory: &Path,
 ) -> Result<(), BeadComposeError> {
+    if let Some(key) = bead_variables
+        .keys()
+        .find(|name| compose_variables.contains_key(name.as_str()))
+    {
+        // One render context: a name supplied twice has no single value.
+        return Err(BeadComposeError::BeadVariableKeyDuplicate { key: key.clone() });
+    }
     let root =
         sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
-    let mut variables = BTreeMap::new();
-    for (name, value) in bead_variables {
-        variables.insert(name.clone(), serde_json::Value::String(value.clone()));
-    }
-    for (name, value) in compose_variables {
-        variables.insert(name.clone(), value.clone());
-    }
     let request = sc_composer::ComposeRequest {
         runtime: None,
         mode: sc_composer::ComposeMode::File {
             template_path: template.to_path_buf(),
         },
         root,
-        vars_input: variables
+        vars_input: bead_variables
             .iter()
+            .map(|(name, value)| (name.as_str(), serde_json::Value::String(value.clone())))
+            .chain(
+                compose_variables
+                    .iter()
+                    .map(|(name, value)| (name.as_str(), value.clone())),
+            )
             .filter_map(|(name, value)| {
-                sc_composer::VariableName::new(name.as_str())
+                sc_composer::VariableName::new(name)
                     .ok()
-                    .map(|name| (name, value.clone()))
+                    .map(|name| (name, value))
             })
             .collect(),
         vars_env: BTreeMap::new(),
@@ -119,94 +128,46 @@ pub(crate) fn render_formula_in_root_with_bead_variables_and_mode(
         user_prompt: None,
         policy: sc_composer::ComposePolicy::default(),
     };
-    // Reuse the library validation path so frontmatter `required_variables`
-    // and `defaults` have the same meaning here as in `sc-composer` render.
-    let (report, expanded) = sc_composer::validate_with_observer_and_delimiters_with_expansion(
-        &request,
-        &mut sc_composer::NoopObserver,
-        Some((OPEN_DELIMITER, CLOSE_DELIMITER)),
-    )
-    .map_err(|error| BeadComposeError::RenderFailed {
+    let compose_error = |error: sc_composer::ComposeError| BeadComposeError::RenderFailed {
         message: error.to_string(),
-    })?;
+    };
+    let resolve_result = sc_composer::resolve_template_path(&request).map_err(compose_error)?;
+    let mut expanded = sc_composer::expand_includes(
+        &resolve_result.resolved_path,
+        &request.root,
+        &request.policy,
+    )
+    .map_err(compose_error)?;
+    if bead_variable_rendering == BeadVariableRendering::ScCompose {
+        expanded.text = crate::expressions::fold_bead_expressions(&expanded.text);
+    }
+    // Reuse the library validation so frontmatter `required_variables` and
+    // `defaults` (from every included file) mean the same here as in
+    // `sc-composer` render, and validate the exact text that renders.
+    let (report, context) = sc_composer::validate_expanded_with_context(
+        &request,
+        &expanded,
+        resolve_result,
+        (OPEN_DELIMITER, CLOSE_DELIMITER),
+    );
     if !report.ok {
         return Err(validation_error(&report));
     }
-    if bead_variable_rendering == BeadVariableRendering::ScCompose {
-        let double_brace_report = sc_composer::validate_with_observer_and_delimiters(
-            &request,
-            &mut sc_composer::NoopObserver,
-            Some(("{{", "}}")),
-        )
-        .map_err(|error| BeadComposeError::RenderFailed {
-            message: error.to_string(),
-        })?;
-        if !double_brace_report.ok {
-            return Err(validation_error(&double_brace_report));
-        }
-    }
-    let mut context = BTreeMap::new();
-    if let Some(frontmatter) = expanded.frontmatters.iter().find_map(|(path, passes)| {
-        (path == &report.resolve_result.resolved_path)
-            .then(|| passes.first())
-            .flatten()
-    }) {
-        for (name, value) in frontmatter.defaults() {
-            context.insert(name.to_string(), value.clone());
-        }
-    }
-    for (name, value) in &variables {
-        context.insert(name.clone(), value.clone());
-    }
-    let literal_brace_token = literal_brace_token(&expanded.text, &context);
-    let protected_context = context
-        .iter()
-        .map(|(name, value)| {
-            (
-                name.clone(),
-                protect_literal_braces(value, literal_brace_token),
-            )
-        })
-        .collect::<BTreeMap<_, _>>();
-    // Render triple-brace composition first so its loops and conditionals keep
-    // their local bindings. The subsequent exact-match two-brace pass sees
-    // only ordinary Beads placeholders; triple-brace syntax never matches it.
+    // The renderer refuses to print an undefined value, so a variable with no
+    // caller value and no frontmatter default never reaches bd as `""` or
+    // `"null"` (TMPL5-02).
     let rendered = sc_composer::Renderer::with_delimiters_and_escape_mode(
         OPEN_DELIMITER,
         CLOSE_DELIMITER,
         escape_mode(template),
     )
     .and_then(|renderer| {
-        renderer.render_named(
-            &template.to_string_lossy(),
-            &expanded.text,
-            protected_context.clone(),
-        )
-    })
-    .and_then(|rendered| {
-        if bead_variable_rendering == BeadVariableRendering::Bd {
-            Ok(rendered)
-        } else {
-            sc_composer::Renderer::with_delimiters_and_escape_mode(
-                "{{",
-                "}}",
-                escape_mode(template),
-            )
-            // The renderer refuses to print an undefined composition variable, so
-            // one with no caller value and no frontmatter default never reaches bd
-            // as `""` or `"null"` (TMPL5-02).
-            .and_then(|renderer| {
-                renderer.render_named(&template.to_string_lossy(), &rendered, protected_context)
-            })
-        }
+        renderer.render_named(&template.to_string_lossy(), &expanded.text, context)
     })
     .map_err(|error| BeadComposeError::RenderFailed {
         message: error.message().to_owned(),
     })?;
-    atomic_write(
-        rendered_formula,
-        restore_literal_braces(&rendered, literal_brace_token).as_bytes(),
-    )
+    atomic_write(rendered_formula, rendered.as_bytes())
 }
 
 fn validation_error(report: &sc_composer::ValidationReport) -> BeadComposeError {
@@ -218,63 +179,6 @@ fn validation_error(report: &sc_composer::ValidationReport) -> BeadComposeError 
             .collect::<Vec<_>>()
             .join("; "),
     }
-}
-
-/// Build a per-render private-use marker that cannot collide with source text
-/// or values. A single codepoint stays caseless and indivisible to filters.
-fn literal_brace_token(text: &str, context: &BTreeMap<String, serde_json::Value>) -> char {
-    const FIRST: u32 = 0xE000;
-    const LAST: u32 = 0xF8FF;
-    let range = LAST - FIRST + 1;
-    let sequence = TEMPORARY_OUTPUT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-    let start = u32::try_from(sequence % u64::from(range))
-        .expect("private-use range remainder fits in u32");
-    for offset in 0..range {
-        let token = char::from_u32(FIRST + (start + offset) % range)
-            .expect("private-use range is valid Unicode");
-        if !text.contains(token) && !context.values().any(|value| value_contains(value, token)) {
-            return token;
-        }
-    }
-    unreachable!("the private-use range has an available marker")
-}
-
-fn value_contains(value: &serde_json::Value, needle: char) -> bool {
-    match value {
-        serde_json::Value::String(value) => value.contains(needle),
-        serde_json::Value::Array(values) => {
-            values.iter().any(|value| value_contains(value, needle))
-        }
-        serde_json::Value::Object(values) => {
-            values.values().any(|value| value_contains(value, needle))
-        }
-        _ => false,
-    }
-}
-
-fn protect_literal_braces(value: &serde_json::Value, token: char) -> serde_json::Value {
-    match value {
-        serde_json::Value::String(value) => {
-            serde_json::Value::String(value.replace('{', &token.to_string()))
-        }
-        serde_json::Value::Array(values) => serde_json::Value::Array(
-            values
-                .iter()
-                .map(|value| protect_literal_braces(value, token))
-                .collect(),
-        ),
-        serde_json::Value::Object(values) => serde_json::Value::Object(
-            values
-                .iter()
-                .map(|(name, value)| (name.clone(), protect_literal_braces(value, token)))
-                .collect(),
-        ),
-        value => value.clone(),
-    }
-}
-
-fn restore_literal_braces(rendered: &str, token: char) -> String {
-    rendered.replace(token, "{")
 }
 
 /// Reject a final output component that would redirect a renderer write.

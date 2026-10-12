@@ -16,6 +16,27 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Bead rendering is one pass (FUZZ-171). The former second `{{ }}` pass
+  re-parsed the first pass's output. Each source `{{ expr }}` is now folded
+  into `{{{ expr }}}` and the formula renders once against one context, with
+  one strict validation of both forms:
+  - `{% raw %}` blocks stay literal, and braces produced by an expression or
+    held in a value or object key are never evaluated or reinterpreted as
+    `{{`, `{%` or `{#`;
+  - `set` and `for` locals shadow caller values of the same name;
+  - the private-use brace markers are gone, so private-use characters render
+    as themselves, a template with all 6400 no longer panics, and filters such
+    as `sort`, `max` and `title` and list printing see `{`;
+  - frontmatter defaults of included fragments apply;
+  - one trailing newline is dropped, as in v1.7.0, so output and graph
+    revisions match v1.7.0 and an attach re-run no longer reports
+    `BEADS_GRAPH_CONFLICT`;
+  - a name supplied in both `compose_variables` and `bead_variables` is
+    refused with `BEADS_VARIABLE_KEY_DUPLICATE` instead of the compose value
+    silently winning.
+- `sc-composer`: new `validate_expanded_with_context` validates an
+  already-expanded template with its render delimiters and returns the merged
+  render context.
 - `sc-compose bead` now renders declared `bead_variables` in both padded
   `{{ key }}` and tight `{{key}}` formula placeholders before invoking `bd`,
   while still passing them as `--var` for Beads runtime checks (#618).
