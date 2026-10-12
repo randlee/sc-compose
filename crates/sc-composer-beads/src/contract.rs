@@ -30,6 +30,17 @@ pub enum BeadOperation {
     Attach,
 }
 
+/// Selects whether sc-compose or Beads renders ordinary double-brace variables.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BeadVariableRendering {
+    /// Render declared `{{ variable }}` expressions before invoking Beads.
+    #[default]
+    ScCompose,
+    /// Preserve ordinary `{{ variable }}` expressions for Beads to render.
+    Bd,
+}
+
 impl BeadOperation {
     /// Return the operation's stable serde wire name.
     #[must_use]
@@ -108,6 +119,9 @@ pub struct BeadComposeRequest {
     /// Sorted scalar variables supplied to Beads as `--var key=value`.
     #[serde(deserialize_with = "deserialize_unique_bead_variables")]
     pub bead_variables: BTreeMap<String, String>,
+    /// Selects the renderer for ordinary double-brace Beads variables.
+    #[serde(default)]
+    pub bead_variable_rendering: BeadVariableRendering,
     /// Optional direct path to the `bd` executable; defaults to `bd`.
     pub bd_executable: Option<PathBuf>,
     /// Required sentinel for [`BeadOperation::Pour`].
@@ -472,7 +486,10 @@ graph_string!(
     BeadId,
     GraphIdField::Bead,
     "A non-empty bead id containing no whitespace.",
-    |s: &str| !s.is_empty() && !s.chars().any(char::is_whitespace)
+    |s: &str| !s.is_empty()
+        && !s
+            .chars()
+            .any(|character| character.is_whitespace() || character.is_control())
 );
 graph_string!(
     GraphRef,

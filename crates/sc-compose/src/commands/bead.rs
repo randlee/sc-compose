@@ -6,8 +6,8 @@ use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadErrorClass,
     BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome,
-    RefusedBeadComposeReceipt, RequestParseOutcome, execute_bead_request_with_diagnostics,
-    parse_request_for_operation,
+    BeadVariableRendering, RefusedBeadComposeReceipt, RequestParseOutcome,
+    execute_bead_request_with_diagnostics, parse_request_for_operation,
 };
 
 use crate::CommandError;
@@ -17,15 +17,43 @@ use crate::print_json;
 
 /// Run one Beads request selected by the CLI subcommand.
 pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
-    let (request_path, operation, json) = match &args.command {
-        BeadSubcommand::Render(args) => (&args.request, BeadOperation::Render, args.json),
-        BeadSubcommand::Validate(args) => (&args.request, BeadOperation::Validate, args.json),
-        BeadSubcommand::PreviewPour(args) => (&args.request, BeadOperation::PreviewPour, args.json),
-        BeadSubcommand::PreviewAttach(args) => {
-            (&args.request, BeadOperation::PreviewAttach, args.json)
-        }
-        BeadSubcommand::Pour(args) => (&args.request, BeadOperation::Pour, args.json),
-        BeadSubcommand::Attach(args) => (&args.request, BeadOperation::Attach, args.json),
+    let (request_path, operation, json, true_bd_render) = match &args.command {
+        BeadSubcommand::Render(args) => (
+            &args.request,
+            BeadOperation::Render,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::Validate(args) => (
+            &args.request,
+            BeadOperation::Validate,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::PreviewPour(args) => (
+            &args.request,
+            BeadOperation::PreviewPour,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::PreviewAttach(args) => (
+            &args.request,
+            BeadOperation::PreviewAttach,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::Pour(args) => (
+            &args.request,
+            BeadOperation::Pour,
+            args.json,
+            args.true_bd_render,
+        ),
+        BeadSubcommand::Attach(args) => (
+            &args.request,
+            BeadOperation::Attach,
+            args.json,
+            args.true_bd_render,
+        ),
     };
     let input = match fs::read_to_string(request_path) {
         Ok(input) => input,
@@ -52,18 +80,21 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         Err(error) => return print_bead_error(&error, operation, json),
     };
     request.operation = operation;
+    if true_bd_render {
+        request.bead_variable_rendering = BeadVariableRendering::Bd;
+    }
 
     let mut diagnostics = Vec::new();
-    let mut identifier_diagnostic = None;
+    let mut refusal_diagnostic = None;
     let result = execute_bead_request_with_diagnostics(&request, &mut |error| {
-        identifier_diagnostic = BeadDiagnostic::graph_id_invalid(error);
+        refusal_diagnostic = BeadDiagnostic::refused(error);
         if !json {
             diagnostics.push(serde_json::to_value(error));
         }
     });
     match result {
         Ok(receipt) => {
-            if let Some(error) = identifier_diagnostic {
+            if let Some(error) = refusal_diagnostic {
                 return print_refused_receipt(RefusedBeadComposeReceipt { receipt, error }, json);
             }
             let diagnostics = diagnostics
@@ -317,7 +348,7 @@ mod tests {
     }
     #[test]
     fn missing_edge_recovery_commands_escape_controls_and_bidi_for_posix_sh() {
-        let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}$(literal)$HOME`literal`";
+        let from = "source'\\\u{202e}$(literal)$HOME`literal`";
         let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
         let receipt: BeadComposeReceipt = serde_json::from_value(json!({
             "schema": "sc-compose/beads/v1",
@@ -344,6 +375,9 @@ mod tests {
         let separators = "line\u{2028}paragraph\u{2029}end";
         let escaped = super::shell_quote(separators);
         assert!(!escaped.contains(['\u{2028}', '\u{2029}']));
+        let escaped_controls = super::shell_quote("\u{7}\u{7f}\u{80}");
+        assert!(!escaped_controls.chars().any(char::is_control));
+        assert!(escaped_controls.contains("\\007\\177\\302\\200"));
         assert!(!arguments.contains("$'"), "{arguments}");
         #[cfg(unix)]
         {

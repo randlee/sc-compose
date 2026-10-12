@@ -322,6 +322,10 @@ fn map_get_unknown_method_callback(
 fn configure_environment(env: &mut Environment<'static>, escape_mode: TemplateEscapeMode) {
     env.set_trim_blocks(true);
     env.set_lstrip_blocks(true);
+    // Printing an undefined value is an error, never an empty string.
+    // Tests such as `{% if name %}`, `name is defined` and `default(...)`
+    // still see an undefined value as false.
+    env.set_undefined_behavior(minijinja::UndefinedBehavior::SemiStrict);
     // Keep sc-compose's historical extension policy when Minijinja's `json`
     // feature is enabled. JSON/YAML/JS templates are text outputs, not HTML.
     env.set_auto_escape_callback(move |name| auto_escape_callback(name, escape_mode));
@@ -435,17 +439,6 @@ impl Renderer {
             env.set_syntax(syntax);
             Ok(())
         })
-    }
-
-    /// Refuse to print an undefined value instead of rendering it empty.
-    ///
-    /// Tests such as `{% if name %}` and `name is defined` still see an
-    /// undefined value as false. The default renderer stays lenient.
-    #[must_use]
-    pub fn refusing_undefined(mut self) -> Self {
-        self.env
-            .set_undefined_behavior(minijinja::UndefinedBehavior::SemiStrict);
-        self
     }
 
     /// Render a template string with the provided serializable context.
@@ -577,17 +570,27 @@ mod tests {
     };
 
     #[test]
-    fn refusing_undefined_names_the_printed_expression_and_default_stays_lenient() {
+    fn default_renderer_refuses_to_print_an_undefined_value() {
+        let error = Renderer::new()
+            .render("hello {{ missing }}", json!({}))
+            .unwrap_err();
+        assert!(error.message().contains("missing"), "{error:?}");
+
+        let rendered = Renderer::new()
+            .render(
+                "{% if missing %}x{% endif %}{{ missing | default('d') }}",
+                json!({}),
+            )
+            .unwrap();
+        assert_eq!(rendered, "d");
+    }
+
+    #[test]
+    fn undefined_print_error_names_the_printed_expression() {
         let template =
             "{% if missing %}x{% endif %}{% for i in range(1, 3) %}{{ i }}{% endfor %}{{ title }}";
-        assert_eq!(
-            Renderer::new().render(template, json!({})).unwrap(),
-            "12",
-            "the default renderer keeps rendering undefined values as empty"
-        );
 
         let error = Renderer::new()
-            .refusing_undefined()
             .render(template, json!({}))
             .expect_err("printing an undefined value is refused");
         assert_eq!(
@@ -598,7 +601,6 @@ mod tests {
 
         assert_eq!(
             Renderer::new()
-                .refusing_undefined()
                 .render(template, json!({ "title": "t" }))
                 .unwrap(),
             "12t",
@@ -923,13 +925,28 @@ mod tests {
     }
 
     fn sprint_plan_context(title: &str) -> serde_json::Value {
-        json!({
+        let mut context = json!({
             "id": "1.2",
             "title": title,
             "status": "planned",
             "branch": "main",
             "target": "develop",
-        })
+        });
+        // The body is rendered without the composer, so apply the template's
+        // declared defaults the way compose() would.
+        let parsed = crate::parse_template_document(include_str!(
+            "../../../.claude/skills/codex-orchestration/sprint-plan.md.j2"
+        ))
+        .expect("sprint-plan template parses");
+        let frontmatter = parsed.frontmatter().expect("sprint-plan has frontmatter");
+        for (name, value) in frontmatter.defaults() {
+            context
+                .as_object_mut()
+                .expect("context is an object")
+                .entry(name.to_string())
+                .or_insert_with(|| value.clone());
+        }
+        context
     }
 
     fn standalone_frontmatter_delimiter_count(rendered: &str) -> usize {
@@ -1255,13 +1272,23 @@ mod tests {
     }
 
     #[test]
-    fn renderer_returns_empty_for_missing_dict_get_without_default() {
+    fn renderer_refuses_to_print_a_missing_dict_get_without_default() {
         let renderer = Renderer::new();
-        let output = renderer
-            .render(r#"{{ row.get("missing") }}"#, json!({"row": {"k": "v"}}))
-            .unwrap();
+        let context = json!({"row": {"k": "v"}});
 
-        assert_eq!(output, "");
+        let error = renderer
+            .render(r#"{{ row.get("missing") }}"#, &context)
+            .unwrap_err();
+        assert_eq!(
+            error.code(),
+            Some(crate::DiagnosticCode::ErrValUnboundVariable)
+        );
+        assert_eq!(
+            renderer
+                .render(r#"{% if row.get("missing") %}x{% endif %}"#, &context)
+                .unwrap(),
+            ""
+        );
     }
 
     #[test]

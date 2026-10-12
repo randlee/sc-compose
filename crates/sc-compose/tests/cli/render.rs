@@ -15,7 +15,7 @@ fn render_append_writes_compact_json_line() {
     let root = temp_root("append-json-record");
     write_file(
         &root.join("record.json.j2"),
-        "{\"name\": {{ name }}, \"count\": {{ count }}}",
+        "---\nrequired_variables:\n  - name\n  - count\n---\n{\"name\": {{ name }}, \"count\": {{ count }}}",
     );
     let destination = root.join("records.jsonl");
     let output = sc_compose()
@@ -88,7 +88,10 @@ fn render_append_preserves_typed_var_file_values_and_escaped_strings() {
     let root = temp_root("append-typed-var-file");
     write_file(
         &root.join("record.json.j2"),
-        r#"{"escaped": {{ escaped | tojson }}, "count": {{ count }}, "enabled": {{ enabled }}, "nothing": {{ nothing | tojson }}, "array": {{ array | tojson }}, "object": {{ object | tojson }}}"#,
+        concat!(
+            "---\nrequired_variables:\n  - escaped\n  - count\n  - enabled\n  - nothing\n  - array\n  - object\n---\n",
+            r#"{"escaped": {{ escaped | tojson }}, "count": {{ count }}, "enabled": {{ enabled }}, "nothing": {{ nothing | tojson }}, "array": {{ array | tojson }}, "object": {{ object | tojson }}}"#
+        ),
     );
     let vars_file = root.join("vars.json");
     write_file(
@@ -204,7 +207,7 @@ fn render_append_keeps_prior_records_and_json_types() {
     let root = temp_root("append-repeat");
     write_file(
         &root.join("record.json.j2"),
-        "{\"text\": {{ text }}, \"flag\": true, \"count\": 2}",
+        "---\nrequired_variables:\n  - text\n---\n{\"text\": {{ text }}, \"flag\": true, \"count\": 2}",
     );
     let destination = root.join("records.jsonl");
     for value in ["\"first\\nline\"", "\"second\""] {
@@ -525,7 +528,10 @@ fn render_append_reports_write_error_for_read_only_destination() {
 #[test]
 fn render_append_serializes_sixteen_concurrent_processes() {
     let root = temp_root("append-concurrent");
-    write_file(&root.join("record.json.j2"), "{\"id\": {{ id }}}");
+    write_file(
+        &root.join("record.json.j2"),
+        "---\nrequired_variables:\n  - id\n---\n{\"id\": {{ id }}}\n",
+    );
     let destination = root.join("records.jsonl");
     let mut children = Vec::new();
     for id in 0..16 {
@@ -696,7 +702,7 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
     "destination_components": ["pkgshare", "quoted\"component", "examples"],
     "source_glob": "share/quoted\"component/examples/*"
   }],
-  "binary": "sc-compose",
+  "test_binary": "sc-compose",
   "test_command": "--help",
   "test_output": "A \"quoted\" result"
 }"#,
@@ -875,7 +881,7 @@ fn render_custom_delimiter_xml_template_escapes_interpolated_special_characters(
     let root = temp_root("xml-autoescape-custom-delimiters");
     write_file(
         &root.join("custom.xml.j2"),
-        "<root>\n  <note><< note >></note>\n</root>\n",
+        "---\nrequired_variables:\n  - note\n---\n<root>\n  <note><< note >></note>\n</root>\n",
     );
 
     let output = sc_compose()
@@ -906,7 +912,10 @@ fn render_custom_delimiter_xml_template_escapes_interpolated_special_characters(
 #[test]
 fn render_html_template_escapes_interpolated_special_characters() {
     let root = temp_root("html-autoescape");
-    write_file(&root.join("report.html.j2"), "<p>{{ note }}</p>\n");
+    write_file(
+        &root.join("report.html.j2"),
+        "---\nrequired_variables:\n  - note\n---\n<p>{{ note }}</p>\n",
+    );
 
     let output = sc_compose()
         .args([
@@ -933,7 +942,10 @@ fn render_html_template_escapes_interpolated_special_characters() {
 #[test]
 fn render_non_markup_template_keeps_interpolated_special_characters_raw() {
     let root = temp_root("non-markup-no-autoescape");
-    write_file(&root.join("notes.md.j2"), "{{ note }}\n");
+    write_file(
+        &root.join("notes.md.j2"),
+        "---\nrequired_variables:\n  - note\n---\n{{ note }}\n",
+    );
 
     let output = sc_compose()
         .args([
@@ -1016,7 +1028,10 @@ fn render_sprint_plan_yaml_safe_cli_regression() {
 #[test]
 fn render_uses_json_var_file_inputs() {
     let root = temp_root("var-file-json");
-    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
     let vars_file = root.join("vars.json");
     write_file(&vars_file, "{ \"name\": \"json-world\" }\n");
 
@@ -1122,7 +1137,10 @@ fn validate_and_render_adjacent_jinja_document_frontmatter() {
 #[test]
 fn render_uses_yaml_var_file_inputs() {
     let root = temp_root("var-file-yaml");
-    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
     let vars_file = root.join("vars.yaml");
     write_file(&vars_file, "name: yaml-world\n");
 
@@ -1185,7 +1203,10 @@ fn render_rejects_yaml_merge_key_var_file_with_actionable_location() {
 #[test]
 fn render_preserves_json_merge_shaped_keys() {
     let root = temp_root("json-merge-shaped-key");
-    write_file(&root.join("template.md.j2"), "{{ config[\"<<\"] }}\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - config\n---\n{{ config[\"<<\"] }}\n",
+    );
     let vars_file = root.join("vars.json");
     write_file(&vars_file, r#"{"config":{"<<":"literal"}}"#);
 
@@ -1475,7 +1496,7 @@ fn render_all_renders_multi_pass_template_with_inline_pass_vars() {
     let root = temp_root("render-all-inline");
     write_file(
         &root.join("template.2.j2"),
-        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+        "---\npass: 2\nrequired_variables:\n  - team\n---\n---\npass: 1\nrequired_variables:\n  - task\n---\ndeploy {{ task }} for {{{ team }}}\n",
     );
 
     let output = sc_compose()
@@ -1510,7 +1531,7 @@ fn render_all_renders_multi_pass_template_with_per_pass_var_files() {
     let root = temp_root("render-all-var-files");
     write_file(
         &root.join("template.2.j2"),
-        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+        "---\npass: 2\nrequired_variables:\n  - team\n---\n---\npass: 1\nrequired_variables:\n  - task\n---\ndeploy {{ task }} for {{{ team }}}\n",
     );
     write_file(&root.join("vars-pass2.json"), "{ \"team\": \"wyvern\" }\n");
     write_file(&root.join("vars-pass1.yaml"), "task: test\n");
@@ -1547,7 +1568,7 @@ fn validate_all_accepts_multi_pass_template() {
     let root = temp_root("validate-all");
     write_file(
         &root.join("template.2.j2"),
-        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+        "---\npass: 2\ndefaults:\n  team: wyvern\n---\n---\npass: 1\ndefaults:\n  task: test\n---\ndeploy {{ task }} for {{{ team }}}\n",
     );
 
     let output = sc_compose()
@@ -1563,7 +1584,7 @@ fn validate_all_accepts_multi_pass_template() {
         .unwrap();
 
     assert!(output.status.success(), "{output:?}");
-    assert!(String::from_utf8_lossy(&output.stdout).contains("undeclared referenced token"));
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("undeclared referenced token"));
 }
 
 #[test]
@@ -1623,7 +1644,10 @@ fn validate_strict_rejects_loop_context_outside_for_and_lookalikes() {
 #[test]
 fn render_brace_count_uses_custom_triple_brace_delimiters() {
     let root = temp_root("brace-count");
-    write_file(&root.join("template.md.j2"), "hello {{{ name }}}\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{{ name }}}\n",
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -1650,7 +1674,10 @@ fn render_brace_count_uses_custom_triple_brace_delimiters() {
 #[test]
 fn render_variable_delimiters_uses_explicit_delimiter_pair() {
     let root = temp_root("variable-delimiters");
-    write_file(&root.join("template.md.j2"), "hello << name >>\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello << name >>\n",
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -1680,7 +1707,7 @@ fn render_json_custom_delimiters_respect_mode_precedence() {
     let cli_override_root = temp_root("json-custom-delimiters-cli-override");
     write_file(
         &cli_override_root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"value\": {{{ value }}}}\n",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - value\n---\n{\"value\": {{{ value }}}}\n",
     );
     let cli_override = sc_compose()
         .args([
@@ -1709,7 +1736,7 @@ fn render_json_custom_delimiters_respect_mode_precedence() {
     let frontmatter_root = temp_root("json-custom-delimiters-frontmatter");
     write_file(
         &frontmatter_root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{{ value }}}\"}\n",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - value\n---\n{\"value\": \"{{{ value }}}\"}\n",
     );
     let frontmatter = sc_compose()
         .args([
@@ -1736,7 +1763,7 @@ fn render_json_custom_delimiters_respect_mode_precedence() {
     let default_root = temp_root("json-custom-delimiters-default");
     write_file(
         &default_root.join("payload.json.j2"),
-        "{\"value\": {{{ value }}}}\n",
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{{ value }}}}\n",
     );
     let default = sc_compose()
         .args([
@@ -1793,7 +1820,10 @@ fn render_variable_delimiters_reports_invalid_delimiters_without_panicking() {
 #[test]
 fn render_all_warns_and_falls_back_for_single_pass_template() {
     let root = temp_root("render-all-single-pass");
-    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -1827,7 +1857,7 @@ fn render_all_accepts_equals_syntax_for_pass_groups() {
     let root = temp_root("render-all-pass-equals");
     write_file(
         &root.join("template.2.j2"),
-        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+        "---\npass: 2\nrequired_variables:\n  - team\n---\n---\npass: 1\nrequired_variables:\n  - task\n---\ndeploy {{ task }} for {{{ team }}}\n",
     );
 
     let output = sc_compose()
@@ -1858,7 +1888,7 @@ fn render_all_rejects_wrong_pass_order() {
     let root = temp_root("render-all-wrong-order");
     write_file(
         &root.join("template.2.j2"),
-        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+        "---\npass: 2\nrequired_variables:\n  - team\n---\n---\npass: 1\nrequired_variables:\n  - task\n---\ndeploy {{ task }} for {{{ team }}}\n",
     );
 
     let output = sc_compose()
@@ -2105,13 +2135,14 @@ fn render_unknown_var_mode_errors_on_referenced_unbound_variable() {
 }
 
 #[test]
-fn unknown_var_mode_help_describes_both_policy_axes() {
+fn render_help_offers_no_lenient_mode() {
     let output = sc_compose().args(["render", "--help"]).output().unwrap();
 
     assert!(output.status.success());
     let help = String::from_utf8_lossy(&output.stdout);
     assert!(help.contains("extra caller-provided"), "{help}");
-    assert!(help.contains("referenced-but-unbound"), "{help}");
+    assert!(!help.contains("referenced-but-unbound"), "{help}");
+    assert!(!help.contains("--strict"), "{help}");
 }
 
 #[test]
@@ -2151,7 +2182,7 @@ fn render_accepts_array_of_objects_in_json_var_file() {
     let root = temp_root("array-objects-json");
     write_file(
         &root.join("template.md.j2"),
-        "{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
+        "---\nrequired_variables:\n  - sprints\n---\n{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
     );
     let vars_file = root.join("vars.json");
     write_file(
@@ -2183,7 +2214,7 @@ fn render_accepts_array_of_objects_in_yaml_var_file() {
     let root = temp_root("array-objects-yaml");
     write_file(
         &root.join("template.md.j2"),
-        "{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
+        "---\nrequired_variables:\n  - sprints\n---\n{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
     );
     let vars_file = root.join("vars.yaml");
     write_file(
@@ -2275,7 +2306,7 @@ fn render_accepts_recursive_values_in_yaml_var_file() {
     let root = temp_root("recursive-yaml-var-file");
     write_file(
         &root.join("template.md.j2"),
-        "{% for category in categories %}{% for item in category.items %}{{ category.name }}:{{ item.summary }}\n{% endfor %}{% endfor %}{% for row in rows %}{{ row | join(',') }}\n{% endfor %}",
+        "---\nrequired_variables:\n  - categories\n  - rows\n---\n{% for category in categories %}{% for item in category.items %}{{ category.name }}:{{ item.summary }}\n{% endfor %}{% endfor %}{% for row in rows %}{{ row | join(',') }}\n{% endfor %}",
     );
     let vars_file = root.join("vars.yaml");
     write_file(
@@ -2312,7 +2343,7 @@ fn f4_cli_regression_accepts_deeply_nested_json_values() {
     let root = temp_root("f4-cli-deep-json-values");
     write_file(
         &root.join("template.md.j2"),
-        "{% for group in groups %}{{ group.name }}:{% for item in group.items %}{{ item.id }}={{ item.tags | join(',') }}:{% for value in item.matrix %}{{ value }}{% endfor %};{% endfor %}\n{% endfor %}",
+        "---\nrequired_variables:\n  - groups\n---\n{% for group in groups %}{{ group.name }}:{% for item in group.items %}{{ item.id }}={{ item.tags | join(',') }}:{% for value in item.matrix %}{{ value }}{% endfor %};{% endfor %}\n{% endfor %}",
     );
     let vars_file = root.join("vars.json");
     write_file(
@@ -2655,7 +2686,7 @@ fn render_xml_control_byte_output_is_well_formed() {
     let root = temp_root("xml-control-byte");
     write_file(
         &root.join("report.xml.j2"),
-        "<root><title>{{ value }}</title></root>\n",
+        "---\nrequired_variables:\n  - value\n---\n<root><title>{{ value }}</title></root>\n",
     );
     write_file(&root.join("vars.json"), "{\"value\": \"\\u0000\"}\n");
     let output_path = root.join("rendered.xml");
@@ -2711,7 +2742,7 @@ fn render_markdown_table_safe_cli_regression() {
     let root = temp_root("markdown-table-safe");
     write_file(
         &root.join("table.md.j2"),
-        "| Value |\n| --- |\n| {{ value | md_table_safe }} |\n",
+        "---\nrequired_variables:\n  - value\n---\n| Value |\n| --- |\n| {{ value | md_table_safe }} |\n",
     );
     write_file(
         &root.join("vars.json"),
@@ -2842,7 +2873,7 @@ fn render_accepts_object_values_in_json_var_file() {
     let vars_file = root.join("vars.json");
     write_file(
         &root.join("template.md.j2"),
-        "PR #{{ pr.number }} -> {{ pr.url }}\n",
+        "---\nrequired_variables:\n  - pr\n---\nPR #{{ pr.number }} -> {{ pr.url }}\n",
     );
     write_file(
         &vars_file,
@@ -2875,7 +2906,7 @@ fn render_accepts_object_values_in_yaml_var_file() {
     let vars_file = root.join("vars.yaml");
     write_file(
         &root.join("template.md.j2"),
-        "PR #{{ pr.number }} -> {{ pr.url }}\n",
+        "---\nrequired_variables:\n  - pr\n---\nPR #{{ pr.number }} -> {{ pr.url }}\n",
     );
     write_file(
         &vars_file,
@@ -2905,7 +2936,10 @@ fn render_accepts_object_values_in_yaml_var_file() {
 #[test]
 fn render_uses_env_prefix_inputs() {
     let root = temp_root("env-prefix");
-    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -3115,4 +3149,34 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
         fs::read_to_string(&output).unwrap(),
         "Name: Casey\nTitle: Engineer\nMood: focused"
     );
+}
+
+#[test]
+fn render_without_strict_flag_fails_on_an_unbound_variable() {
+    let root = temp_root("render-strict-only");
+    write_file(
+        &root.join("nofm.md.j2"),
+        "hello {{ name }} and {{ missing }}",
+    );
+    write_file(
+        &root.join("fm.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }} and {{ missing }}",
+    );
+
+    for template in ["nofm.md.j2", "fm.md.j2"] {
+        let output = sc_compose()
+            .args(["render", "--root"])
+            .arg(&root)
+            .args(["--file", template, "--var", "name=x"])
+            .output()
+            .unwrap();
+
+        assert!(!output.status.success(), "{template}: {output:?}");
+        assert!(output.stdout.is_empty(), "{template}: rendered a body");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            stderr.contains("missing") && stderr.contains(template),
+            "{template}: {stderr}"
+        );
+    }
 }

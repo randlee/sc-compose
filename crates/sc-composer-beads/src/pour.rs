@@ -485,6 +485,8 @@ mod tests {
                 "--var",
                 "alpha=first",
                 "--var",
+                "bead_var=runtime",
+                "--var",
                 "zebra=last"
             ]
         );
@@ -499,6 +501,8 @@ mod tests {
                 "--json",
                 "--var",
                 "alpha=first",
+                "--var",
+                "bead_var=runtime",
                 "--var",
                 "zebra=last",
             ]

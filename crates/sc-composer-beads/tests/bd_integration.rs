@@ -56,14 +56,9 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
             .join(format!("{formula_name}.formula.{extension}"));
         let template = root.join("templates").join(fixture);
         copy_fixture(fixture, &template);
-        let receipt = execute_bead_request(&request(
-            &root,
-            &template,
-            output.clone(),
-            formula_name,
-            &bd,
-        ))
-        .expect("valid Beads request");
+        let mut request = request(&root, &template, output.clone(), formula_name, &bd);
+        request.bead_variable_rendering = sc_composer_beads::BeadVariableRendering::Bd;
+        let receipt = execute_bead_request(&request).expect("valid Beads request");
         assert_eq!(
             receipt.outcome,
             BeadOutcome::Succeeded,
@@ -123,7 +118,23 @@ fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
     missing_variable.pour_authorization = Some(PourAuthorization::CreatePersistentBeads);
 
     let receipt = execute_bead_request(&missing_variable)
-        .expect("a required Beads variable failure must return a receipt");
+        .expect("strict rendering failure must return a receipt");
+
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Failed {
+            code: "BEADS_RENDER_FAILED".to_owned()
+        },
+        "default rendering must refuse the missing variable: {receipt:#?}"
+    );
+    assert!(
+        receipt.stages[0].stderr_excerpt.contains("release_name"),
+        "{receipt:#?}"
+    );
+
+    missing_variable.bead_variable_rendering = sc_composer_beads::BeadVariableRendering::Bd;
+    let receipt = execute_bead_request(&missing_variable)
+        .expect("bd-owned missing variable failure must return a receipt");
 
     assert_eq!(
         receipt.outcome,
@@ -366,14 +377,15 @@ fn redirected_registry_is_resolved_by_bd_where(root: &Path, bd: &Path) {
         .join(".beads")
         .join("formulas")
         .join("redirect-workflow.formula.toml");
-    let receipt = execute_bead_request(&request(
+    let mut request = request(
         &redirected_worktree,
         &template,
         output,
         "redirect-workflow",
         bd,
-    ))
-    .expect("redirected registry request");
+    );
+    request.bead_variable_rendering = sc_composer_beads::BeadVariableRendering::Bd;
+    let receipt = execute_bead_request(&request).expect("redirected registry request");
     assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
 }
 
@@ -436,6 +448,7 @@ fn request(
             sc_composer_beads::FormulaName::new(formula_name).expect("formula name"),
         ),
         bead_variables: BTreeMap::from([(String::from("release_name"), String::from("1.5.0"))]),
+        bead_variable_rendering: sc_composer_beads::BeadVariableRendering::ScCompose,
         bd_executable: Some(bd.into()),
         pour_authorization: None,
         parent: None,

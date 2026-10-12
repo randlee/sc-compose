@@ -50,7 +50,15 @@ pub(crate) fn execute(
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
     };
-    let result = run(request, &mut runtime, formula_input, stage);
+    // The graph plan is a separate public artifact. Check its destination
+    // before invoking `bd` so a blocked plan cannot be hidden by process work.
+    let result = match validate_graph_plan_destination(&runtime) {
+        Ok(_) => run(request, &mut runtime, formula_input, stage),
+        Err(error) => {
+            runtime.stage = stage;
+            Err(error)
+        }
+    };
     let missing_edges = match &result {
         Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
         _ => Vec::new(),
@@ -420,25 +428,7 @@ impl PendingCreate {
         runtime: &mut Runtime<'_>,
         preview: bool,
     ) -> Result<BeadGraph, BeadComposeError> {
-        let mut path = runtime
-            .normalized
-            .rendered_formula
-            .as_os_str()
-            .to_os_string();
-        path.push(".graph.json");
-        let path = PathBuf::from(path);
-        let public_path = public_path_buf(&path);
-        let parent = path
-            .parent()
-            .and_then(|p| fs::canonicalize(p).ok())
-            .ok_or_else(|| BeadComposeError::OutputPathInvalid {
-                path: public_path.clone(),
-                rule: "output parent must exist and be accessible".into(),
-            })?;
-        if !parent.starts_with(&runtime.normalized.working_directory) {
-            return Err(BeadComposeError::OutputOutsideWorkingDirectory { path: public_path });
-        }
-        crate::render::validate_output_destination(&path)?;
+        let (path, public_path) = validate_graph_plan_destination(runtime)?;
         let bytes = serde_json::to_vec(&self.payload).expect("plan JSON serializes");
         let plan_input = InputSnapshot::write(&path, &bytes)
             .map_err(|error| crate::snapshot::output_error(&path, error))?;
@@ -575,10 +565,82 @@ impl PendingCreate {
     }
 }
 
+fn validate_graph_plan_destination(
+    runtime: &Runtime<'_>,
+) -> Result<(PathBuf, PathBuf), BeadComposeError> {
+    let mut path = runtime
+        .normalized
+        .rendered_formula
+        .as_os_str()
+        .to_os_string();
+    path.push(".graph.json");
+    let path = PathBuf::from(path);
+    let public_path = public_path_buf(&path);
+    let parent = path
+        .parent()
+        .and_then(|parent| fs::canonicalize(parent).ok())
+        .ok_or_else(|| BeadComposeError::GraphPlanPathInvalid {
+            path: public_path.clone(),
+            rule: "output parent must exist and be accessible".into(),
+        })?;
+    if !parent.starts_with(&runtime.normalized.working_directory) {
+        return Err(BeadComposeError::OutputOutsideWorkingDirectory { path: public_path });
+    }
+    crate::render::validate_output_destination(&path).map_err(graph_plan_path_error)?;
+    Ok((path, public_path))
+}
+
+fn graph_plan_path_error(error: BeadComposeError) -> BeadComposeError {
+    match error {
+        BeadComposeError::OutputPathInvalid { path, rule } => {
+            BeadComposeError::GraphPlanPathInvalid { path, rule }
+        }
+        BeadComposeError::OutputPathSymlink { path } => BeadComposeError::GraphPlanPathInvalid {
+            path,
+            rule: "graph plan destination must not be a symbolic link".into(),
+        },
+        error => error,
+    }
+}
+
 #[cfg(test)]
 mod presentation_tests {
     use super::*;
     use std::io;
+
+    #[cfg(unix)]
+    #[test]
+    fn graph_plan_symlink_error_has_plan_path_diagnostic() {
+        use std::os::unix::fs::symlink;
+
+        let root = std::env::temp_dir().join(format!(
+            "sc-graph-plan-symlink-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let target = root.join("target");
+        let path = root.join("formula.formula.toml.graph.json");
+        fs::write(&target, "untouched").unwrap();
+        symlink(&target, &path).unwrap();
+
+        let error = crate::render::validate_output_destination(&path)
+            .map_err(graph_plan_path_error)
+            .unwrap_err();
+        let diagnostic = crate::BeadDiagnostic::refused(&error).unwrap();
+        let wire = serde_json::to_value(diagnostic).unwrap();
+        assert_eq!(wire["code"], "BEADS_OUTPUT_PATH_INVALID");
+        assert_eq!(wire["details"]["field"], "graph_plan");
+        assert_eq!(
+            wire["recovery"],
+            "Choose a writable graph plan path beside rendered_formula."
+        );
+        assert_eq!(fs::read_to_string(&target).unwrap(), "untouched");
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn graph_plan_presentation_does_not_change_raw_response() {

@@ -42,14 +42,42 @@ in either of two places:
   includes run at render time and produce a flat list of steps with every
   value filled in. This is how `attach` and graph-mode `pour` work: `bd`
   receives the finished formula and runs none of its own substitution.
-- **In Beads' formula language.** Beads `vars`, `{{ name }}` placeholders,
-  `extends`, `loop`, `expand`, `condition` and `gate` are evaluated by `bd`.
-  Use registry pour (below) for formulas written this way.
+- **In Beads' formula language.** Beads `vars`, `extends`, `loop`, `expand`,
+  `condition` and `gate` are evaluated by `bd`. Registry pour also passes its
+  runtime values to `bd` (below).
 
 In a bead template, sc-compose values use triple braces, `{{{ value }}}`, and
-blocks use ordinary `{% ... %}`. Double-brace `{{ name }}` text is never
-touched by sc-compose; it is left for Beads in registry pour and kept as
-literal text by `attach` and graph-mode `pour`.
+blocks use ordinary `{% ... %}`. `bead_variables` are ordinary, declared
+double-brace Minijinja values: `{{ name }}` and `{{name}}` are rendered by
+sc-compose before `bd` receives the formula, including normal filters and
+conditionals. Declare them in frontmatter alongside other referenced values;
+they are also passed to `bd --var` for its required-variable checks.
+`bead_variables` is unavailable for attach and graph-mode pour, whose request
+objects must leave it empty.
+
+By default, sc-compose renders declared ordinary `{{ name }}` expressions from
+`bead_variables`. Set `bead_variable_rendering` to `"bd"`, or pass
+`--true-bd-render`, to leave those expressions for `bd` instead; the values are
+still passed to registry pour as `--var name=value`.
+In this mode, ordinary `{{ name }}` expressions do not need a sc-compose
+frontmatter declaration. Attach and graph pour likewise leave them for `bd
+cook`; registry pour passes the values through to `bd`. Beads currently only
+substitutes tight `{{name}}` syntax reliably in this path, not padded
+`{{ name }}` syntax (beads#21).
+
+A bead template renders in one pass. In the default mode each source
+`{{ expr }}` is treated as `{{{ expr }}}`, so both forms share one context
+(`compose_variables`, `bead_variables` and the frontmatter defaults of the
+template and its includes), one strict validation and one render. Rendered
+output is never parsed again: braces in a supplied value or produced by an
+expression stay literal, `{% raw %}` blocks stay literal, and `set`/`for`
+locals shadow caller values of the same name. A name supplied in both
+`compose_variables` and `bead_variables` makes the Render stage fail with
+`BEADS_VARIABLE_KEY_DUPLICATE` and a failed outcome. In `bd` mode `{{ expr }}`
+is plain text to the render and reaches `bd` byte-for-byte, unless the
+expression text itself contains `{%`, `{#` or `{{{`, which the render still
+reads as a statement, comment or composition expression. Wrap such an
+expression in `{% raw %}...{% endraw %}` to pass it through unchanged.
 
 ## The request
 
@@ -73,18 +101,21 @@ literal text by `attach` and graph-mode `pour`.
 | Field | Required | Meaning |
 |---|---|---|
 | `schema` | yes | Always `sc-compose/beads/v1`. |
-| `operation` | yes | Set by the subcommand. |
-| `working_directory` | yes | Absolute workspace root. Templates and rendered formulas must stay inside it; symlinks out of it are refused. |
+| `operation` | yes | The request wire value uses snake_case: `render`, `validate`, `preview_pour`, `pour`, `preview_attach`, or `attach`. The CLI spells the preview commands `preview-pour` and `preview-attach`; the subcommand determines the effective operation. |
+| `working_directory` | yes | Workspace root. Relative paths resolve from the process working directory; an absolute path is recommended. Templates and rendered formulas must stay inside it; symlinks out of it are refused. |
 | `template` | yes | The `.formula.toml.j2` or `.formula.json.j2` template, relative to `working_directory`. |
 | `rendered_formula` | yes | Where the rendered `.formula.toml` / `.formula.json` is written. Any existing directory inside `working_directory`; no Beads `formulas/` directory is needed. |
-| `formula_name` | for `pour` and `preview-pour` | The formula's name in the active registry. Optional for the other operations; only `attach` and `preview-attach` require the portable name grammar. |
+| `formula_name` | for `pour` and `preview-pour` | The formula's name in the active registry. Optional for the other operations. `attach` and `preview-attach` require the portable name grammar; a non-portable value is rejected as `BEADS_REQUEST_DESERIALIZATION_FAILED` with exit `3`. Other subcommands tolerate legacy names. |
 | `compose_variables` | yes (may be `{}`) | Structured JSON values for the template (`{{{ ... }}}`, loops, conditionals). |
-| `bead_variables` | yes (may be `{}`) | Scalar values passed to `bd` as `--var` by registry pour only. Must be `{}` for attach and graph pour. |
+| `bead_variables` | yes (may be `{}`) | Scalar values rendered into declared `{{ name }}` formula expressions, then also passed to `bd` as `--var` by registry pour. Must be `{}` for attach and graph pour. |
+| `bead_variable_rendering` | no | `"sc-compose"` (default) renders declared double-brace values before invoking `bd`; `"bd"` leaves them for Beads. The `--true-bd-render` CLI flag overrides this field and selects `"bd"`. |
 | `bd_executable` | no | Path to `bd`; default `bd` on `PATH`. |
 | `pour_authorization` | for `pour` and `attach` | Exactly `CreatePersistentBeads`. |
 | `parent` | for attach ops only | Id of the existing bead to attach under. |
 | `ref` | for attach ops only | Name of this attachment, `[A-Za-z0-9_-]{1,32}` (no `.`; `-` is allowed, for example `qa1-f1-r1`). |
 | `relations` | no | Extra edges; attach operations and graph pour only. See "Linking to existing beads". |
+
+Unknown request fields are ignored.
 
 ## render and validate
 
@@ -100,9 +131,10 @@ Where the rendered formula lives decides how it is poured, and the receipt's
 - **Registry pour** (`pour_mode: "registry"`): the rendered formula is in the
   active Beads registry, `<beads dir>/formulas/<formula_name>.formula.toml`
   (or `.json`). It pours by name with `bd mol pour`, exactly as earlier
-  releases did, and `bead_variables` are passed as `--var`. Use this when the
-  formula relies on Beads `vars`, `loop`, `expand` or `gate`. A same-name TOML
-  and JSON pair in the registry is refused as ambiguous.
+  releases did. `bead_variables` are rendered by sc-compose, then passed as
+  `--var` too. Use this when the formula relies on Beads `vars`, `loop`,
+  `expand` or `gate`. A same-name TOML and JSON pair in the registry is
+  refused as ambiguous.
 - **Graph pour** (`pour_mode: "graph"`): the rendered formula is anywhere else
   inside `working_directory`, for example `build/`. sc-compose reads it through
   `bd cook <path> --json`, writes a graph plan beside it
@@ -190,7 +222,7 @@ only sees what they produce:
 |---|---|
 | `extends` | `bd` merges the base formula's steps, found in its own formula search paths. The merged steps are created like any others. A later change to the base alone is not detected (the revision is the hash of your rendered formula), so attach a changed base under a new `ref`. A base `bd` cannot find fails with `BEADS_COOK_FAILED`. |
 | `loop` | `bd` expands it into steps named `<step>.iter<n>.<id>`. The `.` makes them invalid step ids, so the request is always refused with `BEADS_GRAPH_ID_INVALID`. |
-| `expand` | `bd` replaces the step with the expansion formula's steps. Ids containing `.` or `-` (the usual `<step>.<id>` pattern) are refused with `BEADS_GRAPH_ID_INVALID`; a missing expansion formula fails with `BEADS_COOK_FAILED`. |
+| `expand` | `bd` replaces the step with the expansion template's step ids as written. Ids containing `.` or `-` are refused with `BEADS_GRAPH_ID_INVALID`; a missing expansion formula fails with `BEADS_COOK_FAILED`. |
 
 Do not rely on these in attach or graph pour. Write the structure with
 template loops, conditionals and includes, where `preview-attach` and
@@ -359,21 +391,31 @@ operation, `relations` on `render` or `validate`),
 `bead:` prefix; correct that endpoint), `BEADS_UNKNOWN_SCHEMA`, path
 and authorization errors such as `BEADS_POUR_AUTH_REQUIRED`.
 An invalid `rendered_formula` output path uses `BEADS_OUTPUT_PATH_INVALID`;
-its diagnostic identifies the field, supplied path, and parent-directory rule.
+this includes a missing or unusable parent directory and a destination that
+resolves to the template itself. A blocked graph-plan path uses the same code,
+with `details.field` set to `graph_plan` and recovery guidance for choosing a
+writable plan path.
 
 A pour only knows whether it is a registry or graph pour after locating the
 registry, so two pour mistakes are refused receipts (exit `2`) instead:
 `bead_variables` set on a graph pour (`BEADS_GRAPH_FORMULA_UNSUPPORTED`,
 reason `bead_variables_set`) and `relations` on a registry pour
-(`BEADS_GRAPH_RELATION_INVALID`, reason `registry_pour`). In a graph pour,
+(`BEADS_GRAPH_RELATION_INVALID`). Its refusal stage is `preview_pour` or
+`pour`, and the stage diagnostic is `relations are unavailable for registry pour`.
+In a graph pour,
 `validate` still runs `bd cook --dry-run` as before (the mode is not known
 yet); the graph checks above run at the start of the `preview_pour` / `pour`
-stage, after `resolve_active_registry` has selected graph mode.
+stage, after `resolve_active_registry` has selected graph mode. Consequently,
+cooked bead-id errors in graph-mode preview-pour or pour are discovered after
+`bd cook --dry-run` and `bd where --json`; attach and preview-attach
+request-supplied parent, ref and relation endpoint ids are checked before
+invoking `bd`.
 
 Refused or failed receipts (exit `2`):
 
 | Code | Meaning | What to do |
 |---|---|---|
+| `BEADS_VARIABLE_KEY_DUPLICATE` | A name is supplied in both `compose_variables` and `bead_variables`; rendering fails at the Render stage | remove the duplicate from one source |
 | `BEADS_GRAPH_PARENT_NOT_FOUND` | `parent` does not exist | create it or name an existing bead |
 | `BEADS_GRAPH_ID_INVALID` | invalid parent/bead id, `ref`, or step id; request parsing preserves the typed field and value | fix the identifier according to the rule in the message |
 | `BEADS_GRAPH_SCOPE_MISMATCH` | `compose_variables` disagrees with `parent`/`ref` | make them equal, or drop them |
@@ -438,6 +480,9 @@ identifier grammar. They retain usage exit 3. An invalid identifier in an otherw
 well-formed, authorized request keeps its typed `BEADS_GRAPH_ID_INVALID` error; the
 subcommand, not the request file's `operation`, decides how it is reported: exit 3
 (a request error) for `render`, `validate`, `preview-pour` and `pour`, and a refused
-receipt with exit 2 only for `attach` and `preview-attach`. The subcommand likewise
-decides whether a legacy (non-portable) `formula_name` is tolerated: it is for every
+receipt with exit 2 for invalid parent, ref, step or bead identifiers in `attach`
+and `preview-attach`. A non-portable `formula_name` on either attach command is
+instead rejected during request deserialization with
+`BEADS_REQUEST_DESERIALIZATION_FAILED` (exit 3). The subcommand likewise decides
+whether a legacy (non-portable) `formula_name` is tolerated: it is for every
 subcommand except `attach` and `preview-attach`.

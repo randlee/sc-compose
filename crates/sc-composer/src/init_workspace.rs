@@ -83,8 +83,16 @@ pub fn init_workspace(root: impl AsRef<Path>, dry_run: bool) -> Result<InitResul
         };
         match crate::validate(&request) {
             Ok(report) => {
-                validation_passed &= report.ok;
+                // Init supplies no caller input, so an unbound variable says
+                // nothing about the template; every other error is a defect.
+                let defects = report
+                    .errors
+                    .into_iter()
+                    .filter(|diagnostic| diagnostic.code != DiagnosticCode::ErrValUnboundVariable)
+                    .collect::<Vec<_>>();
+                validation_passed &= defects.is_empty();
                 recommendations.extend(report.warnings);
+                recommendations.extend(defects);
             }
             Err(error) => {
                 validation_passed = false;

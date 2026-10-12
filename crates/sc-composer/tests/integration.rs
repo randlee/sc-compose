@@ -312,7 +312,10 @@ fn compose_with_expanded_reuses_preflight_source_after_include_mutation() {
     let template_path = root.join("template.md.j2");
     let included_path = root.join("partials/body.md.j2");
     write_file(&template_path, "@<partials/body.md.j2>\n");
-    write_file(&included_path, "hello {{ name }}\n");
+    write_file(
+        &included_path,
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
 
     let request = ComposeRequest {
         runtime: None,
@@ -331,7 +334,10 @@ fn compose_with_expanded_reuses_preflight_source_after_include_mutation() {
     let expanded =
         expand_includes(&resolved.resolved_path, &request.root, &request.policy).unwrap();
 
-    write_file(&included_path, "mutated after preflight {{ name }}\n");
+    write_file(
+        &included_path,
+        "---\nrequired_variables:\n  - name\n---\nmutated after preflight {{ name }}\n",
+    );
 
     let mut observer = CapturingObserver::default();
     let result =
@@ -346,7 +352,7 @@ fn compose_multi_pass_preserves_still_higher_brace_literals_across_lower_passes(
     let root = temp_root("higher-brace-literal");
     write_file(
         &root.join("template.md.j2"),
-        "---\npass: 3\n---\n---\npass: 2\n---\n---\npass: 1\n---\nLiteral={{{ literal_block }}}\nTeam={{{ team }}}\nRendered={{ script_name }}\n",
+        "---\npass: 3\n---\n---\npass: 2\nrequired_variables:\n  - literal_block\n  - team\n---\n---\npass: 1\nrequired_variables:\n  - script_name\n---\nLiteral={{{ literal_block }}}\nTeam={{{ team }}}\nRendered={{ script_name }}\n",
     );
 
     let result = compose(&ComposeRequest {
@@ -385,7 +391,7 @@ fn compose_with_observer_emits_single_render_failure_event_for_multi_pass_errors
     let root = temp_root("multi-pass-render-failure-event");
     write_file(
         &root.join("template.md.j2"),
-        "---\npass: 2\n---\n---\npass: 1\n---\nBroken={{{ invalid + }}}\nRendered={{ script_name }}\n",
+        "---\npass: 2\ndefaults:\n  invalid: 1\n---\n---\npass: 1\nrequired_variables:\n  - script_name\n---\nBroken={{{ invalid + }}}\nRendered={{ script_name }}\n",
     );
 
     let mut observer = CapturingObserver::default();
@@ -423,7 +429,13 @@ fn compose_then_checked_output_rejects_malformed_json_without_echoing_rendered_v
     let root = temp_root("checked-json-malformed");
     let template_path = root.join("payload.json.j2");
     let secret = "TOP_SECRET_CHECKED_OUTPUT";
-    write_file(&template_path, r#"{"value": "{{ value }}"}"#);
+    write_file(
+        &template_path,
+        concat!(
+            "---\nrequired_variables:\n  - value\n---\n",
+            r#"{"value": "{{ value }}"}"#
+        ),
+    );
 
     let result = compose(&ComposeRequest {
         runtime: None,
@@ -506,7 +518,10 @@ fn compose_then_checked_output_emits_valid_json_only_through_checked_output() {
 #[test]
 fn checked_render_validates_the_complete_final_body_with_guidance_and_prompt() {
     let root = temp_root("checked-json-final-body");
-    write_file(&root.join("payload.json.j2"), r#"{"value": {{ value }}}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}",
+    );
 
     let result = compose(&ComposeRequest {
         runtime: None,

@@ -26,7 +26,13 @@ def _worker(root: Path, bd: str) -> None:
     run("init", "--non-interactive", "--quiet", "--skip-agents", "--skip-hooks", "--prefix", "wheel")
     parent = json.loads(run("create", "Release", "--type", "epic", "--json"))["id"]
     template = root / "release.formula.toml.j2"
-    template.write_text('formula = "release"\nversion = 1\ntype = "workflow"\n[[steps]]\nid = "build"\ntitle = "Build {{{ version }}}"\n[[steps]]\nid = "verify"\ntitle = "Verify"\nneeds = ["build"]\n', encoding="utf-8")
+    template.write_text(
+        "---\nrequired_variables:\n  - version\n---\n"
+        'formula = "release"\nversion = 1\ntype = "workflow"\n'
+        '[[steps]]\nid = "build"\ntitle = "Build {{{ version }}}"\n'
+        '[[steps]]\nid = "verify"\ntitle = "Verify"\nneeds = ["build"]\n',
+        encoding="utf-8",
+    )
     request = beads.BeadComposeRequest(
         root, template, root / "release.formula.toml", {"version": "1.6.1"},
         operation="attach", formula_name="release", bd_executable=bd,

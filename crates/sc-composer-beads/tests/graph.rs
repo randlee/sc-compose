@@ -57,6 +57,7 @@ impl Workspace {
                     sc_composer_beads::FormulaName::new("sample").expect("formula name"),
                 ),
                 bead_variables: BTreeMap::new(),
+                bead_variable_rendering: sc_composer_beads::BeadVariableRendering::ScCompose,
                 bd_executable: Some(PathBuf::from("fake-bd")),
                 pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
                 parent: Some(BeadId::new("proj-1").expect("parent")),
@@ -745,7 +746,7 @@ fn graph_plan_symlink_is_refused_without_touching_target() {
         let runner = FakeRunner::new([ok(COOKED), parent()]);
         refused(
             &w.run(&runner),
-            "BEADS_OUTPUT_PATH_SYMLINK",
+            "BEADS_OUTPUT_PATH_INVALID",
             BeadStage::PreviewAttach,
         );
         assert_eq!(fs::read_to_string(target).expect("target"), "unchanged");

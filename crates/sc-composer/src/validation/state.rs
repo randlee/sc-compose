@@ -49,6 +49,14 @@ pub(crate) fn collect_validation_state(
             .variable_sources
             .insert(name.clone(), VariableSource::Environment);
     }
+    // Per-pass caller values bind their variables for every pass that renders
+    // them, so validation must see them as bound.
+    for (name, value) in request.policy.passes.iter().flat_map(|pass| &pass.defaults) {
+        state.context.insert(name.clone(), value.clone());
+        state
+            .variable_sources
+            .insert(name.clone(), VariableSource::ExplicitInput);
+    }
     for (name, value) in &request.vars_input {
         state.context.insert(name.clone(), value.clone());
         state

@@ -249,7 +249,7 @@ fn legacy_compatibility_fixture_is_valid_and_warns_once() {
     let template = root.join("legacy.json.j2");
     write_file(
         &template,
-        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}\n",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}\n",
     );
     let vars = root.join("vars.json");
     write_file(

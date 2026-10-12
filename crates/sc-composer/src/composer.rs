@@ -465,7 +465,7 @@ mod tests {
         CompositionObserver, IncludeOutcomeEvent, RenderOutcomeEvent, ResolveAttemptEvent,
         ResolveOutcomeEvent, ValidationOutcomeEvent,
     };
-    use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
+    use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, PassConfig};
     use crate::{
         ComposeError, DiagnosticCode, VariableName, VariableSource, compose, compose_with_observer,
     };
@@ -534,9 +534,12 @@ mod tests {
     }
 
     #[test]
-    fn compose_fails_closed_for_an_unbound_reference_under_error_policy() {
+    fn compose_fails_closed_for_an_unbound_reference() {
         let root = temp_root("compose_unbound_error");
-        write_file(&root.join("template.md.j2"), "hello {{ missing }}");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - missing\n---\nhello {{ missing }}",
+        );
 
         let error = compose(&ComposeRequest {
             runtime: None,
@@ -549,14 +552,60 @@ mod tests {
             vars_defaults: BTreeMap::default(),
             guidance_block: None,
             user_prompt: None,
-            policy: ComposePolicy {
-                unknown_variable_policy: crate::UnknownVariablePolicy::Error,
-                ..ComposePolicy::default()
-            },
+            policy: ComposePolicy::default(),
         })
         .unwrap_err();
 
-        assert_eq!(error.code(), Some(DiagnosticCode::ErrValUnboundVariable));
+        assert!(
+            error.to_string().contains("missing"),
+            "{error}: the missing variable is named"
+        );
+    }
+
+    #[test]
+    fn compose_binds_values_supplied_only_through_policy_pass_defaults() {
+        let root = temp_root("compose_policy_pass_defaults");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\npass: 2\nrequired_variables:\n  - team\n---\n---\npass: 1\nrequired_variables:\n  - task\n---\n{{{ team }}} {{ task }}",
+        );
+
+        let result = compose(&ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("template.md.j2"),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input: BTreeMap::default(),
+            vars_env: BTreeMap::default(),
+            vars_defaults: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy {
+                passes: vec![
+                    PassConfig {
+                        pass_number: 2,
+                        defaults: BTreeMap::from([(
+                            VariableName::new("team").unwrap(),
+                            json!("wyvern"),
+                        )]),
+                        ..PassConfig::default()
+                    },
+                    PassConfig {
+                        pass_number: 1,
+                        defaults: BTreeMap::from([(
+                            VariableName::new("task").unwrap(),
+                            json!("test"),
+                        )]),
+                        ..PassConfig::default()
+                    },
+                ],
+                ..ComposePolicy::default()
+            },
+        })
+        .unwrap();
+
+        assert_eq!(result.rendered_text, "wyvern test");
     }
 
     #[test]

@@ -7,8 +7,9 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
-use crate::is_json_template_path;
-use crate::renderer::JsonEscapeMode;
+use crate::renderer::{JsonEscapeMode, resolve_json_escape_mode};
+use crate::types::ComposeRequest;
+use crate::{is_json_template_path, parse_template_document};
 
 /// Maximum supported number of nested JSON objects and arrays.
 ///
@@ -62,6 +63,24 @@ impl RenderCheckMeta {
         }
     }
 
+    /// Build the metadata a composed render is checked against: the output
+    /// format from the resolved template path and, for JSON, the request's
+    /// mode override over the template's declared mode.
+    ///
+    /// This is the one checked-render contract shared by the CLI and the
+    /// language adapters.
+    #[must_use]
+    pub fn for_request(request: &ComposeRequest, template: &Path) -> Self {
+        let meta = Self::for_template(template);
+        let mode = (meta.output_format == OutputFormat::Json).then(|| {
+            let declared_mode = std::fs::read_to_string(template)
+                .ok()
+                .and_then(|source| declared_json_escape_mode(&source));
+            resolve_json_escape_mode(request.policy.json_escape_mode, declared_mode)
+        });
+        meta.with_json_escape_mode(mode)
+    }
+
     /// Build metadata with an explicitly supplied output format.
     ///
     /// The format is part of the caller's render contract. It is deliberately
@@ -103,6 +122,11 @@ impl RenderCheckMeta {
         self.json_escape_mode = mode;
         self
     }
+}
+
+fn declared_json_escape_mode(source: &str) -> Option<JsonEscapeMode> {
+    let parsed = parse_template_document(source).ok()?;
+    parsed.frontmatter()?.json_escape_mode()
 }
 
 /// A summary of the exact context used for a checked render.

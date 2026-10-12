@@ -11,7 +11,20 @@ mod scope;
 
 use identifiers::collect_identifiers;
 use scanner::{Delimiter, ExpressionDelimiters, walk_template};
-use scope::{LoopScope, parse_bare_for_loop_over, parse_for_loop_scope, parse_set_scope};
+use scope::{
+    LoopScope, parse_bare_for_loop_over, parse_for_loop_scope, parse_macro_scope, parse_set_scope,
+    parse_with_scope,
+};
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ScopeKind {
+    Root,
+    For,
+    With,
+    Macro,
+    Call,
+    Block,
+}
 
 /// Discover declared template variable tokens without running full validation.
 ///
@@ -46,6 +59,7 @@ pub fn discover_tokens_with_delimiters(
 
     let mut tokens = BTreeSet::new();
     let mut scopes = vec![LoopScope::default()];
+    let mut scope_kinds = vec![ScopeKind::Root];
     let expression_delimiters =
         ExpressionDelimiters::with_delimiters(open_delimiter, close_delimiter);
     walk_template(text, &expression_delimiters, |delimiter, expression| {
@@ -54,20 +68,103 @@ pub fn discover_tokens_with_delimiters(
             Delimiter::Statement => {
                 if let Some(loop_scope) = parse_for_loop_scope(expression, &scopes, &mut tokens) {
                     scopes.push(loop_scope.scope);
+                    scope_kinds.push(ScopeKind::For);
                 } else if expression.starts_with("endfor") {
-                    if scopes.len() > 1 {
-                        scopes.pop();
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::For);
+                } else if let Some(names) = parse_set_scope(expression, &scopes, &mut tokens) {
+                    if let Some(scope) = scopes.last_mut() {
+                        scope.bound_names.extend(names);
                     }
-                } else if let Some(name) = parse_set_scope(expression, &scopes, &mut tokens) {
-                    scopes[0].bound_names.insert(name);
+                } else if let Some(scope) = parse_with_scope(expression, &scopes, &mut tokens) {
+                    scopes.push(scope);
+                    scope_kinds.push(ScopeKind::With);
+                } else if expression.starts_with("endwith") {
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::With);
+                } else if let Some((name, scope)) =
+                    parse_macro_scope(expression, &scopes, &mut tokens)
+                {
+                    if let Some(current_scope) = scopes.last_mut() {
+                        current_scope.bound_names.insert(name);
+                    }
+                    scopes.push(scope);
+                    scope_kinds.push(ScopeKind::Macro);
+                } else if expression.starts_with("endmacro") {
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::Macro);
+                } else if matches!(statement_name(expression), Some("call")) {
+                    let arguments = statement_arguments(expression);
+                    collect_identifiers(&mask_leading_identifier(arguments), &scopes, &mut tokens);
+                    scopes.push(LoopScope {
+                        bound_names: ["caller".to_owned()].into(),
+                    });
+                    scope_kinds.push(ScopeKind::Call);
+                } else if expression.starts_with("endcall") {
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::Call);
+                } else if matches!(statement_name(expression), Some("block")) {
+                    scopes.push(LoopScope::default());
+                    scope_kinds.push(ScopeKind::Block);
+                } else if expression.starts_with("endblock") {
+                    pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::Block);
                 } else {
-                    collect_identifiers(expression, &scopes, &mut tokens);
+                    let arguments = statement_arguments(expression);
+                    if matches!(statement_name(expression), Some("filter" | "call")) {
+                        collect_identifiers(
+                            &mask_leading_identifier(arguments),
+                            &scopes,
+                            &mut tokens,
+                        );
+                    } else {
+                        collect_identifiers(arguments, &scopes, &mut tokens);
+                    }
                 }
             }
         }
         false
     });
     tokens
+}
+
+fn pop_scope(scopes: &mut Vec<LoopScope>, scope_kinds: &mut Vec<ScopeKind>, expected: ScopeKind) {
+    if scope_kinds.last() == Some(&expected) {
+        scopes.pop();
+        scope_kinds.pop();
+    }
+}
+
+/// Drop the leading tag name of a statement (`if`, `autoescape`,
+/// `endautoescape`, ...): it names the block, never a variable. `block` and
+/// `endblock` take only a template block name, so nothing of them is kept.
+fn statement_arguments(statement: &str) -> &str {
+    if matches!(statement_name(statement), Some("block" | "endblock")) {
+        return "";
+    }
+    let tag_end = statement_name(statement).map_or(statement.len(), str::len);
+    &statement[tag_end..]
+}
+
+fn statement_name(statement: &str) -> Option<&str> {
+    statement
+        .split(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
+        .next()
+        .filter(|name| !name.is_empty())
+}
+
+/// Blank a statement's first bare identifier while retaining its expression
+/// arguments. Filter and call targets are Jinja syntax; their arguments can
+/// still reference template variables.
+fn mask_leading_identifier(arguments: &str) -> String {
+    let mut masked = arguments.chars().collect::<Vec<_>>();
+    let start = masked
+        .iter()
+        .position(|character| !character.is_ascii_whitespace())
+        .unwrap_or(masked.len());
+    let end = masked[start..]
+        .iter()
+        .position(|character| !character.is_ascii_alphanumeric() && *character != '_')
+        .map_or(masked.len(), |offset| start + offset);
+    for character in &mut masked[start..end] {
+        *character = ' ';
+    }
+    masked.into_iter().collect()
 }
 
 /// Return whether `text` contains a bare-identifier loop over `variable`.
@@ -184,6 +281,22 @@ mod tests {
     }
 
     #[test]
+    fn plus_whitespace_control_markers_match_minus_and_plain_tags() {
+        let tokens = discover_tokens(
+            "{%+ if u +%}a{% endif %}{%+ for i in xs +%}{{ i }}{% endfor %}{%+ set y = 1 +%}{{ y }}{%+ raw +%}{{ hidden }}{% endraw %}",
+        );
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("u").unwrap(),
+                crate::VariableName::new("xs").unwrap(),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
     fn expression_whitespace_control_markers_are_stripped() {
         let tokens = discover_tokens("{{- name -}}");
 
@@ -229,6 +342,48 @@ mod tests {
     }
 
     #[test]
+    fn numeric_subscripts_keep_the_surrounding_declared_path() {
+        let tokens = discover_tokens("{{ o[0].k }}");
+        assert_eq!(tokens, [crate::VariableName::new("o.k").unwrap()].into());
+    }
+
+    #[test]
+    fn attribute_access_on_literal_is_not_a_variable() {
+        assert!(discover_tokens(r#"{{ {"a": {"b": 1}}.a.b }}"#).is_empty());
+    }
+
+    #[test]
+    fn four_closing_braces_do_not_consume_following_loop_scope() {
+        let tokens = discover_tokens_with_brace_count(
+            "{\"a\": {{{ n }}}}\n{% for x in lst %}{{{ x }}}{% endfor %}",
+            3,
+        );
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("lst").unwrap(),
+                crate::VariableName::new("n").unwrap()
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn higher_brace_opening_runs_are_not_lower_pass_tokens() {
+        let tokens = discover_tokens_with_brace_count("{{{{ org }}}} {{{ team }}}", 3);
+        assert_eq!(tokens, [crate::VariableName::new("team").unwrap()].into());
+    }
+
+    #[test]
+    fn member_access_after_grouped_values_does_not_create_dot_tokens() {
+        assert_eq!(
+            discover_tokens_with_brace_count("{{{ (x).upper() }}}", 3),
+            [crate::VariableName::new("x").unwrap()].into()
+        );
+        assert!(discover_tokens_with_brace_count(r#"{{{ ({"a": 1}).a }}}"#, 3).is_empty());
+    }
+
+    #[test]
     fn filter_names_are_not_discovered_as_variables() {
         let tokens = discover_tokens("{{ x | e }} {{ x | e | lower }}");
 
@@ -247,6 +402,71 @@ mod tests {
         let tokens = discover_tokens("{{ loop.last }}");
 
         assert!(tokens.contains(&crate::VariableName::new("loop.last").unwrap()));
+    }
+
+    #[test]
+    fn block_tag_names_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% autoescape false -%}{{ body }}{%- endautoescape %}{% with %}{% endwith %}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("body").unwrap()].into());
+    }
+
+    #[test]
+    fn template_block_names_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% block report_header %}{{ title }}{% endblock report_header %}{% block body %}{% endblock %}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("title").unwrap()].into());
+    }
+
+    #[test]
+    fn test_names_and_is_keyword_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% if x is defined and x | trim %}{{ x }}{% endif %}{% if y is not none %}{{ y is divisibleby(z) }}{% endif %}",
+        );
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("x").unwrap(),
+                crate::VariableName::new("y").unwrap(),
+                crate::VariableName::new("z").unwrap(),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn comments_and_raw_blocks_are_not_scanned_for_tokens() {
+        let tokens = discover_tokens(
+            "{# bd uses `{{name}}` and {% if other %} here #}{% raw %}{{ literal }}{% endraw %}{{ x }}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("x").unwrap()].into());
+        assert_eq!(
+            discover_tokens_with_brace_count("{# {{{ hidden }}} #}{{{ outer }}}", 3),
+            [crate::VariableName::new("outer").unwrap()].into()
+        );
+    }
+
+    #[test]
+    fn global_function_calls_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% for i in range(1, n) %}{{ i }}{% endfor %}{{ dict(a=x) }}{% set ns = namespace(v=1) %}{{ range }}",
+        );
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("n").unwrap(),
+                crate::VariableName::new("range").unwrap(),
+                crate::VariableName::new("x").unwrap(),
+            ]
+            .into()
+        );
     }
 
     #[test]
@@ -308,6 +528,65 @@ mod tests {
             ]
             .into()
         );
+    }
+
+    #[test]
+    fn locals_cover_block_tuple_with_macro_call_and_recursive_for_forms() {
+        let tokens = discover_tokens(
+            "{% set y %}hi{% endset %}{{ y }}{% set a, c = 1, 2 %}{{ a }}{{ c }}{% with q = 1 %}{{ q }}{% endwith %}{% macro m(p) %}{{ p }}{{ caller() }}{% endmacro %}{{ m(1) }}{% call m() %}body{% endcall %}{% for i in xs if i recursive %}{{ i }}{{ loop() }}{% endfor %}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("xs").unwrap()].into());
+    }
+
+    #[test]
+    fn macro_default_parameters_bind_names_and_keep_defaults_referenced() {
+        let tokens =
+            discover_tokens("{% macro m(a, b=fallback) %}{{ a }}{{ b }}{% endmacro %}{{ m(1) }}");
+
+        assert_eq!(
+            tokens,
+            [crate::VariableName::new("fallback").unwrap()].into()
+        );
+    }
+
+    #[test]
+    fn unmatched_closing_tag_does_not_pop_another_scope_kind() {
+        let tokens = discover_tokens("{% for x in xs %}{% endwith %}{{ x }}{% endfor %}");
+
+        assert_eq!(tokens, [crate::VariableName::new("xs").unwrap()].into());
+    }
+
+    #[test]
+    fn block_locals_do_not_leak_past_endblock() {
+        let tokens = discover_tokens("{% block b %}{% set y = 1 %}{{ y }}{% endblock %}{{ y }}");
+
+        assert_eq!(tokens, [crate::VariableName::new("y").unwrap()].into());
+    }
+
+    #[test]
+    fn quoted_closing_delimiters_do_not_hide_later_identifiers() {
+        for (template, brace_count) in [
+            (r#"{{ "}}" ~ u }}"#, 2),
+            (r#"{{{ "}}}" ~ u }}}"#, 3),
+            (r#"{% set x = "}}" ~ u %}{{ x }}"#, 2),
+        ] {
+            assert_eq!(
+                discover_tokens_with_brace_count(template, brace_count),
+                [crate::VariableName::new("u").unwrap()].into(),
+                "template: {template}"
+            );
+        }
+    }
+
+    #[test]
+    fn double_braces_can_open_a_dict_literal_without_loosening_higher_braces() {
+        assert_eq!(
+            discover_tokens_with_brace_count(r#"{{{"a": u}["a"] }}"#, 2),
+            [crate::VariableName::new("u").unwrap()].into()
+        );
+        assert!(discover_tokens_with_brace_count(r#"{{{ "x" ~ y }}}"#, 2).is_empty());
+        assert!(discover_tokens_with_brace_count("{{{{ outer }}}}", 3).is_empty());
     }
 
     #[test]

@@ -18,6 +18,18 @@ const LOOP_CONTEXT_NAMES: &[&str] = &[
     "loop.cycle",
 ];
 
+/// Template-engine global functions; a call such as `range(n)` is never a
+/// variable reference.
+const GLOBAL_FUNCTIONS: &[&str] = &[
+    "range",
+    "dict",
+    "namespace",
+    "lipsum",
+    "cycler",
+    "joiner",
+    "debug",
+];
+
 const KEYWORDS: &[&str] = &[
     "if",
     "else",
@@ -30,7 +42,11 @@ const KEYWORDS: &[&str] = &[
     "true",
     "false",
     "none",
+    "True",
+    "False",
+    "None",
     "not",
+    "is",
     "and",
     "or",
     "block",
@@ -39,6 +55,11 @@ const KEYWORDS: &[&str] = &[
     "endmacro",
     "filter",
     "endfilter",
+    "with",
+    "endwith",
+    "call",
+    "endcall",
+    "recursive",
 ];
 
 pub(super) fn collect_identifiers(
@@ -51,11 +72,14 @@ pub(super) fn collect_identifiers(
         .flat_map(|scope| scope.bound_names.iter().map(String::as_str))
         .collect::<BTreeSet<_>>();
 
-    let masked_expression = mask_filter_names(&mask_quoted_literals(expression));
+    let masked_expression = collapse_numeric_indexes(&mask_calls_and_keyword_arguments(
+        &mask_test_names(&mask_filter_names(&mask_quoted_literals(expression))),
+    ));
     for candidate in masked_expression.split(|character: char| {
         !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
     }) {
         if candidate.is_empty()
+            || candidate.starts_with('.')
             || KEYWORDS.contains(&candidate)
             || !candidate
                 .chars()
@@ -74,9 +98,37 @@ pub(super) fn collect_identifiers(
     }
 }
 
+/// Treat an array index as part of its surrounding dotted path for declaration
+/// discovery: `items[0].name` is covered by `items.name`.
+fn collapse_numeric_indexes(expression: &str) -> String {
+    let chars = expression.chars().collect::<Vec<_>>();
+    let mut result = String::with_capacity(expression.len());
+    let mut index = 0;
+    while index < chars.len() {
+        if chars[index] == '[' {
+            let end = chars[index + 1..]
+                .iter()
+                .position(|character| *character == ']')
+                .map(|offset| index + offset + 1);
+            if let Some(end) = end
+                && chars[index + 1..end].iter().all(char::is_ascii_digit)
+            {
+                index = end + 1;
+                continue;
+            }
+        }
+        result.push(chars[index]);
+        index += 1;
+    }
+    result
+}
+
 fn is_loop_context_name(candidate: &str, expression: &str, scopes: &[LoopScope]) -> bool {
     if scopes.len() <= 1 {
         return false;
+    }
+    if candidate == "loop" {
+        return true;
     }
     if candidate != "loop.cycle" {
         return LOOP_CONTEXT_NAMES.contains(&candidate);
@@ -136,6 +188,84 @@ fn mask_filter_names(expression: &str) -> String {
             *character = ' ';
         }
         cursor = filter_end;
+    }
+    masked.into_iter().collect()
+}
+
+/// Blank the test name after `is` / `is not` (`x is defined`): like a filter
+/// name, it names a Jinja test, never a variable.
+fn mask_test_names(expression: &str) -> String {
+    let mut masked = expression.chars().collect::<Vec<_>>();
+    let is_word = |characters: &[char], start: usize, word: &str| {
+        let end = start + word.len();
+        end <= characters.len()
+            && characters[start..end].iter().copied().eq(word.chars())
+            && (start == 0 || !is_identifier_char(characters[start - 1]))
+            && characters
+                .get(end)
+                .is_none_or(|next| !is_identifier_char(*next))
+    };
+    let skip_whitespace = |characters: &[char], mut cursor: usize| {
+        while cursor < characters.len() && characters[cursor].is_ascii_whitespace() {
+            cursor += 1;
+        }
+        cursor
+    };
+    let mut cursor = 0;
+    while cursor < masked.len() {
+        if !is_word(&masked, cursor, "is") {
+            cursor += 1;
+            continue;
+        }
+        let mut test_start = skip_whitespace(&masked, cursor + 2);
+        if is_word(&masked, test_start, "not") {
+            test_start = skip_whitespace(&masked, test_start + 3);
+        }
+        let mut test_end = test_start;
+        while test_end < masked.len() && is_identifier_char(masked[test_end]) {
+            test_end += 1;
+        }
+        for character in &mut masked[test_start..test_end] {
+            *character = ' ';
+        }
+        cursor = test_end.max(cursor + 2);
+    }
+    masked.into_iter().collect()
+}
+
+fn is_identifier_char(character: char) -> bool {
+    character.is_ascii_alphanumeric() || character == '_'
+}
+
+/// Blank global-function names in call position (`range(n)`) and keyword
+/// argument names (`dict(a=x)`): neither is a variable reference.
+fn mask_calls_and_keyword_arguments(expression: &str) -> String {
+    let mut masked = expression.chars().collect::<Vec<_>>();
+    let mut cursor = 0;
+    while cursor < masked.len() {
+        if !is_identifier_char(masked[cursor])
+            || (cursor > 0 && matches!(masked[cursor - 1], '.' | '-'))
+        {
+            cursor += 1;
+            continue;
+        }
+        let start = cursor;
+        while cursor < masked.len() && is_identifier_char(masked[cursor]) {
+            cursor += 1;
+        }
+        let mut next = cursor;
+        while next < masked.len() && masked[next].is_ascii_whitespace() {
+            next += 1;
+        }
+        let word = masked[start..cursor].iter().collect::<String>();
+        let is_call = masked.get(next) == Some(&'(') && GLOBAL_FUNCTIONS.contains(&word.as_str());
+        let is_keyword_argument =
+            masked.get(next) == Some(&'=') && masked.get(next + 1) != Some(&'=');
+        if is_call || is_keyword_argument {
+            for character in &mut masked[start..cursor] {
+                *character = ' ';
+            }
+        }
     }
     masked.into_iter().collect()
 }

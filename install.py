@@ -454,7 +454,7 @@ def render_template(template: Path, values: dict[str, object], output: Path) -> 
         root=PACKAGE_ROOT,
         mode=sc_compose.ComposeMode.file(str(template_path.relative_to(PACKAGE_ROOT))),
         vars_input=template_values(values),
-        policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+        policy=sc_compose.ComposePolicy(),
     )
     rendered = sc_compose.compose_file(request).rendered_text
     tomllib.loads(rendered)

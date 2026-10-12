@@ -184,7 +184,10 @@ fn render_json_append_malformed_json_reports_failure_code() {
 #[test]
 fn render_json_legacy_mode_supports_existing_quoted_placeholders() {
     let root = temp_root("render-json-legacy-mode");
-    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -211,7 +214,7 @@ fn render_json_frontmatter_mode_is_used_when_cli_mode_is_absent() {
     let root = temp_root("render-json-frontmatter-mode");
     write_file(
         &root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
     );
 
     let output = sc_compose()
@@ -280,7 +283,7 @@ fn render_json_cli_mode_overrides_frontmatter_mode() {
     let root = temp_root("render-json-cli-mode");
     write_file(
         &root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"value\": {{ value }}}",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}",
     );
 
     let output = sc_compose()
@@ -308,7 +311,7 @@ fn render_json_auto_mode_preserves_types_for_bare_placeholders() {
     let root = temp_root("render-json-auto-mode");
     write_file(
         &root.join("payload.json.j2"),
-        r#"{"count": {{ count }}, "enabled": {{ enabled }}}"#,
+        "---\nrequired_variables:\n  - count\n  - enabled\n---\n{\"count\": {{ count }}, \"enabled\": {{ enabled }}}",
     );
     let vars_file = root.join("vars.json");
     write_file(&vars_file, r#"{"count": 3, "enabled": true}"#);
@@ -335,7 +338,10 @@ fn render_json_auto_mode_preserves_types_for_bare_placeholders() {
 #[test]
 fn render_json_auto_mode_rejects_quoted_placeholder_before_stdout_emission() {
     let root = temp_root("render-json-malformed-output");
-    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
+    );
 
     let output = sc_compose()
         .args([
@@ -450,7 +456,10 @@ fn render_json_multi_pass_failure_identifies_an_early_pass_before_later_configur
 #[test]
 fn render_check_render_preserves_non_json_output_behavior() {
     let root = temp_root("render-text-check-render");
-    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
 
     let plain = sc_compose()
         .args([
@@ -490,7 +499,10 @@ fn render_check_render_preserves_non_json_output_behavior() {
 #[test]
 fn render_json_parser_failure_preserves_diagnostic_envelope() {
     let root = temp_root("render-json-malformed-envelope");
-    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
+    );
 
     let output = sc_compose()
         .args([
@@ -521,7 +533,10 @@ fn render_json_parser_failure_preserves_diagnostic_envelope() {
 fn render_json_file_parser_failure_does_not_create_output() {
     let root = temp_root("render-json-malformed-file");
     let output_path = root.join("payload.json");
-    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
+    );
 
     let output = sc_compose()
         .args([
@@ -547,7 +562,10 @@ fn render_json_file_parser_failure_does_not_create_output() {
 #[test]
 fn render_json_check_render_reports_checked_contract() {
     let root = temp_root("render-json-check-render");
-    write_file(&root.join("payload.json.j2"), r#"{"value": {{ value }}}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}",
+    );
 
     let output = sc_compose()
         .args([
@@ -587,7 +605,7 @@ fn render_json_report_attributes_pack_root_include_and_caller_sources() {
     );
     write_file(
         &pack_root.join("report.json.j2"),
-        "---\ndefaults:\n  root_default: from-root\n---\n{\"pack\": {{ pack_default }}, \"override\": {{ override }}}\n@<includes/fragment.j2>\n",
+        "---\nrequired_variables:\n  - pack_default\n  - override\ndefaults:\n  root_default: from-root\n---\n{\"pack\": {{ pack_default }}, \"override\": {{ override }}}\n@<includes/fragment.j2>\n",
     );
     write_file(
         &pack_root.join("includes/fragment.j2"),
@@ -623,7 +641,7 @@ fn render_json_custom_delimiter_report_attributes_included_defaults() {
     let root = temp_root("render-json-custom-context-sources");
     write_file(
         &root.join("payload.json.j2"),
-        "---\ndefaults:\n  root_default: from-root\n---\n{\"root\": {{{ root_default }}}, \"override\": {{{ override }}}}\n@<fragment.j2>\n",
+        "---\nrequired_variables:\n  - override\ndefaults:\n  root_default: from-root\n---\n{\"root\": {{{ root_default }}}, \"override\": {{{ override }}}}\n@<fragment.j2>\n",
     );
     write_file(
         &root.join("fragment.j2"),
@@ -743,7 +761,10 @@ fn render_json_stdout_includes_body_matching_plain_render() {
 #[test]
 fn render_json_stdout_bytes_written_includes_trailing_newline() {
     let root = temp_root("render-json-stdout-bytes-written");
-    write_file(&root.join("template.md.j2"), "hello {{ name }}");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}",
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -768,7 +789,10 @@ fn render_json_stdout_bytes_written_includes_trailing_newline() {
 #[test]
 fn render_json_stdout_bytes_match_plain_stdout_bytes() {
     let root = temp_root("render-json-stdout-byte-parity");
-    write_file(&root.join("template.md.j2"), "hello {{ name }}");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}",
+    );
 
     let plain_output = sc_compose()
         .arg("render")
@@ -1240,7 +1264,10 @@ fn render_dry_run_json_reports_default_usage_info_for_template_json_defaults() {
         &pack_root.join("template.json"),
         r#"{ "description": "Report template", "version": "1.0.0", "input_defaults": { "name": "world" } }"#,
     );
-    write_file(&pack_root.join("report.md.j2"), "hello {{ name }}\n");
+    write_file(
+        &pack_root.join("report.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
 
     let output = sc_compose()
         .arg("templates")
@@ -1514,7 +1541,7 @@ fn render_check_render_rejects_malformed_json_despite_doubled_template_suffix() 
     let root = temp_root("render-check-render-doubled-suffix");
     write_file(
         &root.join("payload.json.j2.j2"),
-        "{\"value\": \"{{ value }}\"",
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"",
     );
 
     let output = sc_compose()
@@ -1545,7 +1572,10 @@ fn render_check_render_rejects_malformed_json_despite_doubled_template_suffix() 
 #[test]
 fn render_check_render_rejects_malformed_json_for_uppercase_json_extension() {
     let root = temp_root("render-check-render-uppercase-extension");
-    write_file(&root.join("payload.JSON.j2"), "{\"value\": \"{{ value }}\"");
+    write_file(
+        &root.join("payload.JSON.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"",
+    );
 
     let output = sc_compose()
         .args([

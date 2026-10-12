@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Map;
 
+use crate::BeadVariableRendering;
 use crate::error::BeadComposeError;
 use crate::paths::public_path_buf;
 
@@ -49,6 +50,56 @@ pub(crate) fn render_formula_in_root(
     compose_variables: &Map<String, serde_json::Value>,
     working_directory: &Path,
 ) -> Result<(), BeadComposeError> {
+    render_formula_in_root_with_bead_variables(
+        template,
+        rendered_formula,
+        compose_variables,
+        &BTreeMap::new(),
+        working_directory,
+    )
+}
+
+/// Render with composition and Beads runtime variables confined to one root.
+pub(crate) fn render_formula_in_root_with_bead_variables(
+    template: &Path,
+    rendered_formula: &Path,
+    compose_variables: &Map<String, serde_json::Value>,
+    bead_variables: &BTreeMap<String, String>,
+    working_directory: &Path,
+) -> Result<(), BeadComposeError> {
+    render_formula_in_root_with_bead_variables_and_mode(
+        template,
+        rendered_formula,
+        compose_variables,
+        bead_variables,
+        BeadVariableRendering::ScCompose,
+        working_directory,
+    )
+}
+
+/// Render with an explicit owner for ordinary Beads variable expressions.
+///
+/// The formula renders in one pass with the `{{{ }}}` composition delimiters.
+/// When sc-compose owns ordinary Beads expressions, each source `{{ expr }}`
+/// is first folded into `{{{ expr }}}`, so both forms share one context, one
+/// strict validation scan and one render, and no rendered value is parsed
+/// again. When bd owns them, `{{ expr }}` is plain text to the renderer and
+/// reaches bd byte-for-byte.
+pub(crate) fn render_formula_in_root_with_bead_variables_and_mode(
+    template: &Path,
+    rendered_formula: &Path,
+    compose_variables: &Map<String, serde_json::Value>,
+    bead_variables: &BTreeMap<String, String>,
+    bead_variable_rendering: BeadVariableRendering,
+    working_directory: &Path,
+) -> Result<(), BeadComposeError> {
+    if let Some(key) = bead_variables
+        .keys()
+        .find(|name| compose_variables.contains_key(name.as_str()))
+    {
+        // One render context: a name supplied twice has no single value.
+        return Err(BeadComposeError::BeadVariableKeyDuplicate { key: key.clone() });
+    }
     let root =
         sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
     let request = sc_composer::ComposeRequest {
@@ -57,12 +108,18 @@ pub(crate) fn render_formula_in_root(
             template_path: template.to_path_buf(),
         },
         root,
-        vars_input: compose_variables
+        vars_input: bead_variables
             .iter()
+            .map(|(name, value)| (name.as_str(), serde_json::Value::String(value.clone())))
+            .chain(
+                compose_variables
+                    .iter()
+                    .map(|(name, value)| (name.as_str(), value.clone())),
+            )
             .filter_map(|(name, value)| {
-                sc_composer::VariableName::new(name.as_str())
+                sc_composer::VariableName::new(name)
                     .ok()
-                    .map(|name| (name, value.clone()))
+                    .map(|name| (name, value))
             })
             .collect(),
         vars_env: BTreeMap::new(),
@@ -71,48 +128,39 @@ pub(crate) fn render_formula_in_root(
         user_prompt: None,
         policy: sc_composer::ComposePolicy::default(),
     };
-    // Reuse the library validation path so frontmatter `required_variables`
-    // and `defaults` have the same meaning here as in `sc-composer` render.
-    let (report, expanded) = sc_composer::validate_with_observer_and_delimiters_with_expansion(
-        &request,
-        &mut sc_composer::NoopObserver,
-        Some((OPEN_DELIMITER, CLOSE_DELIMITER)),
-    )
-    .map_err(|error| BeadComposeError::RenderFailed {
+    let compose_error = |error: sc_composer::ComposeError| BeadComposeError::RenderFailed {
         message: error.to_string(),
-    })?;
+    };
+    let resolve_result = sc_composer::resolve_template_path(&request).map_err(compose_error)?;
+    let mut expanded = sc_composer::expand_includes(
+        &resolve_result.resolved_path,
+        &request.root,
+        &request.policy,
+    )
+    .map_err(compose_error)?;
+    if bead_variable_rendering == BeadVariableRendering::ScCompose {
+        expanded.text = crate::expressions::fold_bead_expressions(&expanded.text);
+    }
+    // Reuse the library validation so frontmatter `required_variables` and
+    // `defaults` (from every included file) mean the same here as in
+    // `sc-composer` render, and validate the exact text that renders.
+    let (report, context) = sc_composer::validate_expanded_with_context(
+        &request,
+        &expanded,
+        resolve_result,
+        (OPEN_DELIMITER, CLOSE_DELIMITER),
+    );
     if !report.ok {
-        return Err(BeadComposeError::RenderFailed {
-            message: report
-                .errors
-                .iter()
-                .map(|diagnostic| format!("{:?}: {}", diagnostic.code, diagnostic.message))
-                .collect::<Vec<_>>()
-                .join("; "),
-        });
+        return Err(validation_error(&report));
     }
-    let mut context = BTreeMap::new();
-    if let Some(frontmatter) = expanded.frontmatters.iter().find_map(|(path, passes)| {
-        (path == &report.resolve_result.resolved_path)
-            .then(|| passes.first())
-            .flatten()
-    }) {
-        for (name, value) in frontmatter.defaults() {
-            context.insert(name.to_string(), value.clone());
-        }
-    }
-    for (name, value) in compose_variables {
-        context.insert(name.clone(), value.clone());
-    }
+    // The renderer refuses to print an undefined value, so a variable with no
+    // caller value and no frontmatter default never reaches bd as `""` or
+    // `"null"` (TMPL5-02).
     let rendered = sc_composer::Renderer::with_delimiters_and_escape_mode(
         OPEN_DELIMITER,
         CLOSE_DELIMITER,
         escape_mode(template),
     )
-    // A composition variable with no caller value and no frontmatter default
-    // would otherwise render as `""` or `"null"` and reach bd as a valid
-    // formula; bead rendering refuses it (TMPL5-02).
-    .map(sc_composer::Renderer::refusing_undefined)
     .and_then(|renderer| {
         renderer.render_named(&template.to_string_lossy(), &expanded.text, context)
     })
@@ -120,6 +168,17 @@ pub(crate) fn render_formula_in_root(
         message: error.message().to_owned(),
     })?;
     atomic_write(rendered_formula, rendered.as_bytes())
+}
+
+fn validation_error(report: &sc_composer::ValidationReport) -> BeadComposeError {
+    BeadComposeError::RenderFailed {
+        message: report
+            .errors
+            .iter()
+            .map(|diagnostic| format!("{:?}: {}", diagnostic.code, diagnostic.message))
+            .collect::<Vec<_>>()
+            .join("; "),
+    }
 }
 
 /// Reject a final output component that would redirect a renderer write.
@@ -286,13 +345,178 @@ fn escape_mode(template: &Path) -> sc_composer::TemplateEscapeMode {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use serde_json::{Map, json};
 
-    use super::{render_formula, render_formula_in_root};
+    use super::{
+        render_formula, render_formula_in_root, render_formula_in_root_with_bead_variables,
+        render_formula_in_root_with_bead_variables_and_mode,
+    };
+
+    #[test]
+    fn bead_variables_render_padded_and_tight_placeholders() {
+        let root = temporary_directory();
+        let template = root.join("bead-vars.formula.toml.j2");
+        let output = root.join("bead-vars.formula.toml");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - project\n  - release_name\n---\ntitle = \"{{ release_name }}\"\ndescription = \"{{release_name}}\"\nlabel = \"{{ release_name | upper }}\"\nproject = \"{{{ project }}}\"\n",
+        )
+        .expect("write template");
+
+        render_formula_in_root_with_bead_variables(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("project"), json!("sc-compose"))]),
+            &BTreeMap::from([(String::from("release_name"), String::from("release-x"))]),
+            &root,
+        )
+        .expect("render bead variables");
+
+        assert_eq!(
+            fs::read_to_string(&output).expect("read output"),
+            "title = \"release-x\"\ndescription = \"release-x\"\nlabel = \"RELEASE-X\"\nproject = \"sc-compose\""
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn bd_variable_rendering_leaves_ordinary_placeholders_untouched() {
+        let root = temporary_directory();
+        let template = root.join("bd-vars.formula.toml.j2");
+        let output = root.join("bd-vars.formula.toml");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - title\n---\ntitle = \"{{{ title }}}\"\nruntime = \"{{ bd_only }}\"\n",
+        )
+        .expect("write template");
+
+        render_formula_in_root_with_bead_variables_and_mode(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("title"), json!("Composed"))]),
+            &BTreeMap::from([(String::from("bd_only"), String::from("runtime"))]),
+            crate::BeadVariableRendering::Bd,
+            &root,
+        )
+        .expect("bd owns ordinary placeholders");
+
+        assert_eq!(
+            fs::read_to_string(&output).expect("read output"),
+            "title = \"Composed\"\nruntime = \"{{ bd_only }}\""
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn bd_variable_rendering_keeps_triple_brace_validation_strict() {
+        let root = temporary_directory();
+        let template = root.join("missing-compose.formula.toml.j2");
+        let output = root.join("missing-compose.formula.toml");
+        fs::write(
+            &template,
+            "title = \"{{{ missing }}}\"\nruntime = \"{{ bd_only }}\"\n",
+        )
+        .expect("write template");
+        let error = render_formula_in_root_with_bead_variables_and_mode(
+            &template,
+            &output,
+            &Map::new(),
+            &BTreeMap::new(),
+            crate::BeadVariableRendering::Bd,
+            &root,
+        )
+        .expect_err("undeclared triple-brace value is refused");
+        assert!(
+            matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("missing"))
+        );
+        assert!(!output.exists());
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn supplied_values_with_jinja_syntax_remain_literal_across_both_passes() {
+        let root = temporary_directory();
+        let template = root.join("literal-values.formula.toml.j2");
+        let output = root.join("literal-values.formula.toml");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - compose_value\n  - bead_value\n---\ncompose = \"{{{ compose_value }}}\"\nbead = \"{{ bead_value }}\"\n",
+        )
+        .expect("write template");
+        let literal = "literal {{ x }} {% if x %}";
+
+        render_formula_in_root_with_bead_variables(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("compose_value"), json!(literal))]),
+            &BTreeMap::from([(String::from("bead_value"), literal.to_owned())]),
+            &root,
+        )
+        .expect("render literal Jinja syntax");
+
+        assert_eq!(
+            fs::read_to_string(&output).expect("read output"),
+            format!("compose = \"{literal}\"\nbead = \"{literal}\"")
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn filters_treat_literal_braces_as_one_caseless_character() {
+        let root = temporary_directory();
+        let template = root.join("literal-brace-filters.formula.toml.j2");
+        let output = root.join("literal-brace-filters.formula.toml");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - compose_value\n  - bead_value\n---\ncompose_lower = \"{{{ compose_value | lower }}}\"\ncompose_length = \"{{{ compose_value | length }}}\"\ncompose_slice = \"{{{ compose_value[:3] }}}\"\nbead_lower = \"{{ bead_value | lower }}\"\nbead_length = \"{{ bead_value | length }}\"\nbead_slice = \"{{ bead_value[:3] }}\"\n",
+        )
+        .expect("write template");
+        let value = "A{BC";
+
+        render_formula_in_root_with_bead_variables(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("compose_value"), json!(value))]),
+            &BTreeMap::from([(String::from("bead_value"), value.to_owned())]),
+            &root,
+        )
+        .expect("render filtered literal braces");
+
+        assert_eq!(
+            fs::read_to_string(&output).expect("read output"),
+            "compose_lower = \"a{bc\"\ncompose_length = \"4\"\ncompose_slice = \"A{B\"\nbead_lower = \"a{bc\"\nbead_length = \"4\"\nbead_slice = \"A{B\""
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn bead_placeholder_without_a_supplied_or_declared_value_is_refused() {
+        let root = temporary_directory();
+        let template = root.join("undeclared-bead-var.formula.toml.j2");
+        let output = root.join("undeclared-bead-var.formula.toml");
+        fs::write(&template, "title = \"{{ missing_key }}\"\n").expect("write template");
+
+        let error = render_formula_in_root_with_bead_variables(
+            &template,
+            &output,
+            &Map::new(),
+            &BTreeMap::new(),
+            &root,
+        )
+        .expect_err("undeclared bead placeholder must be refused");
+
+        assert!(
+            matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("missing_key")),
+            "{error:?}"
+        );
+        assert!(!output.exists(), "nothing is written on refusal");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
 
     // TMPL5-02: a template that declares a required input must refuse when the
     // input is absent instead of rendering a successful but incorrect formula.
@@ -316,10 +540,39 @@ mod tests {
         fs::remove_dir_all(root).expect("cleanup");
     }
 
-    // TMPL5-02: without frontmatter an undefined composition variable must be
-    // refused too, not rendered as `""` (TOML) or `"null"` (JSON).
     #[test]
-    fn undefined_variable_without_frontmatter_is_refused() {
+    fn frontmatter_rejects_provided_undeclared_variable() {
+        let root = temporary_directory();
+        let template = root.join("strict.formula.toml.j2");
+        let output = root.join("strict.formula.toml");
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - phase\n---\ndescription = \"{{{ phase }}} {{{ nobody }}}\"\n",
+        )
+        .expect("write template");
+
+        let error = render_formula(
+            &template,
+            &output,
+            &Map::from_iter([
+                (String::from("phase"), json!("x")),
+                (String::from("nobody"), json!("z")),
+            ]),
+        )
+        .expect_err("provided undeclared input must be refused");
+
+        assert!(
+            matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("nobody")),
+            "{error:?}"
+        );
+        assert!(!output.exists(), "nothing is written on refusal");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+    // Without frontmatter a composition variable is undeclared, so it is
+    // refused whether or not the caller supplies it: never rendered as `""`
+    // (TOML) or `"null"` (JSON), and never accepted without a declaration.
+    #[test]
+    fn undeclared_variable_without_frontmatter_is_refused() {
         let root = temporary_directory();
         for (name, body) in [
             ("undefined.formula.toml.j2", "title = \"{{{ title }}}\"\n"),
@@ -331,25 +584,18 @@ mod tests {
             let template = root.join(name);
             let output = root.join(name.trim_end_matches(".j2"));
             fs::write(&template, body).expect("write template");
-            let error = render_formula(&template, &output, &Map::new())
-                .expect_err("undefined variable must be refused");
-            assert!(
-                matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("title")),
-                "{name}: {error:?}"
-            );
-            assert!(!output.exists(), "{name}: nothing is written on refusal");
-
-            render_formula(
-                &template,
-                &output,
-                &Map::from_iter([(String::from("title"), json!("set"))]),
-            )
-            .expect("a defined variable still renders");
-            assert!(
-                fs::read_to_string(&output)
-                    .expect("read output")
-                    .contains("set")
-            );
+            for variables in [
+                Map::new(),
+                Map::from_iter([(String::from("title"), json!("set"))]),
+            ] {
+                let error = render_formula(&template, &output, &variables)
+                    .expect_err("an undeclared variable must be refused");
+                assert!(
+                    matches!(error, crate::BeadComposeError::RenderFailed { ref message } if message.contains("title")),
+                    "{name}: {error:?}"
+                );
+                assert!(!output.exists(), "{name}: nothing is written on refusal");
+            }
         }
         fs::remove_dir_all(root).expect("cleanup");
     }
@@ -379,15 +625,15 @@ mod tests {
         let output = root.join("defaulted.formula.toml");
         fs::write(
             &template,
-            "---\ndefaults:\n  title: fallback\n---\ntitle = \"{{{ title }}}\"\nrun = \"{{ bead_var }}\"\n",
+            "---\ndefaults:\n  title: fallback\n---\ntitle = \"{{{ title }}}\"\nrun = \"literal\"\n",
         )
         .expect("write template");
         render_formula(&template, &output, &Map::new()).expect("default satisfies the variable");
         let rendered = fs::read_to_string(&output).expect("read output");
         assert!(rendered.contains("title = \"fallback\""), "{rendered}");
         assert!(
-            rendered.contains("{{ bead_var }}"),
-            "Beads runtime vars stay literal: {rendered}"
+            rendered.contains("run = \"literal\""),
+            "ordinary formula content is retained: {rendered}"
         );
         fs::remove_dir_all(root).expect("cleanup");
     }
@@ -487,20 +733,22 @@ mod tests {
         let output = root.join("example.formula.json");
         fs::write(
             &template,
-            r#"{ "title": "{{{ title }}}", "runtime": "{{ bead_var }}" }"#,
+            "---\nrequired_variables:\n  - title\n  - bead_var\n---\n{ \"title\": \"{{{ title }}}\", \"runtime\": \"{{ bead_var }}\" }",
         )
         .expect("write template");
-        render_formula(
+        render_formula_in_root_with_bead_variables(
             &template,
             &output,
             &Map::from_iter([(String::from("title"), json!("café\nnext"))]),
+            &BTreeMap::from([(String::from("bead_var"), String::from("runtime"))]),
+            &root,
         )
         .expect("render JSON formula");
 
         let rendered = fs::read_to_string(&output).expect("read output");
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&rendered).expect("valid JSON"),
-            json!({ "title": "café\nnext", "runtime": "{{ bead_var }}" })
+            json!({ "title": "café\nnext", "runtime": "runtime" })
         );
         fs::remove_dir_all(root).expect("cleanup");
     }
@@ -516,7 +764,7 @@ mod tests {
         let output = root.join("example.formula.toml");
         fs::write(
             &template,
-            "single = \"{{{ x }}}\"\nmultiline = \"\"\"{{{ x }}}\"\"\"",
+            "---\nrequired_variables:\n  - x\n---\nsingle = \"{{{ x }}}\"\nmultiline = \"\"\"{{{ x }}}\"\"\"",
         )
         .expect("write template");
         let hostile = "has \"quotes\" and \\backslash\nwith a second line";
@@ -593,22 +841,23 @@ mod tests {
         .expect("first include");
         fs::write(
             root.join("templates/parts/two.toml.j2"),
-            "title = \"{{{ title }}}\"\nruntime = \"{{ bead_var }}\"\n",
+            "---\nrequired_variables:\n  - title\n  - bead_var\n---\ntitle = \"{{{ title }}}\"\nruntime = \"{{ bead_var }}\"\n",
         )
         .expect("relative include");
         fs::write(root.join("shared/root.toml.j2"), "root = true\n")
             .expect("root fallback include");
         let output = root.join("out.formula.toml");
-        render_formula_in_root(
+        render_formula_in_root_with_bead_variables(
             &template,
             &output,
             &Map::from_iter([(String::from("title"), json!("Included"))]),
+            &BTreeMap::from([(String::from("bead_var"), String::from("runtime"))]),
             &root,
         )
         .expect("expand and render");
         assert_eq!(
             fs::read_to_string(output).expect("output"),
-            "title = \"Included\"\nruntime = \"{{ bead_var }}\"\nroot = true"
+            "title = \"Included\"\nruntime = \"runtime\"\nroot = true"
         );
         fs::remove_dir_all(root).expect("cleanup");
     }

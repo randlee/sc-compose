@@ -16,6 +16,12 @@ required_variables:
   - round_id
   - round_index
   - replay_nonce
+defaults:
+  previous_reviewed_commit: ""
+  questions_or_concerns: ""
+  reviewer_findings_json: ""
+  supersedes_task_id: ""
+  reviewed_commit: ""
 ---
 <atm-task id="{{ task_id }}" sprint="{{ phase }}" assignee="comp" mode="plan-hardening-consistency">
   <description>{{ description }}</description>

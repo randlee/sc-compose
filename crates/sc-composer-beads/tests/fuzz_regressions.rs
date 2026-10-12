@@ -67,6 +67,7 @@ impl Workspace {
                 compose_variables: serde_json::Map::new(),
                 formula_name: Some(FormulaName::new("sample").expect("formula name")),
                 bead_variables: BTreeMap::new(),
+                bead_variable_rendering: sc_composer_beads::BeadVariableRendering::ScCompose,
                 bd_executable: Some(PathBuf::from("fake-bd")),
                 pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
                 parent: Some(BeadId::new("proj-1").expect("parent")),
@@ -563,7 +564,7 @@ const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 // FUZZ-040: recovery command arguments cannot execute shell syntax or emit controls.
 #[test]
 fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
-    let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}\u{200b}\u{00ad}$(literal)$HOME`literal`";
+    let from = "source'\\\u{202e}\u{200b}\u{00ad}$(literal)$HOME`literal`";
     let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}\u{feff}";
     let error = sc_composer_beads::BeadComposeError::GraphEdgeMissing {
         edges: vec![sc_composer_beads::MissingEdge {
@@ -603,6 +604,12 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
     assert!(escaped_separators.contains("\\342\\200\\251"));
     #[cfg(unix)]
     assert_sh_round_trip(&escaped_separators, format!("{separators}\0").as_bytes());
+    let controls = "\u{7}\u{7f}\u{80}";
+    let quoted_controls = sc_composer_beads::error::shell_quote(controls);
+    assert!(!quoted_controls.chars().any(char::is_control));
+    assert!(quoted_controls.contains("\\007\\177\\302\\200"));
+    #[cfg(unix)]
+    assert_sh_round_trip(&quoted_controls, format!("{controls}\0").as_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
     for value in [
         "",
@@ -969,9 +976,9 @@ fn fuzz_014_concurrent_attaches_keep_complete_inputs_and_receipts() {
         w.req.template = w.root.join(format!("sample.formula.{suffix}.j2"));
         w.req.rendered_formula = w.root.join(format!("sample.formula.{suffix}"));
         fs::write(&w.req.template, if suffix == "toml" {
-            "formula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\ndescription = \"{{{ description }}}\"\n"
+            "---\nrequired_variables:\n  - step\n  - title\n  - description\n---\nformula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\ndescription = \"{{{ description }}}\"\n"
         } else {
-            r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}","description":"{{{ description }}}"}]}"#
+            concat!("---\nrequired_variables:\n  - step\n  - title\n  - description\n---\n", r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}","description":"{{{ description }}}"}]}"#)
         }).expect("template");
         let (tx_a, rx_a) = std::sync::mpsc::channel();
         let (tx_b, rx_b) = std::sync::mpsc::channel();
@@ -1280,9 +1287,9 @@ fn fuzz_014b_concurrent_bypath_pours_validate_their_own_initial_cook_inputs() {
             w.req.template = w.root.join(format!("sample.formula.{suffix}.j2"));
             w.req.rendered_formula = w.root.join(format!("sample.formula.{suffix}"));
             fs::write(&w.req.template, if suffix == "toml" {
-                "formula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\n"
+                "---\nrequired_variables:\n  - step\n  - title\n---\nformula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\n"
             } else {
-                r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}"}]}"#
+                concat!("---\nrequired_variables:\n  - step\n  - title\n---\n", r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}"}]}"#)
             }).expect("template");
             let registry = w.root.join(".beads");
             fs::create_dir(&registry).expect("registry");
@@ -1968,4 +1975,129 @@ fn fuzz_055_r3_create_failures_and_preview_receipts_name_public_graph_plan() {
             );
         }
     }
+}
+
+fn configure_render_request(w: &mut Workspace, template: &Path, destination: &Path) {
+    w.req.operation = BeadOperation::Render;
+    w.req.template = template.to_path_buf();
+    w.req.rendered_formula = destination.to_path_buf();
+    w.req.parent = None;
+    w.req.ref_ = None;
+    w.req.pour_authorization = None;
+    w.req.formula_name = None;
+    w.req.bead_variables.clear();
+}
+
+// PF-001: on a case-insensitive filesystem, differently-cased output aliases
+// the template and must be refused before rendering can replace it.
+#[test]
+fn pf_001_case_insensitive_destination_alias_is_refused_before_render() {
+    let mut w = Workspace::new();
+    let template = w.root.join("x.formula.toml");
+    let destination = w.root.join("X.formula.toml");
+    let original = b"formula = \"sample\"\n";
+    fs::write(&template, original).expect("template");
+    if !destination.exists() {
+        eprintln!("skipping case-alias assertion on case-sensitive filesystem");
+        return;
+    }
+    configure_render_request(&mut w, &template, &destination);
+
+    let runner = FakeRunner::new([]);
+    let error = execute_bead_request_with_runner(&w.req, &runner)
+        .expect_err("case-folded output alias must be refused");
+    assert!(
+        matches!(&error, BeadComposeError::OutputPathInvalid { path, rule } if path.to_string_lossy() == public_path(&destination) && rule.contains("must not overwrite the template")),
+        "{error}"
+    );
+    assert_eq!(fs::read(&template).expect("template bytes"), original);
+    assert_eq!(
+        fs::read(&destination).expect("aliased output bytes"),
+        original
+    );
+    assert!(runner.calls().is_empty(), "render refusal must precede bd");
+}
+
+// PF-001: on macOS, Unicode-normalization aliases must also be refused.
+#[cfg(target_os = "macos")]
+#[test]
+fn pf_001_unicode_normalization_destination_alias_is_refused_before_render() {
+    let mut w = Workspace::new();
+    let template = w.root.join("caf\u{00e9}.formula.toml");
+    let destination = w.root.join("cafe\u{0301}.formula.toml");
+    let original = b"formula = \"sample\"\n";
+    fs::write(&template, original).expect("template");
+    if !destination.exists() {
+        eprintln!("skipping normalization-alias assertion on non-normalizing filesystem");
+        return;
+    }
+    configure_render_request(&mut w, &template, &destination);
+
+    let runner = FakeRunner::new([]);
+    let error = execute_bead_request_with_runner(&w.req, &runner)
+        .expect_err("Unicode-normalization output alias must be refused");
+    assert!(
+        matches!(&error, BeadComposeError::OutputPathInvalid { path, rule } if path.to_string_lossy() == public_path(&destination) && rule.contains("must not overwrite the template")),
+        "{error}"
+    );
+    assert_eq!(fs::read(&template).expect("template bytes"), original);
+    assert_eq!(
+        fs::read(&destination).expect("aliased output bytes"),
+        original
+    );
+    assert!(runner.calls().is_empty(), "render refusal must precede bd");
+}
+
+// PF-001: an exact source/destination path remains rejected as well.
+#[test]
+fn pf_001_exact_template_destination_is_refused() {
+    let mut w = Workspace::new();
+    let template = w.root.join("exact.formula.toml");
+    let original = b"formula = \"sample\"\n";
+    fs::write(&template, original).expect("template");
+    configure_render_request(&mut w, &template, &template);
+
+    let runner = FakeRunner::new([]);
+    let error = execute_bead_request_with_runner(&w.req, &runner)
+        .expect_err("exact output path must be refused");
+    assert!(
+        matches!(&error, BeadComposeError::OutputPathInvalid { rule, .. } if rule.contains("must not overwrite the template")),
+        "{error}"
+    );
+    assert_eq!(fs::read(&template).expect("template bytes"), original);
+    assert!(runner.calls().is_empty());
+}
+
+// PF-001: hard-link destinations remain replaceable without changing the
+// template directory entry or its bytes.
+#[cfg(unix)]
+#[test]
+fn pf_001_hard_link_destination_keeps_atomic_replace_behavior() {
+    use std::os::unix::fs::MetadataExt;
+
+    let mut w = Workspace::new();
+    let template = w.root.join("source.formula.toml");
+    let destination = w.root.join("rendered.formula.toml");
+    let original = b"formula = \"sample\"\n";
+    fs::write(&template, original).expect("template");
+    fs::hard_link(&template, &destination).expect("hard link");
+    configure_render_request(&mut w, &template, &destination);
+
+    let runner = FakeRunner::new([]);
+    let receipt = execute_bead_request_with_runner(&w.req, &runner).expect("render");
+
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    assert_eq!(fs::read(&template).expect("template bytes"), original);
+    assert_eq!(
+        fs::read(&destination).expect("rendered bytes"),
+        b"formula = \"sample\""
+    );
+    let source_metadata = fs::metadata(&template).expect("source metadata");
+    let output_metadata = fs::metadata(&destination).expect("output metadata");
+    assert_ne!(
+        (source_metadata.dev(), source_metadata.ino()),
+        (output_metadata.dev(), output_metadata.ino()),
+        "atomic replacement must break only the destination hard link"
+    );
+    assert!(runner.calls().is_empty());
 }

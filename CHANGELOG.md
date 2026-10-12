@@ -4,6 +4,123 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-10-12
+
+### Added
+
+- Beads requests can opt into `bead_variable_rendering: "bd"` (or the
+  `--true-bd-render` CLI flag) to preserve ordinary `{{ variable }}`
+  expressions for Beads while still composing triple-brace expressions. In
+  this mode, `bd` does not substitute padded `{{ name }}` expressions
+  ([beads#21](https://github.com/steveyegge/beads/issues/21)); supplied values
+  containing literal braces remain literal under filters; and attach/graph
+  pour leave ordinary expressions for `bd cook`.
+- This release includes the strict-rendering, Beads request, and diagnostics
+  work tracked in #783, #784, #785, #787, #791, #792, and #618.
+- `sc-composer`: new `validate_expanded_with_context` validates an
+  already-expanded template with its render delimiters and returns the merged
+  render context.
+
+### Fixed
+
+- Bead rendering is one pass (FUZZ-171). The former second `{{ }}` pass
+  re-parsed the first pass's output. Each source `{{ expr }}` is now folded
+  into `{{{ expr }}}` and the formula renders once against one context, with
+  one strict validation of both forms:
+  - `{% raw %}` blocks stay literal, and braces produced by an expression or
+    held in a value or object key are never evaluated or reinterpreted as
+    `{{`, `{%` or `{#`;
+  - `set` and `for` locals shadow caller values of the same name;
+  - the private-use brace markers are gone, so private-use characters render
+    as themselves, a template with all 6400 no longer panics, and filters such
+    as `sort`, `max` and `title` and list printing see `{`;
+  - frontmatter defaults of included fragments apply;
+  - one trailing newline is dropped, as in v1.7.0, so output and graph
+    revisions match v1.7.0 and an attach re-run no longer reports
+    `BEADS_GRAPH_CONFLICT`;
+  - a name supplied in both `compose_variables` and `bead_variables` is
+    rejected during render with `BEADS_VARIABLE_KEY_DUPLICATE` instead of the
+    compose value silently winning.
+- A Beads request whose `rendered_formula` aliases its template is refused
+  before anything is written, including case-folded and
+  Unicode-normalization aliases on case-insensitive filesystems.
+- NUL and other control characters in request-supplied parent, ref, and
+  relation endpoint ids are refused before `bd` runs for attach and
+  preview-attach. Graph-mode preview-pour and pour still run `bd cook
+  --dry-run` and `bd where --json` before checking cooked bead ids.
+- Strict validation no longer discovers bogus tokens from indexed access
+  (`o[0].k`), literal or grouped member access (`({...}).a`, `(x).upper()`),
+  or locals following four closing braces. Four-brace tokens remain exact at
+  brace count three.
+- Strict token discovery now follows MiniJinja delimiters and local scope more
+  closely: `+` whitespace-control markers, quoted closing delimiters,
+  dictionary literals after `{{`, block/tuple `set`, `with`, macros, calls,
+  filtered loops and recursive loops no longer hide real references or invent
+  undeclared local names.
+- Strict validation now discovers an expression immediately followed by a
+  literal `}` (for example JSON `{"v": {{ v }}}`); an undeclared name there
+  is refused instead of silently passing.
+- A blocked `.graph.json` graph-plan path is refused before `bd` runs, as a
+  refused receipt with exit 2, and now reports its plan-path diagnostic and
+  recovery instead of misidentifying `rendered_formula`.
+- A symlinked graph-plan path now reports `BEADS_OUTPUT_PATH_INVALID` (field
+  `graph_plan`) instead of `BEADS_OUTPUT_PATH_SYMLINK`.
+- `sc-compose bead` now renders declared `bead_variables` in both padded
+  `{{ key }}` and tight `{{key}}` formula placeholders before invoking `bd`,
+  while still passing them as `--var` for Beads runtime checks (#618).
+
+### Changed
+
+- Every `{{ name }}` expression must now be declared in frontmatter through
+  `required_variables` or `defaults`; undeclared expressions are refused. Use
+  `{% raw %}{{ name }}{% endraw %}` to keep literal braces. This includes
+  Beads-native `[vars]` placeholders in the default Beads render mode.
+- Strict is the only render mode (#783): no render can silently skip a
+  variable. In `sc-compose render`/`validate`, the `sc-composer` library, the
+  Python `sc_compose` package and `sc-compose bead`:
+  - a referenced variable that is not declared in frontmatter
+    (`required_variables` or `defaults`) is an undeclared-token error; a
+    declared path also covers its parent and child paths. The diagnostic
+    registry code is `ERR_VAL_UNDECLARED_TOKEN`; bead receipts name this cause
+    `ErrValUndeclaredToken`;
+  - a referenced variable with no value after the context merge is an
+    `ERR_VAL_UNBOUND_VARIABLE` error (a missing required variable is still
+    reported once, as `ERR_VAL_MISSING_REQUIRED`);
+  - printing an undefined value is a render error, also for templates
+    rendered without validation (`render_template`,
+    `render_loaded_template`); `if`, `is defined` and `default(...)` still
+    see an undefined value as false.
+
+  Templates that reference variables without declaring them must add
+  frontmatter. `sc-compose frontmatter-init <file>.j2` generates it.
+- `--strict` is hidden and has no effect; it is accepted so existing callers
+  keep working. `--unknown-var-mode` now governs only extra caller-provided
+  variables.
+- `sc-compose validate --brace-count N` validates templates with N-brace
+  variable delimiters, including Beads `{{{ ... }}}` formulas.
+- `sc-compose templates init` no longer reports variables as unbound (it has
+  no caller input); other validation defects are listed as recommendations.
+- Values supplied per pass (`ComposePolicy.passes[].defaults`) now count as
+  bindings during validation.
+- Template discovery no longer reports `{% block name %}` names, Jinja global
+  functions (`range`, `dict`, `namespace`, ...) or keyword-argument names as
+  variables.
+
+### Library API changes
+
+No major version bump.
+
+- `sc-composer`: `ComposePolicy.strict_undeclared_variables` and
+  `ComposePolicy.unbound_variable_policy` are removed.
+  `Renderer::refusing_undefined()` is removed; every renderer refuses to print
+  an undefined value.
+- `sc-composer-beads`: `BeadComposeRequest` gains
+  `bead_variable_rendering` (`BeadVariableRendering`, default
+  `sc-compose`); Rust struct-literal construction must set it.
+- Python `sc_compose.ComposePolicy`: the `strict_undeclared_variables` and
+  `unbound_variable_policy` arguments and attributes are removed; passing them
+  raises `TypeError`.
+
 ## [1.7.0] - 2026-10-08
 
 ### Added
