@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-10-12
+
 ### Added
 
 - Beads requests can opt into `bead_variable_rendering: "bd"` (or the
@@ -13,6 +15,8 @@ All notable changes to this project will be documented in this file.
   ([beads#21](https://github.com/steveyegge/beads/issues/21)); supplied values
   containing literal braces remain literal under filters; and attach/graph
   pour leave ordinary expressions for `bd cook`.
+- This release includes the strict-rendering, Beads request, and diagnostics
+  work tracked in #783, #784, #785, #787, #791, #792, and #618.
 
 ### Fixed
 
@@ -43,10 +47,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Every `{{ name }}` expression in a Beads template must now be declared in
-  frontmatter, including Beads-native `[vars]` placeholders. Undeclared
-  expressions are refused in every Beads operation, including attach and graph
-  pour; use `{% raw %}{{ name }}{% endraw %}` for literal double braces.
+- Every `{{ name }}` expression must now be declared in frontmatter through
+  `required_variables` or `defaults`; undeclared expressions are refused. Use
+  `{% raw %}{{ name }}{% endraw %}` to keep literal braces. This includes
+  Beads-native `[vars]` placeholders in the default Beads render mode.
 - Strict is the only render mode (#783): no render can silently skip a
   variable. In `sc-compose render`/`validate`, the `sc-composer` library, the
   Python `sc_compose` package and `sc-compose bead`:
