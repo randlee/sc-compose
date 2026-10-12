@@ -55,6 +55,11 @@ const KEYWORDS: &[&str] = &[
     "endmacro",
     "filter",
     "endfilter",
+    "with",
+    "endwith",
+    "call",
+    "endcall",
+    "recursive",
 ];
 
 pub(super) fn collect_identifiers(
@@ -121,6 +126,9 @@ fn collapse_numeric_indexes(expression: &str) -> String {
 fn is_loop_context_name(candidate: &str, expression: &str, scopes: &[LoopScope]) -> bool {
     if scopes.len() <= 1 {
         return false;
+    }
+    if candidate == "loop" {
+        return true;
     }
     if candidate != "loop.cycle" {
         return LOOP_CONTEXT_NAMES.contains(&candidate);

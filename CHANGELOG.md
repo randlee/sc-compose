@@ -49,6 +49,11 @@ All notable changes to this project will be documented in this file.
   (`o[0].k`), literal or grouped member access (`({...}).a`, `(x).upper()`),
   or locals following four closing braces. Four-brace tokens remain exact at
   brace count three.
+- Strict token discovery now follows MiniJinja delimiters and local scope more
+  closely: `+` whitespace-control markers, quoted closing delimiters,
+  dictionary literals after `{{`, block/tuple `set`, `with`, macros, calls,
+  filtered loops and recursive loops no longer hide real references or invent
+  undeclared local names.
 - Strict validation now discovers an expression immediately followed by a
   literal `}` (for example JSON `{"v": {{ v }}}`); an undeclared name there
   is refused instead of silently passing.

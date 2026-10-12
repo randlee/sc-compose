@@ -46,10 +46,13 @@ pub(super) fn walk_template<F>(
         let after_start = &cursor[start + start_delimiter.len()..];
         // A closing triple-brace delimiter may be immediately followed by
         // a literal `}`; consume the first delimiter in that run.
-        let end = after_start.find(end_delimiter);
+        let end = find_closing_delimiter(after_start, end_delimiter);
         let Some(end) = end else { break };
         let raw_content = &after_start[..end];
-        let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);
+        let without_leading_marker = raw_content
+            .strip_prefix('-')
+            .or_else(|| raw_content.strip_prefix('+'))
+            .unwrap_or(raw_content);
         let without_markers = without_leading_marker
             .strip_suffix('-')
             .or_else(|| without_leading_marker.strip_suffix('+'))
@@ -68,6 +71,46 @@ pub(super) fn walk_template<F>(
             break;
         }
     }
+}
+
+/// Find a tag's closing delimiter while respecting quoted string literals.
+///
+/// A delimiter-looking sequence inside a Jinja string is ordinary string
+/// content.  This intentionally only performs lexical quote handling; the
+/// renderer remains responsible for reporting malformed expressions.
+fn find_closing_delimiter(text: &str, delimiter: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let delimiter = delimiter.as_bytes();
+    let mut quote = None;
+    let mut escaped = false;
+    let mut cursor = 0;
+
+    while cursor < bytes.len() {
+        let byte = bytes[cursor];
+        if let Some(quote_byte) = quote {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == quote_byte {
+                quote = None;
+            }
+            cursor += 1;
+            continue;
+        }
+
+        if matches!(byte, b'\'' | b'\"') {
+            quote = Some(byte);
+            cursor += 1;
+            continue;
+        }
+        if bytes[cursor..].starts_with(delimiter) {
+            return Some(cursor);
+        }
+        cursor += 1;
+    }
+
+    None
 }
 
 fn next_delimiter(
@@ -99,6 +142,19 @@ fn find_exact_delimiter(text: &str, delimiter: &str) -> Option<usize> {
             .get(after)
             .is_some_and(|byte| *byte == repeated_byte)
         {
+            // With normal double-brace syntax, `{{{"key": value}` starts a
+            // variable expression followed by a dictionary literal.  Keep
+            // the leftmost opening delimiter when that third brace clearly
+            // starts a quoted dictionary key; otherwise a longer brace run
+            // belongs to a higher-brace pass.
+            if delimiter == "{{"
+                && matches!(
+                    text[after + 1..].trim_start().chars().next(),
+                    Some('\'' | '\"')
+                )
+            {
+                return Some(absolute);
+            }
             cursor = after;
             continue;
         }

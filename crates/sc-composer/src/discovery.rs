@@ -11,7 +11,10 @@ mod scope;
 
 use identifiers::collect_identifiers;
 use scanner::{Delimiter, ExpressionDelimiters, walk_template};
-use scope::{LoopScope, parse_bare_for_loop_over, parse_for_loop_scope, parse_set_scope};
+use scope::{
+    LoopScope, parse_bare_for_loop_over, parse_for_loop_scope, parse_macro_scope, parse_set_scope,
+    parse_with_scope,
+};
 
 /// Discover declared template variable tokens without running full validation.
 ///
@@ -58,8 +61,35 @@ pub fn discover_tokens_with_delimiters(
                     if scopes.len() > 1 {
                         scopes.pop();
                     }
-                } else if let Some(name) = parse_set_scope(expression, &scopes, &mut tokens) {
-                    scopes[0].bound_names.insert(name);
+                } else if let Some(names) = parse_set_scope(expression, &scopes, &mut tokens) {
+                    if let Some(scope) = scopes.last_mut() {
+                        scope.bound_names.extend(names);
+                    }
+                } else if let Some(scope) = parse_with_scope(expression, &scopes, &mut tokens) {
+                    scopes.push(scope);
+                } else if expression.starts_with("endwith") {
+                    if scopes.len() > 1 {
+                        scopes.pop();
+                    }
+                } else if let Some((name, scope)) = parse_macro_scope(expression) {
+                    if let Some(current_scope) = scopes.last_mut() {
+                        current_scope.bound_names.insert(name);
+                    }
+                    scopes.push(scope);
+                } else if expression.starts_with("endmacro") {
+                    if scopes.len() > 1 {
+                        scopes.pop();
+                    }
+                } else if matches!(statement_name(expression), Some("call")) {
+                    let arguments = statement_arguments(expression);
+                    collect_identifiers(&mask_leading_identifier(arguments), &scopes, &mut tokens);
+                    scopes.push(LoopScope {
+                        bound_names: ["caller".to_owned()].into(),
+                    });
+                } else if expression.starts_with("endcall") {
+                    if scopes.len() > 1 {
+                        scopes.pop();
+                    }
                 } else {
                     let arguments = statement_arguments(expression);
                     if matches!(statement_name(expression), Some("filter" | "call")) {
@@ -227,6 +257,22 @@ mod tests {
         let tokens = discover_tokens("{%- if true -%}Hi{%- endif -%}");
 
         assert!(tokens.is_empty(), "unexpected tokens: {tokens:?}");
+    }
+
+    #[test]
+    fn plus_whitespace_control_markers_match_minus_and_plain_tags() {
+        let tokens = discover_tokens(
+            "{%+ if u +%}a{% endif %}{%+ for i in xs +%}{{ i }}{% endfor %}{%+ set y = 1 +%}{{ y }}{%+ raw +%}{{ hidden }}{% endraw %}",
+        );
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("u").unwrap(),
+                crate::VariableName::new("xs").unwrap(),
+            ]
+            .into()
+        );
     }
 
     #[test]
@@ -461,6 +507,39 @@ mod tests {
             ]
             .into()
         );
+    }
+
+    #[test]
+    fn locals_cover_block_tuple_with_macro_call_and_recursive_for_forms() {
+        let tokens = discover_tokens(
+            "{% set y %}hi{% endset %}{{ y }}{% set a, c = 1, 2 %}{{ a }}{{ c }}{% with q = 1 %}{{ q }}{% endwith %}{% macro m(p) %}{{ p }}{{ caller() }}{% endmacro %}{{ m(1) }}{% call m() %}body{% endcall %}{% for i in xs if i recursive %}{{ i }}{{ loop() }}{% endfor %}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("xs").unwrap()].into());
+    }
+
+    #[test]
+    fn quoted_closing_delimiters_do_not_hide_later_identifiers() {
+        for (template, brace_count) in [
+            (r#"{{ "}}" ~ u }}"#, 2),
+            (r#"{{{ "}}}" ~ u }}}"#, 3),
+            (r#"{% set x = "}}" ~ u %}{{ x }}"#, 2),
+        ] {
+            assert_eq!(
+                discover_tokens_with_brace_count(template, brace_count),
+                [crate::VariableName::new("u").unwrap()].into(),
+                "template: {template}"
+            );
+        }
+    }
+
+    #[test]
+    fn double_braces_can_open_a_dict_literal_without_loosening_higher_braces() {
+        assert_eq!(
+            discover_tokens_with_brace_count(r#"{{{"a": u}["a"] }}"#, 2),
+            [crate::VariableName::new("u").unwrap()].into()
+        );
+        assert!(discover_tokens_with_brace_count("{{{{ outer }}}}", 3).is_empty());
     }
 
     #[test]
