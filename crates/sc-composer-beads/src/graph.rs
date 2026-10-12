@@ -52,8 +52,13 @@ pub(crate) fn execute(
     };
     // The graph plan is a separate public artifact. Check its destination
     // before invoking `bd` so a blocked plan cannot be hidden by process work.
-    let result = validate_graph_plan_destination(&runtime)
-        .and_then(|_| run(request, &mut runtime, formula_input, stage));
+    let result = match validate_graph_plan_destination(&runtime) {
+        Ok(_) => run(request, &mut runtime, formula_input, stage),
+        Err(error) => {
+            runtime.stage = stage;
+            Err(error)
+        }
+    };
     let missing_edges = match &result {
         Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
         _ => Vec::new(),

@@ -592,7 +592,10 @@ fn validate_json_rejects_json_escape_mode_on_non_json_templates() {
 #[test]
 fn validate_json_reports_static_only_state_without_rendering() {
     let root = temp_root("validate-json-static-only");
-    write_file(&root.join("payload.json.j2"), "{\"value\": {{ value }}}");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}",
+    );
 
     let output = sc_compose()
         .args([
@@ -621,7 +624,10 @@ fn validate_json_reports_static_only_state_without_rendering() {
 #[test]
 fn validate_json_check_render_reports_exact_context_and_no_body() {
     let root = temp_root("validate-json-check-render");
-    write_file(&root.join("payload.json.j2"), "{\"value\": {{ value }}}");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}",
+    );
 
     let output = sc_compose()
         .args([
@@ -708,7 +714,7 @@ fn validate_json_lint_check_render_combines_diagnostics() {
     let root = temp_root("validate-json-lint-check-render");
     write_file(
         &root.join("payload.json.j2"),
-        "{\"value\": {{ value | frontmatter_safe | yaml_safe }}}",
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value | frontmatter_safe | yaml_safe }}}",
     );
 
     let output = sc_compose()
