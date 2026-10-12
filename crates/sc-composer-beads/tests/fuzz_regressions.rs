@@ -2018,6 +2018,36 @@ fn pf_001_case_insensitive_destination_alias_is_refused_before_render() {
     assert!(runner.calls().is_empty(), "render refusal must precede bd");
 }
 
+// PF-001: on macOS, Unicode-normalization aliases must also be refused.
+#[cfg(target_os = "macos")]
+#[test]
+fn pf_001_unicode_normalization_destination_alias_is_refused_before_render() {
+    let mut w = Workspace::new();
+    let template = w.root.join("caf\u{00e9}.formula.toml");
+    let destination = w.root.join("cafe\u{0301}.formula.toml");
+    let original = b"formula = \"sample\"\n";
+    fs::write(&template, original).expect("template");
+    if !destination.exists() {
+        eprintln!("skipping normalization-alias assertion on non-normalizing filesystem");
+        return;
+    }
+    configure_render_request(&mut w, &template, &destination);
+
+    let runner = FakeRunner::new([]);
+    let error = execute_bead_request_with_runner(&w.req, &runner)
+        .expect_err("Unicode-normalization output alias must be refused");
+    assert!(
+        matches!(&error, BeadComposeError::OutputPathInvalid { path, rule } if path.to_string_lossy() == public_path(&destination) && rule.contains("must not overwrite the template")),
+        "{error}"
+    );
+    assert_eq!(fs::read(&template).expect("template bytes"), original);
+    assert_eq!(
+        fs::read(&destination).expect("aliased output bytes"),
+        original
+    );
+    assert!(runner.calls().is_empty(), "render refusal must precede bd");
+}
+
 // PF-001: an exact source/destination path remains rejected as well.
 #[test]
 fn pf_001_exact_template_destination_is_refused() {

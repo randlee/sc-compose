@@ -41,8 +41,9 @@ All notable changes to this project will be documented in this file.
   - a name supplied in both `compose_variables` and `bead_variables` is
     rejected during render with `BEADS_VARIABLE_KEY_DUPLICATE` instead of the
     compose value silently winning.
-- A Beads request whose `rendered_formula` is its template is refused before
-  anything is written, preventing template overwrite.
+- A Beads request whose `rendered_formula` aliases its template is refused
+  before anything is written, including case-folded and
+  Unicode-normalization aliases on case-insensitive filesystems.
 - NUL and other control characters in request-supplied parent, ref, and
   relation endpoint ids are refused before `bd` runs for attach and
   preview-attach. Graph-mode preview-pour and pour still run `bd cook
@@ -62,6 +63,8 @@ All notable changes to this project will be documented in this file.
 - A blocked `.graph.json` graph-plan path is refused before `bd` runs, as a
   refused receipt with exit 2, and now reports its plan-path diagnostic and
   recovery instead of misidentifying `rendered_formula`.
+- A symlinked graph-plan path now reports `BEADS_OUTPUT_PATH_INVALID` (field
+  `graph_plan`) instead of `BEADS_OUTPUT_PATH_SYMLINK`.
 - `sc-compose bead` now renders declared `bead_variables` in both padded
   `{{ key }}` and tight `{{key}}` formula placeholders before invoking `bd`,
   while still passing them as `--var` for Beads runtime checks (#618).
