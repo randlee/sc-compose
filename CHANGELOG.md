@@ -30,8 +30,10 @@ All notable changes to this project will be documented in this file.
   variable. In `sc-compose render`/`validate`, the `sc-composer` library, the
   Python `sc_compose` package and `sc-compose bead`:
   - a referenced variable that is not declared in frontmatter
-    (`required_variables` or `defaults`) is an `ERR_VAL_UNDECLARED_TOKEN`
-    error; a declared path also covers its parent and child paths;
+    (`required_variables` or `defaults`) is an undeclared-token error; a
+    declared path also covers its parent and child paths. The diagnostic
+    registry code is `ERR_VAL_UNDECLARED_TOKEN`; bead receipts name this cause
+    `ErrValUndeclaredToken`;
   - a referenced variable with no value after the context merge is an
     `ERR_VAL_UNBOUND_VARIABLE` error (a missing required variable is still
     reported once, as `ERR_VAL_MISSING_REQUIRED`);
