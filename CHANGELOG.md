@@ -17,6 +17,9 @@ All notable changes to this project will be documented in this file.
   pour leave ordinary expressions for `bd cook`.
 - This release includes the strict-rendering, Beads request, and diagnostics
   work tracked in #783, #784, #785, #787, #791, #792, and #618.
+- `sc-composer`: new `validate_expanded_with_context` validates an
+  already-expanded template with its render delimiters and returns the merged
+  render context.
 
 ### Fixed
 
@@ -38,9 +41,16 @@ All notable changes to this project will be documented in this file.
   - a name supplied in both `compose_variables` and `bead_variables` is
     refused with `BEADS_VARIABLE_KEY_DUPLICATE` instead of the compose value
     silently winning.
-- `sc-composer`: new `validate_expanded_with_context` validates an
-  already-expanded template with its render delimiters and returns the merged
-  render context.
+- A Beads request whose `rendered_formula` is its template is refused before
+  anything is written, preventing template overwrite.
+- NUL and other control characters in Beads ids are rejected as invalid ids
+  before a `bd` call.
+- Strict validation no longer discovers bogus tokens from indexed access
+  (`o[0].k`), literal or grouped member access (`({...}).a`, `(x).upper()`),
+  or locals following four closing braces. Four-brace tokens remain exact at
+  brace count three.
+- A blocked `.graph.json` graph-plan path now reports its plan-path diagnostic
+  and recovery instead of misidentifying `rendered_formula`.
 - `sc-compose bead` now renders declared `bead_variables` in both padded
   `{{ key }}` and tight `{{key}}` formula placeholders before invoking `bd`,
   while still passing them as `--var` for Beads runtime checks (#618).
