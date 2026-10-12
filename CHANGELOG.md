@@ -49,6 +49,9 @@ All notable changes to this project will be documented in this file.
   (`o[0].k`), literal or grouped member access (`({...}).a`, `(x).upper()`),
   or locals following four closing braces. Four-brace tokens remain exact at
   brace count three.
+- Strict validation now discovers an expression immediately followed by a
+  literal `}` (for example JSON `{"v": {{ v }}}`); an undeclared name there
+  is refused instead of silently passing.
 - A blocked `.graph.json` graph-plan path is refused before `bd` runs, as a
   refused receipt with exit 2, and now reports its plan-path diagnostic and
   recovery instead of misidentifying `rendered_formula`.
