@@ -7,11 +7,12 @@
 //! render. Rendered values are never parsed again, so no value can form or
 //! hide template syntax.
 //!
-//! The scanner follows the renderer's lexer: at each position the earliest of
-//! `{{{`, `{%`, `{#` or `{{` starts a tag, `{{{` winning over `{{`. Comments,
-//! statements, composition expressions and `{% raw %}` blocks are copied
-//! unchanged; expression and statement ends are found outside string
-//! literals.
+//! The scanner follows the renderer's lexer. A tag starts at the leftmost of
+//! `{{{`, `{%` or `{#`; an ordinary `{{` is folded only when no such tag
+//! starts inside it, so `{{%` and `{{#` are a literal `{` before a statement
+//! or comment. Comments, statements, composition expressions and
+//! `{% raw %}` blocks are copied unchanged. Expression and statement ends are
+//! found outside string literals and open brackets.
 
 /// Rewrite every source `{{ expr }}` outside comments, statements, raw blocks
 /// and `{{{ ... }}}` expressions to `{{{ expr }}}`.
@@ -33,7 +34,7 @@ pub(crate) fn fold_bead_expressions(text: &str) -> String {
             copy_comment(&mut output, rest)
         } else if rest.starts_with("{%") {
             copy_statement(&mut output, rest)
-        } else if rest.starts_with("{{") {
+        } else if rest.starts_with("{{") && !matches!(rest.as_bytes().get(2), Some(b'%' | b'#')) {
             fold_expression(&mut output, rest)
         } else {
             output.push('{');
@@ -44,8 +45,8 @@ pub(crate) fn fold_bead_expressions(text: &str) -> String {
     output
 }
 
-/// Copy a tag that ends at `close`, found outside string literals; an
-/// unterminated tag is copied whole so the renderer reports it.
+/// Copy a tag that ends at `close`. An unterminated tag is copied to the end
+/// of the text, where the renderer reports it as a syntax error.
 fn copy_through(output: &mut String, rest: &str, open_len: usize, close: &str) -> usize {
     let end =
         find_outside_strings(rest, open_len, close).map_or(rest.len(), |end| end + close.len());
@@ -59,22 +60,24 @@ fn copy_comment(output: &mut String, rest: &str) -> usize {
     end
 }
 
+/// Copy a statement, or a whole `{% raw %}` block recognized as the renderer
+/// does; an unterminated raw block is copied to the end of the text.
 fn copy_statement(output: &mut String, rest: &str) -> usize {
-    let Some(close) = find_outside_strings(rest, 2, "%}") else {
-        output.push_str(rest);
-        return rest.len();
+    let marker = 2 + usize::from(rest[2..].starts_with(['-', '+']));
+    let Some(raw) = skip_basic_tag(&rest[marker..], "raw", false) else {
+        return copy_through(output, rest, 2, "%}");
     };
-    let mut end = close + 2;
-    if tag_name(&rest[2..close]) == "raw" {
-        end = find_endraw(rest, end).unwrap_or(rest.len());
-    }
+    let end = find_endraw(rest, marker + raw).unwrap_or(rest.len());
     output.push_str(&rest[..end]);
     end
 }
 
+/// Fold `{{ expr }}` into `{{{ expr }}}`. An unterminated expression keeps
+/// the folded opener, so the renderer reports it as a syntax error.
 fn fold_expression(output: &mut String, rest: &str) -> usize {
     let Some(close) = find_outside_strings(rest, 2, "}}") else {
-        output.push_str(rest);
+        output.push_str("{{{");
+        output.push_str(&rest[2..]);
         return rest.len();
     };
     output.push_str("{{{");
@@ -83,11 +86,20 @@ fn fold_expression(output: &mut String, rest: &str) -> usize {
     close + 2
 }
 
-/// The tag name of a statement body, ignoring whitespace-control markers.
-fn tag_name(body: &str) -> &str {
-    body.trim_start_matches(['-', '+'])
-        .trim_end_matches(['-', '+'])
-        .trim()
+/// Match the renderer's basic tag `[ws-control] name [-|+] %}` at the start
+/// of `body` (the text after `{%`), with ASCII whitespace around `name`.
+/// Returns the length through `%}`.
+fn skip_basic_tag(body: &str, name: &str, skip_ws_control: bool) -> Option<usize> {
+    let mut rest = body;
+    if skip_ws_control && let Some(tail) = rest.strip_prefix(['-', '+']) {
+        rest = tail;
+    }
+    rest = rest.trim_start_matches(|c: char| c.is_ascii_whitespace());
+    rest = rest.strip_prefix(name)?;
+    rest = rest.trim_start_matches(|c: char| c.is_ascii_whitespace());
+    rest = rest.strip_prefix(['-', '+']).unwrap_or(rest);
+    rest = rest.strip_prefix("%}")?;
+    Some(body.len() - rest.len())
 }
 
 /// Return the end offset of the `{% endraw %}` tag that closes a raw block
@@ -95,12 +107,9 @@ fn tag_name(body: &str) -> &str {
 fn find_endraw(text: &str, from: usize) -> Option<usize> {
     let mut search = from;
     while let Some(offset) = text[search..].find("{%") {
-        let start = search + offset;
-        let body_start = start + 2;
-        if let Some(close) = text[body_start..].find("%}")
-            && tag_name(&text[body_start..body_start + close]) == "endraw"
-        {
-            return Some(body_start + close + 2);
+        let body_start = search + offset + 2;
+        if let Some(len) = skip_basic_tag(&text[body_start..], "endraw", true) {
+            return Some(body_start + len);
         }
         search = body_start;
     }
@@ -163,7 +172,18 @@ mod tests {
             ),
             ("{{{{ x }}}}", "{{{{ x }}}}"),
             ("{ {x} }", "{ {x} }"),
-            ("{{ unterminated", "{{ unterminated"),
+            ("{{ unterminated", "{{{ unterminated"),
+            ("{{% if 1 %}{% endif %}}", "{{% if 1 %}{% endif %}}"),
+            ("{{# c #}{{ x }}}", "{{# c #}{{{ x }}}}"),
+            (
+                "{% raw %}{%-- endraw %}{{ x }}{% endraw %}",
+                "{% raw %}{%-- endraw %}{{ x }}{% endraw %}",
+            ),
+            (
+                "{% raw %}{% endraw\u{a0}%}{{ x }}{% endraw %}",
+                "{% raw %}{% endraw\u{a0}%}{{ x }}{% endraw %}",
+            ),
+            ("{% rawx %}{{ x }}", "{% rawx %}{{{ x }}}"),
             ("ü{{ x }}é", "ü{{{ x }}}é"),
             ("{{ {\"a\": {\"b\": 1}} }}", "{{{ {\"a\": {\"b\": 1}} }}}"),
             ("{{ (x) }}{{ [x][0] }}", "{{{ (x) }}}{{{ [x][0] }}}"),

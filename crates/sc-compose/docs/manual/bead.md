@@ -74,7 +74,10 @@ expression stay literal, `{% raw %}` blocks stay literal, and `set`/`for`
 locals shadow caller values of the same name. A name supplied in both
 `compose_variables` and `bead_variables` is refused with
 `BEADS_VARIABLE_KEY_DUPLICATE`. In `bd` mode `{{ expr }}` is plain text to the
-render and reaches `bd` byte-for-byte.
+render and reaches `bd` byte-for-byte, unless the expression text itself
+contains `{%`, `{#` or `{{{`, which the render still reads as a statement,
+comment or composition expression. Wrap such an expression in
+`{% raw %}...{% endraw %}` to pass it through unchanged.
 
 ## The request
 

@@ -381,3 +381,57 @@ fn whitespace_control_trims_around_expressions() {
         Ok("a = \"X|Y\"".into())
     );
 }
+
+// Re-fuzz T-02: `{{%` is a literal `{` before a statement, as the renderer
+// lexes it, not a folded expression.
+#[test]
+fn a_brace_before_a_statement_is_literal() {
+    assert_eq!(
+        render("x = \"{{% if 1 %}{% endif %}}\"\n", json!({}), &[]),
+        Ok("x = \"{}\"".into())
+    );
+    assert_eq!(
+        render("x = \"{{% set q = 1 %}a}\"\n", json!({}), &[]),
+        Ok("x = \"{a}\"".into())
+    );
+}
+
+// Re-fuzz T-03: `{{#` is a literal `{` before a comment; the expression after
+// the comment still renders.
+#[test]
+fn a_brace_before_a_comment_is_literal() {
+    assert_eq!(
+        render(
+            &(fm(&["x"]) + "t = {{# c #}a = \"{{ x }}\"}\n"),
+            json!({}),
+            &[("x", "v")]
+        ),
+        Ok("t = {a = \"v\"}".into())
+    );
+}
+
+// Re-fuzz T-04: an unterminated or malformed expression is a syntax error.
+#[test]
+fn an_unterminated_expression_fails() {
+    for template in ["a = 1\n{{\n", "a = 1\n{{ x\"\n", "a = 1\n{{ 'y }}\n"] {
+        let error = render(template, json!({}), &[]).expect_err(template);
+        assert!(
+            error.starts_with("BEADS_RENDER_FAILED"),
+            "{template}: {error}"
+        );
+        assert!(error.contains("syntax error"), "{template}: {error}");
+    }
+}
+
+// Re-fuzz T-05: only a tag the renderer reads as `endraw` ends a raw block.
+#[test]
+fn raw_blocks_end_only_at_a_real_endraw() {
+    for close in ["{%-- endraw %}", "{% endraw\u{a0}%}", "{%\u{a0}endraw %}"] {
+        let template = format!("x = \"{{% raw %}}{close}{{{{ y }}}}{{% endraw %}}\"\n");
+        assert_eq!(
+            render(&template, json!({}), &[]),
+            Ok(format!("x = \"{close}{{{{ y }}}}\"")),
+            "{close}"
+        );
+    }
+}
