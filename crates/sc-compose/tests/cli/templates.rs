@@ -549,7 +549,10 @@ fn templates_named_render_dry_run_reports_template_json_default_usage() {
         &pack_root.join("template.json"),
         r#"{ "description": "Report template", "version": "1.0.0", "input_defaults": { "name": "world" } }"#,
     );
-    write_file(&pack_root.join("report.md.j2"), "hello {{ name }}\n");
+    write_file(
+        &pack_root.join("report.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
 
     let output = sc_compose()
         .arg("templates")
@@ -614,7 +617,7 @@ fn templates_named_render_uses_array_input_defaults_from_template_json() {
     );
     write_file(
         &pack.join("pytest-tests.py.j2"),
-        "{% for test_name in test_names %}def test_{{ test_name }}({{ fixture_name }}):\n    pytest.fail(\"Fail: Not implemented\")\n\n{% endfor %}",
+        "---\nrequired_variables:\n  - test_names\n  - fixture_name\n---\n{% for test_name in test_names %}def test_{{ test_name }}({{ fixture_name }}):\n    pytest.fail(\"Fail: Not implemented\")\n\n{% endfor %}",
     );
 
     let output = sc_compose()
@@ -689,7 +692,7 @@ fn templates_named_render_accepts_recursive_values_in_template_json_defaults() {
     );
     write_file(
         &pack.join("report.md.j2"),
-        "{% for category in categories %}{% for item in category.items %}{{ category.name }}:{{ item.summary }}\n{% endfor %}{% endfor %}",
+        "---\nrequired_variables:\n  - categories\n---\n{% for category in categories %}{% for item in category.items %}{{ category.name }}:{{ item.summary }}\n{% endfor %}{% endfor %}",
     );
 
     let output = sc_compose()
@@ -718,7 +721,7 @@ fn templates_named_render_uses_array_of_objects_input_defaults_from_template_jso
     );
     write_file(
         &pack.join("report.md.j2"),
-        "{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
+        "---\nrequired_variables:\n  - sprints\n---\n{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
     );
 
     let output = sc_compose()
@@ -743,7 +746,10 @@ fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_d
         &source_dir.join("template.json"),
         r#"{ "description": "Report template", "version": "1.0.0", "input_defaults": { "name": "world" } }"#,
     );
-    write_file(&source_dir.join("report.md.j2"), "Hello {{ name }}!\n");
+    write_file(
+        &source_dir.join("report.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nHello {{ name }}!\n",
+    );
     write_file(&source_dir.join("README.txt"), "asset");
 
     let add_output = sc_compose()
@@ -959,7 +965,8 @@ fn init_dry_run_does_not_create_workspace_and_reports_would_create_files() {
         .output()
         .unwrap();
 
-    assert!(output.status.success());
+    // The undeclared `name` is a template defect: init reports it and fails.
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
     assert!(!root.join(".prompts").exists());
     let value = parse_stdout(&output);
     assert_eq!(value["payload"]["action"], "init");
@@ -983,8 +990,12 @@ fn init_text_reports_recommendations() {
         .output()
         .unwrap();
 
-    assert!(output.status.success());
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
     let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        stdout.contains("undeclared referenced token: name"),
+        "{stdout}"
+    );
     assert!(stdout.contains("workspace_root:"));
     assert!(stdout.contains("root template has no frontmatter"));
 }
@@ -1002,8 +1013,12 @@ fn init_dry_run_text_reports_recommendations() {
         .output()
         .unwrap();
 
-    assert!(output.status.success());
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
     let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        stdout.contains("undeclared referenced token: name"),
+        "{stdout}"
+    );
     assert!(stdout.contains("would_affect:"));
     assert!(stdout.contains("root template has no frontmatter"));
 }

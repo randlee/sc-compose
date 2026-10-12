@@ -98,6 +98,7 @@ impl Workspace {
                 sc_composer_beads::FormulaName::new("release").expect("formula name"),
             ),
             bead_variables: BTreeMap::new(),
+            bead_variable_rendering: sc_composer_beads::BeadVariableRendering::Bd,
             bd_executable: Some(self.bd.clone()),
             pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
             ref_: parent

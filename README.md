@@ -341,7 +341,6 @@ Key flags:
 | `--append <path>` | Append the rendered JSON object as one line to a JSON-lines file |
 | `--dry-run` | Report without modifying files |
 | `--json` | Machine-readable output with diagnostics envelope |
-| `--strict` | Fail on undeclared referenced variables |
 | `--all` | Render all passes (multi-pass templates) |
 | `--pass N --var ...` | Per-pass variable inputs |
 

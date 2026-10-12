@@ -42,14 +42,32 @@ in either of two places:
   includes run at render time and produce a flat list of steps with every
   value filled in. This is how `attach` and graph-mode `pour` work: `bd`
   receives the finished formula and runs none of its own substitution.
-- **In Beads' formula language.** Beads `vars`, `{{ name }}` placeholders,
-  `extends`, `loop`, `expand`, `condition` and `gate` are evaluated by `bd`.
-  Use registry pour (below) for formulas written this way.
+- **In Beads' formula language.** Beads `vars`, `extends`, `loop`, `expand`,
+  `condition` and `gate` are evaluated by `bd`. Registry pour also passes its
+  runtime values to `bd` (below).
 
 In a bead template, sc-compose values use triple braces, `{{{ value }}}`, and
-blocks use ordinary `{% ... %}`. Double-brace `{{ name }}` text is never
-touched by sc-compose; it is left for Beads in registry pour and kept as
-literal text by `attach` and graph-mode `pour`.
+blocks use ordinary `{% ... %}`. `bead_variables` are ordinary, declared
+double-brace Minijinja values: `{{ name }}` and `{{name}}` are rendered by
+sc-compose before `bd` receives the formula, including normal filters and
+conditionals. Declare them in frontmatter alongside other referenced values;
+they are also passed to `bd --var` for its required-variable checks.
+`bead_variables` is unavailable for attach and graph-mode pour, whose request
+objects must leave it empty.
+
+By default, sc-compose renders declared ordinary `{{ name }}` expressions from
+`bead_variables`. Set `bead_variable_rendering` to `"bd"`, or pass
+`--true-bd-render`, to leave those expressions for `bd` instead; the values are
+still passed to registry pour as `--var name=value`.
+In this mode, ordinary `{{ name }}` expressions do not need a sc-compose
+frontmatter declaration. Attach and graph pour likewise leave them for `bd
+cook`; registry pour passes the values through to `bd`. Beads currently only
+substitutes tight `{{name}}` syntax reliably in this path, not padded
+`{{ name }}` syntax (beads#21).
+
+Values supplied in `compose_variables` and `bead_variables` stay literal across
+the two render passes. A template literal or `replace()` expression therefore
+cannot match a `{` character inside a supplied value.
 
 ## The request
 
@@ -79,7 +97,7 @@ literal text by `attach` and graph-mode `pour`.
 | `rendered_formula` | yes | Where the rendered `.formula.toml` / `.formula.json` is written. Any existing directory inside `working_directory`; no Beads `formulas/` directory is needed. |
 | `formula_name` | for `pour` and `preview-pour` | The formula's name in the active registry. Optional for the other operations; only `attach` and `preview-attach` require the portable name grammar. |
 | `compose_variables` | yes (may be `{}`) | Structured JSON values for the template (`{{{ ... }}}`, loops, conditionals). |
-| `bead_variables` | yes (may be `{}`) | Scalar values passed to `bd` as `--var` by registry pour only. Must be `{}` for attach and graph pour. |
+| `bead_variables` | yes (may be `{}`) | Scalar values rendered into declared `{{ name }}` formula expressions, then also passed to `bd` as `--var` by registry pour. Must be `{}` for attach and graph pour. |
 | `bd_executable` | no | Path to `bd`; default `bd` on `PATH`. |
 | `pour_authorization` | for `pour` and `attach` | Exactly `CreatePersistentBeads`. |
 | `parent` | for attach ops only | Id of the existing bead to attach under. |
@@ -100,9 +118,10 @@ Where the rendered formula lives decides how it is poured, and the receipt's
 - **Registry pour** (`pour_mode: "registry"`): the rendered formula is in the
   active Beads registry, `<beads dir>/formulas/<formula_name>.formula.toml`
   (or `.json`). It pours by name with `bd mol pour`, exactly as earlier
-  releases did, and `bead_variables` are passed as `--var`. Use this when the
-  formula relies on Beads `vars`, `loop`, `expand` or `gate`. A same-name TOML
-  and JSON pair in the registry is refused as ambiguous.
+  releases did. `bead_variables` are rendered by sc-compose, then passed as
+  `--var` too. Use this when the formula relies on Beads `vars`, `loop`,
+  `expand` or `gate`. A same-name TOML and JSON pair in the registry is
+  refused as ambiguous.
 - **Graph pour** (`pour_mode: "graph"`): the rendered formula is anywhere else
   inside `working_directory`, for example `build/`. sc-compose reads it through
   `bd cook <path> --json`, writes a graph plan beside it
@@ -190,7 +209,7 @@ only sees what they produce:
 |---|---|
 | `extends` | `bd` merges the base formula's steps, found in its own formula search paths. The merged steps are created like any others. A later change to the base alone is not detected (the revision is the hash of your rendered formula), so attach a changed base under a new `ref`. A base `bd` cannot find fails with `BEADS_COOK_FAILED`. |
 | `loop` | `bd` expands it into steps named `<step>.iter<n>.<id>`. The `.` makes them invalid step ids, so the request is always refused with `BEADS_GRAPH_ID_INVALID`. |
-| `expand` | `bd` replaces the step with the expansion formula's steps. Ids containing `.` or `-` (the usual `<step>.<id>` pattern) are refused with `BEADS_GRAPH_ID_INVALID`; a missing expansion formula fails with `BEADS_COOK_FAILED`. |
+| `expand` | `bd` replaces the step with the expansion template's step ids as written. Ids containing `.` or `-` are refused with `BEADS_GRAPH_ID_INVALID`; a missing expansion formula fails with `BEADS_COOK_FAILED`. |
 
 Do not rely on these in attach or graph pour. Write the structure with
 template loops, conditionals and includes, where `preview-attach` and

@@ -2578,7 +2578,7 @@ def render_release_template(
         root=repo_root(),
         mode=sc_compose.ComposeMode.file(template),
         vars_input=variables,
-        policy=sc_compose.ComposePolicy(strict_undeclared_variables=False),
+        policy=sc_compose.ComposePolicy(),
     )
     return sc_compose.compose_file(request).rendered_text
 

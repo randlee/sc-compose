@@ -1,3 +1,14 @@
+---
+required_variables:
+  - version
+  - description
+  - homepage
+  - license
+  - windows_url
+  - windows_sha256
+  - extract_dir
+  - binary
+---
 {
   "version": {{ version | tojson }},
   "description": {{ description | tojson }},

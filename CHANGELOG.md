@@ -4,6 +4,69 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Beads requests can opt into `bead_variable_rendering: "bd"` (or the
+  `--true-bd-render` CLI flag) to preserve ordinary `{{ variable }}`
+  expressions for Beads while still composing triple-brace expressions. In
+  this mode, `bd` does not substitute padded `{{ name }}` expressions
+  ([beads#21](https://github.com/steveyegge/beads/issues/21)); supplied values
+  containing literal braces remain literal under filters; and attach/graph
+  pour leave ordinary expressions for `bd cook`.
+
+### Fixed
+
+- `sc-compose bead` now renders declared `bead_variables` in both padded
+  `{{ key }}` and tight `{{key}}` formula placeholders before invoking `bd`,
+  while still passing them as `--var` for Beads runtime checks (#618).
+
+### Changed
+
+- Every `{{ name }}` expression in a Beads template must now be declared in
+  frontmatter, including Beads-native `[vars]` placeholders. Undeclared
+  expressions are refused in every Beads operation, including attach and graph
+  pour; use `{% raw %}{{ name }}{% endraw %}` for literal double braces.
+- Strict is the only render mode (#783): no render can silently skip a
+  variable. In `sc-compose render`/`validate`, the `sc-composer` library, the
+  Python `sc_compose` package and `sc-compose bead`:
+  - a referenced variable that is not declared in frontmatter
+    (`required_variables` or `defaults`) is an `ERR_VAL_UNDECLARED_TOKEN`
+    error; a declared path also covers its parent and child paths;
+  - a referenced variable with no value after the context merge is an
+    `ERR_VAL_UNBOUND_VARIABLE` error (a missing required variable is still
+    reported once, as `ERR_VAL_MISSING_REQUIRED`);
+  - printing an undefined value is a render error, also for templates
+    rendered without validation (`render_template`,
+    `render_loaded_template`); `if`, `is defined` and `default(...)` still
+    see an undefined value as false.
+
+  Templates that reference variables without declaring them must add
+  frontmatter. `sc-compose frontmatter-init <file>.j2` generates it.
+- `--strict` is hidden and has no effect; it is accepted so existing callers
+  keep working. `--unknown-var-mode` now governs only extra caller-provided
+  variables.
+- `sc-compose validate --brace-count N` validates templates with N-brace
+  variable delimiters, including Beads `{{{ ... }}}` formulas.
+- `sc-compose templates init` no longer reports variables as unbound (it has
+  no caller input); other validation defects are listed as recommendations.
+- Values supplied per pass (`ComposePolicy.passes[].defaults`) now count as
+  bindings during validation.
+- Template discovery no longer reports `{% block name %}` names, Jinja global
+  functions (`range`, `dict`, `namespace`, ...) or keyword-argument names as
+  variables.
+
+### Library API changes
+
+No major version bump.
+
+- `sc-composer`: `ComposePolicy.strict_undeclared_variables` and
+  `ComposePolicy.unbound_variable_policy` are removed.
+  `Renderer::refusing_undefined()` is removed; every renderer refuses to print
+  an undefined value.
+- Python `sc_compose.ComposePolicy`: the `strict_undeclared_variables` and
+  `unbound_variable_policy` arguments and attributes are removed; passing them
+  raises `TypeError`.
+
 ## [1.7.0] - 2026-10-08
 
 ### Added

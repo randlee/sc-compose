@@ -388,18 +388,11 @@ impl Default for PassConfig {
 /// Policy bundle for the composition pipeline.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ComposePolicy {
-    /// Whether undeclared referenced variables are fatal.
-    pub strict_undeclared_variables: bool,
     /// How to handle caller-provided variables that are not declared or used.
-    pub unknown_variable_policy: UnknownVariablePolicy,
-    /// How to handle referenced variables with no value at render time.
     ///
-    /// `None` preserves compatibility with callers that only set
-    /// `unknown_variable_policy`: the effective unbound-variable policy then
-    /// inherits that value. Set this explicitly when the two diagnostic axes
-    /// need different behavior.
-    #[serde(default)]
-    pub unbound_variable_policy: Option<UnknownVariablePolicy>,
+    /// There is no policy for the other direction: a referenced variable that
+    /// is undeclared or has no value is always an error.
+    pub unknown_variable_policy: UnknownVariablePolicy,
     /// Maximum include depth allowed by the pipeline.
     pub max_include_depth: IncludeDepth,
     /// Allowed confinement roots for file access.
@@ -417,9 +410,7 @@ pub struct ComposePolicy {
 impl Default for ComposePolicy {
     fn default() -> Self {
         Self {
-            strict_undeclared_variables: false,
             unknown_variable_policy: UnknownVariablePolicy::Ignore,
-            unbound_variable_policy: None,
             max_include_depth: IncludeDepth::new(32),
             allowed_roots: Vec::new(),
             resolver_policy: ResolverPolicy::default(),

@@ -282,7 +282,6 @@ fn build_request_maps_runtime_mode_and_policy() {
     );
     assert_eq!(request.guidance_block.as_deref(), Some("guidance"));
     assert_eq!(request.user_prompt.as_deref(), Some("prompt"));
-    assert!(request.policy.strict_undeclared_variables);
     assert_eq!(
         request.policy.unknown_variable_policy,
         UnknownVariablePolicy::Warn

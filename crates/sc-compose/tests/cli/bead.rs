@@ -76,6 +76,62 @@ fn initialize_beads_workspace(root: &Path, bd: &Path) {
     );
 }
 
+fn configured_pinned_bd() -> Option<PathBuf> {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        eprintln!("skipping pinned bd CLI integration: BD_EXECUTABLE is not configured");
+        return None;
+    };
+    assert_supported_bd_version(&bd);
+    Some(bd)
+}
+
+fn assert_supported_bd_version(bd: &Path) {
+    let output = Command::new(bd)
+        .arg("--version")
+        .output()
+        .unwrap_or_else(|error| {
+            panic!(
+                "could not run BD_EXECUTABLE {} --version: {error}",
+                bd.display()
+            )
+        });
+    let version_text = format!(
+        "{} {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        output.status.success(),
+        "BD_EXECUTABLE must report the supported bd 1.3.x version; `{} --version` exited {}: {}",
+        bd.display(),
+        output.status,
+        version_text.trim()
+    );
+    let supported = version_text.split_whitespace().any(|token| {
+        let token = token
+            .trim_start_matches('v')
+            .trim_matches(|character: char| !character.is_ascii_digit() && character != '.');
+        let mut components = token.split('.');
+        let (Some("1"), Some("3"), Some(patch)) =
+            (components.next(), components.next(), components.next())
+        else {
+            return false;
+        };
+        patch
+            .chars()
+            .take_while(char::is_ascii_digit)
+            .collect::<String>()
+            .parse::<u64>()
+            .is_ok()
+    });
+    assert!(
+        supported,
+        "BD_EXECUTABLE must be the supported bd 1.3.x version; `{} --version` reported: {}",
+        bd.display(),
+        version_text.trim()
+    );
+}
+
 #[cfg(unix)]
 fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathBuf) {
     use std::os::unix::fs::PermissionsExt;
@@ -447,8 +503,7 @@ fn authorized_failed_pour_reports_its_exact_r1_stage_code() {
 
 #[test]
 fn pinned_bd_validates_the_canonical_cli_fixture_when_configured() {
-    let Some(pinned_bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping pinned bd CLI integration: BD_EXECUTABLE is not configured");
+    let Some(pinned_bd) = configured_pinned_bd() else {
         return;
     };
     let fixture = TempFixture::new("bead-pinned-bd");
@@ -470,6 +525,112 @@ fn pinned_bd_validates_the_canonical_cli_fixture_when_configured() {
     assert!(command.status.success(), "{command:?}");
     let envelope: serde_json::Value = serde_json::from_slice(&command.stdout).expect("envelope");
     assert_eq!(envelope["payload"]["outcome"], "succeeded");
+}
+
+#[test]
+fn render_substitutes_declared_bead_variables_before_bd_runs() {
+    let fixture = TempFixture::new("bead-render-vars");
+    let template = fixture.path.join("vars.formula.toml.j2");
+    fs::write(
+        &template,
+        "---\nrequired_variables:\n  - release_name\n---\nformula = \"vars\"\ntitle = \"{{ release_name }}\"\ndescription = \"{{release_name | upper}}\"\n",
+    )
+    .expect("template");
+    let output = fixture.path.join("out/vars.formula.toml");
+    fs::create_dir_all(output.parent().expect("output parent")).expect("output directory");
+    let (fake_bd, _) = write_fake_bd(&fixture.path, 0, 0);
+    let request = write_request(&fixture.path, &template, &output, &fake_bd, None);
+
+    let command = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(request)
+        .output()
+        .expect("run bead render");
+
+    assert!(command.status.success(), "{command:?}");
+    assert_eq!(
+        fs::read_to_string(output).expect("rendered formula"),
+        "formula = \"vars\"\ntitle = \"1.5.0\"\ndescription = \"1.5.0\""
+    );
+}
+
+#[test]
+fn bd_variable_rendering_request_and_flag_preserve_tight_placeholders() {
+    let fixture = TempFixture::new("bead-true-bd-render");
+    let template = fixture.path.join("vars.formula.toml.j2");
+    fs::write(
+        &template,
+        "---\nrequired_variables:\n  - release_name\n---\nformula = \"vars\"\ntitle = \"{{release_name}}\"\n",
+    )
+    .expect("template");
+    let output = fixture.path.join("out/vars.formula.toml");
+    fs::create_dir_all(output.parent().expect("output parent")).expect("output directory");
+    let (fake_bd, _) = write_fake_bd(&fixture.path, 0, 0);
+    let request = write_request(&fixture.path, &template, &output, &fake_bd, None);
+
+    let default = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(&request)
+        .output()
+        .expect("default render");
+    assert!(default.status.success(), "{default:?}");
+    assert!(
+        fs::read_to_string(&output)
+            .expect("default output")
+            .contains("1.5.0")
+    );
+
+    let mut value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&request).expect("request"))
+            .expect("request JSON");
+    value["bead_variable_rendering"] = json!("bd");
+    write_file(&request, &value.to_string());
+    let request_mode = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(&request)
+        .output()
+        .expect("request mode render");
+    assert!(request_mode.status.success(), "{request_mode:?}");
+    assert!(
+        fs::read_to_string(&output)
+            .expect("request mode output")
+            .contains("{{release_name}}")
+    );
+
+    value
+        .as_object_mut()
+        .expect("request object")
+        .remove("bead_variable_rendering");
+    write_file(&request, &value.to_string());
+    let flag_mode = sc_compose()
+        .args(["bead", "render", "--true-bd-render", "--request"])
+        .arg(&request)
+        .output()
+        .expect("flag mode render");
+    assert!(flag_mode.status.success(), "{flag_mode:?}");
+    assert!(
+        fs::read_to_string(&output)
+            .expect("flag mode output")
+            .contains("{{release_name}}")
+    );
+
+    value["bead_variable_rendering"] = json!("unknown");
+    write_file(&request, &value.to_string());
+    let unknown = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(&request)
+        .output()
+        .expect("unknown mode render");
+    assert_eq!(unknown.status.code(), Some(3), "{unknown:?}");
+    let error_text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&unknown.stdout),
+        String::from_utf8_lossy(&unknown.stderr)
+    );
+    assert!(
+        error_text.contains("expected `sc-compose` or `bd`"),
+        "{error_text}"
+    );
 }
 
 #[test]
@@ -613,8 +774,7 @@ impl GraphCliWorkspace {
 
 #[test]
 fn pinned_bd_graph_pour_and_attach_run_the_release_example_with_text_and_exit_contracts() {
-    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping graph CLI integration: BD_EXECUTABLE is not configured");
+    let Some(bd) = configured_pinned_bd() else {
         return;
     };
     let workspace = GraphCliWorkspace::new(bd);
@@ -649,6 +809,264 @@ fn pinned_bd_graph_pour_and_attach_run_the_release_example_with_text_and_exit_co
         .expect("help bead");
     assert!(help.status.success());
     assert!(String::from_utf8_lossy(&help.stdout).contains("Release under an epic"));
+}
+
+#[test]
+fn pinned_bd_registry_pour_receives_rendered_bead_variables() {
+    let Some(bd) = configured_pinned_bd() else {
+        return;
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let template = root.join("release-vars.formula.toml.j2");
+    let rendered_formula = workspace
+        .beads_dir
+        .join("formulas/release-vars.formula.toml");
+    fs::create_dir_all(rendered_formula.parent().expect("registry formulas")).expect("formulas");
+    fs::write(
+        &template,
+        "---\nrequired_variables:\n  - release_name\n---\nformula = \"release-vars\"\ndescription = \"Rendered variables\"\nversion = 1\ntype = \"workflow\"\n\n[vars.release_name]\nrequired = true\n\n[[steps]]\nid = \"release\"\ntitle = \"Padded {{ release_name }}\"\ndescription = \"Tight {{release_name}}\"\ntype = \"task\"\n",
+    )
+    .expect("template");
+    let request = workspace.write_request(&json!({
+        "schema": BEADS_SCHEMA,
+        "operation": "pour",
+        "working_directory": root,
+        "template": template,
+        "rendered_formula": rendered_formula,
+        "compose_variables": {},
+        "formula_name": "release-vars",
+        "bead_variables": { "release_name": "1.7.1" },
+        "bd_executable": workspace.bd,
+        "pour_authorization": "CreatePersistentBeads",
+    }));
+
+    let before_preview = workspace.snapshot();
+    let preview = workspace.cli("preview-pour", &request, true, 0);
+    let preview_envelope: serde_json::Value =
+        serde_json::from_slice(&preview.stdout).expect("preview envelope");
+    assert_eq!(preview_envelope["payload"]["pour_mode"], "registry");
+    assert_eq!(
+        workspace.snapshot(),
+        before_preview,
+        "registry preview writes no beads"
+    );
+
+    let output = workspace.cli("pour", &request, true, 0);
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("pour envelope");
+    assert_eq!(envelope["payload"]["pour_mode"], "registry");
+    let beads = workspace.bd_json(&["list", "--all", "-n", "0", "--json"]);
+    assert!(
+        beads.as_array().expect("bead list").iter().any(|bead| {
+            bead["title"] == "Padded 1.7.1" && bead["description"] == "Tight 1.7.1"
+        }),
+        "expected rendered values in created bead: {beads}"
+    );
+}
+
+#[test]
+fn pinned_bd_registry_pour_renders_tight_variable_in_bd_mode() {
+    let Some(bd) = configured_pinned_bd() else {
+        return;
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let template = root.join("bd-vars.formula.toml.j2");
+    let rendered_formula = workspace.beads_dir.join("formulas/bd-vars.formula.toml");
+    fs::create_dir_all(rendered_formula.parent().expect("registry formulas")).expect("formulas");
+    fs::write(&template, "formula = \"bd-vars\"\nversion = 1\ntype = \"workflow\"\n\n[vars.release_name]\nrequired = true\n\n[[steps]]\nid = \"release\"\ntitle = \"Tight {{release_name}}\"\ntype = \"task\"\n").expect("template");
+    let request = workspace.write_request(&json!({
+        "schema": BEADS_SCHEMA, "operation": "pour", "working_directory": root,
+        "template": template, "rendered_formula": rendered_formula, "compose_variables": {},
+        "formula_name": "bd-vars", "bead_variables": { "release_name": "1.7.1" },
+        "bead_variable_rendering": "bd", "bd_executable": workspace.bd,
+        "pour_authorization": "CreatePersistentBeads",
+    }));
+    let preview = workspace.cli("preview-pour", &request, true, 0);
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&preview.stdout).expect("preview")["payload"]["pour_mode"],
+        "registry"
+    );
+    let output = workspace.cli("pour", &request, true, 0);
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).expect("pour")["payload"]["pour_mode"],
+        "registry"
+    );
+    let beads = workspace.bd_json(&["list", "--all", "-n", "0", "--json"]);
+    assert!(
+        beads
+            .as_array()
+            .expect("bead list")
+            .iter()
+            .any(|bead| bead["title"] == "Tight 1.7.1"),
+        "expected bd-rendered tight value: {beads}"
+    );
+}
+
+#[test]
+fn pinned_bd_attach_persists_custom_relations_when_configured() {
+    let Some(bd) = configured_pinned_bd() else {
+        return;
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let example =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/beads/release-under-epic");
+    fs::copy(
+        example.join("release.formula.toml.j2"),
+        root.join("release.formula.toml.j2"),
+    )
+    .expect("example template");
+    let mut request: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(example.join("request.json")).expect("example request"),
+    )
+    .expect("example JSON");
+    request["working_directory"] = json!(fs::canonicalize(root).expect("canonical workspace"));
+    request["rendered_formula"] = json!(root.join("build/release.formula.toml"));
+    request["bd_executable"] = json!(workspace.bd);
+    let parent =
+        workspace.bd_json(&["create", "Release relations", "--type", "epic", "--json"])["id"]
+            .as_str()
+            .expect("epic id")
+            .to_owned();
+    let external = workspace.bd_json(&["create", "Existing validation target", "--json"])["id"]
+        .as_str()
+        .expect("external bead id")
+        .to_owned();
+    request["parent"] = json!(parent);
+    request["relations"] = json!([{
+        "from": "step:verify",
+        "to": format!("bead:{external}"),
+        "type": "validates"
+    }]);
+    let path = workspace.write_request(&request);
+
+    let preview = workspace.cli("preview-attach", &path, true, 0);
+    let preview: serde_json::Value = serde_json::from_slice(&preview.stdout).expect("preview JSON");
+    assert_eq!(
+        preview["payload"]["graph"]["edges"]
+            .as_array()
+            .unwrap()
+            .len(),
+        6
+    );
+    let attached = workspace.cli("attach", &path, true, 0);
+    let attached: serde_json::Value =
+        serde_json::from_slice(&attached.stdout).expect("attach JSON");
+    let verify_id = attached["payload"]["graph"]["ids"]["verify"]
+        .as_str()
+        .expect("verify id");
+    let dependencies = workspace.bd_json(&["dep", "list", verify_id, "--json"]);
+    let dependency_text = dependencies.to_string();
+    assert!(
+        dependency_text.contains(&external) && dependency_text.contains("validates"),
+        "custom validates relation to {external} was not persisted: {dependencies}"
+    );
+}
+
+#[test]
+fn pinned_bd_graph_attach_cooks_extends_and_checks_expanded_step_ids_when_configured() {
+    let Some(bd) = configured_pinned_bd() else {
+        return;
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let parent = workspace.bd_json(&["create", "Formula inheritance", "--type", "epic", "--json"])
+        ["id"]
+        .as_str()
+        .expect("epic id")
+        .to_owned();
+    let formulas = workspace.beads_dir.join("formulas");
+    fs::create_dir_all(&formulas).expect("formula registry");
+    write_file(
+        &formulas.join("base.formula.toml"),
+        "formula = \"base\"\nversion = 1\ntype = \"workflow\"\n\n[[steps]]\nid = \"base_step\"\ntitle = \"Base step\"\n",
+    );
+    let derived = root.join("derived.formula.toml.j2");
+    write_file(
+        &derived,
+        "formula = \"derived\"\nversion = 1\ntype = \"workflow\"\nextends = [\"base\"]\n\n[[steps]]\nid = \"derived_step\"\ntitle = \"Derived step\"\n",
+    );
+    let mut request = json!({
+        "schema": BEADS_SCHEMA,
+        "operation": "preview_attach",
+        "working_directory": fs::canonicalize(root).expect("canonical workspace"),
+        "template": derived,
+        "rendered_formula": root.join("build/derived.formula.toml"),
+        "compose_variables": {},
+        "formula_name": "derived",
+        "bead_variables": {},
+        "bd_executable": workspace.bd,
+        "pour_authorization": "CreatePersistentBeads",
+        "parent": parent,
+        "ref": "inherit",
+        "relations": []
+    });
+    let path = workspace.write_request(&request);
+    let preview = workspace.cli("preview-attach", &path, false, 0);
+    let preview = String::from_utf8(preview.stdout).expect("preview text");
+    for step in ["base_step", "derived_step"] {
+        assert!(
+            preview.contains(&format!("create: {step} -> {parent}.inherit-{step}")),
+            "{preview}"
+        );
+    }
+    let attached = workspace.cli("attach", &path, false, 0);
+    let attached = String::from_utf8(attached.stdout).expect("attach text");
+    for step in ["base_step", "derived_step"] {
+        assert!(
+            attached.contains(&format!("created: {step} -> {parent}.inherit-{step}")),
+            "{attached}"
+        );
+    }
+
+    let loop_formula = "formula = \"loop\"\nversion = 1\ntype = \"workflow\"\n\n[[steps]]\nid = \"iterate\"\ntitle = \"Iterate\"\n[steps.loop]\ncount = 2\nvar = \"i\"\n[[steps.loop.body]]\nid = \"work\"\ntitle = \"Work\"\n";
+    let expand_formula = "formula = \"expand\"\nversion = 1\ntype = \"workflow\"\n\n[[steps]]\nid = \"review\"\ntitle = \"Review\"\nexpand = \"exp-review\"\n";
+    write_file(
+        &formulas.join("exp-review.formula.toml"),
+        "formula = \"exp-review\"\nversion = 1\ntype = \"expansion\"\n\n[[template]]\nid = \"check\"\ntitle = \"Check {target}\"\n",
+    );
+    let expand_template = root.join("expand.formula.toml.j2");
+    write_file(&expand_template, expand_formula);
+    request["template"] = json!(expand_template);
+    request["rendered_formula"] = json!(root.join("build/expand.formula.toml"));
+    request["ref"] = json!("expand");
+    let path = workspace.write_request(&request);
+    let preview = workspace.cli("preview-attach", &path, false, 0);
+    let preview = String::from_utf8(preview.stdout).expect("expanded preview text");
+    assert!(preview.contains("create: check ->"), "{preview}");
+    assert!(!preview.contains("create: review ->"), "{preview}");
+
+    let loop_template = root.join("loop.formula.toml.j2");
+    write_file(&loop_template, loop_formula);
+    request["template"] = json!(loop_template);
+    request["rendered_formula"] = json!(root.join("build/loop.formula.toml"));
+    request["ref"] = json!("loop");
+    let path = workspace.write_request(&request);
+    let output = workspace.cli("preview-attach", &path, true, 2);
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("loop refusal JSON");
+    assert_eq!(
+        envelope["payload"]["error"]["code"], "BEADS_GRAPH_ID_INVALID",
+        "loop: {envelope}"
+    );
+
+    write_file(
+        &formulas.join("exp-review.formula.toml"),
+        "formula = \"exp-review\"\nversion = 1\ntype = \"expansion\"\n\n[[template]]\nid = \"check-it\"\ntitle = \"Check {target}\"\n",
+    );
+    request["template"] = json!(root.join("expand.formula.toml.j2"));
+    request["rendered_formula"] = json!(root.join("build/invalid-expand.formula.toml"));
+    request["ref"] = json!("invalidexpand");
+    let path = workspace.write_request(&request);
+    let output = workspace.cli("preview-attach", &path, true, 2);
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("expand refusal JSON");
+    assert_eq!(
+        envelope["payload"]["error"]["code"], "BEADS_GRAPH_ID_INVALID",
+        "expand: {envelope}"
+    );
 }
 
 fn assert_by_path_pour(workspace: &GraphCliWorkspace, request: &serde_json::Value) {

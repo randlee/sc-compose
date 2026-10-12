@@ -80,8 +80,12 @@ pub fn discover_tokens_with_delimiters(
 }
 
 /// Drop the leading tag name of a statement (`if`, `autoescape`,
-/// `endautoescape`, ...): it names the block, never a variable.
+/// `endautoescape`, ...): it names the block, never a variable. `block` and
+/// `endblock` take only a template block name, so nothing of them is kept.
 fn statement_arguments(statement: &str) -> &str {
+    if matches!(statement_name(statement), Some("block" | "endblock")) {
+        return "";
+    }
     let tag_end = statement_name(statement).map_or(statement.len(), str::len);
     &statement[tag_end..]
 }
@@ -301,6 +305,15 @@ mod tests {
     }
 
     #[test]
+    fn template_block_names_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% block report_header %}{{ title }}{% endblock report_header %}{% block body %}{% endblock %}",
+        );
+
+        assert_eq!(tokens, [crate::VariableName::new("title").unwrap()].into());
+    }
+
+    #[test]
     fn test_names_and_is_keyword_are_not_discovered_as_variables() {
         let tokens = discover_tokens(
             "{% if x is defined and x | trim %}{{ x }}{% endif %}{% if y is not none %}{{ y is divisibleby(z) }}{% endif %}",
@@ -327,6 +340,23 @@ mod tests {
         assert_eq!(
             discover_tokens_with_brace_count("{# {{{ hidden }}} #}{{{ outer }}}", 3),
             [crate::VariableName::new("outer").unwrap()].into()
+        );
+    }
+
+    #[test]
+    fn global_function_calls_are_not_discovered_as_variables() {
+        let tokens = discover_tokens(
+            "{% for i in range(1, n) %}{{ i }}{% endfor %}{{ dict(a=x) }}{% set ns = namespace(v=1) %}{{ range }}",
+        );
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("n").unwrap(),
+                crate::VariableName::new("range").unwrap(),
+                crate::VariableName::new("x").unwrap(),
+            ]
+            .into()
         );
     }
 

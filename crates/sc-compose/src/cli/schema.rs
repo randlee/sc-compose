@@ -92,6 +92,11 @@ pub(crate) struct BeadRequestArgs {
     pub(crate) request: PathBuf,
     #[arg(
         long,
+        help = "Leave ordinary {{ variable }} expressions for bd to render"
+    )]
+    pub(crate) true_bd_render: bool,
+    #[arg(
+        long,
         help = "Emit the Beads receipt in the standard diagnostic JSON envelope"
     )]
     pub(crate) json: bool,
@@ -141,13 +146,15 @@ pub(crate) struct InputArgs {
         help = "Absorb environment variables that match the given prefix"
     )]
     pub(crate) env_prefix: Option<String>,
-    #[arg(long, help = "Treat undeclared referenced variables as errors")]
+    /// Accepted for existing callers; strict is the only mode, so undeclared
+    /// and unbound referenced variables are always errors.
+    #[arg(long, hide = true)]
     pub(crate) strict: bool,
     #[arg(
         long,
         value_enum,
         default_value = "ignore",
-        help = "Control how extra caller-provided and referenced-but-unbound variables are reported"
+        help = "Control how extra caller-provided variables are reported"
     )]
     pub(crate) unknown_var_mode: UnknownVarMode,
 }
@@ -263,6 +270,13 @@ pub(crate) struct ValidateArgs {
     pub(crate) common: CommonArgs,
     #[arg(long, help = "Validate all stacked template passes")]
     pub(crate) all: bool,
+    #[arg(
+        long = "brace-count",
+        value_parser = clap::value_parser!(u8).range(2..),
+        conflicts_with = "all",
+        help = "Validate with custom brace-count delimiters (for example 3 => {{{ }}})"
+    )]
+    pub(crate) brace_count: Option<u8>,
     #[arg(
         long,
         help = "Report redundant filter chains and other lint findings with source locations"

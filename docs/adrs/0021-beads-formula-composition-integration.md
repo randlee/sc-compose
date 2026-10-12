@@ -216,8 +216,9 @@ and `Pour`
 are the deliberate exception because their output must be in the active Beads
 registry resolved by `bd where`. `compose_variables` remain structured JSON so
 authors can use normal Jinja lists and objects. `bead_variables` remain ordered
-scalar `key=value` pairs and are supplied only to `bd --var`; this preserves
-Beads' own runtime-variable contract.
+scalar `key=value` pairs; sc-compose renders their declared ordinary
+double-brace placeholders before invoking `bd`, then also supplies them to
+`bd --var` to preserve Beads' runtime-variable contract.
 
 The only schema interpretation is the request/receipt protocol. `bd` stdout
 and stderr are recorded as bounded diagnostic evidence, not reparsed into an
