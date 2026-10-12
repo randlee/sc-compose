@@ -95,10 +95,11 @@ fn find_exact_delimiter(text: &str, delimiter: &str) -> Option<usize> {
         let found = text[cursor..].find(delimiter)?;
         let absolute = cursor + found;
         let after = absolute + delimiter.len();
-        if text
-            .as_bytes()
-            .get(after)
-            .is_some_and(|byte| *byte == repeated_byte)
+        if delimiter.len() == 2
+            && text
+                .as_bytes()
+                .get(after)
+                .is_some_and(|byte| *byte == repeated_byte)
         {
             cursor = after;
             continue;

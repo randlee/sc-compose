@@ -286,6 +286,22 @@ mod tests {
     }
 
     #[test]
+    fn four_closing_braces_do_not_consume_following_loop_scope() {
+        let tokens = discover_tokens_with_brace_count(
+            "{\"a\": {{{ n }}}}\n{% for x in lst %}{{{ x }}}{% endfor %}",
+            3,
+        );
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("lst").unwrap(),
+                crate::VariableName::new("n").unwrap()
+            ]
+            .into()
+        );
+    }
+
+    #[test]
     fn filter_names_are_not_discovered_as_variables() {
         let tokens = discover_tokens("{{ x | e }} {{ x | e | lower }}");
 
