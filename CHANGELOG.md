@@ -39,22 +39,32 @@ All notable changes to this project will be documented in this file.
     revisions match v1.7.0 and an attach re-run no longer reports
     `BEADS_GRAPH_CONFLICT`;
   - a name supplied in both `compose_variables` and `bead_variables` is
-    refused with `BEADS_VARIABLE_KEY_DUPLICATE` instead of the compose value
-    silently winning.
-- A Beads request whose `rendered_formula` is its template is refused before
-  anything is written, preventing template overwrite.
-- NUL and other control characters in Beads ids are rejected as invalid ids
-  before a `bd` call.
+    rejected during render with `BEADS_VARIABLE_KEY_DUPLICATE` instead of the
+    compose value silently winning.
+- A Beads request whose `rendered_formula` aliases its template is refused
+  before anything is written, including case-folded and
+  Unicode-normalization aliases on case-insensitive filesystems.
+- NUL and other control characters in request-supplied parent, ref, and
+  relation endpoint ids are refused before `bd` runs for attach and
+  preview-attach. Graph-mode preview-pour and pour still run `bd cook
+  --dry-run` and `bd where --json` before checking cooked bead ids.
 - Strict validation no longer discovers bogus tokens from indexed access
   (`o[0].k`), literal or grouped member access (`({...}).a`, `(x).upper()`),
   or locals following four closing braces. Four-brace tokens remain exact at
   brace count three.
+- Strict token discovery now follows MiniJinja delimiters and local scope more
+  closely: `+` whitespace-control markers, quoted closing delimiters,
+  dictionary literals after `{{`, block/tuple `set`, `with`, macros, calls,
+  filtered loops and recursive loops no longer hide real references or invent
+  undeclared local names.
 - Strict validation now discovers an expression immediately followed by a
   literal `}` (for example JSON `{"v": {{ v }}}`); an undeclared name there
   is refused instead of silently passing.
 - A blocked `.graph.json` graph-plan path is refused before `bd` runs, as a
   refused receipt with exit 2, and now reports its plan-path diagnostic and
   recovery instead of misidentifying `rendered_formula`.
+- A symlinked graph-plan path now reports `BEADS_OUTPUT_PATH_INVALID` (field
+  `graph_plan`) instead of `BEADS_OUTPUT_PATH_SYMLINK`.
 - `sc-compose bead` now renders declared `bead_variables` in both padded
   `{{ key }}` and tight `{{key}}` formula placeholders before invoking `bd`,
   while still passing them as `--var` for Beads runtime checks (#618).

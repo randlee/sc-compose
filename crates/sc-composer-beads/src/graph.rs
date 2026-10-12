@@ -595,6 +595,10 @@ fn graph_plan_path_error(error: BeadComposeError) -> BeadComposeError {
         BeadComposeError::OutputPathInvalid { path, rule } => {
             BeadComposeError::GraphPlanPathInvalid { path, rule }
         }
+        BeadComposeError::OutputPathSymlink { path } => BeadComposeError::GraphPlanPathInvalid {
+            path,
+            rule: "graph plan destination must not be a symbolic link".into(),
+        },
         error => error,
     }
 }
@@ -603,6 +607,40 @@ fn graph_plan_path_error(error: BeadComposeError) -> BeadComposeError {
 mod presentation_tests {
     use super::*;
     use std::io;
+
+    #[cfg(unix)]
+    #[test]
+    fn graph_plan_symlink_error_has_plan_path_diagnostic() {
+        use std::os::unix::fs::symlink;
+
+        let root = std::env::temp_dir().join(format!(
+            "sc-graph-plan-symlink-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let target = root.join("target");
+        let path = root.join("formula.formula.toml.graph.json");
+        fs::write(&target, "untouched").unwrap();
+        symlink(&target, &path).unwrap();
+
+        let error = crate::render::validate_output_destination(&path)
+            .map_err(graph_plan_path_error)
+            .unwrap_err();
+        let diagnostic = crate::BeadDiagnostic::refused(&error).unwrap();
+        let wire = serde_json::to_value(diagnostic).unwrap();
+        assert_eq!(wire["code"], "BEADS_OUTPUT_PATH_INVALID");
+        assert_eq!(wire["details"]["field"], "graph_plan");
+        assert_eq!(
+            wire["recovery"],
+            "Choose a writable graph plan path beside rendered_formula."
+        );
+        assert_eq!(fs::read_to_string(&target).unwrap(), "untouched");
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn graph_plan_presentation_does_not_change_raw_response() {

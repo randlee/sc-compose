@@ -1976,3 +1976,128 @@ fn fuzz_055_r3_create_failures_and_preview_receipts_name_public_graph_plan() {
         }
     }
 }
+
+fn configure_render_request(w: &mut Workspace, template: &Path, destination: &Path) {
+    w.req.operation = BeadOperation::Render;
+    w.req.template = template.to_path_buf();
+    w.req.rendered_formula = destination.to_path_buf();
+    w.req.parent = None;
+    w.req.ref_ = None;
+    w.req.pour_authorization = None;
+    w.req.formula_name = None;
+    w.req.bead_variables.clear();
+}
+
+// PF-001: on a case-insensitive filesystem, differently-cased output aliases
+// the template and must be refused before rendering can replace it.
+#[test]
+fn pf_001_case_insensitive_destination_alias_is_refused_before_render() {
+    let mut w = Workspace::new();
+    let template = w.root.join("x.formula.toml");
+    let destination = w.root.join("X.formula.toml");
+    let original = b"formula = \"sample\"\n";
+    fs::write(&template, original).expect("template");
+    if !destination.exists() {
+        eprintln!("skipping case-alias assertion on case-sensitive filesystem");
+        return;
+    }
+    configure_render_request(&mut w, &template, &destination);
+
+    let runner = FakeRunner::new([]);
+    let error = execute_bead_request_with_runner(&w.req, &runner)
+        .expect_err("case-folded output alias must be refused");
+    assert!(
+        matches!(&error, BeadComposeError::OutputPathInvalid { path, rule } if path.to_string_lossy() == public_path(&destination) && rule.contains("must not overwrite the template")),
+        "{error}"
+    );
+    assert_eq!(fs::read(&template).expect("template bytes"), original);
+    assert_eq!(
+        fs::read(&destination).expect("aliased output bytes"),
+        original
+    );
+    assert!(runner.calls().is_empty(), "render refusal must precede bd");
+}
+
+// PF-001: on macOS, Unicode-normalization aliases must also be refused.
+#[cfg(target_os = "macos")]
+#[test]
+fn pf_001_unicode_normalization_destination_alias_is_refused_before_render() {
+    let mut w = Workspace::new();
+    let template = w.root.join("caf\u{00e9}.formula.toml");
+    let destination = w.root.join("cafe\u{0301}.formula.toml");
+    let original = b"formula = \"sample\"\n";
+    fs::write(&template, original).expect("template");
+    if !destination.exists() {
+        eprintln!("skipping normalization-alias assertion on non-normalizing filesystem");
+        return;
+    }
+    configure_render_request(&mut w, &template, &destination);
+
+    let runner = FakeRunner::new([]);
+    let error = execute_bead_request_with_runner(&w.req, &runner)
+        .expect_err("Unicode-normalization output alias must be refused");
+    assert!(
+        matches!(&error, BeadComposeError::OutputPathInvalid { path, rule } if path.to_string_lossy() == public_path(&destination) && rule.contains("must not overwrite the template")),
+        "{error}"
+    );
+    assert_eq!(fs::read(&template).expect("template bytes"), original);
+    assert_eq!(
+        fs::read(&destination).expect("aliased output bytes"),
+        original
+    );
+    assert!(runner.calls().is_empty(), "render refusal must precede bd");
+}
+
+// PF-001: an exact source/destination path remains rejected as well.
+#[test]
+fn pf_001_exact_template_destination_is_refused() {
+    let mut w = Workspace::new();
+    let template = w.root.join("exact.formula.toml");
+    let original = b"formula = \"sample\"\n";
+    fs::write(&template, original).expect("template");
+    configure_render_request(&mut w, &template, &template);
+
+    let runner = FakeRunner::new([]);
+    let error = execute_bead_request_with_runner(&w.req, &runner)
+        .expect_err("exact output path must be refused");
+    assert!(
+        matches!(&error, BeadComposeError::OutputPathInvalid { rule, .. } if rule.contains("must not overwrite the template")),
+        "{error}"
+    );
+    assert_eq!(fs::read(&template).expect("template bytes"), original);
+    assert!(runner.calls().is_empty());
+}
+
+// PF-001: hard-link destinations remain replaceable without changing the
+// template directory entry or its bytes.
+#[cfg(unix)]
+#[test]
+fn pf_001_hard_link_destination_keeps_atomic_replace_behavior() {
+    use std::os::unix::fs::MetadataExt;
+
+    let mut w = Workspace::new();
+    let template = w.root.join("source.formula.toml");
+    let destination = w.root.join("rendered.formula.toml");
+    let original = b"formula = \"sample\"\n";
+    fs::write(&template, original).expect("template");
+    fs::hard_link(&template, &destination).expect("hard link");
+    configure_render_request(&mut w, &template, &destination);
+
+    let runner = FakeRunner::new([]);
+    let receipt = execute_bead_request_with_runner(&w.req, &runner).expect("render");
+
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    assert_eq!(fs::read(&template).expect("template bytes"), original);
+    assert_eq!(
+        fs::read(&destination).expect("rendered bytes"),
+        b"formula = \"sample\""
+    );
+    let source_metadata = fs::metadata(&template).expect("source metadata");
+    let output_metadata = fs::metadata(&destination).expect("output metadata");
+    assert_ne!(
+        (source_metadata.dev(), source_metadata.ino()),
+        (output_metadata.dev(), output_metadata.ino()),
+        "atomic replacement must break only the destination hard link"
+    );
+    assert!(runner.calls().is_empty());
+}
