@@ -72,14 +72,14 @@ is meant for logs and ledgers that several processes write at once, such as
 one record per test run or review.
 
 ```shell
-sc-compose render --file run-record.json.j2 --var-file run.json --strict \
+sc-compose render --file run-record.json.j2 --var-file run.json \
   --append logs/runs.jsonl
 ```
 
 In order, `render --append`:
 
-1. renders and validates exactly as an ordinary render does, including
-   `--strict` and the JSON template checks; nothing is opened yet;
+1. renders and validates exactly as an ordinary render does, including the
+   JSON template checks; nothing is opened yet;
 2. requires the result to be exactly one JSON object
    (`ERR_RENDER_JSON_MALFORMED` if it is not JSON,
    `ERR_RENDER_APPEND_NOT_OBJECT` if it is an array, string or number);

@@ -169,13 +169,13 @@ codes:
 | `FormulaPathNotFile` | `BEADS_FORMULA_NOT_FILE` | Template or rendered formula path is not a regular file. |
 | `FormulaExtensionUnsupported` | `BEADS_FORMULA_EXTENSION_UNSUPPORTED` | Formula is not `.formula.toml` or `.formula.json`. |
 | `TemplatePathInvalid` | `BEADS_TEMPLATE_PATH_INVALID` | Template path is missing, malformed, or cannot be resolved. |
-| `OutputPathInvalid` | `BEADS_OUTPUT_PATH_INVALID` | `rendered_formula` cannot be normalized because its parent directory is missing or cannot be resolved. |
+| `OutputPathInvalid` | `BEADS_OUTPUT_PATH_INVALID` | `rendered_formula` has an unusable parent, resolves to the template itself, or is the blocked graph-plan path. |
 | `TemplateOutsideWorkingDirectory` | `BEADS_TEMPLATE_OUTSIDE_WORKING_DIR` | Template escapes `working_directory`. |
 | `OutputOutsideWorkingDirectory` | `BEADS_OUTPUT_OUTSIDE_WORKING_DIR` | Rendered output escapes the permitted working directory. |
 | `OutputPathSymlink` | `BEADS_OUTPUT_PATH_SYMLINK` | Final rendered output component is a symbolic link. |
 | `PathNotUtf8` | `BEADS_PATH_NOT_UTF8` | A direct-Rust request path cannot be represented safely in the UTF-8 `bd` argv contract. |
 | `BeadVariableKeyInvalid` | `BEADS_VARIABLE_KEY_INVALID` | A Beads runtime-variable key is empty or malformed. |
-| `BeadVariableKeyDuplicate` | `BEADS_VARIABLE_KEY_DUPLICATE` | `parse_request` detects that a Beads runtime-variable key is supplied more than once. |
+| `BeadVariableKeyDuplicate` | `BEADS_VARIABLE_KEY_DUPLICATE` | Rendering detects the same name in `compose_variables` and `bead_variables`; the Render stage fails. |
 | `FormulaNameRequired` | `BEADS_FORMULA_NAME_REQUIRED` | Preview or pour has no formula name. |
 | `PourAuthorizationRequired` | `BEADS_POUR_AUTH_REQUIRED` | Persistent pour lacks the explicit authorization sentinel. |
 | `PourAuthorizationInvalid` | `BEADS_POUR_AUTH_INVALID` | Authorization is present but is not `CreatePersistentBeads`. |

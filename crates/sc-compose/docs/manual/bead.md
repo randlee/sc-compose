@@ -72,12 +72,12 @@ template and its includes), one strict validation and one render. Rendered
 output is never parsed again: braces in a supplied value or produced by an
 expression stay literal, `{% raw %}` blocks stay literal, and `set`/`for`
 locals shadow caller values of the same name. A name supplied in both
-`compose_variables` and `bead_variables` is refused with
-`BEADS_VARIABLE_KEY_DUPLICATE`. In `bd` mode `{{ expr }}` is plain text to the
-render and reaches `bd` byte-for-byte, unless the expression text itself
-contains `{%`, `{#` or `{{{`, which the render still reads as a statement,
-comment or composition expression. Wrap such an expression in
-`{% raw %}...{% endraw %}` to pass it through unchanged.
+`compose_variables` and `bead_variables` makes the Render stage fail with
+`BEADS_VARIABLE_KEY_DUPLICATE` and a failed outcome. In `bd` mode `{{ expr }}`
+is plain text to the render and reaches `bd` byte-for-byte, unless the
+expression text itself contains `{%`, `{#` or `{{{`, which the render still
+reads as a statement, comment or composition expression. Wrap such an
+expression in `{% raw %}...{% endraw %}` to pass it through unchanged.
 
 ## The request
 
@@ -391,7 +391,10 @@ operation, `relations` on `render` or `validate`),
 `bead:` prefix; correct that endpoint), `BEADS_UNKNOWN_SCHEMA`, path
 and authorization errors such as `BEADS_POUR_AUTH_REQUIRED`.
 An invalid `rendered_formula` output path uses `BEADS_OUTPUT_PATH_INVALID`;
-its diagnostic identifies the field, supplied path, and parent-directory rule.
+this includes a missing or unusable parent directory and a destination that
+resolves to the template itself. A blocked graph-plan path uses the same code,
+with `details.field` set to `graph_plan` and recovery guidance for choosing a
+writable plan path.
 
 A pour only knows whether it is a registry or graph pour after locating the
 registry, so two pour mistakes are refused receipts (exit `2`) instead:
@@ -402,12 +405,17 @@ reason `bead_variables_set`) and `relations` on a registry pour
 In a graph pour,
 `validate` still runs `bd cook --dry-run` as before (the mode is not known
 yet); the graph checks above run at the start of the `preview_pour` / `pour`
-stage, after `resolve_active_registry` has selected graph mode.
+stage, after `resolve_active_registry` has selected graph mode. Consequently,
+cooked bead-id errors in graph-mode preview-pour or pour are discovered after
+`bd cook --dry-run` and `bd where --json`; attach and preview-attach
+request-supplied parent, ref and relation endpoint ids are checked before
+invoking `bd`.
 
 Refused or failed receipts (exit `2`):
 
 | Code | Meaning | What to do |
 |---|---|---|
+| `BEADS_VARIABLE_KEY_DUPLICATE` | A name is supplied in both `compose_variables` and `bead_variables`; rendering fails at the Render stage | remove the duplicate from one source |
 | `BEADS_GRAPH_PARENT_NOT_FOUND` | `parent` does not exist | create it or name an existing bead |
 | `BEADS_GRAPH_ID_INVALID` | invalid parent/bead id, `ref`, or step id; request parsing preserves the typed field and value | fix the identifier according to the rule in the message |
 | `BEADS_GRAPH_SCOPE_MISMATCH` | `compose_variables` disagrees with `parent`/`ref` | make them equal, or drop them |

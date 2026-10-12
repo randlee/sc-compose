@@ -340,11 +340,26 @@ fn validate_request(
         });
     }
     validate_output_destination(&rendered_formula)?;
+    reject_template_alias(&template, &rendered_formula)?;
     Ok(NormalizedRequest {
         working_directory,
         template,
         rendered_formula,
     })
+}
+
+fn reject_template_alias(template: &Path, rendered_formula: &Path) -> Result<(), BeadComposeError> {
+    // Resolve an existing destination entry so case- or normalization-folded
+    // paths cannot alias the canonical template. Comparing resolved paths
+    // preserves hard-link behavior: replacing one link leaves the template
+    // entry and its inode untouched.
+    if fs::canonicalize(rendered_formula).is_ok_and(|existing| existing == template) {
+        return Err(BeadComposeError::OutputPathInvalid {
+            path: public_path_buf(rendered_formula),
+            rule: "rendered_formula must not overwrite the template".into(),
+        });
+    }
+    Ok(())
 }
 
 fn validate_attach_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {

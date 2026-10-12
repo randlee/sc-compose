@@ -39,12 +39,14 @@ All notable changes to this project will be documented in this file.
     revisions match v1.7.0 and an attach re-run no longer reports
     `BEADS_GRAPH_CONFLICT`;
   - a name supplied in both `compose_variables` and `bead_variables` is
-    refused with `BEADS_VARIABLE_KEY_DUPLICATE` instead of the compose value
-    silently winning.
+    rejected during render with `BEADS_VARIABLE_KEY_DUPLICATE` instead of the
+    compose value silently winning.
 - A Beads request whose `rendered_formula` is its template is refused before
   anything is written, preventing template overwrite.
-- NUL and other control characters in Beads ids are rejected as invalid ids
-  before a `bd` call.
+- NUL and other control characters in request-supplied parent, ref, and
+  relation endpoint ids are refused before `bd` runs for attach and
+  preview-attach. Graph-mode preview-pour and pour still run `bd cook
+  --dry-run` and `bd where --json` before checking cooked bead ids.
 - Strict validation no longer discovers bogus tokens from indexed access
   (`o[0].k`), literal or grouped member access (`({...}).a`, `(x).upper()`),
   or locals following four closing braces. Four-brace tokens remain exact at
