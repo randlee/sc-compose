@@ -308,6 +308,15 @@ mod tests {
     }
 
     #[test]
+    fn member_access_after_grouped_values_does_not_create_dot_tokens() {
+        assert_eq!(
+            discover_tokens_with_brace_count("{{{ (x).upper() }}}", 3),
+            [crate::VariableName::new("x").unwrap()].into()
+        );
+        assert!(discover_tokens_with_brace_count(r#"{{{ ({"a": 1}).a }}}"#, 3).is_empty());
+    }
+
+    #[test]
     fn filter_names_are_not_discovered_as_variables() {
         let tokens = discover_tokens("{{ x | e }} {{ x | e | lower }}");
 
