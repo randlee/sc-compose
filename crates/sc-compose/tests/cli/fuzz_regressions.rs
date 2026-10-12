@@ -343,6 +343,151 @@ fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
     }
 }
 
+// FUZZ-171-13: an output path may never overwrite its source template.
+#[cfg(unix)]
+#[test]
+fn fuzz_171_13_rendered_formula_equal_to_template_is_refused_without_writes() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = temp_root("fuzz-171-13-template-overwrite");
+    let template = root.join("same.formula.toml.j2");
+    let original = b"formula = \"same\"\n";
+    write_file(&template, std::str::from_utf8(original).unwrap());
+    let trace = root.join("bd.trace");
+    let bd = root.join("fake-bd");
+    write_file(
+        &bd,
+        &format!("#!/bin/sh\nprintf called >> '{}'\n", trace.display()),
+    );
+    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let request = root.join("request.json");
+    write_file(
+        &request,
+        &serde_json::json!({
+            "schema":"sc-compose/beads/v1", "operation":"validate",
+            "working_directory":root, "template":template,
+            "rendered_formula":template, "compose_variables":{}, "bead_variables":{},
+            "bd_executable":bd
+        })
+        .to_string(),
+    );
+
+    let output = sc_compose()
+        .args(["bead", "validate", "--json", "--request"])
+        .arg(&request)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let envelope = parse_stdout(&output);
+    assert_eq!(
+        envelope["payload"]["error"]["code"], "BEADS_OUTPUT_PATH_INVALID",
+        "{envelope}"
+    );
+    assert_eq!(std::fs::read(&template).unwrap(), original);
+    assert!(!trace.exists(), "bd must not run before the path refusal");
+    let mut entries = std::fs::read_dir(&root)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect::<Vec<_>>();
+    entries.sort();
+    let mut expected = vec![
+        std::ffi::OsString::from("fake-bd"),
+        std::ffi::OsString::from("request.json"),
+        std::ffi::OsString::from("same.formula.toml.j2"),
+    ];
+    expected.sort();
+    assert_eq!(entries, expected, "refusal must create no output files");
+}
+
+// FUZZ-171-17: control characters in graph IDs are refused before `bd` runs.
+#[cfg(unix)]
+#[test]
+fn fuzz_171_17_control_char_graph_ids_are_refused_before_bd() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = temp_root("fuzz-171-17-control-ids");
+    let bd = root.join("fake-bd");
+    let trace = root.join("bd.trace");
+    write_file(
+        &bd,
+        &format!("#!/bin/sh\nprintf called >> '{}'\n", trace.display()),
+    );
+    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    write_file(
+        &root.join("m.formula.toml.j2"),
+        "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
+    );
+
+    for (field, invalid, expected_field) in [
+        ("parent", serde_json::json!("proj-\u{0000}"), "bead"),
+        ("ref", serde_json::json!("bad-\u{0007}"), "ref"),
+    ] {
+        let request = root.join(format!("{field}.json"));
+        let mut input = serde_json::json!({
+            "schema":"sc-compose/beads/v1", "operation":"preview_attach",
+            "working_directory":root, "template":"m.formula.toml.j2",
+            "rendered_formula":root.join("out.formula.toml"),
+            "compose_variables":{}, "bead_variables":{},
+            "parent":"proj-1", "ref":"valid", "bd_executable":bd
+        });
+        input[field] = invalid;
+        write_file(&request, &input.to_string());
+
+        let output = sc_compose()
+            .args(["bead", "preview-attach", "--json", "--request"])
+            .arg(&request)
+            .output()
+            .unwrap();
+
+        assert_eq!(output.status.code(), Some(2), "{field}: {output:?}");
+        let envelope = parse_stdout(&output);
+        assert_eq!(
+            envelope["payload"]["error"]["code"], "BEADS_GRAPH_ID_INVALID",
+            "{field}: {envelope}"
+        );
+        assert_eq!(
+            envelope["payload"]["error"]["details"]["field"], expected_field,
+            "{field}: {envelope}"
+        );
+        assert!(!trace.exists(), "{field}: bd must not run");
+    }
+}
+
+// D-01: the default renderer handles declared JSON variables and loop locals.
+#[test]
+fn d_01_json_frontmatter_variables_and_loop_render_in_default_mode() {
+    let root = temp_root("d-01-json-frontmatter-loop");
+    write_file(
+        &root.join("sample.formula.json.j2"),
+        "---\nrequired_variables:\n  - lst\n  - n\n---\n{\"a\": {{ n }}}\n{% for x in lst %}{{{ x }}}{% endfor %}",
+    );
+    let request = root.join("request.json");
+    std::fs::create_dir_all(root.join("build")).unwrap();
+    write_file(
+        &request,
+        &serde_json::json!({
+            "schema":"sc-compose/beads/v1", "operation":"render",
+            "working_directory":root, "template":"sample.formula.json.j2",
+            "rendered_formula":root.join("build/sample.formula.json"),
+            "compose_variables":{"lst":["a","b"],"n":1}, "bead_variables":{}
+        })
+        .to_string(),
+    );
+
+    let output = sc_compose()
+        .args(["bead", "render", "--json", "--request"])
+        .arg(&request)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    assert_eq!(
+        std::fs::read(root.join("build/sample.formula.json")).unwrap(),
+        b"{\"a\": 1}\nab"
+    );
+}
+
 // FUZZ-040: human refused-attach diagnostics escape terminal controls in every id field.
 #[cfg(unix)]
 #[test]
