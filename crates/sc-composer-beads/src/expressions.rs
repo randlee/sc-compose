@@ -107,12 +107,14 @@ fn find_endraw(text: &str, from: usize) -> Option<usize> {
     None
 }
 
-/// Find `close` after `from`, skipping single- and double-quoted strings with
-/// backslash escapes. Returns the offset of `close` in `text`.
+/// Find `close` after `from` as the renderer's lexer does: outside single- and
+/// double-quoted strings (with backslash escapes) and only while no `(`, `[`
+/// or `{` is open. Returns the offset of `close` in `text`.
 fn find_outside_strings(text: &str, from: usize, close: &str) -> Option<usize> {
     let bytes = text.as_bytes();
     let mut index = from;
     let mut quote = None;
+    let mut depth = 0_usize;
     while index < bytes.len() {
         let byte = bytes[index];
         match quote {
@@ -122,7 +124,11 @@ fn find_outside_strings(text: &str, from: usize, close: &str) -> Option<usize> {
             }
             Some(open) if byte == open => quote = None,
             None if byte == b'\'' || byte == b'"' => quote = Some(byte),
-            None if bytes[index..].starts_with(close.as_bytes()) => return Some(index),
+            None if depth == 0 && bytes[index..].starts_with(close.as_bytes()) => {
+                return Some(index);
+            }
+            None if matches!(byte, b'(' | b'[' | b'{') => depth += 1,
+            None if matches!(byte, b')' | b']' | b'}') => depth = depth.saturating_sub(1),
             Some(_) | None => {}
         }
         index += 1;
@@ -159,6 +165,12 @@ mod tests {
             ("{ {x} }", "{ {x} }"),
             ("{{ unterminated", "{{ unterminated"),
             ("ü{{ x }}é", "ü{{{ x }}}é"),
+            ("{{ {\"a\": {\"b\": 1}} }}", "{{{ {\"a\": {\"b\": 1}} }}}"),
+            ("{{ (x) }}{{ [x][0] }}", "{{{ (x) }}}{{{ [x][0] }}}"),
+            (
+                "{% if {'a': 1}%}x{% endif %}",
+                "{% if {'a': 1}%}x{% endif %}",
+            ),
         ];
         for (source, expected) in cases {
             assert_eq!(fold_bead_expressions(source), expected, "{source}");

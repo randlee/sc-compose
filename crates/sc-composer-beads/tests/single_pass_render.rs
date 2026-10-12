@@ -355,3 +355,29 @@ fn both_expression_forms_are_validated_strictly() {
         "{error}"
     );
 }
+
+// Nested braces inside an expression do not end it.
+#[test]
+fn nested_braces_inside_an_expression_render() {
+    assert_eq!(
+        render("x = \"{{ {\"a\": {\"b\": 1}} }}\"\n", json!({}), &[]),
+        Ok("x = \"{\\\"a\\\": {\\\"b\\\": 1}}\"".into())
+    );
+    assert_eq!(
+        render("x = \"{{{ {\"a\": {\"b\": 1}} }}}\"\n", json!({}), &[]),
+        Ok("x = \"{\\\"a\\\": {\\\"b\\\": 1}}\"".into())
+    );
+}
+
+// Whitespace control works on both expression forms.
+#[test]
+fn whitespace_control_trims_around_expressions() {
+    assert_eq!(
+        render(
+            &(fm(&["x", "y"]) + "a = \"  {{- x -}}  |  {{{- y -}}}  \"\n"),
+            json!({"y": "Y"}),
+            &[("x", "X")]
+        ),
+        Ok("a = \"X|Y\"".into())
+    );
+}
