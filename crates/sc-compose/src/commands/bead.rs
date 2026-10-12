@@ -85,16 +85,16 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     }
 
     let mut diagnostics = Vec::new();
-    let mut identifier_diagnostic = None;
+    let mut refusal_diagnostic = None;
     let result = execute_bead_request_with_diagnostics(&request, &mut |error| {
-        identifier_diagnostic = BeadDiagnostic::graph_id_invalid(error);
+        refusal_diagnostic = BeadDiagnostic::refused(error);
         if !json {
             diagnostics.push(serde_json::to_value(error));
         }
     });
     match result {
         Ok(receipt) => {
-            if let Some(error) = identifier_diagnostic {
+            if let Some(error) = refusal_diagnostic {
                 return print_refused_receipt(RefusedBeadComposeReceipt { receipt, error }, json);
             }
             let diagnostics = diagnostics
@@ -348,7 +348,7 @@ mod tests {
     }
     #[test]
     fn missing_edge_recovery_commands_escape_controls_and_bidi_for_posix_sh() {
-        let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}$(literal)$HOME`literal`";
+        let from = "source'\\\u{202e}$(literal)$HOME`literal`";
         let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
         let receipt: BeadComposeReceipt = serde_json::from_value(json!({
             "schema": "sc-compose/beads/v1",
@@ -375,6 +375,9 @@ mod tests {
         let separators = "line\u{2028}paragraph\u{2029}end";
         let escaped = super::shell_quote(separators);
         assert!(!escaped.contains(['\u{2028}', '\u{2029}']));
+        let escaped_controls = super::shell_quote("\u{7}\u{7f}\u{80}");
+        assert!(!escaped_controls.chars().any(char::is_control));
+        assert!(escaped_controls.contains("\\007\\177\\302\\200"));
         assert!(!arguments.contains("$'"), "{arguments}");
         #[cfg(unix)]
         {

@@ -283,7 +283,7 @@ fn render_json_cli_mode_overrides_frontmatter_mode() {
     let root = temp_root("render-json-cli-mode");
     write_file(
         &root.join("payload.json.j2"),
-        "---\njson_escape_mode: legacy\n---\n{\"value\": {{ value }}}",
+        "---\njson_escape_mode: legacy\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}",
     );
 
     let output = sc_compose()
@@ -562,7 +562,10 @@ fn render_json_file_parser_failure_does_not_create_output() {
 #[test]
 fn render_json_check_render_reports_checked_contract() {
     let root = temp_root("render-json-check-render");
-    write_file(&root.join("payload.json.j2"), r#"{"value": {{ value }}}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}",
+    );
 
     let output = sc_compose()
         .args([
@@ -638,7 +641,7 @@ fn render_json_custom_delimiter_report_attributes_included_defaults() {
     let root = temp_root("render-json-custom-context-sources");
     write_file(
         &root.join("payload.json.j2"),
-        "---\ndefaults:\n  root_default: from-root\n---\n{\"root\": {{{ root_default }}}, \"override\": {{{ override }}}}\n@<fragment.j2>\n",
+        "---\nrequired_variables:\n  - override\ndefaults:\n  root_default: from-root\n---\n{\"root\": {{{ root_default }}}, \"override\": {{{ override }}}}\n@<fragment.j2>\n",
     );
     write_file(
         &root.join("fragment.j2"),

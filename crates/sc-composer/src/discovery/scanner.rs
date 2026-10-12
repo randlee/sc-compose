@@ -44,10 +44,9 @@ pub(super) fn walk_template<F>(
             Delimiter::Statement => "%}",
         };
         let after_start = &cursor[start + start_delimiter.len()..];
-        let end = match delimiter {
-            Delimiter::Expression => find_exact_delimiter(after_start, end_delimiter),
-            Delimiter::Statement => after_start.find(end_delimiter),
-        };
+        // A closing triple-brace delimiter may be immediately followed by
+        // a literal `}`; consume the first delimiter in that run.
+        let end = after_start.find(end_delimiter);
         let Some(end) = end else { break };
         let raw_content = &after_start[..end];
         let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);

@@ -528,7 +528,10 @@ fn render_append_reports_write_error_for_read_only_destination() {
 #[test]
 fn render_append_serializes_sixteen_concurrent_processes() {
     let root = temp_root("append-concurrent");
-    write_file(&root.join("record.json.j2"), "{\"id\": {{ id }}}");
+    write_file(
+        &root.join("record.json.j2"),
+        "---\nrequired_variables:\n  - id\n---\n{\"id\": {{ id }}}\n",
+    );
     let destination = root.join("records.jsonl");
     let mut children = Vec::new();
     for id in 0..16 {

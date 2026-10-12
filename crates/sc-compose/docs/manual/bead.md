@@ -65,9 +65,19 @@ cook`; registry pour passes the values through to `bd`. Beads currently only
 substitutes tight `{{name}}` syntax reliably in this path, not padded
 `{{ name }}` syntax (beads#21).
 
-Values supplied in `compose_variables` and `bead_variables` stay literal across
-the two render passes. A template literal or `replace()` expression therefore
-cannot match a `{` character inside a supplied value.
+A bead template renders in one pass. In the default mode each source
+`{{ expr }}` is treated as `{{{ expr }}}`, so both forms share one context
+(`compose_variables`, `bead_variables` and the frontmatter defaults of the
+template and its includes), one strict validation and one render. Rendered
+output is never parsed again: braces in a supplied value or produced by an
+expression stay literal, `{% raw %}` blocks stay literal, and `set`/`for`
+locals shadow caller values of the same name. A name supplied in both
+`compose_variables` and `bead_variables` is refused with
+`BEADS_VARIABLE_KEY_DUPLICATE`. In `bd` mode `{{ expr }}` is plain text to the
+render and reaches `bd` byte-for-byte, unless the expression text itself
+contains `{%`, `{#` or `{{{`, which the render still reads as a statement,
+comment or composition expression. Wrap such an expression in
+`{% raw %}...{% endraw %}` to pass it through unchanged.
 
 ## The request
 

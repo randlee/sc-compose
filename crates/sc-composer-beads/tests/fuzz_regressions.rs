@@ -564,7 +564,7 @@ const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 // FUZZ-040: recovery command arguments cannot execute shell syntax or emit controls.
 #[test]
 fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
-    let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}\u{200b}\u{00ad}$(literal)$HOME`literal`";
+    let from = "source'\\\u{202e}\u{200b}\u{00ad}$(literal)$HOME`literal`";
     let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}\u{feff}";
     let error = sc_composer_beads::BeadComposeError::GraphEdgeMissing {
         edges: vec![sc_composer_beads::MissingEdge {
@@ -604,6 +604,12 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
     assert!(escaped_separators.contains("\\342\\200\\251"));
     #[cfg(unix)]
     assert_sh_round_trip(&escaped_separators, format!("{separators}\0").as_bytes());
+    let controls = "\u{7}\u{7f}\u{80}";
+    let quoted_controls = sc_composer_beads::error::shell_quote(controls);
+    assert!(!quoted_controls.chars().any(char::is_control));
+    assert!(quoted_controls.contains("\\007\\177\\302\\200"));
+    #[cfg(unix)]
+    assert_sh_round_trip(&quoted_controls, format!("{controls}\0").as_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
     for value in [
         "",

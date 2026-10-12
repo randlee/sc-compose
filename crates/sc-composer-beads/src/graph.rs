@@ -50,7 +50,15 @@ pub(crate) fn execute(
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
     };
-    let result = run(request, &mut runtime, formula_input, stage);
+    // The graph plan is a separate public artifact. Check its destination
+    // before invoking `bd` so a blocked plan cannot be hidden by process work.
+    let result = match validate_graph_plan_destination(&runtime) {
+        Ok(_) => run(request, &mut runtime, formula_input, stage),
+        Err(error) => {
+            runtime.stage = stage;
+            Err(error)
+        }
+    };
     let missing_edges = match &result {
         Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
         _ => Vec::new(),
@@ -420,25 +428,7 @@ impl PendingCreate {
         runtime: &mut Runtime<'_>,
         preview: bool,
     ) -> Result<BeadGraph, BeadComposeError> {
-        let mut path = runtime
-            .normalized
-            .rendered_formula
-            .as_os_str()
-            .to_os_string();
-        path.push(".graph.json");
-        let path = PathBuf::from(path);
-        let public_path = public_path_buf(&path);
-        let parent = path
-            .parent()
-            .and_then(|p| fs::canonicalize(p).ok())
-            .ok_or_else(|| BeadComposeError::OutputPathInvalid {
-                path: public_path.clone(),
-                rule: "output parent must exist and be accessible".into(),
-            })?;
-        if !parent.starts_with(&runtime.normalized.working_directory) {
-            return Err(BeadComposeError::OutputOutsideWorkingDirectory { path: public_path });
-        }
-        crate::render::validate_output_destination(&path)?;
+        let (path, public_path) = validate_graph_plan_destination(runtime)?;
         let bytes = serde_json::to_vec(&self.payload).expect("plan JSON serializes");
         let plan_input = InputSnapshot::write(&path, &bytes)
             .map_err(|error| crate::snapshot::output_error(&path, error))?;
@@ -572,6 +562,40 @@ impl PendingCreate {
             }
         }
         Ok(())
+    }
+}
+
+fn validate_graph_plan_destination(
+    runtime: &Runtime<'_>,
+) -> Result<(PathBuf, PathBuf), BeadComposeError> {
+    let mut path = runtime
+        .normalized
+        .rendered_formula
+        .as_os_str()
+        .to_os_string();
+    path.push(".graph.json");
+    let path = PathBuf::from(path);
+    let public_path = public_path_buf(&path);
+    let parent = path
+        .parent()
+        .and_then(|parent| fs::canonicalize(parent).ok())
+        .ok_or_else(|| BeadComposeError::GraphPlanPathInvalid {
+            path: public_path.clone(),
+            rule: "output parent must exist and be accessible".into(),
+        })?;
+    if !parent.starts_with(&runtime.normalized.working_directory) {
+        return Err(BeadComposeError::OutputOutsideWorkingDirectory { path: public_path });
+    }
+    crate::render::validate_output_destination(&path).map_err(graph_plan_path_error)?;
+    Ok((path, public_path))
+}
+
+fn graph_plan_path_error(error: BeadComposeError) -> BeadComposeError {
+    match error {
+        BeadComposeError::OutputPathInvalid { path, rule } => {
+            BeadComposeError::GraphPlanPathInvalid { path, rule }
+        }
+        error => error,
     }
 }
 

@@ -31,7 +31,10 @@ fn validate_default_output_remains_unchanged_without_lint() {
 #[test]
 fn validate_check_render_reports_context_valid_without_emitting_body() {
     let root = temp_root("validate-check-render");
-    write_file(&root.join("payload.json.j2"), "{\"value\": {{ value }}}");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}\n",
+    );
 
     let output = sc_compose()
         .args([

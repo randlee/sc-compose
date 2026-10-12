@@ -486,7 +486,10 @@ graph_string!(
     BeadId,
     GraphIdField::Bead,
     "A non-empty bead id containing no whitespace.",
-    |s: &str| !s.is_empty() && !s.chars().any(char::is_whitespace)
+    |s: &str| !s.is_empty()
+        && !s
+            .chars()
+            .any(|character| character.is_whitespace() || character.is_control())
 );
 graph_string!(
     GraphRef,

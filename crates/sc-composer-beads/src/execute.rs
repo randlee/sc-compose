@@ -313,6 +313,12 @@ fn validate_request(
         working_directory.join(&request.rendered_formula)
     })?;
     validate_utf8_path(&rendered_formula)?;
+    if rendered_formula == template {
+        return Err(BeadComposeError::OutputPathInvalid {
+            path: public_path_buf(&rendered_formula),
+            rule: "rendered_formula must not overwrite the template".into(),
+        });
+    }
     if let Some(executable) = &request.bd_executable {
         validate_utf8_path(executable)?;
     }
@@ -993,7 +999,7 @@ pub(crate) mod tests {
             ]);
             let mut diagnostics = Vec::new();
             let receipt = super::execute_with_runner_and_diagnostics(&request, &runner, &mut |error| {
-                assert!(matches!(error, BeadComposeError::OutputPathInvalid { path: actual, .. } if actual == &public));
+                assert!(matches!(error, BeadComposeError::GraphPlanPathInvalid { path: actual, .. } if actual == &public));
                 diagnostics.push(serde_json::to_value(error).unwrap());
             }).unwrap();
             assert_eq!(diagnostics.len(), 1);
