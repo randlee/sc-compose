@@ -30,10 +30,17 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             json!({ "path": path.to_string_lossy(), "kind": format!("{:?}", source.kind()) }),
             "Check that the request path names an existing UTF-8 JSON file and that you have permission to read it.",
         )),
-        BeadComposeError::OutputPathInvalid { path, rule } => Some((
-            json!({ "field": "rendered_formula", "value": path.to_string_lossy(), "rule": rule }),
-            "Choose a rendered_formula path whose parent directory exists inside working_directory.",
-        )),
+        BeadComposeError::OutputPathInvalid { path, rule } => {
+            let plan_path = path.to_string_lossy().ends_with(".graph.json");
+            Some((
+                json!({ "field": if plan_path { "graph_plan" } else { "rendered_formula" }, "value": path.to_string_lossy(), "rule": rule }),
+                if plan_path {
+                    "Choose a writable graph plan path beside rendered_formula."
+                } else {
+                    "Choose a rendered_formula path whose parent directory exists inside working_directory."
+                },
+            ))
+        }
         BeadComposeError::GraphParentNotFound { parent } => Some((
             json!({ "parent": parent }),
             "Create the parent or name an existing bead.",
