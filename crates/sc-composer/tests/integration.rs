@@ -518,7 +518,10 @@ fn compose_then_checked_output_emits_valid_json_only_through_checked_output() {
 #[test]
 fn checked_render_validates_the_complete_final_body_with_guidance_and_prompt() {
     let root = temp_root("checked-json-final-body");
-    write_file(&root.join("payload.json.j2"), r#"{"value": {{ value }}}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}",
+    );
 
     let result = compose(&ComposeRequest {
         runtime: None,
