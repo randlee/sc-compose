@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - `verify`: upgraded `similar` from 2.7.0 to 3.2.1. The unified diff shown
   on a drift mismatch may be laid out differently on repetitive input (about
   30% of repetitive test inputs; unchanged for ordinary template edits). The
-  match/mismatch decision is unchanged. User-approved.
+  match/mismatch decision is unchanged.
 - Upgraded `ulid` from 1.2.1 to 3.0.0; output path IDs retain the 26-character
   Crockford format.
 - Upgraded `sha2` from 0.10 to 0.11; hashes remain byte-identical and the
