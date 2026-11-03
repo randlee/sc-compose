@@ -28,7 +28,7 @@ sc-sha = { path = "crates/sc-sha", version = "1.7.1" }
 sc-composer = { path = "crates/sc-composer", version = "1.7.1" }
 sc-composer-beads = { path = "crates/sc-composer-beads", version = "1.7.1" }
 sc-compose-test-support = { path = "crates/test-support" }
-sha2 = "0.10"
+sha2 = "0.11"
 similar = "2"
 time = { version = "0.3", features = ["formatting", "macros"] }
 thiserror = "2"
