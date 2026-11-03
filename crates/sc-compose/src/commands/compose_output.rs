@@ -311,7 +311,7 @@ fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> Pat
             .root
             .as_path()
             .join(".prompts")
-            .join(format!("{}-{}.md", name, ulid::Ulid::new())),
+            .join(format!("{}-{}.md", name, ulid::Ulid::generate())),
     }
 }
 
