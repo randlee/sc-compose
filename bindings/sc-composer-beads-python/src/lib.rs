@@ -270,7 +270,7 @@ impl PyBeadStage {
     const ATTACH: &'static str = BeadStage::Attach.as_str();
 }
 
-#[pyclass(name = "BeadStageOutcome", skip_from_py_object)]
+#[pyclass(name = "BeadStageOutcome")]
 #[derive(Clone, Debug)]
 struct PyBeadStageOutcome {
     #[pyo3(get)]
@@ -279,7 +279,7 @@ struct PyBeadStageOutcome {
     code: Option<String>,
 }
 
-#[pyclass(name = "BeadOutcome", skip_from_py_object)]
+#[pyclass(name = "BeadOutcome")]
 #[derive(Clone, Debug)]
 struct PyBeadOutcome {
     #[pyo3(get)]
@@ -288,7 +288,7 @@ struct PyBeadOutcome {
     code: Option<String>,
 }
 
-#[pyclass(name = "BeadStageReceipt", skip_from_py_object)]
+#[pyclass(name = "BeadStageReceipt")]
 #[derive(Clone, Debug)]
 struct PyBeadStageReceipt {
     #[pyo3(get)]
@@ -307,7 +307,7 @@ struct PyBeadStageReceipt {
     outcome: PyBeadStageOutcome,
 }
 
-#[pyclass(name = "BeadComposeReceipt", skip_from_py_object)]
+#[pyclass(name = "BeadComposeReceipt")]
 #[derive(Debug)]
 struct PyBeadComposeReceipt {
     wire: String,
@@ -434,7 +434,7 @@ fn serde_variant_name(mode: BeadPourMode) -> String {
         .to_owned()
 }
 
-#[pyclass(name = "BeadComposeRequest", skip_from_py_object)]
+#[pyclass(name = "BeadComposeRequest")]
 #[derive(Clone, Debug)]
 struct PyBeadComposeRequest {
     inner: BeadComposeRequest,
