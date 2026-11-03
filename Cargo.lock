@@ -771,7 +771,6 @@ name = "sc-composer-beads"
 version = "1.7.1"
 dependencies = [
  "process-wrap",
- "sc-compose-test-support",
  "sc-composer",
  "serde",
  "serde_json",
