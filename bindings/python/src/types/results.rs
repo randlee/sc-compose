@@ -52,7 +52,7 @@ fn xml_path_segment_kind_str(segment: &ExtractionPathSegment) -> &'static str {
     }
 }
 
-#[pyclass(name = "Diagnostic", skip_from_py_object)]
+#[pyclass(name = "Diagnostic")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyDiagnostic {
     pub(crate) inner: Diagnostic,
@@ -103,7 +103,7 @@ impl PyDiagnostic {
     }
 }
 
-#[pyclass(name = "ExtractionDiagnostic", skip_from_py_object)]
+#[pyclass(name = "ExtractionDiagnostic")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyExtractionDiagnostic {
     pub(crate) inner: ExtractionDiagnostic,
@@ -142,7 +142,7 @@ impl PyExtractionDiagnostic {
     }
 }
 
-#[pyclass(name = "ExtractionSource", skip_from_py_object)]
+#[pyclass(name = "ExtractionSource")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyExtractionSource {
     pub(crate) inner: ExtractionSource,
@@ -194,7 +194,7 @@ impl PyExtractionSource {
     }
 }
 
-#[pyclass(name = "ExtractionPathSegment", skip_from_py_object)]
+#[pyclass(name = "ExtractionPathSegment")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyExtractionPathSegment {
     pub(crate) inner: ExtractionPathSegment,
@@ -308,7 +308,7 @@ impl PyExtractionPathSegment {
     }
 }
 
-#[pyclass(name = "ExtractionOccurrence", skip_from_py_object)]
+#[pyclass(name = "ExtractionOccurrence")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyExtractionOccurrence {
     pub(crate) inner: sc_composer::ExtractionOccurrence<ExtractionPathSegment, ExtractionSource>,
@@ -354,7 +354,7 @@ impl PyExtractionOccurrence {
     }
 }
 
-#[pyclass(name = "ExtractionReport", skip_from_py_object)]
+#[pyclass(name = "ExtractionReport")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyExtractionReport {
     pub(crate) inner: ExtractionReport<ExtractionPathSegment, ExtractionSource>,
@@ -407,7 +407,7 @@ impl PyExtractionReport {
     }
 }
 
-#[pyclass(name = "ResolveResult", skip_from_py_object)]
+#[pyclass(name = "ResolveResult")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyResolveResult {
     pub(crate) inner: ResolveResult,
@@ -439,7 +439,7 @@ impl PyResolveResult {
     }
 }
 
-#[pyclass(name = "ComposeResult", skip_from_py_object)]
+#[pyclass(name = "ComposeResult")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyComposeResult {
     pub(crate) inner: ComposeResult,
@@ -496,7 +496,7 @@ impl PyComposeResult {
     }
 }
 
-#[pyclass(name = "ValidationReport", skip_from_py_object)]
+#[pyclass(name = "ValidationReport")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyValidationReport {
     pub(crate) inner: ValidationReport,
@@ -537,7 +537,7 @@ impl PyValidationReport {
     }
 }
 
-#[pyclass(name = "RenderedArtifact", skip_from_py_object)]
+#[pyclass(name = "RenderedArtifact")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyRenderedArtifact {
     pub(crate) inner: RenderedArtifact,
@@ -556,7 +556,7 @@ impl PyRenderedArtifact {
     }
 }
 
-#[pyclass(name = "Frontmatter", skip_from_py_object)]
+#[pyclass(name = "Frontmatter")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyFrontmatter {
     pub(crate) inner: Frontmatter,
@@ -616,7 +616,7 @@ impl PyFrontmatter {
     }
 }
 
-#[pyclass(name = "ParsedTemplate", skip_from_py_object)]
+#[pyclass(name = "ParsedTemplate")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyParsedTemplate {
     pub(crate) inner: ParsedTemplate,
@@ -648,7 +648,7 @@ impl PyParsedTemplate {
     }
 }
 
-#[pyclass(name = "ExpandedTemplate", skip_from_py_object)]
+#[pyclass(name = "ExpandedTemplate")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyExpandedTemplate {
     pub(crate) inner: ExpandedTemplate,
@@ -737,7 +737,7 @@ impl PyExpandedTemplate {
     }
 }
 
-#[pyclass(name = "FrontmatterInitResult", skip_from_py_object)]
+#[pyclass(name = "FrontmatterInitResult")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyFrontmatterInitResult {
     pub(crate) inner: FrontmatterInitResult,
@@ -776,7 +776,7 @@ impl PyFrontmatterInitResult {
     }
 }
 
-#[pyclass(name = "InitResult", skip_from_py_object)]
+#[pyclass(name = "InitResult")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyInitResult {
     pub(crate) inner: InitResult,
@@ -819,7 +819,7 @@ impl PyInitResult {
     }
 }
 
-#[pyclass(name = "VerifyResult", skip_from_py_object)]
+#[pyclass(name = "VerifyResult")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyVerifyResult {
     pub(crate) inner: VerifyResult,
@@ -878,7 +878,7 @@ impl PyVerifyResult {
     }
 }
 
-#[pyclass(name = "Renderer", skip_from_py_object)]
+#[pyclass(name = "Renderer")]
 #[derive(Debug)]
 pub(crate) struct PyRenderer {
     pub(crate) inner: Renderer,

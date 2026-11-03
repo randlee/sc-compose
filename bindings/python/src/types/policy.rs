@@ -68,7 +68,7 @@ pub(crate) fn compose_policy_repr(policy: &ComposePolicy) -> String {
     )
 }
 
-#[pyclass(name = "VariableName", skip_from_py_object)]
+#[pyclass(name = "VariableName")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyVariableName {
     pub(crate) inner: VariableName,
@@ -92,7 +92,7 @@ impl PyVariableName {
     }
 }
 
-#[pyclass(name = "ProfileName", skip_from_py_object)]
+#[pyclass(name = "ProfileName")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyProfileName {
     pub(crate) inner: sc_composer::ProfileName,
@@ -116,7 +116,7 @@ impl PyProfileName {
     }
 }
 
-#[pyclass(name = "ConfiningRoot", skip_from_py_object)]
+#[pyclass(name = "ConfiningRoot")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyConfiningRoot {
     pub(crate) inner: ConfiningRoot,
@@ -156,7 +156,7 @@ impl PyConfiningRoot {
     }
 }
 
-#[pyclass(name = "ResolverPolicy", skip_from_py_object)]
+#[pyclass(name = "ResolverPolicy")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyResolverPolicy {
     pub(crate) inner: ResolverPolicy,
@@ -174,7 +174,7 @@ impl PyResolverPolicy {
     }
 }
 
-#[pyclass(name = "ComposeMode", skip_from_py_object)]
+#[pyclass(name = "ComposeMode")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyComposeMode {
     pub(crate) inner: ComposeMode,
@@ -229,7 +229,7 @@ impl PyComposeMode {
     }
 }
 
-#[pyclass(name = "ComposePolicy", skip_from_py_object)]
+#[pyclass(name = "ComposePolicy")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyComposePolicy {
     pub(crate) inner: ComposePolicy,
@@ -306,7 +306,7 @@ impl PyComposePolicy {
     }
 }
 
-#[pyclass(name = "PassConfig", skip_from_py_object)]
+#[pyclass(name = "PassConfig")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyPassConfig {
     pub(crate) inner: PassConfig,

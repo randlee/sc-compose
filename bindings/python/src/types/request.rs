@@ -13,7 +13,7 @@ use crate::convert::{
 };
 use crate::errors::config_error;
 
-#[pyclass(name = "ComposeRequest", skip_from_py_object)]
+#[pyclass(name = "ComposeRequest")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyComposeRequest {
     pub(crate) inner: ComposeRequest,
@@ -104,7 +104,7 @@ impl PyComposeRequest {
     }
 }
 
-#[pyclass(name = "NamedTemplateAsset", skip_from_py_object)]
+#[pyclass(name = "NamedTemplateAsset")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyNamedTemplateAsset {
     pub(crate) inner: NamedTemplateAsset,
@@ -133,7 +133,7 @@ impl PyNamedTemplateAsset {
     }
 }
 
-#[pyclass(name = "LoadedTemplateRequest", skip_from_py_object)]
+#[pyclass(name = "LoadedTemplateRequest")]
 #[derive(Clone, Debug)]
 pub(crate) struct PyLoadedTemplateRequest {
     pub(crate) inner: LoadedTemplateRequest,
