@@ -609,39 +609,47 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
     #[cfg(unix)]
     assert_sh_round_trip(&quoted_controls, format!("{controls}\0").as_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
-    for value in [
-        "",
-        " ",
-        "trailing\\",
-        "a'b",
-        "$(literal);$HOME`literal`*?[]",
+    for (value, expected_literal) in [
+        ("", "''"),
+        (" ", "' '"),
+        ("trailing\\", "'trailing\\'"),
+        ("a'b", "'a'\"'\"'b'"),
+        (
+            "$(literal);$HOME`literal`*?[]",
+            "'$(literal);$HOME`literal`*?[]'",
+        ),
     ] {
-        assert_literal_round_trip(&sc_composer_beads::error::shell_quote(value), value);
+        let quoted = sc_composer_beads::error::shell_quote(value);
+        assert_eq!(quoted, expected_literal);
+        assert!(literal_round_trip(&quoted, value));
     }
+    let unsafe_raw = "$(literal);$HOME`literal`*?[]";
+    assert!(!literal_round_trip(unsafe_raw, unsafe_raw));
 }
 
-// shlex parses these literal-only examples without executing shell commands.
-fn assert_literal_round_trip(quoted: &str, expected: &str) {
-    let output = ["python3", "python"]
+// These cases require a quoted start; shlex parses without executing commands.
+fn literal_round_trip(quoted: &str, expected: &str) -> bool {
+    if !quoted.starts_with('\'') {
+        return false;
+    }
+    let decoded = ["python3", "python"]
         .into_iter()
         .find_map(|python| {
-            std::process::Command::new(python)
+            let output = std::process::Command::new(python)
                 .args([
                     "-c",
                     "import json, shlex, sys; print(json.dumps(shlex.split(sys.argv[1])))",
                     quoted,
                 ])
                 .output()
-                .ok()
+                .ok()?;
+            if !output.status.success() {
+                return None;
+            }
+            serde_json::from_slice::<Vec<String>>(&output.stdout).ok()
         })
         .expect("Python is required to check shell literal decoding");
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let decoded: Vec<String> = serde_json::from_slice(&output.stdout).expect("decoded arguments");
-    assert_eq!(decoded, [expected]);
+    decoded == [expected]
 }
 
 // Control and format characters are spelled with POSIX `printf` escapes, so the
