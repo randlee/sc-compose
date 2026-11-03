@@ -22,7 +22,7 @@ sc-observability = { version = "=1.5.0", default-features = false }
 sc-observability-types = { version = "=1.5.0", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
-serde_yaml = "0.9"
+serde_yaml = { package = "yaml_serde", version = "=0.10.7" }
 quick-xml = "0.41"
 sc-sha = { path = "crates/sc-sha", version = "1.7.0" }
 sc-composer = { path = "crates/sc-composer", version = "1.7.0" }
