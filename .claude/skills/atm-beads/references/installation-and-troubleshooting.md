@@ -1,21 +1,27 @@
 # Installation and Troubleshooting
 
-Both `atm-beads` and `atm-bd-orchestration` need these CLIs:
+`atm-bd-orchestration` verifies every command-line requirement in its manifest
+before an install writes anything:
 
 | CLI | Minimum | Install | Used for |
 | --- | --- | --- | --- |
+| `uv` | 0.4 | `brew install uv` | runs every package script under Python 3.11 with pydantic, PyYAML and the sc-compose wheel (the scripts' PEP 723 inline metadata); the `python3` on PATH is never used |
 | `bd` | 1.3.0 | `brew install beads` | the plan, the work graph, `bd sync` |
-| `atm` | 1.6.1 | `brew install randlee/tap/atm` | tasks, messages, `atm compose` |
-| `sc-compose` | 1.7.0 (below 2), CLI and `python3` wheel the same version | `brew install randlee/tap/sc-compose` and `python3 -m pip install 'sc-compose==<the CLI version>'` | strict renders of bead and reviewer templates (CLI), the scripts' renders (wheel) |
+| `atm` | 1.6.3 | `brew install randlee/tap/atm` | tasks, messages, `atm compose`, `atm hook`, `atm cron` |
+| `sc-compose` | 1.7.0 (below 2), CLI the same version as the wheel `uv run --script` resolves | `brew install randlee/tap/sc-compose`; `uv cache clean sc-compose` refreshes a stale wheel | strict renders of bead and reviewer templates (CLI), the scripts' renders (wheel) |
 | `jq` | 1.6 | `brew install jq` | every bead query |
-| `gh` + gh-stack | gh 2.0, gh-stack 0.1.0 | `brew install gh`, then `gh extension install github/gh-stack` | the phase stack (lead only) |
+| `git` | 2.27 | `brew install git` | repository and stack commands |
+| `atm-bd` | 0.1.0 | `uv tool install git+https://github.com/randlee/atm-bd-orchestration.git#subdirectory=apps/atm-bd-console` | phase dashboard and cron |
+
+`gh` plus gh-stack remain required for lead-only stacked-PR work, but are not
+part of the installer's manifest preflight.
 
 ## Verify
 
 ```bash
-for c in bd atm sc-compose jq gh; do command -v "$c" >/dev/null && echo "ok $c" || echo "MISSING $c"; done
-bd version; atm --version; sc-compose --version
-gh stack --version    # lead only
+for c in uv bd atm sc-compose jq git atm-bd; do command -v "$c" >/dev/null && echo "ok $c" || echo "MISSING $c"; done
+uv --version; bd --version; atm --version; sc-compose --version; jq --version; git --version; atm-bd --version
+gh stack --version    # lead only, not checked by the installer
 ```
 
 If a CLI is missing from `PATH`, look in the usual locations; Claude Code's
@@ -23,7 +29,7 @@ shell may not share the interactive shell's `PATH`:
 
 ```bash
 for p in /opt/homebrew/bin "$HOME/.cargo/bin" "$HOME/.local/bin"; do
-  ls "$p"/{bd,atm,sc-compose,gh} 2>/dev/null
+  ls "$p"/{bd,atm,sc-compose,jq,git,atm-bd,gh} 2>/dev/null
 done
 ```
 
