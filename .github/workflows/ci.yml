@@ -461,6 +461,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.94.1
+      - name: Cache pinned UniFFI scaffolding generator
+        id: uniffi-cli-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cargo/bin/uniffi-bindgen
+          key: uniffi-cli-0.31.2-${{ runner.os }}-${{ runner.arch }}
+      - name: Install pinned UniFFI scaffolding generator
+        if: steps.uniffi-cli-cache.outputs.cache-hit != 'true'
+        run: cargo install uniffi --version '=0.31.2' --features cli --bin uniffi-bindgen --locked
+      - name: Verify generated Rust scaffolding
+        run: python3 scripts/generate_sc_sha_scaffolding.py --mode check
       - name: Cache generated Go bindings
         id: generated-cache
         uses: actions/cache@v6
