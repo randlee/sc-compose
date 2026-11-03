@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `verify`: upgraded `similar` from 2.7.0 to 3.2.1. The unified diff shown
+  on a drift mismatch may be laid out differently on repetitive input (about
+  30% of repetitive test inputs; unchanged for ordinary template edits). The
+  match/mismatch decision is unchanged. User-approved.
+- Upgraded `ulid` from 1.2.1 to 3.0.0; output path IDs retain the 26-character
+  Crockford format.
+- Upgraded `sha2` from 0.10 to 0.11; hashes remain byte-identical and the
+  compatibility vectors are unchanged.
+- Upgraded the Python bindings from PyO3 0.29 to 0.30 without an API change.
+  Upstream dropped Python 3.8 support; this project already requires 3.11 or
+  later.
+- Upgraded UniFFI scaffolding to 0.31.2 while retaining
+  `uniffi-bindgen-go v0.7.1+v0.31.0` (ADR-0020 Amendment 1).
+- Upgraded MiniJinja from 2.18 to 2.24 and `process-wrap` to 10.0.1; rendering
+  output is unchanged.
+- Updated CI Actions and semver-compatible dependencies in the lockfile.
+
 ## [1.7.1] - 2026-10-12
 
 ### Added
