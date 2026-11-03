@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Python wheel render entry points now reject malformed JSON output in line
+  with the CLI (#787). Callers that previously received malformed JSON from
+  `compose`, `compose_file`, or `render_loaded_template` now receive
+  `ScRenderError` with code `ERR_RENDER_JSON_MALFORMED`.
+
 ### Changed
 
 - Replaced archived `serde_yaml` 0.9 (RUSTSEC-2024-0449) with the maintained

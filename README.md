@@ -204,6 +204,10 @@ result = render_template("Hello {{ name }}", {"name": "world"})
 # compose(request) — full pipeline with ComposePolicy.passes
 ```
 
+`compose`, `compose_file`, and `render_loaded_template` check JSON output
+using the same format detection as the CLI. Malformed JSON raises
+`ScRenderError` with code `ERR_RENDER_JSON_MALFORMED`.
+
 Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
 
 ### Go Bindings

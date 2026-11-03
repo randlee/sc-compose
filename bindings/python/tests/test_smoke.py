@@ -1224,3 +1224,22 @@ def test_render_loaded_template_rejects_malformed_json_output() -> None:
     with pytest.raises(sc_compose.ScRenderError) as error:
         sc_compose.render_loaded_template(request)
     assert error.value.code == "ERR_RENDER_JSON_MALFORMED"
+
+
+def test_checked_wheel_render_keeps_schema_less_text_bytes(tmp_path: Path) -> None:
+    source = "hello {{ name }}!\n"
+    write(tmp_path / "greeting.txt.j2", source)
+    request = make_file_request(tmp_path, "greeting.txt.j2", vars_input={"name": "wheel"})
+    for render in (sc_compose.compose, sc_compose.compose_file):
+        assert render(request).rendered_text.encode("utf-8") == b"hello wheel!"
+    loaded = sc_compose.LoadedTemplateRequest(
+        template_name="greeting.txt.j2", template_text=source, context={"name": "wheel"}
+    )
+    assert sc_compose.render_loaded_template(loaded).rendered.encode("utf-8") == b"hello wheel!"
+
+
+def test_render_loaded_template_accepts_complete_json() -> None:
+    request = sc_compose.LoadedTemplateRequest(
+        template_name="payload.json.j2", template_text='{"a": {{ a }}}', context={"a": 1}
+    )
+    assert sc_compose.render_loaded_template(request).rendered == '{"a": 1}'
