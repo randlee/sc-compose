@@ -65,21 +65,6 @@ command = "codex --no-daemon -c features.hooks=true --model gpt-6.1-terra --yolo
 dir = "/Users/randlee/github/sc-compose"
 env = { ATM_IDENTITY = "comp", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
 
-[[rmux.windows.panes]]
-name = "quality-mgr"
-alias = "quality-mgr-comp"
-model = "sonnet"
-color = "red"
-dir = "/Users/randlee/github/sc-compose"
-env = { ATM_IDENTITY = "quality-mgr", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
-
-[[rmux.windows.panes]]
-name = "publisher"
-alias = "comp-publisher"
-model = "sonnet"
-dir = "/Users/randlee/github/sc-compose"
-env = { ATM_IDENTITY = "publisher", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
-
 [[rmux.windows]]
 name = "dev2"
 layout = "even-horizontal"
@@ -96,12 +81,35 @@ command = "codex --no-daemon -c features.hooks=true --model gpt-6.1-sol --yolo"
 dir = "/Users/randlee/github/sc-compose"
 env = { ATM_IDENTITY = "comps", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
 
+[[rmux.windows]]
+name = "qa"
+layout = "even-horizontal"
+
+[[rmux.windows.panes]]
+name = "quality-mgr"
+alias = "quality-mgr-comp"
+model = "sonnet"
+color = "red"
+dir = "/Users/randlee/github/sc-compose"
+env = { ATM_IDENTITY = "quality-mgr", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
+
 [[rmux.windows.panes]]
 name = "comp-sanity"
 model = "sonnet"
 color = "green"
 dir = "/Users/randlee/github/sc-compose"
 env = { ATM_IDENTITY = "comp-sanity", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
+
+[[rmux.windows]]
+name = "support"
+layout = "even-horizontal"
+
+[[rmux.windows.panes]]
+name = "publisher"
+alias = "comp-publisher"
+model = "sonnet"
+dir = "/Users/randlee/github/sc-compose"
+env = { ATM_IDENTITY = "publisher", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
 
 [startup.comp-sanity]
 all = ["Your role is dev-sanity under atm-bd-orchestration: read .claude/agents/dev-sanity.md now (again after every compaction) and run its Startup section",
