@@ -2,9 +2,9 @@
 # Do not edit: change registry.yaml and rerun the install. Read it through
 # .claude/skills/atm-beads/scripts/repo_config.py (load()).
 bead_prefix: "comp"
-lead: "team-lead"
 dev_sanity_member: "comp-sanity"
 qa_member: "quality-mgr"
+team_lead_member: "team-lead"
 worktree_base: "../sc-compose-worktrees"
 test_command: "just test"
 lint_command: "just lint"
@@ -14,3 +14,5 @@ requirements_globs: ["docs/requirements.md"]
 adr_globs: ["docs/architecture.md","docs/adrs/*.md"]
 policy_path: ".claude/project/quality-policy.md"
 reviewers_round1: ["req-qa","arch-qa","rust-qa-agent","rust-best-practices-agent","rust-service-hardening-agent"]
+max_sanity_rounds: 5
+gate_timeout_s: 180
