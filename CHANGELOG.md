@@ -36,8 +36,8 @@ All notable changes to this project will be documented in this file.
   later.
 - Upgraded UniFFI scaffolding to 0.31.2 while retaining
   `uniffi-bindgen-go v0.7.1+v0.31.0` (ADR-0020 Amendment 1).
-- Upgraded MiniJinja from 2.18 to 2.24 and `process-wrap` to 10.0.1; rendering
-  output is unchanged.
+- Pinned MiniJinja to 2.18.0 to preserve template boolean rendering; upgraded
+  `process-wrap` to 10.0.1.
 - Updated CI Actions and semver-compatible dependencies in the lockfile.
 
 ## [1.7.0] - 2026-10-08

@@ -3116,3 +3116,29 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
         "Name: Casey\nTitle: Engineer\nMood: focused"
     );
 }
+
+#[test]
+fn render_schema_less_boolean_values_keep_lowercase() {
+    let root = temp_root("render-schema-less-boolean-values");
+    write_file(
+        &root.join("boolean.md.j2"),
+        r#"{{ true }} {{ 1 == 1 }} {{ x is defined }} {{ [true,false] }} {{ {"a": true} }}"#,
+    );
+    for (vars, expected) in [
+        (vec![], "true true false [true, false] {\"a\": true}\n"),
+        (
+            vec!["--var", "x=1"],
+            "true true true [true, false] {\"a\": true}\n",
+        ),
+    ] {
+        let output = sc_compose()
+            .args(["render", "--root"])
+            .arg(&root)
+            .args(["--file", "boolean.md.j2"])
+            .args(vars)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(output.stdout, expected.as_bytes());
+    }
+}

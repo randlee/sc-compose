@@ -1243,3 +1243,19 @@ def test_render_loaded_template_accepts_complete_json() -> None:
         template_name="payload.json.j2", template_text='{"a": {{ a }}}', context={"a": 1}
     )
     assert sc_compose.render_loaded_template(request).rendered == '{"a": 1}'
+
+
+def test_schema_less_boolean_values_keep_lowercase(tmp_path: Path) -> None:
+    source = '{{ true }} {{ 1 == 1 }} {{ x is defined }} {{ [true,false] }} {{ {"a": true} }}'
+    write(tmp_path / "boolean.md.j2", source)
+    for variables, expected in (
+        ({}, 'true true false [true, false] {"a": true}'),
+        ({"x": 1}, 'true true true [true, false] {"a": true}'),
+    ):
+        request = make_file_request(tmp_path, "boolean.md.j2", vars_input=variables)
+        for render in (sc_compose.compose, sc_compose.compose_file):
+            assert render(request).rendered_text == expected
+        loaded = sc_compose.LoadedTemplateRequest(
+            template_name="boolean.md.j2", template_text=source, context=variables
+        )
+        assert sc_compose.render_loaded_template(loaded).rendered == expected
