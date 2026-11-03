@@ -29,7 +29,7 @@ sc-composer = { path = "crates/sc-composer", version = "1.7.0" }
 sc-composer-beads = { path = "crates/sc-composer-beads", version = "1.7.0" }
 sc-compose-test-support = { path = "crates/test-support" }
 sha2 = "0.11"
-similar = "2"
+similar = "3"
 time = { version = "0.3", features = ["formatting", "macros"] }
 thiserror = "2"
 toml = "0.8"
