@@ -28,5 +28,4 @@ allow = [
   # UniFFI 0.31.0 is the approved generated Go-binding runtime (ADR-0020).
   "MPL-2.0",
   "Unicode-3.0",
-  "Zlib",
 ]
