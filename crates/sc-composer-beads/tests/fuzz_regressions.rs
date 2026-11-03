@@ -1,7 +1,5 @@
 //! Regression tests promoted from the Phase T adversarial fuzz campaign.
 
-use sc_compose_test_support as shell_literal;
-
 use sc_composer_beads::*;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, VecDeque};
@@ -611,8 +609,32 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
         "a'b",
         "$(literal);$HOME`literal`*?[]",
     ] {
-        shell_literal::assert_round_trip(&sc_composer_beads::error::shell_quote(value), &[value]);
+        assert_literal_round_trip(&sc_composer_beads::error::shell_quote(value), value);
     }
+}
+
+// shlex parses these literal-only examples without executing shell commands.
+fn assert_literal_round_trip(quoted: &str, expected: &str) {
+    let output = ["python3", "python"]
+        .into_iter()
+        .find_map(|python| {
+            std::process::Command::new(python)
+                .args([
+                    "-c",
+                    "import json, shlex, sys; print(json.dumps(shlex.split(sys.argv[1])))",
+                    quoted,
+                ])
+                .output()
+                .ok()
+        })
+        .expect("Python is required to check shell literal decoding");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let decoded: Vec<String> = serde_json::from_slice(&output.stdout).expect("decoded arguments");
+    assert_eq!(decoded, [expected]);
 }
 
 // Control and format characters are spelled with POSIX `printf` escapes, so the
