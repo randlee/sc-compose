@@ -63,7 +63,8 @@ For every adapter, the implementation must:
 
 - pin a compatible pair of UniFFI and `uniffi-bindgen-go` versions (the first
   approved pair is UniFFI `0.31.0` with `uniffi-bindgen-go`
-  `v0.7.1+v0.31.0`);
+  `v0.7.1+v0.31.0`; see Amendment 1 for the approved 0.31.x scaffolding
+  range);
 - generate Go source from the committed interface definition, never by editing
   generated Go source by hand;
 - commit generated source that is required to consume the released Go module;
@@ -179,3 +180,23 @@ explicitly.
 - [UniFFI foreign trait guidance](https://mozilla.github.io/uniffi-rs/next/proc_macro/traits.html)
 - [NordSecurity `uniffi-bindgen-go`](https://github.com/NordSecurity/uniffi-bindgen-go)
 - [rust2go](https://github.com/ihciah/rust2go)
+
+## Amendment 1 (2026-11-03): UniFFI 0.31.2 scaffolding
+
+Approved by the user. `uniffi` and `uniffi_build` may be pinned to `=0.31.2`
+while the generator remains `uniffi-bindgen-go v0.7.1+v0.31.0`. No
+`uniffi-bindgen-go` release targeting 0.31.2 exists; this is the newest
+published generator.
+
+Basis: a probe on the dependency-upgrade stack regenerated the Go bindings
+with the pinned generator with no diff, built the native library with UniFFI
+0.31.2, and passed the Go bundle `go test ./...`.
+
+Rules:
+
+- The generator pin and the pair rule in Decision 2 are otherwise unchanged;
+  any other UniFFI minor or major change needs a new amendment.
+- The `uniffi` and `uniffi_build` pins, the CI generated-bindings cache key
+  and the `bindings/sc-sha-go` README stay in sync.
+- When an upstream `uniffi-bindgen-go` release targets a newer UniFFI, move
+  the pair together and record it here.
