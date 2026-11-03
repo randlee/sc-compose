@@ -63,8 +63,8 @@ For every adapter, the implementation must:
 
 - pin a compatible pair of UniFFI and `uniffi-bindgen-go` versions (the first
   approved pair is UniFFI `0.31.0` with `uniffi-bindgen-go`
-  `v0.7.1+v0.31.0`; see Amendment 1 for the approved 0.31.x scaffolding
-  range);
+  `v0.7.1+v0.31.0`; see Amendment 1 for the approved 0.31.2 scaffolding
+  pin);
 - generate Go source from the committed interface definition, never by editing
   generated Go source by hand;
 - commit generated source that is required to consume the released Go module;
