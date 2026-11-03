@@ -1,6 +1,6 @@
 boundary_id = "BOUNDARY-ScComposerBeadsPython"
 owner_package = "sc-composer-beads-python"
-owner_crate_path = "sc_composer_beads_python"
+owner_crate_path = "sc_composer_beads_native"
 name = "ScComposerBeadsPythonAdapter"
 
 [public]
