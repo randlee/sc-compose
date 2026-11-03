@@ -23,10 +23,10 @@ sc-compose-test-support.workspace = true
 toml.workspace = true
 
 [target.'cfg(unix)'.dependencies]
-process-wrap = { version = "=10.0.0", default-features = false, features = ["std", "process-group"] }
+process-wrap = { version = "=10.0.1", default-features = false, features = ["std", "process-group"] }
 
 [target.'cfg(windows)'.dependencies]
-process-wrap = { version = "=10.0.0", default-features = false, features = ["std", "job-object"] }
+process-wrap = { version = "=10.0.1", default-features = false, features = ["std", "job-object"] }
 
 [lints]
 workspace = true
