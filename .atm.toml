@@ -73,6 +73,13 @@ color = "red"
 dir = "/Users/randlee/github/sc-compose"
 env = { ATM_IDENTITY = "quality-mgr", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
 
+[[rmux.windows.panes]]
+name = "publisher"
+alias = "comp-publisher"
+model = "sonnet"
+dir = "/Users/randlee/github/sc-compose"
+env = { ATM_IDENTITY = "publisher", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
+
 [[rmux.windows]]
 name = "dev2"
 layout = "even-horizontal"
