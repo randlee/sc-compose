@@ -466,7 +466,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: bindings/sc-sha-go/go
-          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
+          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-runtime-v0.31.2-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
       - name: Generate bindings on Ubuntu when cache misses
         if: steps.generated-cache.outputs.cache-hit != 'true'
         run: |

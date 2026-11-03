@@ -4,8 +4,8 @@ This directory contains the generated Go adapter for the two `sc-sha` domain
 operations: `CalculateHash` and `CalculateCompositionHash`.
 
 The public Go source under [`go/`](go/) is generated from
-[`src/sc_sha_go.udl`](src/sc_sha_go.udl) with UniFFI `0.31.0` and
-`uniffi-bindgen-go v0.7.1+v0.31.0`. Do not edit generated Go files by hand.
+[`src/sc_sha_go.udl`](src/sc_sha_go.udl) with `uniffi-bindgen-go v0.7.1+v0.31.0`; the native
+scaffolding uses UniFFI `0.31.2`. Do not edit generated Go files by hand.
 
 ## Local development
 
