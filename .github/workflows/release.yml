@@ -46,7 +46,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.x"
 
@@ -157,7 +157,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -252,7 +252,7 @@ jobs:
           toolchain: ${{ needs.release-plan.outputs.rust_toolchain }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.x"
 
@@ -433,7 +433,7 @@ jobs:
           pattern: 'python-sdist-*'
           merge-multiple: true
           path: dist
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Install maturin
