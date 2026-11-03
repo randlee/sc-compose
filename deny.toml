@@ -25,7 +25,7 @@ allow = [
   "Apache-2.0",
   "Apache-2.0 WITH LLVM-exception",
   "MIT",
-  # UniFFI 0.31.2 (ADR-0020 Amendment 1) is the approved generated Go-binding runtime.
+  # UniFFI 0.31.0 is the approved generated Go-binding runtime (ADR-0020).
   "MPL-2.0",
   "Unicode-3.0",
   "Zlib",

@@ -183,7 +183,7 @@ explicitly.
 
 ## Amendment 1 (2026-11-03): UniFFI 0.31.2 scaffolding
 
-Approved by the user. `uniffi` and `uniffi_build` may be pinned to `=0.31.2`
+Approved by the user. the `uniffi` runtime may be pinned to `=0.31.2`
 while the generator remains `uniffi-bindgen-go v0.7.1+v0.31.0`. No
 `uniffi-bindgen-go` release targeting 0.31.2 exists; this is the newest
 published generator.
@@ -196,7 +196,7 @@ Rules:
 
 - The generator pin and the pair rule in Decision 2 are otherwise unchanged;
   any other UniFFI minor or major change needs a new amendment.
-- The `uniffi` and `uniffi_build` pins, the CI generated-bindings cache key
+- The `uniffi` runtime pin, the committed scaffolding header, the CI cache keys
   and the `bindings/sc-sha-go` README stay in sync.
 - When an upstream `uniffi-bindgen-go` release targets a newer UniFFI, move
   the pair together and record it here.
