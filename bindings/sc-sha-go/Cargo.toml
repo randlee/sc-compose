@@ -22,9 +22,6 @@ sc-sha.workspace = true
 thiserror.workspace = true
 uniffi.workspace = true
 
-[build-dependencies]
-uniffi_build.workspace = true
-
 [dev-dependencies]
 serde.workspace = true
 serde_json.workspace = true
