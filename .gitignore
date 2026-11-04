@@ -34,6 +34,7 @@ reports/archive/
 !.sc/sc-lint/
 !.sc/sc-lint/targets/
 !.sc/sc-lint/targets/*.toml
+!.sc/plan-anchor/
 .serena/
 .tmp/
 docs/phase-D/.review-findings.json
