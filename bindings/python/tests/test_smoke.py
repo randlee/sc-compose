@@ -626,6 +626,7 @@ def test_xml_block_dynamic_element_names_are_rejected() -> None:
 def test_repr_surface_is_informative(tmp_path: Path) -> None:
     mode = sc_compose.ComposeMode.profile(sc_compose.ProfileKind.AGENT, "reviewer")
     policy = sc_compose.ComposePolicy(
+        strict_undeclared_variables=True,
         unknown_variable_policy=sc_compose.UnknownVariablePolicy.ERROR,
         max_include_depth=7,
         allowed_roots=[tmp_path],
@@ -659,40 +660,69 @@ def test_repr_surface_is_informative(tmp_path: Path) -> None:
     assert "policy=ComposePolicy(" in request_repr
 
 
-def test_compose_always_rejects_unbound_and_undeclared_variables(tmp_path: Path) -> None:
+def test_py_compose_file_enforces_unbound_variable_policy(tmp_path: Path) -> None:
     write(
         tmp_path / "probe.xml.j2",
-        "---\nrequired_variables:\n  - bound_var\n---\n"
         "<probe><bound>{{ bound_var }}</bound><missing>{{ unbound_var }}</missing></probe>\n",
     )
 
-    for policy in (None, sc_compose.ComposePolicy()):
-        kwargs = {} if policy is None else {"policy": policy}
-        request = make_file_request(
-            tmp_path, "probe.xml.j2", vars_input={"bound_var": "present"}, **kwargs
+    def request(policy: sc_compose.ComposePolicy) -> sc_compose.ComposeRequest:
+        return make_file_request(
+            tmp_path,
+            "probe.xml.j2",
+            vars_input={"bound_var": "present"},
+            policy=policy,
         )
-        for render in (sc_compose.compose, sc_compose.compose_file):
-            with pytest.raises(sc_compose.ScValidationError) as caught:
-                render(request)
-            assert caught.value.code in (
-                sc_compose.DiagnosticCode.ERR_VAL_UNDECLARED_TOKEN,
-                sc_compose.DiagnosticCode.ERR_VAL_UNBOUND_VARIABLE,
+
+    with pytest.raises(sc_compose.ScValidationError) as caught:
+        sc_compose.compose_file(
+            request(
+                sc_compose.ComposePolicy(
+                    unknown_variable_policy=sc_compose.UnknownVariablePolicy.IGNORE,
+                    unbound_variable_policy=sc_compose.UnknownVariablePolicy.ERROR,
+                )
             )
-            assert "unbound_var" in str(caught.value)
+        )
+    assert caught.value.code == sc_compose.DiagnosticCode.ERR_VAL_UNBOUND_VARIABLE
+    assert "unbound_var" in str(caught.value)
 
-    for removed in ("strict_undeclared_variables", "unbound_variable_policy"):
-        with pytest.raises(TypeError):
-            sc_compose.ComposePolicy(**{removed: False})
-        assert not hasattr(sc_compose.ComposePolicy(), removed)
+    warned = sc_compose.compose_file(
+        request(
+            sc_compose.ComposePolicy(
+                unbound_variable_policy=sc_compose.UnknownVariablePolicy.WARN,
+            )
+        )
+    )
+    assert warned.rendered_text == "<probe><bound>present</bound><missing></missing></probe>"
+    assert any(
+        diagnostic.code == sc_compose.DiagnosticCode.ERR_VAL_UNBOUND_VARIABLE
+        and "unbound variable: unbound_var" in diagnostic.message
+        for diagnostic in warned.warnings
+    )
+    assert not any(
+        diagnostic.code == sc_compose.DiagnosticCode.ERR_VAL_UNBOUND_VARIABLE
+        and "unbound variable: bound_var" in diagnostic.message
+        for diagnostic in warned.warnings
+    )
 
-    with pytest.raises(sc_compose.ScRenderError):
-        sc_compose.render_template("hello {{ missing }}", {})
+    ignored = sc_compose.compose_file(
+        request(
+            sc_compose.ComposePolicy(
+                unbound_variable_policy=sc_compose.UnknownVariablePolicy.IGNORE,
+            )
+        )
+    )
+    assert ignored.rendered_text == warned.rendered_text
+    assert not any(
+        diagnostic.code == sc_compose.DiagnosticCode.ERR_VAL_UNBOUND_VARIABLE
+        for diagnostic in ignored.warnings
+    )
 
 
 def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     write(
         tmp_path / "template.md.j2",
-        """\
+        """
         ---
         required_variables:
           - name
@@ -962,13 +992,9 @@ def test_d2_py_compose_renders_stacked_headers_with_policy_passes(tmp_path: Path
         tmp_path / "stacked.md.j2",
         "---\n"
         "pass: 2\n"
-        "required_variables:\n"
-        "  - team\n"
         "---\n"
         "---\n"
         "pass: 1\n"
-        "required_variables:\n"
-        "  - task\n"
         "---\n"
         "{{{ team }}} {{ task }}\n",
     )
@@ -1005,7 +1031,7 @@ def test_d2_py_validate_catches_higher_pass_undeclared_tokens(tmp_path: Path) ->
     request = make_file_request(
         tmp_path,
         "stacked.md.j2",
-        policy=sc_compose.ComposePolicy(),
+        policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
     )
 
     report = sc_compose.validate(request)
@@ -1036,7 +1062,7 @@ def test_i5_py_validate_scopes_loop_context_builtins(tmp_path: Path) -> None:
     request = make_file_request(
         tmp_path,
         "loop-context.md.j2",
-        policy=sc_compose.ComposePolicy(),
+        policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
     )
     report = sc_compose.validate(request)
     assert report.ok, report
@@ -1054,7 +1080,7 @@ def test_i5_py_validate_scopes_loop_context_builtins(tmp_path: Path) -> None:
         make_file_request(
             tmp_path,
             "loop-context-boundary.md.j2",
-            policy=sc_compose.ComposePolicy(),
+            policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
         )
     )
     assert not boundary_report.ok
@@ -1094,7 +1120,7 @@ def test_d4_py_verify_reports_clean_and_builtin_override(tmp_path: Path) -> None
 
 
 def test_d4_py_verify_reports_drift_and_diff(tmp_path: Path) -> None:
-    write(tmp_path / "verify.md.j2", "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n")
+    write(tmp_path / "verify.md.j2", "hello {{ name }}\n")
     write(tmp_path / "deployed.md", "hello drifted")
 
     request = make_file_request(tmp_path, "verify.md.j2", vars_input={"name": "world"})
@@ -1109,7 +1135,7 @@ def test_d4_py_verify_reports_drift_and_diff(tmp_path: Path) -> None:
 
 
 def test_d4_py_verify_missing_deployed_file_maps_existing_error(tmp_path: Path) -> None:
-    write(tmp_path / "verify.md.j2", "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n")
+    write(tmp_path / "verify.md.j2", "hello {{ name }}\n")
 
     request = make_file_request(tmp_path, "verify.md.j2", vars_input={"name": "world"})
 
@@ -1171,7 +1197,7 @@ def test_exception_surface_exposes_message_and_code(
 
 
 def test_compose_rejects_malformed_json_output_like_the_cli(tmp_path: Path) -> None:
-    write(tmp_path / "payload.json.j2", '---\nrequired_variables:\n  - a\n---\n{"a": {{ a }}, }')
+    write(tmp_path / "payload.json.j2", '{"a": {{ a }}, }')
     request = make_file_request(tmp_path, "payload.json.j2", vars_input={"a": 1})
 
     for render in (sc_compose.compose, sc_compose.compose_file):
@@ -1179,11 +1205,11 @@ def test_compose_rejects_malformed_json_output_like_the_cli(tmp_path: Path) -> N
             render(request)
         assert error.value.code == "ERR_RENDER_JSON_MALFORMED"
 
-    write(tmp_path / "ok.json.j2", '---\nrequired_variables:\n  - a\n---\n{"a": {{ a }}}')
+    write(tmp_path / "ok.json.j2", '{"a": {{ a }}}')
     ok = sc_compose.compose(make_file_request(tmp_path, "ok.json.j2", vars_input={"a": 1}))
     assert ok.rendered_text == '{"a": 1}'
 
-    write(tmp_path / "notes.md.j2", '---\nrequired_variables:\n  - a\n---\n{"a": {{ a }}, }')
+    write(tmp_path / "notes.md.j2", '{"a": {{ a }}, }')
     text = sc_compose.compose(make_file_request(tmp_path, "notes.md.j2", vars_input={"a": 1}))
     assert text.rendered_text == '{"a": 1, }'
 
@@ -1198,3 +1224,38 @@ def test_render_loaded_template_rejects_malformed_json_output() -> None:
     with pytest.raises(sc_compose.ScRenderError) as error:
         sc_compose.render_loaded_template(request)
     assert error.value.code == "ERR_RENDER_JSON_MALFORMED"
+
+
+def test_checked_wheel_render_keeps_schema_less_text_bytes(tmp_path: Path) -> None:
+    source = "hello {{ name }}!\n"
+    write(tmp_path / "greeting.txt.j2", source)
+    request = make_file_request(tmp_path, "greeting.txt.j2", vars_input={"name": "wheel"})
+    for render in (sc_compose.compose, sc_compose.compose_file):
+        assert render(request).rendered_text.encode("utf-8") == b"hello wheel!"
+    loaded = sc_compose.LoadedTemplateRequest(
+        template_name="greeting.txt.j2", template_text=source, context={"name": "wheel"}
+    )
+    assert sc_compose.render_loaded_template(loaded).rendered.encode("utf-8") == b"hello wheel!"
+
+
+def test_render_loaded_template_accepts_complete_json() -> None:
+    request = sc_compose.LoadedTemplateRequest(
+        template_name="payload.json.j2", template_text='{"a": {{ a }}}', context={"a": 1}
+    )
+    assert sc_compose.render_loaded_template(request).rendered == '{"a": 1}'
+
+
+def test_schema_less_boolean_values_keep_lowercase(tmp_path: Path) -> None:
+    source = '{{ true }} {{ 1 == 1 }} {{ x is defined }} {{ [true,false] }} {{ {"a": true} }}'
+    write(tmp_path / "boolean.md.j2", source)
+    for variables, expected in (
+        ({}, 'true true false [true, false] {"a": true}'),
+        ({"x": 1}, 'true true true [true, false] {"a": true}'),
+    ):
+        request = make_file_request(tmp_path, "boolean.md.j2", vars_input=variables)
+        for render in (sc_compose.compose, sc_compose.compose_file):
+            assert render(request).rendered_text == expected
+        loaded = sc_compose.LoadedTemplateRequest(
+            template_name="boolean.md.j2", template_text=source, context=variables
+        )
+        assert sc_compose.render_loaded_template(loaded).rendered == expected

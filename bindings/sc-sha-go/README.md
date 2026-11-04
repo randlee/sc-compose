@@ -4,8 +4,8 @@ This directory contains the generated Go adapter for the two `sc-sha` domain
 operations: `CalculateHash` and `CalculateCompositionHash`.
 
 The public Go source under [`go/`](go/) is generated from
-[`src/sc_sha_go.udl`](src/sc_sha_go.udl) with UniFFI `0.31.0` and
-`uniffi-bindgen-go v0.7.1+v0.31.0`. Do not edit generated Go files by hand.
+[`src/sc_sha_go.udl`](src/sc_sha_go.udl) with `uniffi-bindgen-go v0.7.1+v0.31.0`; the native
+scaffolding uses UniFFI `0.31.2`. Do not edit generated Go files by hand.
 
 ## Local development
 
@@ -17,7 +17,18 @@ cargo install uniffi-bindgen-go \
   --tag v0.7.1+v0.31.0 --locked
 ```
 
-Then regenerate and test with normal CGo safety checks:
+The Rust scaffolding is generated independently with the matching UniFFI CLI,
+which is installed outside the workspace dependency graph:
+
+```sh
+cargo install uniffi --version '=0.31.2' --features cli --bin uniffi-bindgen --locked
+just generate-sc-sha-rust check
+```
+
+Use `just generate-sc-sha-rust` to regenerate it after changing the UDL. CI
+checks for drift. Do not edit the generated Rust file by hand.
+
+Then regenerate the Go bindings and test with normal CGo safety checks:
 
 ```sh
 just generate-sc-sha-go

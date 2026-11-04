@@ -315,11 +315,14 @@ HTML-Report follow-on design track:
 - Variables loaded through `--var-file` may be any supported render-context
   value type.
 - Variables loaded through `--env-prefix` are always strings.
-- After the final context merge, every referenced variable path must have a
-  value binding; otherwise validation and rendering fail with
-  `ERR_VAL_UNBOUND_VARIABLE` (FR-2a). A missing binding is distinct from an
-  undeclared token and from an extra caller-provided variable. There is no
-  policy that relaxes this: no render may silently skip a variable.
+- After the final context merge, every referenced variable path must either
+  have a value binding or be handled by the unbound-variable policy described
+  in FR-2a. A missing binding is distinct from an undeclared token and from an
+  extra caller-provided variable.
+- `ComposePolicy.unbound_variable_policy` controls referenced-but-unbound
+  paths with `error`, `warn`, or `ignore` severity. When unset, it inherits
+  `unknown_variable_policy` for compatibility; an explicit value keeps the
+  two policy axes independent.
 - If frontmatter is absent:
   - the engine must discover referenced variables from the template and include
     graph,
@@ -347,19 +350,16 @@ HTML-Report follow-on design track:
 
 ### FR-2a: Tokens Not Declared in Frontmatter
 
-Strict is the only mode. A referenced token that is not declared in
-frontmatter (as a required variable or a default, including a parent or child
-path of a declared path) is always an error:
+Referenced tokens that are not declared in frontmatter must follow these rules:
 
-- validation fails,
-- rendering fails,
-- diagnostics identify the undeclared referenced tokens
-  (`ERR_VAL_UNDECLARED_TOKEN`).
-
-Printing a value that is undefined at render time is also a render error, so
-a template rendered without validation (for example `render_template` or
-`render_loaded_template`) cannot silently print an empty string either.
-Conditionals and `default(...)` still treat an undefined value as false.
+- Default behavior:
+  - they remain preserved in rendered output,
+  - they do not become implicitly required variables,
+  - they produce diagnostics in both `render` and `validate`.
+- Strict behavior:
+  - validation fails,
+  - rendering fails,
+  - diagnostics identify the undeclared referenced tokens.
 
 This behavior is distinct from missing required variables. A token that is
 undeclared is not automatically treated as required unless it is explicitly
@@ -368,13 +368,13 @@ listed in `required_variables`.
 Referenced-but-unbound tokens are a separate axis from undeclared tokens:
 
 - A referenced token with no binding after the final context/default merge
-  is an `ERR_VAL_UNBOUND_VARIABLE` error. A required variable with no binding
-  is reported once, as `ERR_VAL_MISSING_REQUIRED`.
-- A referenced token may be declared in frontmatter and still be unbound.
-- A referenced token may be undeclared but bound by caller input; it is an
-  undeclared-token error and is not reported as unbound.
-- Values supplied per pass (`ComposePolicy.passes[].defaults`, the CLI
-  `--pass` inputs) count as bindings.
+  emits `ERR_VAL_UNBOUND_VARIABLE` according to
+  `unbound_variable_policy`.
+- A referenced token may be declared in frontmatter and still be unbound; the
+  unbound-variable policy applies independently of `strict_undeclared_variables`.
+- A referenced token may be undeclared but bound by caller input; the strict
+  undeclared-token policy applies independently and the value is not reported
+  as unbound.
 - Loop locals, `{% set %}` locals, built-in render-context variables, and
   nested paths satisfied by a merged object value count as bindings.
 
@@ -553,11 +553,10 @@ The CLI must support:
 - `--var key=value` repeatably
 - `--var-file <path|->`
 - `--env-prefix <PREFIX_>`
-- `--strict` (hidden; accepted for existing callers and has no effect,
-  since strict is the only mode)
+- `--strict`
 - `--unknown-var-mode <error|warn|ignore>`
-  - controls only extra caller-provided variables; undeclared and unbound
-    references are always errors.
+  - controls both extra caller-provided variables and referenced-but-unbound
+    variables; the CLI maps the selected mode to both policy axes.
 - `--root <path>`
 - `--file <path>`
 - `--output <path>` where applicable
@@ -2030,7 +2029,7 @@ Required unit coverage includes:
 - frontmatter omission defaults,
 - variable precedence,
 - required-variable enforcement,
-- undeclared-variable and unbound-variable errors,
+- undeclared-variable behavior in normal and strict modes,
 - unknown-variable policy handling,
 - include resolution, cycle detection, and depth limits,
 - include-driven defaults and required-variable propagation,

@@ -92,7 +92,6 @@ class BeadComposeRequest:
         operation: str = "render",
         formula_name: str | None = None,
         bead_variables: Mapping[str, str] | None = None,
-        bead_variable_rendering: str = "sc-compose",
         bd_executable: str | PathLike[str] | None = None,
         pour_authorization: str | None = None,
         parent: str | None = None,
@@ -109,7 +108,6 @@ class BeadComposeRequest:
     compose_variables: Mapping[str, Any]
     formula_name: str | None
     bead_variables: Mapping[str, str]
-    bead_variable_rendering: str
     bd_executable: str | None
     pour_authorization: str | None
     parent: str | None

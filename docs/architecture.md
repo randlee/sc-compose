@@ -293,7 +293,7 @@ ATM integration is an adapter concern outside this repository.
   - exposes the long-lived `Renderer` session type as the primary API for
     repeated rendering,
   - keeps `render_template()` as a one-shot convenience wrapper,
-  - renders template content; strict is the only mode (§7.1).
+  - renders template content under normal or strict undeclared-token policy.
 - `template_ext`
   - exposes shared, case-insensitive template-path classification that removes
     stacked `.j2`/`.jinja2`/`.jinja` suffixes before determining the content
@@ -498,24 +498,21 @@ The architecture must distinguish these cases:
 - undeclared referenced token,
 - extra provided input variable.
 
-### 7.1 Strict Is the Only Mode
+### 7.1 Default Mode
 
-There is no lenient mode and no policy that relaxes these rules, so no render
-can silently skip a variable:
+In default mode:
 
-- undeclared referenced tokens are fatal during validation and rendering,
-- referenced variables with no binding after the context merge are fatal
-  (`ERR_VAL_UNBOUND_VARIABLE`),
-- the renderer refuses to print an undefined value (minijinja
-  `UndefinedBehavior::SemiStrict`), which also covers templates rendered
-  without validation; conditionals and `default(...)` still see undefined as
-  false.
+- undeclared referenced tokens are preserved in rendered output,
+- undeclared referenced tokens produce diagnostics,
+- undeclared referenced tokens are not implicitly promoted to required
+  variables.
 
-### 7.2 Extra Caller Variables
+### 7.2 Strict Mode
 
-`unknown_variable_policy` governs only caller-provided variables the template
-never declares or references; it does not apply to undeclared or unbound
-references.
+In strict mode:
+
+- undeclared referenced tokens are fatal during validation,
+- undeclared referenced tokens are fatal during rendering.
 
 ### 7.3 Missing Required Variables
 
@@ -619,8 +616,12 @@ Semantics:
 
 `ComposePolicy`
 
-- `unknown_variable_policy: UnknownVariablePolicy` (extra caller variables
-  only)
+- `strict_undeclared_variables: bool`
+- `unknown_variable_policy: UnknownVariablePolicy`
+- `unbound_variable_policy: Option<UnknownVariablePolicy>`; when omitted,
+  referenced-but-unbound diagnostics inherit `unknown_variable_policy` for
+  compatibility, while an explicit value keeps the two policy axes
+  independent
 - `max_include_depth: IncludeDepth`
 - `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
@@ -977,7 +978,7 @@ For `compose` and `validate`, the target lifecycle is:
    - missing required variables,
    - undeclared referenced tokens,
    - extra provided variables.
-9. Render (strict is the only mode).
+9. Render in normal or strict mode according to policy.
    - When `policy.passes` or parsed stacked headers indicate nested-template
      rendering, render outer-to-inner, using pass-specific delimiters and
      `protect_higher_braces`-style higher-brace protection between passes.
@@ -1797,7 +1798,7 @@ Canonical failures must map to stable error families and stable codes.
 | Empty template body | `ValidationError` | `ERR_VAL_EMPTY` |
 | Root template has no frontmatter block | `ValidationError` | `ERR_VAL_MISSING_FRONTMATTER` |
 | Required variable not satisfied after context merge | `ValidationError` | `ERR_VAL_MISSING_REQUIRED` |
-| Undeclared referenced token in validation or render | `ValidationError` | `ERR_VAL_UNDECLARED_TOKEN` |
+| Undeclared referenced token in strict validation or render mode | `ValidationError` | `ERR_VAL_UNDECLARED_TOKEN` |
 | Extra provided variable when policy is `error` | `ValidationError` | `ERR_VAL_EXTRA_INPUT` |
 | Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |

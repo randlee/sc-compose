@@ -1,7 +1,5 @@
 //! Regression tests promoted from the Phase T adversarial fuzz campaign.
 
-use sc_compose_test_support as shell_literal;
-
 use sc_composer_beads::*;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, VecDeque};
@@ -67,7 +65,6 @@ impl Workspace {
                 compose_variables: serde_json::Map::new(),
                 formula_name: Some(FormulaName::new("sample").expect("formula name")),
                 bead_variables: BTreeMap::new(),
-                bead_variable_rendering: sc_composer_beads::BeadVariableRendering::ScCompose,
                 bd_executable: Some(PathBuf::from("fake-bd")),
                 pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
                 parent: Some(BeadId::new("proj-1").expect("parent")),
@@ -564,7 +561,7 @@ const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
 // FUZZ-040: recovery command arguments cannot execute shell syntax or emit controls.
 #[test]
 fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
-    let from = "source'\\\u{202e}\u{200b}\u{00ad}$(literal)$HOME`literal`";
+    let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}\u{200b}\u{00ad}$(literal)$HOME`literal`";
     let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}\u{feff}";
     let error = sc_composer_beads::BeadComposeError::GraphEdgeMissing {
         edges: vec![sc_composer_beads::MissingEdge {
@@ -604,22 +601,48 @@ fn fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped() {
     assert!(escaped_separators.contains("\\342\\200\\251"));
     #[cfg(unix)]
     assert_sh_round_trip(&escaped_separators, format!("{separators}\0").as_bytes());
-    let controls = "\u{7}\u{7f}\u{80}";
-    let quoted_controls = sc_composer_beads::error::shell_quote(controls);
-    assert!(!quoted_controls.chars().any(char::is_control));
-    assert!(quoted_controls.contains("\\007\\177\\302\\200"));
-    #[cfg(unix)]
-    assert_sh_round_trip(&quoted_controls, format!("{controls}\0").as_bytes());
     assert_eq!(sc_composer_beads::error::shell_quote("a'b"), "'a'\"'\"'b'");
-    for value in [
-        "",
-        " ",
-        "trailing\\",
-        "a'b",
-        "$(literal);$HOME`literal`*?[]",
+    for (value, expected_literal) in [
+        ("", "''"),
+        (" ", "' '"),
+        ("trailing\\", "'trailing\\'"),
+        ("a'b", "'a'\"'\"'b'"),
+        (
+            "$(literal);$HOME`literal`*?[]",
+            "'$(literal);$HOME`literal`*?[]'",
+        ),
     ] {
-        shell_literal::assert_round_trip(&sc_composer_beads::error::shell_quote(value), &[value]);
+        let quoted = sc_composer_beads::error::shell_quote(value);
+        assert_eq!(quoted, expected_literal);
+        assert!(literal_round_trip(&quoted, value));
     }
+    let unsafe_raw = "$(literal);$HOME`literal`*?[]";
+    assert!(!literal_round_trip(unsafe_raw, unsafe_raw));
+}
+
+// These cases require a quoted start; shlex parses without executing commands.
+fn literal_round_trip(quoted: &str, expected: &str) -> bool {
+    if !quoted.starts_with('\'') {
+        return false;
+    }
+    let decoded = ["python3", "python"]
+        .into_iter()
+        .find_map(|python| {
+            let output = std::process::Command::new(python)
+                .args([
+                    "-c",
+                    "import json, shlex, sys; print(json.dumps(shlex.split(sys.argv[1])))",
+                    quoted,
+                ])
+                .output()
+                .ok()?;
+            if !output.status.success() {
+                return None;
+            }
+            serde_json::from_slice::<Vec<String>>(&output.stdout).ok()
+        })
+        .expect("Python is required to check shell literal decoding");
+    decoded == [expected]
 }
 
 // Control and format characters are spelled with POSIX `printf` escapes, so the
@@ -976,9 +999,9 @@ fn fuzz_014_concurrent_attaches_keep_complete_inputs_and_receipts() {
         w.req.template = w.root.join(format!("sample.formula.{suffix}.j2"));
         w.req.rendered_formula = w.root.join(format!("sample.formula.{suffix}"));
         fs::write(&w.req.template, if suffix == "toml" {
-            "---\nrequired_variables:\n  - step\n  - title\n  - description\n---\nformula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\ndescription = \"{{{ description }}}\"\n"
+            "formula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\ndescription = \"{{{ description }}}\"\n"
         } else {
-            concat!("---\nrequired_variables:\n  - step\n  - title\n  - description\n---\n", r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}","description":"{{{ description }}}"}]}"#)
+            r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}","description":"{{{ description }}}"}]}"#
         }).expect("template");
         let (tx_a, rx_a) = std::sync::mpsc::channel();
         let (tx_b, rx_b) = std::sync::mpsc::channel();
@@ -1287,9 +1310,9 @@ fn fuzz_014b_concurrent_bypath_pours_validate_their_own_initial_cook_inputs() {
             w.req.template = w.root.join(format!("sample.formula.{suffix}.j2"));
             w.req.rendered_formula = w.root.join(format!("sample.formula.{suffix}"));
             fs::write(&w.req.template, if suffix == "toml" {
-                "---\nrequired_variables:\n  - step\n  - title\n---\nformula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\n"
+                "formula = \"sample\"\ntype = \"workflow\"\n[[steps]]\nid = \"{{{ step }}}\"\ntitle = \"{{{ title }}}\"\n"
             } else {
-                concat!("---\nrequired_variables:\n  - step\n  - title\n---\n", r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}"}]}"#)
+                r#"{"formula":"sample","type":"workflow","steps":[{"id":"{{{ step }}}","title":"{{{ title }}}"}]}"#
             }).expect("template");
             let registry = w.root.join(".beads");
             fs::create_dir(&registry).expect("registry");

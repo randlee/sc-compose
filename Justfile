@@ -9,6 +9,10 @@ generate-sc-sha-go mode="write":
     uniffi-bindgen-go --out-dir bindings/sc-sha-go/go --config bindings/sc-sha-go/uniffi.toml bindings/sc-sha-go/src/sc_sha_go.udl
     if [ "{{mode}}" = "check" ]; then git diff --exit-code -- bindings/sc-sha-go/go; fi
 
+# Regenerate or verify checked-in Rust scaffolding with uniffi-bindgen 0.31.2.
+generate-sc-sha-rust mode="write":
+    python_cmd="$(command -v python3 || command -v python)"; "$python_cmd" scripts/generate_sc_sha_scaffolding.py --mode "{{mode}}"
+
 # Prepare the ignored, host-native static library required only to run the
 # source-tree Go tests. Released consumers use a self-contained bundle instead.
 prepare-sc-sha-go-native:

@@ -180,14 +180,6 @@ pub enum BeadComposeError {
         /// Rule that the output path failed.
         rule: String,
     },
-    /// The graph-plan output path cannot be written safely.
-    #[error("invalid graph plan output path `{path}`: {rule}")]
-    GraphPlanPathInvalid {
-        /// Graph plan path derived beside the rendered formula.
-        path: PathBuf,
-        /// Rule that the graph plan path failed.
-        rule: String,
-    },
     /// A template path escaped the working directory.
     #[error("template path escapes working directory: {path}")]
     TemplateOutsideWorkingDirectory {
@@ -614,7 +606,6 @@ impl BeadComposeError {
             | Self::FormulaExtensionUnsupported { .. }
             | Self::TemplatePathInvalid { .. }
             | Self::OutputPathInvalid { .. }
-            | Self::GraphPlanPathInvalid { .. }
             | Self::TemplateOutsideWorkingDirectory { .. }
             | Self::OutputOutsideWorkingDirectory { .. }
             | Self::OutputPathSymlink { .. }
@@ -671,8 +662,7 @@ impl BeadComposeError {
             | Self::GraphEdgeMissing { .. }
             | Self::GraphReadFailed { .. }
             | Self::GraphApplyFailed { .. }
-            | Self::GraphApplyUnconfirmed { .. }
-            | Self::GraphPlanPathInvalid { .. } => BeadErrorClass::Execution,
+            | Self::GraphApplyUnconfirmed { .. } => BeadErrorClass::Execution,
         }
     }
 
@@ -687,9 +677,7 @@ impl BeadComposeError {
             Self::FormulaPathNotFile { .. } => Self::FORMULA_NOT_FILE_CODE,
             Self::FormulaExtensionUnsupported { .. } => Self::FORMULA_EXTENSION_UNSUPPORTED_CODE,
             Self::TemplatePathInvalid { .. } => Self::TEMPLATE_PATH_INVALID_CODE,
-            Self::OutputPathInvalid { .. } | Self::GraphPlanPathInvalid { .. } => {
-                Self::OUTPUT_PATH_INVALID_CODE
-            }
+            Self::OutputPathInvalid { .. } => Self::OUTPUT_PATH_INVALID_CODE,
             Self::TemplateOutsideWorkingDirectory { .. } => Self::TEMPLATE_OUTSIDE_WORKING_DIR_CODE,
             Self::OutputOutsideWorkingDirectory { .. } => Self::OUTPUT_OUTSIDE_WORKING_DIR_CODE,
             Self::OutputPathSymlink { .. } => Self::OUTPUT_PATH_SYMLINK_CODE,

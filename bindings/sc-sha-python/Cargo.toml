@@ -21,7 +21,7 @@ default = []
 python-extension = ["pyo3/extension-module"]
 
 [dependencies]
-pyo3 = "0.29"
+pyo3 = "0.30"
 sc-sha.workspace = true
 
 [lints]

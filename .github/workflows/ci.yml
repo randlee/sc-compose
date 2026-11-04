@@ -62,19 +62,19 @@ jobs:
           components: clippy
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: ubuntu-clippy-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo index
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/git
           key: ubuntu-clippy-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
           key: ubuntu-clippy-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
@@ -90,7 +90,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.x"
 
@@ -131,22 +131,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # PR #126 contains this already-validated template fix. Until it
+          # PR #85 contains this already-validated template fix. Until it
           # merges, accept only its exact template as the authorized ahead-of-
           # upstream state; after merge, the develop comparison wins again.
           git fetch --depth=1 https://github.com/randlee/sc-publish.git \
             refs/heads/develop:refs/remotes/sc-publish-upstream/develop
           git fetch --depth=1 https://github.com/randlee/sc-publish.git \
-            refs/pull/126/head:refs/remotes/sc-publish-upstream/pr-126
+            refs/pull/85/head:refs/remotes/sc-publish-upstream/pr-85
           template=plugins/sc-publish/release/homebrew/formula.rb.j2
           if git diff --quiet sc-publish-upstream/develop -- "${template}"; then
             exit 0
           fi
-          if git diff --quiet sc-publish-upstream/pr-126 -- "${template}"; then
-            echo "vendored Homebrew template matches the authorized sc-publish PR #126 fix"
+          if git diff --quiet sc-publish-upstream/pr-85 -- "${template}"; then
+            echo "vendored Homebrew template matches the authorized sc-publish PR #85 fix"
             exit 0
           fi
-          echo "vendored Homebrew template diverges from both sc-publish develop and PR #126" >&2
+          echo "vendored Homebrew template diverges from both sc-publish develop and PR #85" >&2
           git diff sc-publish-upstream/develop -- "${template}" >&2
           exit 1
 
@@ -167,7 +167,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python for cross-platform test helpers
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -185,19 +185,19 @@ jobs:
         uses: ./.github/actions/setup-beads
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-test-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo index
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-test-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
           key: ${{ runner.os }}-test-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
@@ -260,7 +260,7 @@ jobs:
           target/aarch64-unknown-linux-gnu/release/sc-compose --help
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -295,7 +295,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -346,7 +346,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -390,7 +390,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -461,12 +461,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.94.1
+      - name: Cache pinned UniFFI scaffolding generator
+        id: uniffi-cli-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cargo/bin/uniffi-bindgen
+          key: uniffi-cli-0.31.2-${{ runner.os }}-${{ runner.arch }}
+      - name: Install pinned UniFFI scaffolding generator
+        if: steps.uniffi-cli-cache.outputs.cache-hit != 'true'
+        run: cargo install uniffi --version '=0.31.2' --features cli --bin uniffi-bindgen --locked
+      - name: Verify generated Rust scaffolding
+        run: python3 scripts/generate_sc_sha_scaffolding.py --mode check
       - name: Cache generated Go bindings
         id: generated-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: bindings/sc-sha-go/go
-          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
+          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-runtime-v0.31.2-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
       - name: Generate bindings on Ubuntu when cache misses
         if: steps.generated-cache.outputs.cache-hit != 'true'
         run: |

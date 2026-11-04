@@ -31,10 +31,7 @@ fn validate_default_output_remains_unchanged_without_lint() {
 #[test]
 fn validate_check_render_reports_context_valid_without_emitting_body() {
     let root = temp_root("validate-check-render");
-    write_file(
-        &root.join("payload.json.j2"),
-        "---\nrequired_variables:\n  - value\n---\n{\"value\": {{ value }}}\n",
-    );
+    write_file(&root.join("payload.json.j2"), "{\"value\": {{ value }}}");
 
     let output = sc_compose()
         .args([
@@ -93,7 +90,7 @@ fn validate_check_render_fails_closed_for_malformed_json() {
     let root = temp_root("validate-check-render-invalid");
     write_file(
         &root.join("payload.json.j2"),
-        "---\nrequired_variables:\n  - value\n---\n{\"value\": \"{{ value }}\"}",
+        "{\"value\": \"{{ value }}\"}",
     );
 
     let output = sc_compose()
@@ -275,35 +272,6 @@ fn validate_strict_does_not_report_filter_or_call_targets_as_tokens() {
         !stdout.contains("undeclared referenced token: name"),
         "{stdout}"
     );
-}
-
-#[test]
-fn validate_strict_discovers_triple_brace_tokens_with_brace_count() {
-    let root = temp_root("validate-strict-triple-brace-tokens");
-    write_file(
-        &root.join("formula.toml.j2"),
-        "---\nrequired_variables:\n  - phase\n---\ndescription = \"{{{ phase }}} {{{ nobody }}}\"\n",
-    );
-
-    let output = sc_compose()
-        .args([
-            "validate",
-            "--strict",
-            "--brace-count",
-            "3",
-            "--mode",
-            "file",
-            "--root",
-        ])
-        .arg(&root)
-        .args(["--file", "formula.toml.j2", "--var", "phase=x"])
-        .output()
-        .unwrap();
-
-    assert_eq!(output.status.code(), Some(2), "{output:?}");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("ERR_VAL_UNDECLARED_TOKEN"), "{stdout}");
-    assert!(stdout.contains("nobody"), "{stdout}");
 }
 
 #[test]

@@ -204,6 +204,10 @@ result = render_template("Hello {{ name }}", {"name": "world"})
 # compose(request) — full pipeline with ComposePolicy.passes
 ```
 
+`compose`, `compose_file`, and `render_loaded_template` check JSON output
+using the same format detection as the CLI. Malformed JSON raises
+`ScRenderError` with code `ERR_RENDER_JSON_MALFORMED`.
+
 Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
 
 ### Go Bindings
@@ -234,8 +238,8 @@ handoff requirements.
 | Any (Python) | PyPI | `pip install sc-compose` |
 | Any (Python) | PyPI | `pip install sc-composer-beads` (Beads composition) |
 | Any (source) | cargo | `cargo build --release -p sc-compose` |
-| Rust lib | Cargo.toml | `sc-composer = "1.7.1"` |
-| Rust lib (Beads) | Cargo.toml | `sc-composer-beads = "1.7.1"` |
+| Rust lib | Cargo.toml | `sc-composer = "1.7.0"` |
+| Rust lib (Beads) | Cargo.toml | `sc-composer-beads = "1.7.0"` |
 
 Bundled examples are guaranteed in Homebrew, Scoop, Winget, and GitHub Release
 installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
@@ -247,7 +251,7 @@ examples.
 
 | | |
 |---|---|
-| Version | 1.7.1 |
+| Version | 1.7.0 |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
@@ -341,6 +345,7 @@ Key flags:
 | `--append <path>` | Append the rendered JSON object as one line to a JSON-lines file |
 | `--dry-run` | Report without modifying files |
 | `--json` | Machine-readable output with diagnostics envelope |
+| `--strict` | Fail on undeclared referenced variables |
 | `--all` | Render all passes (multi-pass templates) |
 | `--pass N --var ...` | Per-pass variable inputs |
 

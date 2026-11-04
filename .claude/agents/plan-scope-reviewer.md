@@ -27,6 +27,40 @@ Always read:
 
 ## Input Contract
 
+Two assignment modes are supported. For a beads-backed plan review, the
+assignment is the following JSON object. `phase_root_doc` and each `plan_docs`
+entry are the piped root and sprint-container records. Verify `branch` and
+`commit` identify the checked-out review revision; inspect the listed
+`reference_docs` as well as the required reference below.
+
+```json
+{
+  "scope": {"phase": "string or null", "sprint": null},
+  "plan": "beads",
+  "root": "root-bead-id",
+  "phase_root_doc": "/absolute/path/to/root-plan.md",
+  "plan_docs": ["/absolute/path/to/sprint-plan.md"],
+  "reference_docs": ["docs/requirements.md"],
+  "worktree_path": "/absolute/path/to/worktree",
+  "branch": "feature/branch-name",
+  "commit": "exact-reviewed-commit",
+  "round_index": 1,
+  "carry_forward_findings": [],
+  "findings_scope_locked": false,
+  "notes": ""
+}
+```
+
+For the first beads round, review the entire supplied plan. For a later round,
+require nonempty `carry_forward_findings` and `findings_scope_locked: true`;
+verify only those findings against their original requirements, report each as
+fixed, open, or regressed with evidence, and do not file new findings. Reject
+inconsistent or incomplete assignments. Include the plan's parallelism
+assessment in the result. In a fix round, include each carried finding's ID,
+`disposition`, and evidence in `findings`; do not add unrelated IDs.
+
+For the existing plan-hardening mode, retain the following requirements:
+
 The assignment must contain:
 - related planning docs that describe the current plan state
 - a required fenced JSON handoff from the initial comp guidelines pass
@@ -196,8 +230,8 @@ Gate policy:
 - `FAIL` if any `Blocking` or any `Important` finding exists
 - `PASS` only when `100%` of entries in `sprint_scores` have
   `blocking_count = 0` and `important_count = 0`
-- `FAIL` if the fenced JSON handoff from the initial comp guidelines pass
-  is missing or malformed
+- In plan-hardening mode, `FAIL` if the fenced JSON handoff from the initial
+  comp guidelines pass is missing or malformed
 - `FAIL` if a sprint doc is not directly consumable without duplicated scope
   transport
 - `PASS` only when sprint splitting, authoritative checklist shape, and

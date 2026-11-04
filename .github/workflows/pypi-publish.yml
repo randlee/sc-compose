@@ -94,7 +94,7 @@ jobs:
           key = "test_repository" if os.environ["PUBLISH_TARGET"] == "testpypi" else "production_repository"
           print(f"PYPI_REPOSITORY={config[key]}")
           PY
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - name: Install maturin
