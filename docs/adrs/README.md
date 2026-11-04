@@ -25,3 +25,5 @@
 - [ADR-0023: Beads Attach and By-Path Pour](0023-beads-attach-and-by-path-pour.md): Accepted (2026-10-06)
 
 - [ADR-0024: Advanced Beads Pour Without Delegated Variable Substitution](0024-advanced-beads-pour.md): Draft / Proposed (2026-11-04)
+
+- [ADR-0025: Complete Platform Delivery and Python Stable ABI](0025-platform-delivery-and-python-abi.md): Accepted user decisions; implementation pending (2026-11-04)

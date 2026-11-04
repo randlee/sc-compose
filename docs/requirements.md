@@ -52,8 +52,8 @@ The repository MUST publish a generated Go module for the canonical `sc-sha`
 hash operations so external consumers can use the shared hash contract without
 copying its implementation. The module MUST use the documented submodule path
 `github.com/randlee/sc-compose/bindings/sc-sha-go`, generated UniFFI source, and
-the matching packaged native artifact for each supported target (Linux/amd64,
-macOS/arm64, and Windows/amd64). Release validation MUST cover generated
+the matching packaged native artifact for each supported target (Linux/amd64 and arm64, macOS/amd64 and arm64,
+and Windows/amd64 and arm64), as required by FR-25 and ADR-0025. Release validation MUST cover generated
 source drift, native artifact selection, conformance vectors, and an
 independent Go consumer. The adapter MUST depend only on `sc-sha` and MUST NOT
 add ATM, resolver, filesystem, or duplicate hash logic.
@@ -1484,6 +1484,42 @@ see ADR-0023 Errata).
   `#[non_exhaustive]`, so adapters match it with a wildcard arm.
 - **FR-23.11 bd support.** Production `bd` v1.3.1 is supported; every command
   used exists there. No Beads fork, version probe or persisted proto is used.
+
+### FR-25: Complete Platform Delivery and Python Stable ABI (Phase U)
+
+FR-25.1: Deliver all six macOS/Windows/Linux × x64/arm64 targets for each
+of five artifact families: Rust CLI, sc-compose wheel, sc-sha wheel,
+sc-composer-beads wheel, and sc-sha-go native module (30 artifact/platform
+cells). Update the Go binding native target contract explicitly; an infeasible
+target blocks completion rather than disappearing from the matrix.
+
+FR-25.2: All three Python distributions use PyO3 abi3-py311, matching
+cp311-abi3 tags and requires-python >=3.11, without an artificial upper bound.
+Test 3.11/3.12/3.13/3.14 on all six platforms with pip and uv; this coverage
+list is not a maximum supported Python version. Inspect actual limited-API
+symbols/tags and execute installed imports and behavior, not filenames alone.
+
+FR-25.3: Preserve applicable delivery channels: Rust GitHub/Homebrew/winget/
+Scoop, wheels PyPI and isolated TestPyPI rehearsal, Go target ZIP modules/
+GitHub assets, and crates.io source packages. Go package/schema/helper
+ownership remains ADR-0018/0020/0022; use supported canonical installers,
+not a local vendored fork. No public publication occurs during Phase U.
+
+FR-25.4: Run the full integration install matrix only via workflow_dispatch,
+with real Windows x64/arm64 execution on GitHub. Normal sprint CI uses the
+small cached-wheel install path and current-only byte regression command.
+Before publication, require a successful matrix on the final publication
+candidate/version and the exact retained artifact bytes; U8's earlier upgrade
+run cannot cover later U10-U13 code changes. Check every selected release
+artifact's SHA-256 against trusted successful run outputs, reject missing/
+wrong/stale evidence and same-candidate changed bytes, and publish those same
+files without rebuilding after gate/tag. Candidate/version/bytes changes
+require a new qualifying run. Evidence survives through its publication
+consumer; expired/missing evidence fails closed.
+
+Governing decision: [ADR-0025](adrs/0025-platform-delivery-and-python-abi.md).
+These requirements record the user's Phase U platform, Python-floor and
+integration-only matrix rulings; they do not assert implementation completion.
 
 ### FR-24: Advanced Beads Pour (Draft for Approval)
 

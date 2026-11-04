@@ -13,6 +13,15 @@ This document is the authoritative release plan. It replaces the earlier
 implementation-history view with one sprint sequence that contains all work
 required to ship.
 
+## Phase U — Live Beads Plan
+
+The authoritative Phase U plan is Beads epic `comp-phase-u`, with sprint
+containers `comp-u-1` through `comp-u-13`. [phase-u.jsonl](phase-u.jsonl) is
+the dependency index; it is not a second plan. Live dependencies and explicit
+agent levels govern parallel execution. The root owns dispatch preconditions,
+landing rules and evidence lifetime. Its plan-QA gate remains closed until
+quality approval; open ADR-0024 choices additionally gate the affected ports.
+
 ## Follow-on Phase R
 
 The post-release Beads formula-composition integration is planned separately
