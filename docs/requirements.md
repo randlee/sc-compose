@@ -1527,43 +1527,160 @@ integration-only matrix rulings; they do not assert implementation completion.
 
 ### FR-24: Advanced Beads Pour
 
-Status: **The 24 items below are approved by the user (2026-11-04).** Remaining design choices and proposed background remain subject to review.
-Design proposal: [ADR-0024](adrs/0024-advanced-beads-pour.md).
-This draft does not authorize a port or claim tests have run.
+The 24 requirements below are the user-approved target behavior, consolidated
+by the user and team-lead on 2026-11-04. They describe what must work,
+including behavior that may already be implemented in develop. Review the
+current implementation and tests against each requirement before adding code;
+reuse correct code and tests, and implement only missing behavior or corrections.
+The previous opt-in advanced-mode wording is superseded: advanced rendering is
+the default; `--render-by bd` explicitly selects v1.7.0 rendering behavior.
+The existing public Rust request layouts remain source compatible.
 
-#### Purpose and pouring ownership
+Definitions: advanced pour renders all template expressions before bd runs;
+bd-owned mode leaves ordinary expressions for bd. The CLI selector is
+`--render-by <sc-compose|bd>`, defaulting to `sc-compose`.
+Design choices still requiring decisions are listed after the requirements;
+they are not silently approved by this consolidation.
 
-Users shall be able to pour formulas more advanced than bd's native formula
-engine supports. **sc-compose constructs the loops, structure and variables;
-bd receives flat output and validates/creates the beads.** The user has ruled
-that bd variable substitution is buggy: the advanced path must not depend on
-it, even when a particular bd version appears to substitute a particular form.
+#### FR-24.13 — Approved item 1
 
-```text
-template + structured compose inputs + bead inputs + include defaults
-                         |
-             sc-compose expands source structure
-             and renders the chosen expressions
-                         |
-            flat formula / validated graph values
-       (no remaining expression for bd to evaluate;
-        literal brace data needs a proven safe path)
-                         |
-              bd validates -> bd creates
-```
+Advanced pour is the default: sc-compose rendering is used when `--render-by` is not specified, and `--render-by bd` selects bd rendering.
 
-Today, v1.7.0 renders triple-brace composition expressions and Jinja blocks.
-Ordinary double braces survive that render. Registry pour forwards scalar
-`bead_variables` as `--var`; attach/by-path graph pour instead use the FR-23
-flat graph engine and reject nonempty `bead_variables`. The new explicit
-advanced path must render its variables itself; these existing default paths
-are not silently changed.
+#### FR-24.14 — Approved item 2
 
-Sources of authority: current user rulings; [#618](https://github.com/randlee/sc-compose/issues/618),
-[#785](https://github.com/randlee/sc-compose/issues/785),
-[#791](https://github.com/randlee/sc-compose/issues/791); v1.7.0 behavior;
-ADR-0021/ADR-0023 and FR-23. Historical commits are design/test evidence, not
-approval of their strict-only policies or changed defaults.
+In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.
+
+#### FR-24.15 — Approved item 3
+
+In advanced pour, sc-compose never passes a value to bd as `--var`.
+
+#### FR-24.16 — Approved item 4
+
+Tight `{{key}}` and padded `{{ key }}` are both replaced by the caller's bead input before bd runs.
+
+#### FR-24.17 — Approved item 5
+
+A loop-local variable is replaced by that iteration's value.
+
+#### FR-24.18 — Approved item 6
+
+Values containing `{{ }}`, `{{{ }}}` or `{% %}` stay literal data and are never re-parsed.
+
+#### FR-24.19 — Approved item 7
+
+Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.
+
+#### FR-24.20 — Approved item 8
+
+Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
+
+#### FR-24.21 — Approved item 9
+
+A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.
+
+#### FR-24.8 — Approved item 10
+
+With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does (graph pour by path: `BEADS_GRAPH_FORMULA_UNSUPPORTED` with reason `bead_variables_set`; attach: request error `attach forbids bead_variables`).
+
+#### FR-24.22 — Approved item 11
+
+Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+
+#### FR-24.23 — Approved item 12
+
+The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.
+
+#### FR-24.24 — Approved item 13
+
+With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.
+
+#### FR-24.2 — Approved item 14
+
+Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
+
+#### FR-24.25 — Approved item 15
+
+Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.
+
+#### FR-24.26 — Approved item 16
+
+The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.
+
+#### FR-24.7 — Approved item 17
+
+An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.
+
+#### FR-24.10 — Approved item 18
+
+A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.
+
+#### FR-24.27 — Approved item 19
+
+If rendering or validation fails, no bead is created.
+
+#### FR-24.28 — Approved item 20
+
+The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.
+
+#### FR-24.29 — Approved item 21
+
+The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/from-main` branch) are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
+
+#### FR-24.30 — Approved item 22
+
+`bead.md` (`crates/sc-compose/docs/manual/bead.md`) documents each mode (`--render-by sc-compose` and `--render-by bd`) with a worked input-to-created-bead example.
+
+#### FR-24.31 — Approved item 23
+
+The closing regression exercise reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 on the final candidate. Recovery commits and the case-to-test mapping must be verified; the previously cited single_pass_render.rs path does not exist on rebuild/from-main@c089c8a3. Missing cases, including FUZZ-171-10, remain explicit unresolved inputs rather than claimed recovered tests.
+
+#### FR-24.32 — Approved item 24
+
+The 229-template corpus that passed the v1.7.0 comparison (QA report 01M6HZR22HZXX4HDW1CMFHHA86: 150 atm-core and 79 sc-compose `.j2` templates) is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7 (`ERR_VAL_UNDECLARED_TOKEN` no longer reported for True/False/None literals, filter and call targets, Jinja test and block-tag names, and comment and raw bodies).
+
+#### FR-24.33 — Plan-fix pour with caller variables
+
+Provide the sc-compose equivalent of `bd mol pour <plan-fix formula> --var
+key=value`: `sc-compose bead pour <plan-fix-formula> --var key=value`.
+Resolve the selected formula and render supplied values through advanced
+sc-compose rendering before bd runs. Repeated --var inputs are supported;
+values remain data and never become template source. Keep the existing
+--request JSON form working. The default renderer and explicit --render-by bd
+behavior follow FR-24.13 and FR-24.7; strict checks remain explicitly requested.
+Document a real plan-fix formula with caller variables and expected created
+beads, and verify stored fields by reading them back from bd. Missing source
+or unresolved input must fail without creating beads. Confirm the actual
+formula source/registry identity before claiming that example passes.
+
+#### Existing FR-24 cross-references
+
+The former background ids remain references to the approved behavior above:
+FR-24.1 (construction and bd ownership) and FR-24.3 (variable rendering) refer
+to FR-24.14–19; FR-24.4 (literal values) refers to FR-24.18;
+FR-24.5 (filters) to FR-24.20; FR-24.6 (include defaults) to FR-24.21;
+FR-24.9 (frontmatter and explicit strictness) to FR-24.28–29;
+FR-24.11 (source-compatible APIs) to FR-24.25–26;
+FR-24.12 (documentation/regressions) to FR-24.30–32. They do not retain the
+superseded legacy-default assumption.
+
+#### Open design decisions and evidence limits
+
+Retain the approved wording until the user resolves a genuine requirement
+ambiguity. In particular, the bytes compared under FR-24.24 and the exact
+229-template corpus revision must be identified before final acceptance.
+Rust/Python selector spelling, compose/bead name collisions, root/include
+default precedence, advanced registry routing/literal-safe transport, the
+explicit validation interface and literal-safe evaluation strategy require
+recorded decisions before their affected implementation is dispatched.
+Existing bd probe evidence is version-qualified; do not extrapolate it to
+all native features or platforms. The original FUZZ-171/T/D reports and
+case-to-test mappings are still inputs to recover, not evidence of a passing
+final regression exercise.
+
+The anchor inventory is in unmerged PR #848. Some locked statements and
+scopes still say opt-in, and neither missing fixture approval nor unsaved
+rubric runs are passing evidence. Reconcile those records with this default
+without introducing an anchor-tuning project into the product recovery work.
 
 #### bd variable semantics — observed evidence and limits
 
@@ -1632,277 +1749,27 @@ These are candidate upstream reports for the user to decide. No issue has
 been filed. Detailed repro inputs, command labels, exits and outputs remain
 in comp's report; none is presented as an implemented advanced-mode test.
 
-#### Approved requirements (2026-11-04)
 
-The following user-approved items are verbatim. Items 4–6 map to the existing locked ANC-002/003, ANC-004 and ANC-001 respectively.
-
-##### FR-24.13 — Approved item 1
-
-Advanced pour is turned on by an explicit new option; without it, nothing changes.
-
-##### FR-24.14 — Approved item 2
-
-In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.
-
-##### FR-24.15 — Approved item 3
-
-In advanced pour, sc-compose never passes a value to bd as `--var`.
-
-##### FR-24.16 — Approved item 4
-
-Tight `{{key}}` and padded `{{ key }}` are both replaced by the caller's bead input before bd runs.
-
-##### FR-24.17 — Approved item 5
-
-A loop-local variable is replaced by that iteration's value.
-
-##### FR-24.18 — Approved item 6
-
-Values containing `{{ }}`, `{{{ }}}` or `{% %}` stay literal data and are never re-parsed.
-
-##### FR-24.19 — Approved item 7
-
-Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.
-
-##### FR-24.20 — Approved item 8
-
-Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
-
-##### FR-24.21 — Approved item 9
-
-A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.
-
-##### FR-24.22 — Approved item 11
-
-Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
-
-##### FR-24.23 — Approved item 12
-
-The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.
-
-##### FR-24.24 — Approved item 13
-
-Without the new option, every existing Rust, CLI and Python call behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.
-
-##### FR-24.25 — Approved item 15
-
-Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.
-
-##### FR-24.26 — Approved item 16
-
-The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.
-
-##### FR-24.27 — Approved item 19
-
-If rendering or validation fails, no bead is created.
-
-##### FR-24.28 — Approved item 20
-
-The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.
-
-##### FR-24.29 — Approved item 21
-
-The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
-
-##### FR-24.30 — Approved item 22
-
-`bead.md` documents each mode with a worked input-to-created-bead example.
-
-##### FR-24.31 — Approved item 23
-
-The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final candidate.
-
-##### FR-24.32 — Approved item 24
-
-The 229-template corpus that passed the v1.7.0 comparison is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7.
-
-#### Numbered requirements
-
-##### FR-24.1 — sc-compose constructs; bd validates/creates
-
-The explicit advanced path shall finish supported loops, conditions, includes
-and variable expressions before invoking bd. bd shall not be used as an
-implicit second template engine for the resulting structure or values.
-A brace-shaped string is data, not necessarily an unresolved expression; it
-must not be discarded merely for containing braces.
-
-- **Source:** user advanced-pour and buggy-bd rulings; FR-23.1/23.8; #618.
-- **bd evidence:** BD-S1/BD-V5/BD-V6 above on the recorded1.3.2-dev binary; ADR-0023 supplies the earlier1.3.1 contract.
-- **Acceptance idea:** render a loop with optional steps and dependent edges; inspect exactly what bd receives and read back the exact flat nodes/values. No leftover sc-compose loop or variable is delegated to bd.
-
-##### FR-24.2 — unchanged legacy default and schema-less compatibility
-
-Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
-
-- **Source:** hard user compatibility ruling; v1.7.0; ADR-0021/0023; #791's strict-only request is not authority to break it.
-- **bd evidence:** v1.7.0 render/execute source plus BD-V5/BD-V6; no native bd behavior is changed by this requirement.
-- **Acceptance idea:** unchanged Rust/CLI/Python legacy requests and a schema-less differential against v1.7.0; ordinary brace text stays literal at render time, including missing optional references and raw/comment content.
-
-##### FR-24.3 — variables rendered before bd in the advanced path
-
-Advanced rendering shall resolve tight and padded ordinary expressions from
-caller bead inputs, alongside structured compose inputs and template control
-flow. A loop-local value shall be available to expressions inside that loop;
-a later render pass must not lose its scope. Titles/descriptions and every
-other field supported by the chosen bd flat interface shall contain the
-intended values before creation. Native formula `[vars]` is not a substitute
-for this work. Input-name collisions and public selector spelling remain open
-below; they must not be guessed during a port.
-
-- **Source:** #618; user advanced-pour ruling; intended behavior in 66cfacf1.
-- **bd evidence:** BD-V1/V2/V3/V5 above: actual native substitution/default/undeclared-key results on407fe27. Advanced success does not depend on them.
-- **Acceptance idea:** a loop over two structured items emits two concrete step ids/titles; both `{{key}}` and `{{ key }}` receive the scalar caller value; actual bd-created fields equal the pre-bd values.
-
-##### FR-24.4 — values are data and are never reparsed as template syntax
-
-Supplied scalar/structured values, included default values and expression
-results shall remain data when they contain `{{ ... }}`, `{{{ ... }}}`,
-`{% ... %}` or comment-looking text. Output from evaluating one expression
-shall not become fresh sc-compose or bd template source. This applies to
-nested strings and values exposed by loops/filters, not only direct lookups.
-
-- **Source:** f0c876ea literal-preservation intent; #618; user no-bd-substitution ruling.
-- **bd evidence:** BD-V4 shows triple-brace mutation under native runtime vars; BD-V6 graph/attach preserves the tested literals on407fe27. The selected route and broader data coverage remain to be approved/proven.
-- **Acceptance idea:** use values containing all delimiter/control forms, nested JSON and expression-produced braces; render, create and read back exact literal data without expansion, missing-variable errors, loss or marker leakage.
-
-##### FR-24.5 — literal protection does not corrupt filter semantics
-
-Ordinary filters shall operate on the intended input data, not on visible
-placeholder encodings. For the historical examples, `A{BC` lowercases to
-`a{bc`, has length 4 and slices to `A{B`; braces shall not inflate length,
-change case or disappear. JSON/TOML escaping shall follow the established
-format contract exactly once, preserving decoded field values.
-
-- **Source:** 56be73ef and f0c876ea; #618; v1.7.0 MiniJinja/format behavior.
-- **bd evidence:** BD-V5/V6 give actual407fe27 cook/graph literal readback; arbitrary quoting/nested/filter combinations remain acceptance coverage, not already proven.
-- **Acceptance idea:** lower/length/slice and brace-targeting replacement cases, quotes/backslashes/newlines/non-ASCII, followed by real bd readback. A protected marker must not become a user-visible value or a filter restriction hidden in the manual.
-
-##### FR-24.6 — include defaults have an explicit, tested contract
-
-Advanced rendering shall consume included templates and their declared defaults
-under an explicit precedence/scoping contract, preserve caller-provided values
-where that contract gives them precedence, and keep default strings literal.
-Missing values must not silently erase fields because a default was dropped.
-Legacy include/default behavior is unchanged without the new option. Exact
-root-versus-include precedence and missing-value policy are open decisions,
-not facts inferred from bd defaults.
-
-- **Source:** user's explicit include-default requirement; ADR-0021 reuse of sc-composer frontmatter/defaults; #785/#791; include-default #11 is a regression input, not an automatically ported fix.
-- **bd evidence:** BD-V2/V5 observe native default/override/required behavior on407fe27; sc-compose include/frontmatter defaults are distinct and must not delegate to those native vars.
-- **Acceptance idea:** root/default/caller/child-default combinations, repeated includes and a literal-brace default; compare legacy output separately, then inspect advanced pre-bd and created values.
-
-##### FR-24.7 — bd-owned expressions stay a documented legacy boundary
-
-An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.
-
-- **Source:** user compatibility and buggy-bd rulings; v1.7.0; d754230a/cd363380/5743907a/e1c086df/5f2633ac intent, with their changed default rejected.
-- **bd evidence:** BD-V1–V6 above on407fe27 plus #618's historical report: current titles accept padding but labels do not substitute; never generalize either result to all versions/fields.
-- **Acceptance idea:** unchanged legacy default/explicit bd selection, including redirected registry resolution; separately prove advanced created values survive literal braces without depending on `bd --var`.
-
-##### FR-24.8 — compose with FR-23 attach and by-path pour
-
-With advanced pour selected, graph pour by path and attach accept caller bead inputs; without it, they reject those inputs exactly as v1.7.0 does.
-
-- **Source:** user flat-output ruling; FR-23/ADR-0023; #618; source distinction documented by comp's trace.
-- **bd evidence:** BD-V6/BD-S1 above:407fe27 graph dry-run/apply and recovered attach preserved the tested literals; ADR-0023 supplies existing hierarchy/atomicity/grammar contracts.
-- **Acceptance idea:** advanced by-path pour and attach with caller inputs, preview with no DB writes, one authorized atomic create, then repeat with existing status/notes preserved; inspect argv for absent `--var` in the advanced path.
-
-##### FR-24.9 — consume frontmatter; strictness is explicit, not global
-
-Frontmatter shall be removed from emitted TOML/JSON, retaining established
-required/default behavior. Any new undeclared-reference enforcement shall be
-explicit opt-in and limited to a template that actually declares a schema.
-No schema-less template acquires a mandatory schema. Opted-in validation shall
-understand the selected compose brace count and shall not treat comments,
-raw bodies, Jinja tag/test/filter names or supplied literal data as variables.
-
-- **Source:** #785 and #791 under the overriding no-strict-only user ruling; existing v1.7.0 frontmatter consumption.
-- **bd evidence:** BD-V5 covers recovered rendering followed by native parsing/pour; comp separately observed body-only `formula = "a"`, exit0. That is existing behavior, not an advanced-mode implementation claim.
-- **Acceptance idea:** with frontmatter, emit valid body-only formula; explicit strict triple-brace undeclared reference fails while declared/default values succeed; schema-less legacy cases and comment/raw syntax stay compatible.
-
-##### FR-24.10 — failures have typed existing outcomes and no hidden creation
-
-A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.
-
-- **Source:** FR-23.10, ADR-0021/0023; #785/#791; cd363380's invalid-selector request classification.
-- **bd evidence:** BD-V2 records missing-required native exit1; BD-V3 accepts undeclared keys; BD-V5/V6 separate render/native/graph failures. Map actual outcomes to the existing sc-compose classes, not native exit numbers by assumption.
-- **Acceptance idea:** invalid selector, missing required/default input, bad rendered formula and bd failure each show the intended code/stage and zero creation calls; permitted matching cases actually create/read beads.
-
-##### FR-24.11 — additive API and cross-surface agreement
-
-Existing Rust request struct literals, entrypoints and public policy fields,
-Python call signatures/defaults and CLI calls shall continue to work. The new
-choice shall use an additive interface, not a new required field on an
-existing Rust request struct. Rust, CLI and Python opted-in operations shall
-agree on rendered bytes, variable ownership, bd argv and outcomes. Exact new
-API/wire/CLI syntax is open below.
-
-- **Source:** user additive/default constraint; v1.7.0; d754230a's added public field is evidence of a compatibility hazard, not an approved API change.
-- **bd evidence:** BD-V5/V6 command/created-value results are the shared adapter oracle, not adapter-specific fake substitutions.
-- **Acceptance idea:** compile unchanged legacy Rust callers and run unchanged Python/CLI calls; compare equivalent explicit-mode requests through all three surfaces against the same pinned-bd result.
-
-##### FR-24.12 — documented pouring and final regression coverage
-
-ADR-0024 and `crates/sc-compose/docs/manual/bead.md` shall explain today's and
-the proposed pipelines, ownership, each mode, worked input-to-flat-output
-examples, literal/escape rules, include defaults and error behavior. Claims
-about bd features/limitations shall name their version/evidence. The final
-Phase U work includes the additive port, v1.7.0 differential and closing
-regression exercise; earlier findings are regression inputs, never evidence
-that their fixes were ported.
-
-- **Source:** user pouring-documentation and Phase-U sequencing rulings; 61366f2a; #618/#785/#791; FR-22/FR-23.
-- **bd evidence:** BD-V1–V6/BD-S1 above supplies build-qualified manual claims; broader untested values/platforms remain explicit unknowns.
-- **Acceptance idea:** reviewer follows one example per supported mode through its exact bd command and created values; the closing exercise includes FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 once their original reports are available, without importing their implementation by implication. Tests use controlled inputs, not sleeps/races/load.
-
-#### Open decisions — options and recommendations, not approvals
-
-1. **Selector/API (needs approval).** Optional wire mode plus CLI selector and
-   an additive Rust options entrypoint, OR a new versioned request envelope.
-   Recommendation: additive options entrypoint, legacy default; keep the
-   existing Rust request layout and old executor intact. Names are not settled.
-2. **Input collisions (needs approval).** Compose values win over bead values,
-   OR refuse duplicates, OR separate namespaces. Recommendation: explicit
-   duplicate refusal until callers choose a declared rule; do not silently
-   adopt the historical merge order merely because it existed in a commit.
-3. **Advanced registry routing and literal-safe transport (needs bd probe).**
-   Reuse the graph writer even for an active-registry destination, OR retain a
-   proved literal-safe native formula route. Recommendation: prefer the graph
-   route if BD-V6 proves final values cannot be re-expanded; do not force bd's
-   substitution into the advanced path. Validate source-flatness without
-   quietly adding a TOML parser/dependency or changing ADR-0023 boundaries.
-4. **Include/default precedence and missing-value policy (needs approval and
-   evidence).** Caller > root defaults > include defaults with scoped child
-   fallback, OR explicit separate include contexts/conflict rejection.
-   Recommendation: preserve caller precedence and scoped child defaults, but
-   characterize v1.7.0 and include-default #11 before choosing the exact rule.
-5. **Explicit schema validation interface (needs approval).** Reuse an
-   explicit caller policy/strict option, OR add a dedicated per-request option.
-   Recommendation: explicit per-request options; no new global strict default,
-   and no implicit schema requirement when the header is absent.
-6. **Literal-safe rendering strategy (needs design review).** Source-aware
-   single evaluation, OR another design proving equivalent data/filter/scope
-   semantics. Recommendation: evaluate original source without reparsing
-   emitted text; the old sequential render/marker approach is not accepted
-   merely by copying it. No implementation algorithm is authorized here.
-7. **Current bd details (needs bd probe).** The completed407fe27 evidence supports only its recorded samples; released
-   binaries, other platforms and broader escaping/field combinations still
-   need probes before making those broader claims. The production pin remains ADR-0021/0023's declared contract unless the user approves an update; the dev probe does
-   not advance it. Options: retain the declared pin and test the approved
-   behavior there, or qualify a user-selected new artifact. Recommendation:
-   record the chosen binary and its real-bd results before making new-version
-   support claims. Confirmed candidate upstream bugs go to the user; nothing
-   is filed automatically.
-
-8. **Original regression inputs/policy (needs source/user resolution).** Original
-   independent reports are not located; preserved minimized tests are at
-   bdb3bdae/06fc2e2d/25e3678e, and171-10's title/repro remains missing. Options:
-   recover original evidence, or obtain owner-approved equivalent requirement
-   and repro. Recommendation: recover/approve before claiming coverage; do not
-   invent, silently drop or mark the absent case passed. Duplicate rejection
-   (171-14) and D-01's changed default are historical expectations, not current
-   decisions; apply approved collision/explicit-mode rules and preserve legacy.
-
+### FR-26: External CLI Documentation in Publish Preflight
+
+User-directed docli behavior is also recorded in anchors ANC-014–016.
+Use sc-docli as an external CLI-documentation tool, never a workspace crate
+dependency or a competing in-process documentation engine. Generate and check
+references from the actual Clap model. Every publish path invokes the tool
+through supported sc-publish preflight checks; stale CLI references block
+publication. Adopt canonical kit inputs and installed helpers without local
+forks. A deterministic stale-reference case and a real consumer preflight
+invocation verify the integration; installer capability alone is insufficient.
+
+### FR-27: Released Analyzer Migration and Existing Violations
+
+Phase V starts from current develop and migrates to released sc-lint 0.8.5.
+Verify the installed version and retain the real boundary owners, including
+sc_compose_native. Run the migrated analyzer on the unchanged product baseline,
+then fix the existing violations it reports without suppressing rules or
+weakening boundary constraints. Dependency integration follows the validated
+lint fixes; advanced Beads changes follow dependency integration. Governing
+boundaries remain ADR-0016 and ADR-0017.
 
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 

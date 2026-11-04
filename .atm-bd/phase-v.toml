@@ -1,7 +1,7 @@
 plan = "docs/phase-v.jsonl"
 root = "comp-phase-v"
 integration_branch = "integrate/phase-v"
-lead = "team-lead"
+lead = "comps"
 
 [templates]
 dev = ".claude/skills/atm-bd-orchestration/templates/dev-template.xml.j2"
