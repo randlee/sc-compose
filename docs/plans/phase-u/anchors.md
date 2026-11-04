@@ -55,28 +55,69 @@ Intent: `docs/plans/phase-u/intent.md`
 | ANC-047 | proposed | S13 invalid anyway: external read result, only knowable after bd read | 2026-11-03 |
 | ANC-048 | proposed | S14 invalid anyway | 2026-11-03 |
 | ANC-049 | retired | all30 artifact/platform builds | 2026-11-03 |
-| FR-24.8 | proposed | FR-24.8 approved replacement | 2026-11-03 |
-| FR-24.7 | proposed | FR-24.7 approved replacement | 2026-11-03 |
-| FR-24.10 | proposed | FR-24.10 approved replacement | 2026-11-03 |
-| FR-24.2 | proposed | FR-24.2 approved replacement | 2026-11-03 |
+| FR-24.8 | retired | FR-24.8 approved replacement | 2026-11-03 |
+| FR-24.7 | retired | FR-24.7 approved replacement | 2026-11-03 |
+| FR-24.10 | retired | FR-24.10 approved replacement | 2026-11-03 |
+| FR-24.2 | retired | FR-24.2 approved replacement | 2026-11-03 |
 | FR-25.1 | locked | FR-25.1 approved replacement | 2026-11-03 |
-| FR-24.13 | proposed | Approved Beads requirement 1 | 2026-11-04 |
-| FR-24.14 | proposed | Approved Beads requirement 2 | 2026-11-04 |
-| FR-24.15 | proposed | Approved Beads requirement 3 | 2026-11-04 |
-| FR-24.19 | proposed | Approved Beads requirement 7 | 2026-11-04 |
-| FR-24.20 | proposed | Approved Beads requirement 8 | 2026-11-04 |
-| FR-24.21 | proposed | Approved Beads requirement 9 | 2026-11-04 |
-| FR-24.22 | proposed | Approved Beads requirement 11 | 2026-11-04 |
-| FR-24.23 | proposed | Approved Beads requirement 12 | 2026-11-04 |
+| FR-24.13 | retired | Approved Beads requirement 1 | 2026-11-04 |
+| FR-24.14 | retired | Approved Beads requirement 2 | 2026-11-04 |
+| FR-24.15 | retired | Approved Beads requirement 3 | 2026-11-04 |
+| FR-24.19 | retired | Approved Beads requirement 7 | 2026-11-04 |
+| FR-24.20 | retired | Approved Beads requirement 8 | 2026-11-04 |
+| FR-24.21 | retired | Approved Beads requirement 9 | 2026-11-04 |
+| FR-24.22 | retired | Approved Beads requirement 11 | 2026-11-04 |
+| FR-24.23 | retired | Approved Beads requirement 12 | 2026-11-04 |
 | FR-24.24 | proposed | Approved Beads requirement 13 | 2026-11-04 |
-| FR-24.25 | proposed | Approved Beads requirement 15 | 2026-11-04 |
-| FR-24.26 | proposed | Approved Beads requirement 16 | 2026-11-04 |
+| FR-24.25 | retired | Approved Beads requirement 15 | 2026-11-04 |
+| FR-24.26 | retired | Approved Beads requirement 16 | 2026-11-04 |
 | FR-24.27 | locked | Approved Beads requirement 19 | 2026-11-04 |
-| FR-24.28 | proposed | Approved Beads requirement 20 | 2026-11-04 |
-| FR-24.29 | proposed | Approved Beads requirement 21 | 2026-11-04 |
-| FR-24.30 | proposed | Approved Beads requirement 22 | 2026-11-04 |
-| FR-24.31 | proposed | Approved Beads requirement 23 | 2026-11-04 |
+| FR-24.28 | retired | Approved Beads requirement 20 | 2026-11-04 |
+| FR-24.29 | retired | Approved Beads requirement 21 | 2026-11-04 |
+| FR-24.30 | retired | Approved Beads requirement 22 | 2026-11-04 |
+| FR-24.31 | retired | Approved Beads requirement 23 | 2026-11-04 |
 | FR-24.32 | proposed | Approved Beads requirement 24 | 2026-11-04 |
+| FR-24.13a | locked | Approved Beads requirement 1 | 2026-11-04 |
+| FR-24.14a | locked | Approved Beads requirement 2 | 2026-11-04 |
+| FR-24.15a | locked | Approved Beads requirement 3 | 2026-11-04 |
+| FR-24.19a | locked | Approved Beads requirement 7 | 2026-11-04 |
+| FR-24.21b | locked | Approved Beads requirement 9b | 2026-11-04 |
+| FR-24.8a | locked | Approved Beads requirement 10a | 2026-11-04 |
+| FR-24.8c | locked | Approved Beads requirement 10c | 2026-11-04 |
+| FR-24.22a | locked | Approved Beads requirement 11a | 2026-11-04 |
+| FR-24.2a | locked | Approved Beads requirement 14a | 2026-11-04 |
+| FR-24.2b | locked | Approved Beads requirement 14b | 2026-11-04 |
+| FR-24.2d | locked | Approved Beads requirement 14d | 2026-11-04 |
+| FR-24.26b | locked | Approved Beads requirement 16b | 2026-11-04 |
+| FR-24.7a | locked | Approved Beads requirement 17a | 2026-11-04 |
+| FR-24.7b | locked | Approved Beads requirement 17b | 2026-11-04 |
+| FR-24.10a | locked | Approved Beads requirement 18 | 2026-11-04 |
+| FR-24.28b | locked | Approved Beads requirement 20b | 2026-11-04 |
+| FR-24.29b | locked | Approved Beads requirement 21b | 2026-11-04 |
+| FR-24.20a | locked | Approved Beads requirement 8 | 2026-11-04 |
+| FR-24.20b | locked | Approved Beads requirement 8b | 2026-11-04 |
+| FR-24.20c | locked | Approved Beads requirement 8c | 2026-11-04 |
+| FR-24.21a | locked | Approved Beads requirement 9a | 2026-11-04 |
+| FR-24.22b | locked | Approved Beads requirement 11b | 2026-11-04 |
+| FR-24.22c | locked | Approved Beads requirement 11c | 2026-11-04 |
+| FR-24.22d | locked | Approved Beads requirement 11d | 2026-11-04 |
+| FR-24.23b | locked | Approved Beads requirement 12b | 2026-11-04 |
+| FR-24.13b | locked | Approved Beads requirement 1b | 2026-11-04 |
+| FR-24.2c | locked | Approved Beads requirement 14c | 2026-11-04 |
+| FR-24.2f | locked | Approved Beads requirement 14f | 2026-11-04 |
+| FR-24.25a | locked | Approved Beads requirement 15 | 2026-11-04 |
+| FR-24.23a | locked | Approved Beads requirement 12a | 2026-11-04 |
+| FR-24.2e | locked | Approved Beads requirement 14e | 2026-11-04 |
+| FR-24.26a | locked | Approved Beads requirement 16a | 2026-11-04 |
+| FR-24.28a | locked | Approved Beads requirement 20a | 2026-11-04 |
+| FR-24.8b | locked | Approved Beads requirement 10b | 2026-11-04 |
+| FR-24.8d | locked | Approved Beads requirement 10d | 2026-11-04 |
+| FR-24.24b | locked | Approved Beads requirement 13b | 2026-11-04 |
+| FR-24.30a | locked | Approved Beads requirement 22 | 2026-11-04 |
+| FR-24.31a | locked | Approved Beads requirement 23 | 2026-11-04 |
+| FR-24.32a | locked | Approved Beads requirement 24a | 2026-11-04 |
+| FR-24.24c | locked | Approved Beads requirement 13c | 2026-11-04 |
+| FR-24.29a | locked | Approved Beads requirement 21a | 2026-11-04 |
 
 ## ANC-001
 
@@ -830,7 +871,7 @@ Anchor: With advanced pour selected, graph pour by path and attach accept caller
 
 > With advanced pour selected, graph pour by path and attach accept caller bead inputs; without it, they reject those inputs exactly as v1.7.0 does.
 
-Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 2.
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: retired. Version 3.
 
 Summary: FR-24.8 approved replacement
 
@@ -844,7 +885,7 @@ Anchor: An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate 
 
 > An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.
 
-Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 2.
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: retired. Version 3.
 
 Summary: FR-24.7 approved replacement
 
@@ -858,7 +899,7 @@ Anchor: A graph-plan output path that is blocked, including by a directory, is r
 
 > A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.
 
-Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 2.
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: retired. Version 3.
 
 Summary: FR-24.10 approved replacement
 
@@ -872,7 +913,7 @@ Anchor: Schema-less template output matches v1.7.0 byte for byte. A difference i
 
 > Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
 
-Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 2.
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: retired. Version 3.
 
 Summary: FR-24.2 approved replacement
 
@@ -896,13 +937,15 @@ Scope: All30 successful build cells: five named artifact families across all six
 
 Deterministic check to pair with the development gate: Verify FR-25.1 against its approved requirement clause and actual positive/negative runtime evidence.
 
+Beads: anchor `comp-69i`, plan questions `comp-69i.1`, dev questions `comp-69i.2`
+
 ## FR-24.13
 
 Anchor: Advanced pour is turned on by an explicit new option; without it, nothing changes.
 
 > Advanced pour is turned on by an explicit new option; without it, nothing changes.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 1
 
@@ -914,7 +957,7 @@ Anchor: In advanced pour, sc-compose renders every loop, condition, include and 
 
 > In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 2
 
@@ -926,7 +969,7 @@ Anchor: In advanced pour, sc-compose never passes a value to bd as `--var`.
 
 > In advanced pour, sc-compose never passes a value to bd as `--var`.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 3
 
@@ -938,7 +981,7 @@ Anchor: Every field bd stores, including labels, holds the rendered value, check
 
 > Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 7
 
@@ -950,7 +993,7 @@ Anchor: Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4
 
 > Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 8
 
@@ -962,7 +1005,7 @@ Anchor: A default declared in an included template's frontmatter fills a value t
 
 > A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 9
 
@@ -974,7 +1017,7 @@ Anchor: Advanced attach keeps today's safety behavior: preview writes nothing to
 
 > Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 11
 
@@ -986,7 +1029,7 @@ Anchor: The real `sprint-group` and `finding-group` orchestration formulas pour 
 
 > The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 12
 
@@ -1010,7 +1053,7 @@ Anchor: Existing Rust request struct literals compile unchanged; the new mode is
 
 > Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 15
 
@@ -1022,7 +1065,7 @@ Anchor: The same advanced request gives identical rendered output and identical 
 
 > The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 16
 
@@ -1048,7 +1091,7 @@ Anchor: The undeclared-variable check runs only when explicitly requested, and o
 
 > The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 20
 
@@ -1060,7 +1103,7 @@ Anchor: The recovered Beads code and tests are ported, not rewritten. #791's str
 
 > The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 21
 
@@ -1072,7 +1115,7 @@ Anchor: `bead.md` documents each mode with a worked input-to-created-bead exampl
 
 > `bead.md` documents each mode with a worked input-to-created-bead example.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 22
 
@@ -1084,7 +1127,7 @@ Anchor: The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and inc
 
 > The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final candidate.
 
-Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: retired. Version 2.
 
 Summary: Approved Beads requirement 23
 
@@ -1101,3 +1144,577 @@ Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: p
 Summary: Approved Beads requirement 24
 
 Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.13a
+
+Anchor: When `--render-by` is not specified, the sc-compose bead commands must use sc-compose rendering (sc-compose renders every template expression before bd runs).
+
+> Advanced pour is the default: sc-compose rendering is used when `--render-by` is not specified, and `--render-by bd` selects bd rendering.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 1); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.13a.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 1
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-d63`, plan questions `comp-d63.1`, dev questions `comp-d63.2`
+
+## FR-24.14a
+
+Anchor: The formula or graph that sc-compose sends to bd in advanced pour (the explicit opt-in mode in which sc-compose renders the template before bd runs) must contain no `{{`, `{%` or `{#` template expression.
+
+> In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 2); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.14a.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 2
+
+Scope: advanced bead pour in sc-composer-beads and the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach)
+
+Beads: anchor `comp-ce8`, plan questions `comp-ce8.1`, dev questions `comp-ce8.2`
+
+## FR-24.15a
+
+Anchor: The bd command line that sc-compose runs in advanced pour (the explicit opt-in mode in which sc-compose renders the template before bd runs) must contain no `--var` argument.
+
+> In advanced pour, sc-compose never passes a value to bd as `--var`.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 3); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.15a.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 3
+
+Scope: advanced bead pour in sc-composer-beads and the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach)
+
+Beads: anchor `comp-o72`, plan questions `comp-o72.1`, dev questions `comp-o72.2`
+
+## FR-24.19a
+
+Anchor: When the caller asks sc-compose to render the template itself before bd runs, every field of each created bead, including its labels, must hold the rendered value when that bead is read back from bd.
+
+> Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 7); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.19a.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 7
+
+Scope: advanced bead pour in sc-composer-beads and the sc-compose bead commands
+
+Beads: anchor `comp-bat`, plan questions `comp-bat.1`, dev questions `comp-bat.2`
+
+## FR-24.21b
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the text of a default declared in an included template's frontmatter must stay literal.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 9b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.21b.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 9b
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-3vj`, plan questions `comp-3vj.1`, dev questions `comp-3vj.2`
+
+## FR-24.8a
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), graph pour by path must accept caller bead inputs.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 10a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8a.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 10a
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-oni`, plan questions `comp-oni.1`, dev questions `comp-oni.2`
+
+## FR-24.8c
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), attach must accept caller bead inputs.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 10c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8c.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 10c
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-2gc`, plan questions `comp-2gc.1`, dev questions `comp-2gc.2`
+
+## FR-24.22a
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), preview-attach must write nothing to bd.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 11a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22a.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 11a
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-de6`, plan questions `comp-de6.1`, dev questions `comp-de6.2`
+
+## FR-24.2a
+
+Anchor: Schema-less template output must be byte-identical to the sc-compose v1.7.0 golden output, except for differences listed in `approved-exceptions.json`.
+
+> Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 14a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2a.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 14a
+
+Scope: the CI byte-regression check comparing schema-less template output with sc-compose v1.7.0
+
+Beads: anchor `comp-4go`, plan questions `comp-4go.1`, dev questions `comp-4go.2`
+
+## FR-24.2b
+
+Anchor: Every entry in `approved-exceptions.json` must name the GitHub issue linked to that difference.
+
+> Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 14b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2b.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 14b
+
+Scope: the CI byte-regression check comparing schema-less template output with sc-compose v1.7.0
+
+Beads: anchor `comp-q4m`, plan questions `comp-q4m.1`, dev questions `comp-q4m.2`
+
+## FR-24.2d
+
+Anchor: The CI byte-regression check must fail when schema-less output differs from the v1.7.0 golden output in a way not listed in `approved-exceptions.json`.
+
+> Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 14d); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2d.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 14d
+
+Scope: the CI byte-regression check comparing schema-less template output with sc-compose v1.7.0
+
+Beads: anchor `comp-kh7`, plan questions `comp-kh7.1`, dev questions `comp-kh7.2`
+
+## FR-24.26b
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the same request must give identical bd command lines from Rust, the CLI and Python.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 16b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.26b.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 16b
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-xxx`, plan questions `comp-xxx.1`, dev questions `comp-xxx.2`
+
+## FR-24.7a
+
+Anchor: With `--render-by bd` (sc-compose leaves `{{ }}` expressions for bd to render from `--var` values), sc-compose must send the `{{ }}` expressions to bd unrendered.
+
+> bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 17a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.7a.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 17a
+
+Scope: bd-owned mode of the sc-compose bead commands and sc-composer-beads: the explicit mode in which sc-compose leaves `{{ }}` template expressions for bd to evaluate (approved Phase U requirement 17)
+
+Beads: anchor `comp-nss`, plan questions `comp-nss.1`, dev questions `comp-nss.2`
+
+## FR-24.7b
+
+Anchor: With `--render-by bd` (sc-compose leaves `{{ }}` expressions for bd to render from `--var` values), sc-compose must keep passing registry variables to bd as `--var` arguments, as sc-compose v1.7.0 does.
+
+> bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 17b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.7b.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 17b
+
+Scope: bd-owned mode of the sc-compose bead commands and sc-composer-beads: the explicit mode in which sc-compose leaves `{{ }}` template expressions for bd to evaluate (approved Phase U requirement 17)
+
+Beads: anchor `comp-2zh`, plan questions `comp-2zh.1`, dev questions `comp-2zh.2`
+
+## FR-24.10a
+
+Anchor: When the graph-plan output path is blocked, including by an existing directory, sc-compose must refuse the command before running any bd command.
+
+> A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 18); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.10a.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 18
+
+Scope: the sc-compose graph-plan command and its output path
+
+Beads: anchor `comp-z81`, plan questions `comp-z81.1`, dev questions `comp-z81.2`
+
+## FR-24.28b
+
+Anchor: The undeclared-variable check must never run on a template that declares no schema.
+
+> The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 20b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.28b.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 20b
+
+Scope: the undeclared-variable check in sc-composer validation and the sc-compose CLI
+
+Beads: anchor `comp-0ka`, plan questions `comp-0ka.1`, dev questions `comp-0ka.2`
+
+## FR-24.29b
+
+Anchor: Strict validation must stay off unless the caller passes `--strict` or the matching API option.
+
+> The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
+
+Said by randlee, User-approved Phase U Beads requirement (approved list item 21b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.29b.json; locked on user approval 2026-11-04 ("1 - lock"), 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 21b
+
+Scope: advanced bead pour in sc-composer-beads and the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach)
+
+Beads: anchor `comp-mbj`, plan questions `comp-mbj.1`, dev questions `comp-mbj.2`
+
+## FR-24.20a
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the `lower` filter applied to the value `A{BC` must return `a{bc`.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
+
+Said by randlee, User-approved Phase U Beads requirement (item 8); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 8
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-rcz`, plan questions `comp-rcz.1`, dev questions `comp-rcz.2`
+
+## FR-24.20b
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the `length` filter applied to the value `A{BC` must return 4.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
+
+Said by randlee, User-approved Phase U Beads requirement (item 8b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20b.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 8b
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-87z`, plan questions `comp-87z.1`, dev questions `comp-87z.2`
+
+## FR-24.20c
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), taking the first three characters of the value `A{BC` must return `A{B`.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
+
+Said by randlee, User-approved Phase U Beads requirement (item 8c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20c.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 8c
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-b82`, plan questions `comp-b82.1`, dev questions `comp-b82.2`
+
+## FR-24.21a
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), a variable the caller does not supply must take the default declared in the included template's frontmatter.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.
+
+Said by randlee, User-approved Phase U Beads requirement (item 9a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.21a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 9a
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-96c`, plan questions `comp-96c.1`, dev questions `comp-96c.2`
+
+## FR-24.22b
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), `sc-compose bead attach` must create all of its beads in bd or none of them.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+
+Said by randlee, User-approved Phase U Beads requirement (item 11b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22b.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 11b
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-gga`, plan questions `comp-gga.1`, dev questions `comp-gga.2`
+
+## FR-24.22c
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), `sc-compose bead attach` must create no bead when its request does not set `pour_authorization` to `CreatePersistentBeads`.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+
+Said by randlee, User-approved Phase U Beads requirement (item 11c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22c.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 11c
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-6bo`, plan questions `comp-6bo.1`, dev questions `comp-6bo.2`
+
+## FR-24.22d
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), running the same `sc-compose bead attach` request twice must leave the status and notes of the beads from the first run unchanged.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+
+Said by randlee, User-approved Phase U Beads requirement (item 11d); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22d.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 11d
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-id7`, plan questions `comp-id7.1`, dev questions `comp-id7.2`
+
+## FR-24.23b
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), pouring `.claude/skills/atm-bd-orchestration/formulas/finding-group.formula.toml.j2` must create beads whose titles, descriptions, labels, ids and dependency edges equal those recorded in `crates/sc-compose/tests/fixtures/bead/finding-group.expected.json`.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.
+
+Said by randlee, User-approved Phase U Beads requirement (item 12b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.23b.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 12b
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-kme`, plan questions `comp-kme.1`, dev questions `comp-kme.2`
+
+## FR-24.13b
+
+Anchor: `--render-by bd` must make the sc-compose bead commands use bd rendering, leaving `{{ }}` expressions for bd.
+
+> Advanced pour is the default: sc-compose rendering is used when `--render-by` is not specified, and `--render-by bd` selects bd rendering.
+
+Said by randlee, User-approved Phase U Beads requirement (1b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.13b.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 1b
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-1sh`, plan questions `comp-1sh.1`, dev questions `comp-1sh.2`
+
+## FR-24.2c
+
+Anchor: The golden files in `tests/fixtures/render-regressions/goldens/` must be generated once by running sc-compose v1.7.0 (commit f4fda4b9).
+
+> Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
+
+Said by randlee, User-approved Phase U Beads requirement (14c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2c.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 14c
+
+Scope: the CI byte-regression check comparing schema-less template output with sc-compose v1.7.0
+
+Beads: anchor `comp-69a`, plan questions `comp-69a.1`, dev questions `comp-69a.2`
+
+## FR-24.2f
+
+Anchor: The byte-regression check must never rewrite `tests/fixtures/render-regressions/goldens/` from candidate output.
+
+> Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
+
+Said by randlee, User-approved Phase U Beads requirement (14f); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2f.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 14f
+
+Scope: the CI byte-regression check comparing schema-less template output with sc-compose v1.7.0
+
+Beads: anchor `comp-3nv`, plan questions `comp-3nv.1`, dev questions `comp-3nv.2`
+
+## FR-24.25a
+
+Anchor: Adding `--render-by` must not add a required field to any `sc-composer-beads` request struct, so existing struct literals compile unchanged.
+
+> Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.
+
+Said by randlee, User-approved Phase U Beads requirement (15); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.25a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 15
+
+Scope: advanced bead pour in sc-composer-beads and the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach)
+
+Beads: anchor `comp-3h1`, plan questions `comp-3h1.1`, dev questions `comp-3h1.2`
+
+## FR-24.23a
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the beads created from the real `sprint-group` orchestration formula must match the expected output recorded in `crates/sc-compose/tests/fixtures/bead/sprint-group.expected.json`.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.
+
+Said by randlee, User-approved Phase U Beads requirement (12a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.23a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 12a
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-bwd`, plan questions `comp-bwd.1`, dev questions `comp-bwd.2`
+
+## FR-24.2e
+
+Anchor: Each entry in `tests/fixtures/render-regressions/approved-exceptions.json` must link the GitHub issue that records the user's approval of that difference.
+
+> Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
+
+Said by randlee, User-approved Phase U Beads requirement (14e); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2e.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 14e
+
+Scope: the CI byte-regression check comparing schema-less template output with sc-compose v1.7.0
+
+Beads: anchor `comp-5j0`, plan questions `comp-5j0.1`, dev questions `comp-5j0.2`
+
+## FR-24.26a
+
+Anchor: With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), one request must give the same rendered output from Rust, the CLI and Python.
+
+> Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.
+
+Said by randlee, User-approved Phase U Beads requirement (16a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.26a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 16a
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-36e`, plan questions `comp-36e.1`, dev questions `comp-36e.2`
+
+## FR-24.28a
+
+Anchor: The undeclared-variable check must run only when the caller passes `--strict` or the matching API option.
+
+> The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema. The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
+
+Said by randlee, User-approved Phase U Beads requirement (20a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.28a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 20a
+
+Scope: the undeclared-variable check in sc-composer validation and the sc-compose CLI
+
+Beads: anchor `comp-0lh`, plan questions `comp-0lh.1`, dev questions `comp-0lh.2`
+
+## FR-24.8b
+
+Anchor: With `--render-by bd`, graph pour by path must reject caller bead inputs with `BEADS_GRAPH_FORMULA_UNSUPPORTED`.
+
+> bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does (graph pour by path: `BEADS_GRAPH_FORMULA_UNSUPPORTED` with reason `bead_variables_set`; attach: request error `attach forbids bead_variables`).
+
+Said by randlee, User-approved Phase U Beads requirement (10b, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8b.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 10b
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-d5o`, plan questions `comp-d5o.1`, dev questions `comp-d5o.2`
+
+## FR-24.8d
+
+Anchor: With `--render-by bd`, attach must reject caller bead inputs with the error `attach forbids bead_variables`.
+
+> bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does (graph pour by path: `BEADS_GRAPH_FORMULA_UNSUPPORTED` with reason `bead_variables_set`; attach: request error `attach forbids bead_variables`).
+
+Said by randlee, User-approved Phase U Beads requirement (10d, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8d.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 10d
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-h1c`, plan questions `comp-h1c.1`, dev questions `comp-h1c.2`
+
+## FR-24.24b
+
+Anchor: With `--render-by bd`, sc-compose must run the same bd command line as v1.7.0 for every v1.7.0 call.
+
+> With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.
+
+Said by randlee, User-approved Phase U Beads requirement (13b, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.24b.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 13b
+
+Scope: advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)
+
+Beads: anchor `comp-301`, plan questions `comp-301.1`, dev questions `comp-301.2`
+
+## FR-24.30a
+
+Anchor: `bead.md` must document each `--render-by` mode with a worked input-to-created-bead example.
+
+> `bead.md` (`crates/sc-compose/docs/manual/bead.md`) documents each mode (`--render-by sc-compose` and `--render-by bd`) with a worked input-to-created-bead example.
+
+Said by randlee, User-approved Phase U Beads requirement (22, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.30a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 22
+
+Scope: advanced bead pour in sc-composer-beads and the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach)
+
+Beads: anchor `comp-5e9`, plan questions `comp-5e9.1`, dev questions `comp-5e9.2`
+
+## FR-24.31a
+
+Anchor: The closing fuzz sprint must rerun FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 on the final candidate.
+
+> The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 (recovered in `crates/sc-composer-beads/tests/single_pass_render.rs` and `crates/sc-compose/tests/cli/fuzz_regressions.rs`; FUZZ-171-10 is not yet recovered) as regression tests on the final candidate.
+
+Said by randlee, User-approved Phase U Beads requirement (23, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.31a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 23
+
+Scope: the closing fuzz sprint of Phase U
+
+Beads: anchor `comp-dkf`, plan questions `comp-dkf.1`, dev questions `comp-dkf.2`
+
+## FR-24.32a
+
+Anchor: Without `--strict`, the final candidate must accept every corpus template that 1.7.0 accepted.
+
+> The 229-template corpus that passed the v1.7.0 comparison (QA report 01M6HZR22HZXX4HDW1CMFHHA86: 150 atm-core and 79 sc-compose `.j2` templates) is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7 (`ERR_VAL_UNDECLARED_TOKEN` no longer reported for True/False/None literals, filter and call targets, Jinja test and block-tag names, and comment and raw bodies).
+
+Said by randlee, User-approved Phase U Beads requirement (24a, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.32a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 24a
+
+Scope: the closing corpus check of Phase U
+
+Beads: anchor `comp-a2y`, plan questions `comp-a2y.1`, dev questions `comp-a2y.2`
+
+## FR-24.24c
+
+Anchor: With `--render-by bd` (sc-compose leaves `{{ }}` expressions for bd to render, as v1.7.0 does), an input that sc-compose v1.7.0 (commit f4fda4b9) rejects must be rejected with the same error code.
+
+> With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.
+
+Said by randlee, User-approved Phase U Beads requirement (13c, clarity-edited 2026-11-04); testable under sealed rubric 28ce3aec, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v5/FR-24.24c.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 13c
+
+Scope: bd-owned mode of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads, selected by `--render-by bd`, in which sc-compose leaves `{{ }}` expressions for bd to render, as sc-compose v1.7.0 does
+
+Beads: anchor `comp-ipw`, plan questions `comp-ipw.1`, dev questions `comp-ipw.2`
+
+## FR-24.29a
+
+Anchor: Phase U must port the recovered Beads code and tests from `crates/sc-composer-beads` on the `rebuild/from-main` branch instead of rewriting them.
+
+> The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/from-main` branch) are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
+
+Said by randlee, User-approved Phase U Beads requirement (21a, clarity-edited 2026-11-04); testable under sealed rubric 28ce3aec, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v5/FR-24.29a.json, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 21a
+
+Scope: the Phase U port of the recovered sc-composer-beads code and tests from the rebuild/from-main branch
+
+Beads: anchor `comp-sb0`, plan questions `comp-sb0.1`, dev questions `comp-sb0.2`
