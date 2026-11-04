@@ -1,0 +1,196 @@
+{
+  "success": true,
+  "data": {
+    "added": false,
+    "refused": {
+      "code": "ANCHOR.NOT_TESTABLE",
+      "message": "the statement did not pass the testability rubric (inconclusive): self_contained",
+      "recoverable": true,
+      "suggested_action": "Reword the statement so each failing criterion holds (see references/anchor-capture.md), re-run `rubric --statement ... --quote ...`, or pass --allow-untestable to record it anyway."
+    },
+    "path": "/Users/randlee/github/sc-compose-worktrees/plan/phase-u-anchor-candidates/docs/plans/phase-u/anchors.json",
+    "lint": {
+      "warnings": []
+    },
+    "similar": [
+      {
+        "id": "ANC-011",
+        "jaccard": 0.429,
+        "field": "statement/statement"
+      }
+    ],
+    "rubric": {
+      "id": "candidate",
+      "statement": "A blocked graph-plan output path, including one occupied by a directory, must be refused before any bd command is invoked.",
+      "quote": "A blocked graph-plan output path, including one occupied by a directory,\nshall be refused before any bd command is invoked.",
+      "scope": "Beads graph-plan output-path preflight; other validation reads remain permitted.",
+      "verdict": "inconclusive",
+      "failing": [
+        "self_contained"
+      ],
+      "answers": {
+        "single_constraint": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.96,
+          "probabilities": {
+            "no": 0.03,
+            "unclear": 0.0,
+            "yes": 0.97
+          }
+        },
+        "observable": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.85,
+          "probabilities": {
+            "no": 0.02,
+            "unclear": 0.08,
+            "yes": 0.9
+          }
+        },
+        "faithful": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.86,
+          "probabilities": {
+            "no": 0.09,
+            "unclear": 0.0,
+            "yes": 0.91
+          }
+        },
+        "scoped": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.92,
+          "probabilities": {
+            "no": 0.01,
+            "unclear": 0.04,
+            "yes": 0.95
+          }
+        },
+        "self_contained": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.44,
+          "probabilities": {
+            "no": 0.26,
+            "unclear": 0.11,
+            "yes": 0.63
+          }
+        }
+      },
+      "lint": {
+        "warnings": [],
+        "errors": []
+      },
+      "answers_second": {
+        "single_constraint": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.96,
+          "probabilities": {
+            "no": 0.03,
+            "unclear": 0.0,
+            "yes": 0.97
+          }
+        },
+        "observable": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.88,
+          "probabilities": {
+            "no": 0.01,
+            "unclear": 0.07,
+            "yes": 0.92
+          }
+        },
+        "faithful": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.85,
+          "probabilities": {
+            "no": 0.1,
+            "unclear": 0.0,
+            "yes": 0.9
+          }
+        },
+        "scoped": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.91,
+          "probabilities": {
+            "no": 0.01,
+            "unclear": 0.05,
+            "yes": 0.94
+          }
+        },
+        "self_contained": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.43,
+          "probabilities": {
+            "no": 0.25,
+            "unclear": 0.13,
+            "yes": 0.62
+          }
+        }
+      },
+      "attempts": 2,
+      "confirmations": {
+        "verdict": "inconclusive",
+        "failing": [
+          "self_contained"
+        ],
+        "low_confidence": [
+          "self_contained"
+        ],
+        "unstable": [],
+        "initial_disagreements": [],
+        "resolved": {
+          "single_constraint": {
+            "choice": "yes",
+            "confidence": 0.96,
+            "matching_calls": [
+              1,
+              2
+            ]
+          },
+          "observable": {
+            "choice": "yes",
+            "confidence": 0.85,
+            "matching_calls": [
+              1,
+              2
+            ]
+          },
+          "faithful": {
+            "choice": "yes",
+            "confidence": 0.85,
+            "matching_calls": [
+              1,
+              2
+            ]
+          },
+          "scoped": {
+            "choice": "yes",
+            "confidence": 0.91,
+            "matching_calls": [
+              1,
+              2
+            ]
+          },
+          "self_contained": {
+            "choice": "yes",
+            "confidence": 0.43,
+            "matching_calls": [
+              1,
+              2
+            ]
+          }
+        }
+      }
+    }
+  },
+  "error": null
+}

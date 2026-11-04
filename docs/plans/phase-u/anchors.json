@@ -43,9 +43,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-jvn",
+        "plan_questions": "comp-jvn.1",
+        "dev_questions": "comp-jvn.2"
       },
       "history": [
         {
@@ -59,6 +59,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:13+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-jvn",
+            "plan_questions": "comp-jvn.1",
+            "dev_questions": "comp-jvn.2"
+          }
         }
       ]
     },
@@ -102,9 +111,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-w29",
+        "plan_questions": "comp-w29.1",
+        "dev_questions": "comp-w29.2"
       },
       "history": [
         {
@@ -136,6 +145,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:16+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-w29",
+            "plan_questions": "comp-w29.1",
+            "dev_questions": "comp-w29.2"
+          }
         }
       ]
     },
@@ -179,9 +197,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-i2f",
+        "plan_questions": "comp-i2f.1",
+        "dev_questions": "comp-i2f.2"
       },
       "history": [
         {
@@ -213,6 +231,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:18+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-i2f",
+            "plan_questions": "comp-i2f.1",
+            "dev_questions": "comp-i2f.2"
+          }
         }
       ]
     },
@@ -256,9 +283,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-54p",
+        "plan_questions": "comp-54p.1",
+        "dev_questions": "comp-54p.2"
       },
       "history": [
         {
@@ -290,6 +317,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:21+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-54p",
+            "plan_questions": "comp-54p.1",
+            "dev_questions": "comp-54p.2"
+          }
         }
       ]
     },
@@ -413,8 +449,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -426,6 +462,12 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-011"
+        },
+        {
+          "at": "2026-11-04T07:28:15+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.8",
+          "reason": "Approved REQ registration preserves the requirement under FR-24.8 (ATM01M6JPXYDJAHCYXVX4WDR1KQVB); not a duplicate of another unrelated obligation."
         }
       ]
     },
@@ -447,8 +489,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -460,6 +502,12 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-011"
+        },
+        {
+          "at": "2026-11-04T07:28:16+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.8",
+          "reason": "Approved REQ registration preserves the requirement under FR-24.8 (ATM01M6JPXYDJAHCYXVX4WDR1KQVB); not a duplicate of another unrelated obligation."
         }
       ]
     },
@@ -481,8 +529,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -494,6 +542,12 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-012"
+        },
+        {
+          "at": "2026-11-04T07:28:16+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.7",
+          "reason": "Approved REQ registration preserves the requirement under FR-24.7 (ATM01M6JPXYDJAHCYXVX4WDR1KQVB); not a duplicate of another unrelated obligation."
         }
       ]
     },
@@ -515,8 +569,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -528,6 +582,12 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-013"
+        },
+        {
+          "at": "2026-11-04T07:28:17+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.10",
+          "reason": "Approved REQ registration preserves the requirement under FR-24.10 (ATM01M6JPXYDJAHCYXVX4WDR1KQVB); not a duplicate of another unrelated obligation."
         }
       ]
     },
@@ -639,9 +699,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-bw1",
+        "plan_questions": "comp-bw1.1",
+        "dev_questions": "comp-bw1.2"
       },
       "history": [
         {
@@ -674,6 +734,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:23+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-bw1",
+            "plan_questions": "comp-bw1.1",
+            "dev_questions": "comp-bw1.2"
+          }
         }
       ]
     },
@@ -717,9 +786,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-le9",
+        "plan_questions": "comp-le9.1",
+        "dev_questions": "comp-le9.2"
       },
       "history": [
         {
@@ -752,6 +821,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:25+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-le9",
+            "plan_questions": "comp-le9.1",
+            "dev_questions": "comp-le9.2"
+          }
         }
       ]
     },
@@ -795,9 +873,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-0qp",
+        "plan_questions": "comp-0qp.1",
+        "dev_questions": "comp-0qp.2"
       },
       "history": [
         {
@@ -829,6 +907,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:27+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-0qp",
+            "plan_questions": "comp-0qp.1",
+            "dev_questions": "comp-0qp.2"
+          }
         }
       ]
     },
@@ -1093,9 +1180,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-81v",
+        "plan_questions": "comp-81v.1",
+        "dev_questions": "comp-81v.2"
       },
       "history": [
         {
@@ -1128,6 +1215,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:35+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-81v",
+            "plan_questions": "comp-81v.1",
+            "dev_questions": "comp-81v.2"
+          }
         }
       ]
     },
@@ -1426,9 +1522,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-hfk",
+        "plan_questions": "comp-hfk.1",
+        "dev_questions": "comp-hfk.2"
       },
       "history": [
         {
@@ -1461,6 +1557,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:40+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-hfk",
+            "plan_questions": "comp-hfk.1",
+            "dev_questions": "comp-hfk.2"
+          }
         }
       ]
     },
@@ -1544,9 +1649,9 @@
       "status": "locked",
       "promoted_to": null,
       "beads": {
-        "anchor": null,
-        "plan_questions": null,
-        "dev_questions": null
+        "anchor": "comp-eh6",
+        "plan_questions": "comp-eh6.1",
+        "dev_questions": "comp-eh6.2"
       },
       "history": [
         {
@@ -1570,6 +1675,15 @@
           "fields": [
             "fixtures"
           ]
+        },
+        {
+          "at": "2026-11-04T07:30:43+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-eh6",
+            "plan_questions": "comp-eh6.1",
+            "dev_questions": "comp-eh6.2"
+          }
         }
       ]
     },
@@ -1625,8 +1739,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 2,
-      "status": "proposed",
+      "version": 3,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -1655,6 +1769,12 @@
           "lock_withheld": "Rubric inconclusive; threshold unchanged",
           "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-035/rubric.json",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/wording-refinement/approved-C-workflows/ANC-035/variant-7/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:28:18+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.2",
+          "reason": "Approved REQ registration preserves the requirement under FR-24.2 (ATM01M6JPXYDJAHCYXVX4WDR1KQVB); not a duplicate of another unrelated obligation."
         }
       ]
     },
@@ -2118,8 +2238,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -2131,6 +2251,182 @@
           "at": "2026-11-04T06:03:55+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T07:28:18+00:00",
+          "event": "retired",
+          "replaced_by": "FR-25.1",
+          "reason": "Approved REQ registration preserves the requirement under FR-25.1 (ATM01M6JPXYDJAHCYXVX4WDR1KQVB); not a duplicate of another unrelated obligation."
+        }
+      ]
+    },
+    {
+      "id": "FR-24.8",
+      "source_type": "REQ",
+      "source_ref": "FR-24.8",
+      "statement": "When the caller explicitly selects sc-compose rendering, graph pour and attach must accept bead-variable inputs as data rendered by sc-compose.",
+      "quote": "When the caller explicitly selects sc-compose rendering, graph pour and attach\nshall accept bead-variable inputs as data rendered by sc-compose.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved.",
+      "summary": "FR-24.8 approved replacement",
+      "scope": "Explicitly selected sc-compose rendering for graph-pour and attach operations.",
+      "deterministic_check": "Verify FR-24.8 against its approved requirement clause and actual positive/negative runtime evidence.",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T07:28:15+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.7",
+      "source_type": "REQ",
+      "source_ref": "FR-24.7",
+      "statement": "sc-compose must offer an explicit selection that leaves ordinary formula expressions for the bd command-line tool to evaluate.",
+      "quote": "sc-compose shall offer an explicit selection that leaves ordinary formula\nexpressions for the bd command-line tool to evaluate.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved.",
+      "summary": "FR-24.7 approved replacement",
+      "scope": "Explicit selection of expression evaluation ownership for Beads formulas.",
+      "deterministic_check": "Verify FR-24.7 against its approved requirement clause and actual positive/negative runtime evidence.",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T07:28:16+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.10",
+      "source_type": "REQ",
+      "source_ref": "FR-24.10",
+      "statement": "A blocked graph-plan output path, including one occupied by a directory, must be refused before any bd command is invoked.",
+      "quote": "A blocked graph-plan output path, including one occupied by a directory,\nshall be refused before any bd command is invoked.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved.",
+      "summary": "FR-24.10 approved replacement",
+      "scope": "Beads graph-plan output-path preflight; other validation reads remain permitted.",
+      "deterministic_check": "Verify FR-24.10 against its approved requirement clause and actual positive/negative runtime evidence.",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T07:28:17+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.2",
+      "source_type": "REQ",
+      "source_ref": "FR-24.2",
+      "statement": "Schema-less template output must match sc-compose v1.7.0 byte for byte, except issue-linked genuine-bug fixes recorded in tests/fixtures/render-regressions/approved-exceptions.json.",
+      "quote": "Schema-less template output must match sc-compose v1.7.0 byte for byte, except\nissue-linked genuine-bug fixes recorded in\n`tests/fixtures/render-regressions/approved-exceptions.json`.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved.",
+      "summary": "FR-24.2 approved replacement",
+      "scope": "Schema-less output byte compatibility; every unlisted difference fails the compatibility check.",
+      "deterministic_check": "Verify FR-24.2 against its approved requirement clause and actual positive/negative runtime evidence.",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T07:28:17+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-25.1",
+      "source_type": "REQ",
+      "source_ref": "FR-25.1",
+      "statement": "All30 artifact/platform cells must build successfully: Rust CLI, sc-compose/sc-sha/sc-composer-beads wheels and sc-sha-go native module, each for macOS/Windows/Linux on x64/arm64.",
+      "quote": "All 30 artifact/platform cells must build successfully: the Rust CLI, the\nsc-compose, sc-sha and sc-composer-beads wheels, and the sc-sha-go native module,\neach for macOS, Windows and Linux on x64 and arm64.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved.",
+      "summary": "FR-25.1 approved replacement",
+      "scope": "All30 successful build cells: five named artifact families across all six OS/architecture targets.",
+      "deterministic_check": "Verify FR-25.1 against its approved requirement clause and actual positive/negative runtime evidence.",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T07:28:18+00:00",
+          "event": "created",
+          "status": "locked"
         }
       ]
     }

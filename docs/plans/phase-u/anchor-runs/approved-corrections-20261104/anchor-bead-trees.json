@@ -1,0 +1,62 @@
+[
+  {
+    "id": "ANC-001",
+    "anchor": "comp-jvn",
+    "plan_questions": "comp-jvn.1",
+    "dev_questions": "comp-jvn.2"
+  },
+  {
+    "id": "ANC-002",
+    "anchor": "comp-w29",
+    "plan_questions": "comp-w29.1",
+    "dev_questions": "comp-w29.2"
+  },
+  {
+    "id": "ANC-003",
+    "anchor": "comp-i2f",
+    "plan_questions": "comp-i2f.1",
+    "dev_questions": "comp-i2f.2"
+  },
+  {
+    "id": "ANC-004",
+    "anchor": "comp-54p",
+    "plan_questions": "comp-54p.1",
+    "dev_questions": "comp-54p.2"
+  },
+  {
+    "id": "ANC-014",
+    "anchor": "comp-bw1",
+    "plan_questions": "comp-bw1.1",
+    "dev_questions": "comp-bw1.2"
+  },
+  {
+    "id": "ANC-015",
+    "anchor": "comp-le9",
+    "plan_questions": "comp-le9.1",
+    "dev_questions": "comp-le9.2"
+  },
+  {
+    "id": "ANC-016",
+    "anchor": "comp-0qp",
+    "plan_questions": "comp-0qp.1",
+    "dev_questions": "comp-0qp.2"
+  },
+  {
+    "id": "ANC-023",
+    "anchor": "comp-81v",
+    "plan_questions": "comp-81v.1",
+    "dev_questions": "comp-81v.2"
+  },
+  {
+    "id": "ANC-031",
+    "anchor": "comp-hfk",
+    "plan_questions": "comp-hfk.1",
+    "dev_questions": "comp-hfk.2"
+  },
+  {
+    "id": "ANC-033",
+    "anchor": "comp-eh6",
+    "plan_questions": "comp-eh6.1",
+    "dev_questions": "comp-eh6.2"
+  }
+]

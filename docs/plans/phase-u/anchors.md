@@ -13,10 +13,10 @@ Intent: `docs/plans/phase-u/intent.md`
 | ANC-005 | proposed | lowercase sees literal value | 2026-11-03 |
 | ANC-006 | proposed | length sees literal value | 2026-11-03 |
 | ANC-007 | proposed | included default supplies missing value | 2026-11-03 |
-| ANC-008 | proposed | bead inputs on graph pour | 2026-11-03 |
-| ANC-009 | proposed | bead inputs on attach pour | 2026-11-03 |
-| ANC-010 | proposed | explicit bd-owned mode | 2026-11-03 |
-| ANC-011 | proposed | blocked graph path before any bd | 2026-11-03 |
+| ANC-008 | retired | bead inputs on graph pour | 2026-11-03 |
+| ANC-009 | retired | bead inputs on attach pour | 2026-11-03 |
+| ANC-010 | retired | explicit bd-owned mode | 2026-11-03 |
+| ANC-011 | retired | blocked graph path before any bd | 2026-11-03 |
 | ANC-012 | proposed | human graph-plan path | 2026-11-03 |
 | ANC-013 | proposed | JSON graph-plan field | 2026-11-03 |
 | ANC-014 | locked | docli generates CLI documentation | 2026-11-03 |
@@ -40,7 +40,7 @@ Intent: `docs/plans/phase-u/intent.md`
 | ANC-032 | retired | Windows integration runs on GitHub | 2026-11-03 |
 | ANC-033 | locked | integration runs outside normal CI | 2026-11-03 |
 | ANC-034 | proposed | ABI3 Python floor3.11 | 2026-11-03 |
-| ANC-035 | proposed | schema-less byte regression | 2026-11-03 |
+| ANC-035 | retired | schema-less byte regression | 2026-11-03 |
 | ANC-036 | proposed | S01 must pass | 2026-11-03 |
 | ANC-037 | proposed | S02 must pass | 2026-11-03 |
 | ANC-038 | proposed | S03 must pass | 2026-11-03 |
@@ -54,7 +54,12 @@ Intent: `docs/plans/phase-u/intent.md`
 | ANC-046 | proposed | S12b invalid anyway | 2026-11-03 |
 | ANC-047 | proposed | S13 invalid anyway: external read result, only knowable after bd read | 2026-11-03 |
 | ANC-048 | proposed | S14 invalid anyway | 2026-11-03 |
-| ANC-049 | proposed | all30 artifact/platform builds | 2026-11-03 |
+| ANC-049 | retired | all30 artifact/platform builds | 2026-11-03 |
+| FR-24.8 | proposed | FR-24.8 approved replacement | 2026-11-03 |
+| FR-24.7 | proposed | FR-24.7 approved replacement | 2026-11-03 |
+| FR-24.10 | proposed | FR-24.10 approved replacement | 2026-11-03 |
+| FR-24.2 | proposed | FR-24.2 approved replacement | 2026-11-03 |
+| FR-25.1 | locked | FR-25.1 approved replacement | 2026-11-03 |
 
 ## ANC-001
 
@@ -69,6 +74,8 @@ Summary: values stay data
 Scope: advanced bead pour in sc-composer-beads and the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach)
 
 Deterministic check to pair with the development gate: supply values containing each delimiter and read back identical literal text from the text passed to bd
+
+Beads: anchor `comp-jvn`, plan questions `comp-jvn.1`, dev questions `comp-jvn.2`
 
 Fixtures:
 - pass: Values containing {{ name }}, {{{ name }}} or {% if flag %} are inserted as literal data; the renderer never parses inserted values as template source.
@@ -88,6 +95,8 @@ Scope: sc-composer-beads rendering and sc-compose bead render/pour/attach comman
 
 Deterministic check to pair with the development gate: render.rs:bead_variables_render_padded_and_tight_placeholders
 
+Beads: anchor `comp-w29`, plan questions `comp-w29.1`, dev questions `comp-w29.2`
+
 Fixtures:
 - pass: For a Beads formula containing tight {{key}} and the supplied value key=ALPHA, sc-compose writes ALPHA into the rendered formula text before handing it to bd.
 - fail: For tight {{key}} with key=ALPHA, sc-compose leaves {{key}} unchanged in the output formula and delegates its substitution to bd.
@@ -106,6 +115,8 @@ Scope: sc-composer-beads rendering and sc-compose bead render/pour/attach comman
 
 Deterministic check to pair with the development gate: render.rs:bead_variables_render_padded_and_tight_placeholders
 
+Beads: anchor `comp-i2f`, plan questions `comp-i2f.1`, dev questions `comp-i2f.2`
+
 Fixtures:
 - pass: For a Beads formula containing padded {{ key }} and the supplied value key=ALPHA, sc-compose writes ALPHA into the rendered output text.
 - fail: The renderer replaces only tight {{key}}; padded {{ key }} remains unchanged even when key=ALPHA is supplied.
@@ -123,6 +134,8 @@ Summary: loop-local values before bd
 Scope: sc-composer-beads rendering and sc-compose bead render/pour/attach commands
 
 Deterministic check to pair with the development gate: bdb3bdae single_pass_render.rs FUZZ-171-03
+
+Beads: anchor `comp-54p`, plan questions `comp-54p.1`, dev questions `comp-54p.2`
 
 Fixtures:
 - pass: In a formula loop over items named Build and Test, sc-compose replaces each expression referring to the current loop-local name with Build or Test respectively in that iteration’s output.
@@ -176,7 +189,7 @@ Anchor: Graph-based Beads pour must accept caller-supplied bead variable inputs.
 
 > Bead inputs on graph and attach pour
 
-Said by randlee, Proposed from524772f4:ANC-011; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: proposed. Version 1.
+Said by randlee, Proposed from524772f4:ANC-011; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: retired. Version 2.
 
 Summary: bead inputs on graph pour
 
@@ -190,7 +203,7 @@ Anchor: Beads attach pour must accept caller-supplied bead variable inputs.
 
 > Bead inputs on graph and attach pour
 
-Said by randlee, Proposed from524772f4:ANC-011; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: proposed. Version 1.
+Said by randlee, Proposed from524772f4:ANC-011; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: retired. Version 2.
 
 Summary: bead inputs on attach pour
 
@@ -204,7 +217,7 @@ Anchor: Beads rendering must offer an explicit bd-owned mode that leaves ordinar
 
 > bd-owned expressions as an explicit mode
 
-Said by randlee, Proposed from524772f4:ANC-012; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: proposed. Version 1.
+Said by randlee, Proposed from524772f4:ANC-012; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: retired. Version 2.
 
 Summary: explicit bd-owned mode
 
@@ -218,7 +231,7 @@ Anchor: Beads preview-attach must refuse a graph-plan output path occupied by a 
 
 > refusing blocked graph plans before bd
 
-Said by randlee, Proposed from524772f4:ANC-013; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: proposed. Version 1.
+Said by randlee, Proposed from524772f4:ANC-013; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: retired. Version 2.
 
 Summary: blocked graph path before any bd
 
@@ -268,6 +281,8 @@ Scope: sc-compose command-line documentation generation
 
 Deterministic check to pair with the development gate: inspect generator invocation and generated reference source
 
+Beads: anchor `comp-bw1`, plan questions `comp-bw1.1`, dev questions `comp-bw1.2`
+
 Fixtures:
 - pass: Add the docli tool to sc-compose and invoke it as the generator of the command-line documentation.
 - fail: Generate all sc-compose command-line documentation using a private generator; do not add or invoke the docli tool.
@@ -286,6 +301,8 @@ Scope: sc-compose publishing preparation and release workflow
 
 Deterministic check to pair with the development gate: inspect publish/preflight docli invocation
 
+Beads: anchor `comp-le9`, plan questions `comp-le9.1`, dev questions `comp-le9.2`
+
 Fixtures:
 - pass: Every sc-compose publishing path invokes the docli command-line documentation generator each time it publishes.
 - fail: Run docli only for occasional documentation updates; routine sc-compose publication skips the documentation generator.
@@ -303,6 +320,8 @@ Summary: stale CLI docs block preflight
 Scope: u-6/u-9 preflight configuration
 
 Deterministic check to pair with the development gate: stale generated reference negative preflight test
+
+Beads: anchor `comp-0qp`, plan questions `comp-0qp.1`, dev questions `comp-0qp.2`
 
 Fixtures:
 - pass: Release preflight invokes docli and fails before publication whenever docli reports that command-line documentation is stale.
@@ -405,6 +424,8 @@ Summary: full matrix only in integration test
 Scope: sc-compose integration tests and preflight; Rand approved clarification YES via relay ATM01M6JJ70WRQYV1KCEDZZK6WGJW: full matrix includes all supported artifact/platform cells plus wheel Python-version and pip/uv install combinations; restricted to integration tests required by preflight, excluded from normal sprint continuous integration.
 
 Deterministic check to pair with the development gate: inspect triggers and preflight dependency; full install matrix is platform/Python/installer coverage
+
+Beads: anchor `comp-81v`, plan questions `comp-81v.1`, dev questions `comp-81v.2`
 
 Fixtures:
 - pass: Run the macOS/Windows/Linux x64/arm64 Rust, wheel and Go matrix, including supported wheel Python versions with pip and uv, only in the integration test required for release preflight; routine sprint CI does not run it.
@@ -522,6 +543,8 @@ Scope: The spelling lint check for project-specific words in sc-compose.
 
 Deterministic check to pair with the development gate: just lint on exact candidate; no disabling rules
 
+Beads: anchor `comp-hfk`, plan questions `comp-hfk.1`, dev questions `comp-hfk.2`
+
 Fixtures:
 - pass: The sc-compose codespell spelling check runs successfully with exit0 and no outstanding spelling findings.
 - fail: The final sc-compose sprint candidate deliberately leaves codespell failing with unresolved spelling errors and a nonzero exit; passing codespell is not required for acceptance.
@@ -554,6 +577,8 @@ Scope: u-8/u-9 full integration workflow
 
 Deterministic check to pair with the development gate: inspect CI invocation paths; does not ban ordinary Windows unit CI
 
+Beads: anchor `comp-eh6`, plan questions `comp-eh6.1`, dev questions `comp-eh6.2`
+
 Fixtures:
 - pass: Windows amd64 and manylinux integration runs execute outside the normal CI pipeline; ordinary sprint CI does not invoke those integration runs.
 - fail: The normal CI pipeline invokes the Windows amd64 and manylinux integration runs on every sprint check.
@@ -578,7 +603,7 @@ Anchor: Template output without schemas must match sc-compose v1.7.0 byte for by
 
 > schema-less templates render byte-identical to v1.7.0 except genuine bugs
 
-Said by randlee, Lead01M6JAKMVZ5RXHGS45A59P45G6 exact new quote; bug exception transcript6183; execution detail01M6JAMQ7ZCF4C8C8K63N01S62/01M6JAN3316GWY4V43QZFK00Z2/01M6JANVK3N4Q4K535KCK9QPG3, 2026-11-03. Status: proposed. Version 2.
+Said by randlee, Lead01M6JAKMVZ5RXHGS45A59P45G6 exact new quote; bug exception transcript6183; execution detail01M6JAMQ7ZCF4C8C8K63N01S62/01M6JAN3316GWY4V43QZFK00Z2/01M6JANVK3N4Q4K535KCK9QPG3, 2026-11-03. Status: retired. Version 3.
 
 Summary: schema-less byte regression
 
@@ -774,10 +799,87 @@ Anchor: All 30 release artifact/platform combinations must build successfully: f
 
 > support of mac x64/arm, win x64/arm, linux x64/arm for rust/wheel/go distributed through all applicable channels
 
-Said by randlee, Meaning approved by ATM01M6JJ70WRQYV1KCEDZZK6WGJW; remains proposed because rubric is inconclusive., 2026-11-03. Status: proposed. Version 1.
+Said by randlee, Meaning approved by ATM01M6JJ70WRQYV1KCEDZZK6WGJW; remains proposed because rubric is inconclusive., 2026-11-03. Status: retired. Version 2.
 
 Summary: all30 artifact/platform builds
 
 Scope: Phase U release builds. Rand approved via ATM01M6JJ70WRQYV1KCEDZZK6WGJW that support requires actual successful builds of Rust CLI + three Python wheels + Go native module on macOS/Windows/Linux x64/arm64, all 30 cells; this clarification is normative alongside the unchanged original quote.
 
 Deterministic check to pair with the development gate: Compare actual successful build outputs against all30 required artifact/platform cells, no missing cell passes.
+
+## FR-24.8
+
+Anchor: When the caller explicitly selects sc-compose rendering, graph pour and attach must accept bead-variable inputs as data rendered by sc-compose.
+
+> When the caller explicitly selects sc-compose rendering, graph pour and attach
+shall accept bead-variable inputs as data rendered by sc-compose.
+
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 1.
+
+Summary: FR-24.8 approved replacement
+
+Scope: Explicitly selected sc-compose rendering for graph-pour and attach operations.
+
+Deterministic check to pair with the development gate: Verify FR-24.8 against its approved requirement clause and actual positive/negative runtime evidence.
+
+## FR-24.7
+
+Anchor: sc-compose must offer an explicit selection that leaves ordinary formula expressions for the bd command-line tool to evaluate.
+
+> sc-compose shall offer an explicit selection that leaves ordinary formula
+expressions for the bd command-line tool to evaluate.
+
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 1.
+
+Summary: FR-24.7 approved replacement
+
+Scope: Explicit selection of expression evaluation ownership for Beads formulas.
+
+Deterministic check to pair with the development gate: Verify FR-24.7 against its approved requirement clause and actual positive/negative runtime evidence.
+
+## FR-24.10
+
+Anchor: A blocked graph-plan output path, including one occupied by a directory, must be refused before any bd command is invoked.
+
+> A blocked graph-plan output path, including one occupied by a directory,
+shall be refused before any bd command is invoked.
+
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 1.
+
+Summary: FR-24.10 approved replacement
+
+Scope: Beads graph-plan output-path preflight; other validation reads remain permitted.
+
+Deterministic check to pair with the development gate: Verify FR-24.10 against its approved requirement clause and actual positive/negative runtime evidence.
+
+## FR-24.2
+
+Anchor: Schema-less template output must match sc-compose v1.7.0 byte for byte, except issue-linked genuine-bug fixes recorded in tests/fixtures/render-regressions/approved-exceptions.json.
+
+> Schema-less template output must match sc-compose v1.7.0 byte for byte, except
+issue-linked genuine-bug fixes recorded in
+`tests/fixtures/render-regressions/approved-exceptions.json`.
+
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 1.
+
+Summary: FR-24.2 approved replacement
+
+Scope: Schema-less output byte compatibility; every unlisted difference fails the compatibility check.
+
+Deterministic check to pair with the development gate: Verify FR-24.2 against its approved requirement clause and actual positive/negative runtime evidence.
+
+## FR-25.1
+
+Anchor: All30 artifact/platform cells must build successfully: Rust CLI, sc-compose/sc-sha/sc-composer-beads wheels and sc-sha-go native module, each for macOS/Windows/Linux on x64/arm64.
+
+> All 30 artifact/platform cells must build successfully: the Rust CLI, the
+sc-compose, sc-sha and sc-composer-beads wheels, and the sc-sha-go native module,
+each for macOS, Windows and Linux on x64 and arm64.
+
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: locked. Version 1.
+
+Summary: FR-25.1 approved replacement
+
+Scope: All30 successful build cells: five named artifact families across all six OS/architecture targets.
+
+Deterministic check to pair with the development gate: Verify FR-25.1 against its approved requirement clause and actual positive/negative runtime evidence.

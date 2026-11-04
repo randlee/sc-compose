@@ -8,8 +8,11 @@ Live anchors.json now locks ANC-002/003/004/014/015/016/023/031/033 after
 fresh testable rubric results; ANC-001 remains locked. ANC-032 is retired as
 a duplicate of ANC-033. ANC-022/030/035/049 record approved clarified meanings
 but remain proposed because the unchanged rubric was inconclusive. ANC-049
-is the approved combined30-cell build candidate. ANC-008/009/010/011 remain
-proposed pending FR-24 approval and REQ registration. Quotes are unchanged.
+is the approved combined30-cell build candidate. Approved corrections now register FR-24.8/.7/.10/.2 and FR-25.1 REQ records;
+ANC-008/009/010/011/035/049 are retired only into those explicit replacements.
+FR-25.1 is testable/locked; the four FR-24 REQ records remain proposed after
+inconclusive rubric checks. Ten existing ANC bead trees now carry the lead’s
+approved plan override and default dev questions. Fixtures/overrides are unchanged. Quotes are unchanged.
 No fixture or question override is installed. Section-D fixtures are still
 awaiting separate approval. Committed rubric/API evidence is under
 anchor-runs/approval-20261104/; all failed wording attempts remain in local

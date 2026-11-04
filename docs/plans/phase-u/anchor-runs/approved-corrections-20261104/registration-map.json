@@ -1,0 +1,43 @@
+[
+  {
+    "id": "FR-24.8",
+    "status": "proposed",
+    "rubric": "ANCHOR.NOT_TESTABLE",
+    "replaced": [
+      "ANC-008",
+      "ANC-009"
+    ]
+  },
+  {
+    "id": "FR-24.7",
+    "status": "proposed",
+    "rubric": "ANCHOR.NOT_TESTABLE",
+    "replaced": [
+      "ANC-010"
+    ]
+  },
+  {
+    "id": "FR-24.10",
+    "status": "proposed",
+    "rubric": "ANCHOR.NOT_TESTABLE",
+    "replaced": [
+      "ANC-011"
+    ]
+  },
+  {
+    "id": "FR-24.2",
+    "status": "proposed",
+    "rubric": "ANCHOR.NOT_TESTABLE",
+    "replaced": [
+      "ANC-035"
+    ]
+  },
+  {
+    "id": "FR-25.1",
+    "status": "locked",
+    "rubric": "testable",
+    "replaced": [
+      "ANC-049"
+    ]
+  }
+]

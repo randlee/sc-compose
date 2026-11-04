@@ -1,0 +1,201 @@
+{
+  "success": true,
+  "data": {
+    "added": false,
+    "refused": {
+      "code": "ANCHOR.NOT_TESTABLE",
+      "message": "the statement did not pass the testability rubric (inconclusive): self_contained",
+      "recoverable": true,
+      "suggested_action": "Reword the statement so each failing criterion holds (see references/anchor-capture.md), re-run `rubric --statement ... --quote ...`, or pass --allow-untestable to record it anyway."
+    },
+    "path": "/Users/randlee/github/sc-compose-worktrees/plan/phase-u-anchor-candidates/docs/plans/phase-u/anchors.json",
+    "lint": {
+      "warnings": []
+    },
+    "similar": [
+      {
+        "id": "ANC-010",
+        "jaccard": 0.333,
+        "field": "statement/statement"
+      },
+      {
+        "id": "ANC-014",
+        "jaccard": 0.316,
+        "field": "statement/statement"
+      }
+    ],
+    "rubric": {
+      "id": "candidate",
+      "statement": "sc-compose must offer an explicit selection that leaves ordinary formula expressions for the bd command-line tool to evaluate.",
+      "quote": "sc-compose shall offer an explicit selection that leaves ordinary formula\nexpressions for the bd command-line tool to evaluate.",
+      "scope": "Explicit selection of expression evaluation ownership for Beads formulas.",
+      "verdict": "inconclusive",
+      "failing": [
+        "self_contained"
+      ],
+      "answers": {
+        "single_constraint": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.8,
+          "probabilities": {
+            "no": 0.12,
+            "unclear": 0.01,
+            "yes": 0.87
+          }
+        },
+        "observable": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.83,
+          "probabilities": {
+            "no": 0.03,
+            "unclear": 0.08,
+            "yes": 0.89
+          }
+        },
+        "faithful": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.89,
+          "probabilities": {
+            "no": 0.07,
+            "unclear": 0.0,
+            "yes": 0.93
+          }
+        },
+        "scoped": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.82,
+          "probabilities": {
+            "no": 0.02,
+            "unclear": 0.1,
+            "yes": 0.88
+          }
+        },
+        "self_contained": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.56,
+          "probabilities": {
+            "no": 0.14,
+            "unclear": 0.15,
+            "yes": 0.71
+          }
+        }
+      },
+      "lint": {
+        "warnings": [],
+        "errors": []
+      },
+      "answers_second": {
+        "single_constraint": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.77,
+          "probabilities": {
+            "no": 0.14,
+            "unclear": 0.01,
+            "yes": 0.85
+          }
+        },
+        "observable": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.83,
+          "probabilities": {
+            "no": 0.03,
+            "unclear": 0.08,
+            "yes": 0.89
+          }
+        },
+        "faithful": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.92,
+          "probabilities": {
+            "no": 0.05,
+            "unclear": 0.0,
+            "yes": 0.95
+          }
+        },
+        "scoped": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.83,
+          "probabilities": {
+            "no": 0.02,
+            "unclear": 0.09,
+            "yes": 0.89
+          }
+        },
+        "self_contained": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.48,
+          "probabilities": {
+            "no": 0.19,
+            "unclear": 0.16,
+            "yes": 0.65
+          }
+        }
+      },
+      "attempts": 2,
+      "confirmations": {
+        "verdict": "inconclusive",
+        "failing": [
+          "self_contained"
+        ],
+        "low_confidence": [
+          "self_contained"
+        ],
+        "unstable": [],
+        "initial_disagreements": [],
+        "resolved": {
+          "single_constraint": {
+            "choice": "yes",
+            "confidence": 0.77,
+            "matching_calls": [
+              1,
+              2
+            ]
+          },
+          "observable": {
+            "choice": "yes",
+            "confidence": 0.83,
+            "matching_calls": [
+              1,
+              2
+            ]
+          },
+          "faithful": {
+            "choice": "yes",
+            "confidence": 0.89,
+            "matching_calls": [
+              1,
+              2
+            ]
+          },
+          "scoped": {
+            "choice": "yes",
+            "confidence": 0.82,
+            "matching_calls": [
+              1,
+              2
+            ]
+          },
+          "self_contained": {
+            "choice": "yes",
+            "confidence": 0.48,
+            "matching_calls": [
+              1,
+              2
+            ]
+          }
+        }
+      }
+    }
+  },
+  "error": null
+}
