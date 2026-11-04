@@ -1,0 +1,24 @@
+{
+ "attempts": 1,
+ "request_sha256": "d770df887b883eec4fa4a9d81eee5bd9fda3915a9809b27153cb00f3fb239dd8",
+ "response": {
+  "answers": {
+   "observable": {
+    "choice": "no",
+    "confidence": 0.97,
+    "probabilities": {
+     "no": 0.98,
+     "unclear": 0.0,
+     "yes": 0.02
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 610,
+   "output_tokens": 39
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:rr5c:o-o17:a0-12-unrecorded-approval:call1"
+}

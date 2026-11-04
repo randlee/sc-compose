@@ -1,0 +1,70 @@
+{
+ "bundles": {
+  "f-f10": {
+   "faithful": {
+    "criteria": {
+     "no": "The statement adds a new decision the quote leaves open, or asks for something different from the quote.",
+     "unclear": "It cannot be told whether an extra detail is the obvious reading or a new decision.",
+     "yes": "The statement asks for what the quote asks for; any extra detail is only the obvious precise reading of the quote."
+    },
+    "instructions": "First identify what `anchor.quote` asks for. Then decide whether `anchor.statement` asks for that same thing, possibly worded more precisely, or adds a new decision. Making the quote precise in the obvious way is not a new decision: the stream a CLI prints to is stdout; logs and error messages go to stdout or stderr; JSON output is a JSON object; a CLI's commands are its subcommands; must replaces should or needs to; concrete values may illustrate a described test; and one directive may be taken from several. Repeating the quote's own paths, hashes, codes, ids, or file lists, in full, is not a new decision. A new decision is a choice the quote leaves open, such as a specific algorithm or key strength where the quote only says encrypt, a count, a tool, or a trigger. Do not judge vagueness, bundling, or scope.",
+    "type": "choice"
+   }
+  },
+  "f-f8": {
+   "faithful": {
+    "criteria": {
+     "no": "The statement adds a new decision the quote leaves open, or asks for something different from the quote.",
+     "unclear": "It cannot be told whether an extra detail is the obvious reading or a new decision.",
+     "yes": "The statement asks for what the quote asks for; any extra detail is only the obvious precise reading of the quote."
+    },
+    "instructions": "First identify what `anchor.quote` asks for. Then decide whether `anchor.statement` asks for that same thing, possibly worded more precisely, or adds a new decision. Making the quote precise in the obvious way is not a new decision: the stream a CLI prints to is stdout; logs and error messages go to stdout or stderr; JSON output is a JSON object; a CLI's commands are its subcommands; must replaces should or needs to; concrete values may illustrate a described test; and one directive may be taken from several. A new decision is a choice the quote leaves open, such as a specific algorithm or key strength where the quote only says encrypt, a count, a tool, or a trigger. Naming the same records the quote names, such as paths, commit hashes, codes, or ids, is faithful however many there are. Do not judge vagueness, bundling, or scope.",
+    "type": "choice"
+   }
+  },
+  "f-f9": {
+   "faithful": {
+    "criteria": {
+     "no": "The statement adds a requirement the quote does not express, such as a specific algorithm, strength, number, tool, trigger, or policy, or it changes the quote's meaning.",
+     "unclear": "It cannot be determined whether a difference is ordinary normalization or an added requirement.",
+     "yes": "The statement differs from the quote only by ordinary normalization of this kind, and adds no requirement the quote does not express."
+    },
+    "instructions": "Is `anchor.statement` a faithful formal requirement derived from `anchor.quote`? Preserve meaning, not wording. Ordinary normalization is faithful: informal directives (needs to, should, do not, make sure) become must or must never; print or output becomes emit or write to stdout, and logs or error output become stdout or stderr; machine-readable JSON becomes JSON or a JSON object; commands become CLI commands or subcommands; a person saying yes becomes that person approving; a described test becomes concrete example values; and one directive of a compound quote may become one anchor. Naming the same records the quote names, such as paths, commit hashes, codes, or ids, is faithful however many there are. Do not penalize vagueness, bundling, or scope here.",
+    "type": "choice"
+   }
+  },
+  "s-s19": {
+   "self_contained": {
+    "criteria": {
+     "no": "A decisive term is a subjective quality, an undefined label or mode, an unidentified expected output or standard, or an approval with no identified record.",
+     "unclear": "A term may not be understood, but it cannot be told whether it is decisive.",
+     "yes": "Every decisive term can be understood from the statement or common technical knowledge."
+    },
+    "instructions": "Can each decisive term in `anchor.statement` be understood from the statement itself or from common technical knowledge? Understood terms include commands, subcommands, flags, files, paths, values, environment variables, formats, streams, roles such as 'the caller', and terms the statement defines inline. Bundled duties, added details, sentence form, and who is told to act (a named component, 'you', or nobody) do not matter here. A term cannot be understood when it is a subjective quality (robust), a label or mode the statement never defines (R7, Mode K), an expected output or standard whose record the statement does not identify, or a person's approval with no identified record. Judge each decisive term separately: one undefined label, tier, or mode, or one subjective quality, makes the answer no even when the statement also names many concrete paths, hashes, codes, or ids.",
+    "type": "choice"
+   }
+  },
+  "s-s20": {
+   "self_contained": {
+    "criteria": {
+     "no": "A decisive term is a subjective quality, an undefined label or mode, an unidentified expected output or standard, or an approval with no identified record.",
+     "unclear": "A term may not be understood, but it cannot be told whether it is decisive.",
+     "yes": "Every decisive term can be understood from the statement or common technical knowledge."
+    },
+    "instructions": "Can each decisive term in `anchor.statement` be understood from the statement itself or from common technical knowledge? Understood terms include commands, subcommands, flags, files, paths, commit hashes, error and diagnostic codes, report and record ids, values, environment variables, formats, streams, roles such as 'the caller', and terms the statement defines inline. Bundled duties, added details, sentence form, and who is told to act (a named component, 'you', or nobody) do not matter here. A term cannot be understood when it is a subjective quality (robust), a label, tier, or mode the statement never defines (R7, Mode K), even when it appears among concrete records,, an expected output or standard whose record the statement does not identify, or a person's approval with no identified record. Judge each decisive term separately: one undefined label, tier, or mode, or one subjective quality, makes the answer no even when the statement also names many concrete paths, hashes, codes, or ids.",
+    "type": "choice"
+   }
+  },
+  "s-s21": {
+   "self_contained": {
+    "criteria": {
+     "no": "A decisive term is a subjective quality, an undefined private label or code, or an approval with no identified record.",
+     "unclear": "A term might depend on outside context, but it is not clear whether it is decisive.",
+     "yes": "Every decisive term is ordinary technical language or concrete content, so the statement applies without outside context."
+    },
+    "instructions": "Can `anchor.statement` be understood and applied by a reader who has only the statement, without outside context? Ordinary technical terms, commands, flags, paths, environment variables, file formats, streams, and concrete prohibitions or conditions need no outside context. Outside context is needed when a decisive term is a subjective quality (such as robust), a private label or code with no definition (such as R7), or a person's approval with no identified record. Who is told to act (a named component, 'you', or nobody) and how the sentence is phrased never create an outside-context dependency. Ignore grammar, bundling, fidelity, and scope. Judge each decisive term separately: one undefined label, tier, or mode, or one subjective quality, makes the answer no even when the statement also names many concrete paths, hashes, codes, or ids.",
+    "type": "choice"
+   }
+  }
+ }
+}

@@ -1,0 +1,7 @@
+{
+ "round": "r4conf",
+ "requests": 64,
+ "third_calls": 0,
+ "failed": [],
+ "byte_identical_pairs": true
+}

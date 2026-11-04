@@ -1,0 +1,24 @@
+{
+ "attempts": 1,
+ "request_sha256": "698e8f6fd6295ecd309035dbb98ab507b8389b5013b9d650d6aee1b72d0bc20b",
+ "response": {
+  "answers": {
+   "faithful": {
+    "choice": "yes",
+    "confidence": 0.88,
+    "probabilities": {
+     "no": 0.08,
+     "unclear": 0.0,
+     "yes": 0.92
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 611,
+   "output_tokens": 41
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:rr4b:f-f10:a0-04-global-scope:call2"
+}

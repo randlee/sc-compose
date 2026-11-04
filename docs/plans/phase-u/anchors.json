@@ -3034,8 +3034,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -3047,6 +3047,12 @@
           "at": "2026-11-04T14:21:01+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T20:13:57+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.29a",
+          "reason": "All parts locked as testable statements (FR-24.29a, FR-24.29b)"
         }
       ]
     },
@@ -4485,6 +4491,74 @@
       "history": [
         {
           "at": "2026-11-04T20:06:01+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.24c",
+      "source_type": "REQ",
+      "source_ref": "FR-24.24c",
+      "statement": "With `--render-by bd` (sc-compose leaves `{{ }}` expressions for bd to render, as v1.7.0 does), an input that sc-compose v1.7.0 (commit f4fda4b9) rejects must be rejected with the same error code.",
+      "quote": "With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (13c, clarity-edited 2026-11-04); testable under sealed rubric 28ce3aec, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v5/FR-24.24c.json",
+      "summary": "Approved Beads requirement 13c",
+      "scope": "bd-owned mode of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads, selected by `--render-by bd`, in which sc-compose leaves `{{ }}` expressions for bd to render, as sc-compose v1.7.0 does",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T20:13:48+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.29a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.29a",
+      "statement": "Phase U must port the recovered Beads code and tests from `crates/sc-composer-beads` on the `rebuild/from-main` branch instead of rewriting them.",
+      "quote": "The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/from-main` branch) are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (21a, clarity-edited 2026-11-04); testable under sealed rubric 28ce3aec, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v5/FR-24.29a.json",
+      "summary": "Approved Beads requirement 21a",
+      "scope": "the Phase U port of the recovered sc-composer-beads code and tests from the rebuild/from-main branch",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T20:13:49+00:00",
           "event": "created",
           "status": "locked"
         }

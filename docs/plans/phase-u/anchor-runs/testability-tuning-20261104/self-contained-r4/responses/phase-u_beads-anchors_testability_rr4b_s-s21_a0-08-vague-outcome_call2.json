@@ -1,0 +1,24 @@
+{
+ "attempts": 1,
+ "request_sha256": "94c417b76f191528af9fab39cb58bbbefd636623698b752fdcd5db8f50084441",
+ "response": {
+  "answers": {
+   "self_contained": {
+    "choice": "no",
+    "confidence": 1.0,
+    "probabilities": {
+     "no": 1.0,
+     "unclear": 0.0,
+     "yes": 0.0
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 587,
+   "output_tokens": 41
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:rr4b:s-s21:a0-08-vague-outcome:call2"
+}
