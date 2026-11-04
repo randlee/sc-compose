@@ -1,0 +1,4 @@
+# Consumer publish preflight checks. Executed from release-preflight.yml via
+# .github/scripts/run-consumer-preflight.sh (fail-closed before release dispatch).
+
+schema_version = 1
