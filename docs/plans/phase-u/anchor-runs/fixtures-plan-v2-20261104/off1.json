@@ -1,0 +1,288 @@
+{
+  "success": true,
+  "data": {
+    "gate": "plan",
+    "dry_run": false,
+    "fixture": false,
+    "checks": [
+      {
+        "anchor_id": "ANC-001",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "Values containing {{ name }}, {{{ name }}} or {% if flag %} are inserted as literal data; the renderer never parses inserted values as template source.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-001_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-001",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "After inserting supplied values, the renderer parses the resulting output as a new template so {{ name }} inside a value is evaluated.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-001_fail_1.json"
+      },
+      {
+        "anchor_id": "ANC-002",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "For a Beads formula containing tight {{key}} and the supplied value key=ALPHA, sc-compose writes ALPHA into the rendered formula text before handing it to bd.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-002_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-002",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "For tight {{key}} with key=ALPHA, sc-compose leaves {{key}} unchanged in the output formula and delegates its substitution to bd.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-002_fail_1.json"
+      },
+      {
+        "anchor_id": "ANC-003",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "For a Beads formula containing padded {{ key }} and the supplied value key=ALPHA, sc-compose writes ALPHA into the rendered output text.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-003_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-003",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "The renderer replaces only tight {{key}}; padded {{ key }} remains unchanged even when key=ALPHA is supplied.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-003_fail_1.json"
+      },
+      {
+        "anchor_id": "ANC-004",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "In a formula loop over items named Build and Test, sc-compose replaces each expression referring to the current loop-local name with Build or Test respectively in that iteration’s output.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-004_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-004",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "Formula loops are expanded while loop-local variable expressions are left in the output; the local bindings are discarded before those expressions are rendered.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-004_fail_1.json"
+      },
+      {
+        "anchor_id": "ANC-014",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "Add the docli tool to sc-compose and invoke it as the generator of the command-line documentation.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-014_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-014",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "Generate all sc-compose command-line documentation using a private generator; do not add or invoke the docli tool.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-014_fail_1.json"
+      },
+      {
+        "anchor_id": "ANC-015",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "Every sc-compose publishing path invokes the docli command-line documentation generator each time it publishes.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-015_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-015",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "Run docli only for occasional documentation updates; routine sc-compose publication skips the documentation generator.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-015_fail_1.json"
+      },
+      {
+        "anchor_id": "ANC-016",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "Release preflight invokes docli and fails before publication whenever docli reports that command-line documentation is stale.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-016_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-016",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "When docli reports stale command-line documentation, release preflight still reports success and permits sc-compose publication.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-016_fail_1.json"
+      },
+      {
+        "anchor_id": "ANC-023",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "Run the macOS/Windows/Linux x64/arm64 Rust, wheel and Go matrix, including supported wheel Python versions with pip and uv, only in the integration test required for release preflight; routine sprint CI does not run it.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-023_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-023",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "Execute the complete macOS/Windows/Linux x64/arm64 Rust, wheel and Go install matrix, including supported wheel Python versions with pip and uv, in every routine sprint CI run.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-023_fail_1.json"
+      },
+      {
+        "anchor_id": "ANC-031",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "The sc-compose codespell spelling check runs successfully with exit0 and no outstanding spelling findings.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-031_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-031",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "The final sc-compose sprint candidate deliberately leaves codespell failing with unresolved spelling errors and a nonzero exit; passing codespell is not required for acceptance.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-031_fail_1.json"
+      },
+      {
+        "anchor_id": "ANC-033",
+        "kind": "pass",
+        "index": 1,
+        "sentence": "Windows amd64 and manylinux integration runs execute outside the normal CI pipeline; ordinary sprint CI does not invoke those integration runs.",
+        "verdict": "satisfied",
+        "expected": [
+          "satisfied"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-033_pass_1.json"
+      },
+      {
+        "anchor_id": "ANC-033",
+        "kind": "fail",
+        "index": 1,
+        "sentence": "The normal CI pipeline invokes the Windows amd64 and manylinux integration runs on every sprint check.",
+        "verdict": "contradicted",
+        "expected": [
+          "not_addressed",
+          "contradicted"
+        ],
+        "expected_ok": true,
+        "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-033_fail_1.json"
+      }
+    ],
+    "mismatches": [],
+    "judged": 20,
+    "pass": true,
+    "path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures",
+    "run_path": "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures",
+    "runs": [
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-001_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-001_fail_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-002_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-002_fail_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-003_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072133Z-fixture_ANC-003_fail_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-004_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-004_fail_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-014_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-014_fail_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-015_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-015_fail_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-016_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-016_fail_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072134Z-fixture_ANC-023_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-023_fail_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-031_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-031_fail_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-033_pass_1.json",
+      "/private/tmp/claude-501/-Users-randlee-github-sc-compose/796d725d-dd9d-44c7-936d-5975abc75a23/scratchpad/off1/fixtures/plan-20261104T072135Z-fixture_ANC-033_fail_1.json"
+    ]
+  },
+  "error": null
+}

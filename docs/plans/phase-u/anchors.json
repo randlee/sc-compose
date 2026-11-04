@@ -17,11 +17,29 @@
       "scope": "advanced bead pour in sc-composer-beads and the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach)",
       "deterministic_check": "supply values containing each delimiter and read back identical literal text from the text passed to bd",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "Values containing {{ name }}, {{{ name }}} or {% if flag %} are inserted as literal data; the renderer never parses inserted values as template source."
+        ],
+        "fail": [
+          "After inserting supplied values, the renderer parses the resulting output as a new template so {{ name }} inside a value is evaluated."
+        ]
       },
-      "question_overrides": {},
-      "version": 1,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -34,6 +52,13 @@
           "at": "2026-11-04T02:28:49+00:00",
           "event": "created",
           "status": "locked"
+        },
+        {
+          "at": "2026-11-04T07:21:20+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },
@@ -51,11 +76,29 @@
       "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
       "deterministic_check": "render.rs:bead_variables_render_padded_and_tight_placeholders",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "For a Beads formula containing tight {{key}} and the supplied value key=ALPHA, sc-compose writes ALPHA into the rendered formula text before handing it to bd."
+        ],
+        "fail": [
+          "For tight {{key}} with key=ALPHA, sc-compose leaves {{key}} unchanged in the output formula and delegates its substitution to bd."
+        ]
       },
-      "question_overrides": {},
-      "version": 3,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -86,6 +129,13 @@
           "rubric_sha256": "8b7f69d777f1e500fa9345904f374bf087cc3ea00415783c2762ef681f98d72b",
           "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-002/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:21:21+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },
@@ -103,11 +153,29 @@
       "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
       "deterministic_check": "render.rs:bead_variables_render_padded_and_tight_placeholders",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "For a Beads formula containing padded {{ key }} and the supplied value key=ALPHA, sc-compose writes ALPHA into the rendered output text."
+        ],
+        "fail": [
+          "The renderer replaces only tight {{key}}; padded {{ key }} remains unchanged even when key=ALPHA is supplied."
+        ]
       },
-      "question_overrides": {},
-      "version": 3,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -138,6 +206,13 @@
           "rubric_sha256": "de360c0ac1b9a46e5f5c74bb50ed852b7fcbac82809fb50f3b015b1a1d57c2e8",
           "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-003/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:21:21+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },
@@ -155,11 +230,29 @@
       "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
       "deterministic_check": "bdb3bdae single_pass_render.rs FUZZ-171-03",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "In a formula loop over items named Build and Test, sc-compose replaces each expression referring to the current loop-local name with Build or Test respectively in that iteration’s output."
+        ],
+        "fail": [
+          "Formula loops are expanded while loop-local variable expressions are left in the output; the local bindings are discarded before those expressions are rendered."
+        ]
       },
-      "question_overrides": {},
-      "version": 3,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -190,6 +283,13 @@
           "rubric_sha256": "f0beb0a2c7a3ea7477b56a08f6ddbf2ebe631829fd8734787842bdd07de2c735",
           "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-004/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:21:21+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },
@@ -513,11 +613,29 @@
       "scope": "sc-compose command-line documentation generation",
       "deterministic_check": "inspect generator invocation and generated reference source",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "Add the docli tool to sc-compose and invoke it as the generator of the command-line documentation."
+        ],
+        "fail": [
+          "Generate all sc-compose command-line documentation using a private generator; do not add or invoke the docli tool."
+        ]
       },
-      "question_overrides": {},
-      "version": 3,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -549,6 +667,13 @@
           "rubric_sha256": "71cc07f7eb23bdfc27de891a0d1c97b4456f3c4913437dd386f88d7d04403b88",
           "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/plain-scope/ANC-014/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:21:21+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },
@@ -566,11 +691,29 @@
       "scope": "sc-compose publishing preparation and release workflow",
       "deterministic_check": "inspect publish/preflight docli invocation",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "Every sc-compose publishing path invokes the docli command-line documentation generator each time it publishes."
+        ],
+        "fail": [
+          "Run docli only for occasional documentation updates; routine sc-compose publication skips the documentation generator."
+        ]
       },
-      "question_overrides": {},
-      "version": 3,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -602,6 +745,13 @@
           "rubric_sha256": "7e14f9344ef7cd653ab9f5d157f8e70a15ba41b784aa165eb348eeb749d5eb9c",
           "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/plain-scope/ANC-015/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:21:22+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },
@@ -619,11 +769,29 @@
       "scope": "u-6/u-9 preflight configuration",
       "deterministic_check": "stale generated reference negative preflight test",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "Release preflight invokes docli and fails before publication whenever docli reports that command-line documentation is stale."
+        ],
+        "fail": [
+          "When docli reports stale command-line documentation, release preflight still reports success and permits sc-compose publication."
+        ]
       },
-      "question_overrides": {},
-      "version": 3,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -654,6 +822,13 @@
           "rubric_sha256": "9b465b5356ed70e04e242a75270d3762c3465f19fe4c9943334e7ea75a5a0f62",
           "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-016/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:21:22+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },
@@ -892,11 +1067,29 @@
       "scope": "sc-compose integration tests and preflight; Rand approved clarification YES via relay ATM01M6JJ70WRQYV1KCEDZZK6WGJW: full matrix includes all supported artifact/platform cells plus wheel Python-version and pip/uv install combinations; restricted to integration tests required by preflight, excluded from normal sprint continuous integration.",
       "deterministic_check": "inspect triggers and preflight dependency; full install matrix is platform/Python/installer coverage",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "Run the macOS/Windows/Linux x64/arm64 Rust, wheel and Go matrix, including supported wheel Python versions with pip and uv, only in the integration test required for release preflight; routine sprint CI does not run it."
+        ],
+        "fail": [
+          "Execute the complete macOS/Windows/Linux x64/arm64 Rust, wheel and Go install matrix, including supported wheel Python versions with pip and uv, in every routine sprint CI run."
+        ]
       },
-      "question_overrides": {},
-      "version": 3,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -928,6 +1121,13 @@
           "rubric_sha256": "088b1dd297e9e6a8ed685c18426ec9ec79e62f755cddc473e47ff303dd60cfa4",
           "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/wording-refinement/approved-C-workflows/ANC-023/variant-4/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:21:22+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },
@@ -1200,11 +1400,29 @@
       "scope": "The spelling lint check for project-specific words in sc-compose.",
       "deterministic_check": "just lint on exact candidate; no disabling rules",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "The sc-compose codespell spelling check runs successfully with exit0 and no outstanding spelling findings."
+        ],
+        "fail": [
+          "The final sc-compose sprint candidate deliberately leaves codespell failing with unresolved spelling errors and a nonzero exit; passing codespell is not required for acceptance."
+        ]
       },
-      "question_overrides": {},
-      "version": 3,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -1236,6 +1454,13 @@
           "rubric_sha256": "4de097a5348f20cb30b2daabe5266c438de691341d207fb9793ef236159def8f",
           "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/plain-scope/ANC-031/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:21:22+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },
@@ -1293,11 +1518,29 @@
       "scope": "u-8/u-9 full integration workflow",
       "deterministic_check": "inspect CI invocation paths; does not ban ordinary Windows unit CI",
       "fixtures": {
-        "pass": [],
-        "fail": []
+        "pass": [
+          "Windows amd64 and manylinux integration runs execute outside the normal CI pipeline; ordinary sprint CI does not invoke those integration runs."
+        ],
+        "fail": [
+          "The normal CI pipeline invokes the Windows amd64 and manylinux integration runs on every sprint check."
+        ]
       },
-      "question_overrides": {},
-      "version": 2,
+      "question_overrides": {
+        "plan": {
+          "questions": {
+            "addressed": {
+              "type": "choice",
+              "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+              "criteria": {
+                "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+                "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+                "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+              }
+            }
+          }
+        }
+      },
+      "version": 3,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -1320,6 +1563,13 @@
           "rubric_sha256": "766e14bbfe6bd644153b43b07eefb3ee6c418e5de830c8b5c06e6e89369bcd28",
           "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
           "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-033/rubric.json"
+        },
+        {
+          "at": "2026-11-04T07:21:23+00:00",
+          "event": "updated",
+          "fields": [
+            "fixtures"
+          ]
         }
       ]
     },

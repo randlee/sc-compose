@@ -62,7 +62,7 @@ Anchor: Values containing {{ }}, {{{ }}} or {% %} must stay data and must never 
 
 > Values containing {{ }}, {{{ }}} or {% %} stay data and are never re-parsed.
 
-Said by randlee, Phase U planning, 2026-11-04, 2026-11-03. Status: locked. Version 1.
+Said by randlee, Phase U planning, 2026-11-04, 2026-11-03. Status: locked. Version 2.
 
 Summary: values stay data
 
@@ -70,13 +70,17 @@ Scope: advanced bead pour in sc-composer-beads and the sc-compose bead commands 
 
 Deterministic check to pair with the development gate: supply values containing each delimiter and read back identical literal text from the text passed to bd
 
+Fixtures:
+- pass: Values containing {{ name }}, {{{ name }}} or {% if flag %} are inserted as literal data; the renderer never parses inserted values as template source.
+- fail: After inserting supplied values, the renderer parses the resulting output as a new template so {{ name }} inside a value is evaluated.
+
 ## ANC-002
 
 Anchor: When sc-compose renders a Beads formula template, a tight variable expression with no spaces inside its braces, such as {{key}}, must be replaced by its supplied value in the output text.
 
 > Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.
 
-Said by randlee, Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 3.
+Said by randlee, Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 4.
 
 Summary: tight values before bd
 
@@ -84,13 +88,17 @@ Scope: sc-composer-beads rendering and sc-compose bead render/pour/attach comman
 
 Deterministic check to pair with the development gate: render.rs:bead_variables_render_padded_and_tight_placeholders
 
+Fixtures:
+- pass: For a Beads formula containing tight {{key}} and the supplied value key=ALPHA, sc-compose writes ALPHA into the rendered formula text before handing it to bd.
+- fail: For tight {{key}} with key=ALPHA, sc-compose leaves {{key}} unchanged in the output formula and delegates its substitution to bd.
+
 ## ANC-003
 
 Anchor: When sc-compose renders a Beads formula template, a padded variable expression such as {{ key }} must be replaced by its supplied value in the output text.
 
 > Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.
 
-Said by randlee, Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 3.
+Said by randlee, Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 4.
 
 Summary: padded values before bd
 
@@ -98,19 +106,27 @@ Scope: sc-composer-beads rendering and sc-compose bead render/pour/attach comman
 
 Deterministic check to pair with the development gate: render.rs:bead_variables_render_padded_and_tight_placeholders
 
+Fixtures:
+- pass: For a Beads formula containing padded {{ key }} and the supplied value key=ALPHA, sc-compose writes ALPHA into the rendered output text.
+- fail: The renderer replaces only tight {{key}}; padded {{ key }} remains unchanged even when key=ALPHA is supplied.
+
 ## ANC-004
 
 Anchor: When sc-compose renders a Beads formula template, a variable expression that refers to a loop-local value must be replaced by that value in the output text.
 
 > Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.
 
-Said by randlee, Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 3.
+Said by randlee, Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 4.
 
 Summary: loop-local values before bd
 
 Scope: sc-composer-beads rendering and sc-compose bead render/pour/attach commands
 
 Deterministic check to pair with the development gate: bdb3bdae single_pass_render.rs FUZZ-171-03
+
+Fixtures:
+- pass: In a formula loop over items named Build and Test, sc-compose replaces each expression referring to the current loop-local name with Build or Test respectively in that iteration’s output.
+- fail: Formula loops are expanded while loop-local variable expressions are left in the output; the local bindings are discarded before those expressions are rendered.
 
 ## ANC-005
 
@@ -244,7 +260,7 @@ Anchor: The docli tool must be added to sc-compose as the generator of command-l
 
 > we need to add docli for cli documentation generation
 
-Said by randlee, Proposed from524772f4:ANC-003; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 3.
+Said by randlee, Proposed from524772f4:ANC-003; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 4.
 
 Summary: docli generates CLI documentation
 
@@ -252,13 +268,17 @@ Scope: sc-compose command-line documentation generation
 
 Deterministic check to pair with the development gate: inspect generator invocation and generated reference source
 
+Fixtures:
+- pass: Add the docli tool to sc-compose and invoke it as the generator of the command-line documentation.
+- fail: Generate all sc-compose command-line documentation using a private generator; do not add or invoke the docli tool.
+
 ## ANC-015
 
 Anchor: The docli command-line documentation generator must run each time sc-compose is published.
 
 > docli must be run every publish (stale documentation blocks preflight)
 
-Said by randlee, Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 3.
+Said by randlee, Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 4.
 
 Summary: docli runs every publish
 
@@ -266,19 +286,27 @@ Scope: sc-compose publishing preparation and release workflow
 
 Deterministic check to pair with the development gate: inspect publish/preflight docli invocation
 
+Fixtures:
+- pass: Every sc-compose publishing path invokes the docli command-line documentation generator each time it publishes.
+- fail: Run docli only for occasional documentation updates; routine sc-compose publication skips the documentation generator.
+
 ## ANC-016
 
 Anchor: Release preflight for sc-compose must fail if the docli tool reports that the command-line documentation is stale.
 
 > docli must be run every publish (stale documentation blocks preflight)
 
-Said by randlee, Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 3.
+Said by randlee, Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 4.
 
 Summary: stale CLI docs block preflight
 
 Scope: u-6/u-9 preflight configuration
 
 Deterministic check to pair with the development gate: stale generated reference negative preflight test
+
+Fixtures:
+- pass: Release preflight invokes docli and fails before publication whenever docli reports that command-line documentation is stale.
+- fail: When docli reports stale command-line documentation, release preflight still reports success and permits sc-compose publication.
 
 ## ANC-017
 
@@ -370,13 +398,17 @@ Anchor: The macOS/Windows/Linux x64/arm64 Rust/wheel/Go matrix, including suppor
 
 > I want ci running full matrix ONLY for integration test (required for preflight) NOT every sprint
 
-Said by randlee, Proposed from524772f4:ANC-002; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 3.
+Said by randlee, Proposed from524772f4:ANC-002; exact user quote, not locked; reviewed source definitions are evidence, not approval., 2026-11-03. Status: locked. Version 4.
 
 Summary: full matrix only in integration test
 
 Scope: sc-compose integration tests and preflight; Rand approved clarification YES via relay ATM01M6JJ70WRQYV1KCEDZZK6WGJW: full matrix includes all supported artifact/platform cells plus wheel Python-version and pip/uv install combinations; restricted to integration tests required by preflight, excluded from normal sprint continuous integration.
 
 Deterministic check to pair with the development gate: inspect triggers and preflight dependency; full install matrix is platform/Python/installer coverage
+
+Fixtures:
+- pass: Run the macOS/Windows/Linux x64/arm64 Rust, wheel and Go matrix, including supported wheel Python versions with pip and uv, only in the integration test required for release preflight; routine sprint CI does not run it.
+- fail: Execute the complete macOS/Windows/Linux x64/arm64 Rust, wheel and Go install matrix, including supported wheel Python versions with pip and uv, in every routine sprint CI run.
 
 ## ANC-024
 
@@ -482,13 +514,17 @@ Anchor: The codespell spelling check for sc-compose must pass.
 
 > you need to attribute or add the words so lint passes
 
-Said by randlee, Proposed; source memory/lint-must-pass-allowlist-words.md quoted Rand words; narrow original codespell context retained for review, 2026-11-03. Status: locked. Version 3.
+Said by randlee, Proposed; source memory/lint-must-pass-allowlist-words.md quoted Rand words; narrow original codespell context retained for review, 2026-11-03. Status: locked. Version 4.
 
 Summary: lint passes
 
 Scope: The spelling lint check for project-specific words in sc-compose.
 
 Deterministic check to pair with the development gate: just lint on exact candidate; no disabling rules
+
+Fixtures:
+- pass: The sc-compose codespell spelling check runs successfully with exit0 and no outstanding spelling findings.
+- fail: The final sc-compose sprint candidate deliberately leaves codespell failing with unresolved spelling errors and a nonzero exit; passing codespell is not required for acceptance.
 
 ## ANC-032
 
@@ -510,13 +546,17 @@ Anchor: Normal CI pipeline runs must exclude the Windows amd64 and manylinux int
 
 > you can run win amd64 and manylinux on github, but do not add them to the normal ci pipeline runs.
 
-Said by randlee, Proposed; source user transcript5764, 2026-11-03. Status: locked. Version 2.
+Said by randlee, Proposed; source user transcript5764, 2026-11-03. Status: locked. Version 3.
 
 Summary: integration runs outside normal CI
 
 Scope: u-8/u-9 full integration workflow
 
 Deterministic check to pair with the development gate: inspect CI invocation paths; does not ban ordinary Windows unit CI
+
+Fixtures:
+- pass: Windows amd64 and manylinux integration runs execute outside the normal CI pipeline; ordinary sprint CI does not invoke those integration runs.
+- fail: The normal CI pipeline invokes the Windows amd64 and manylinux integration runs on every sprint check.
 
 ## ANC-034
 
