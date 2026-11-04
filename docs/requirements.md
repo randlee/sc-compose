@@ -1493,6 +1493,10 @@ sc-composer-beads wheel, and sc-sha-go native module (30 artifact/platform
 cells). Update the Go binding native target contract explicitly; an infeasible
 target blocks completion rather than disappearing from the matrix.
 
+All 30 artifact/platform cells must build successfully: the Rust CLI, the
+sc-compose, sc-sha and sc-composer-beads wheels, and the sc-sha-go native module,
+each for macOS, Windows and Linux on x64 and arm64.
+
 FR-25.2: All three Python distributions use PyO3 abi3-py311, matching
 cp311-abi3 tags and requires-python >=3.11, without an artificial upper bound.
 Test 3.11/3.12/3.13/3.14 on all six platforms with pip and uv; this coverage
@@ -1652,6 +1656,11 @@ change. The new variable-rendering behavior must
 be additive opt-in; a `.j2` suffix, frontmatter or upgrade shall not silently
 activate it. No strict-only global policy is introduced.
 
+Schema-less template output must match sc-compose v1.7.0 byte for byte, except
+issue-linked genuine-bug fixes recorded in
+`tests/fixtures/render-regressions/approved-exceptions.json`.
+Every unlisted byte difference shall fail the compatibility check.
+
 - **Source:** hard user compatibility ruling; v1.7.0; ADR-0021/0023; #791's strict-only request is not authority to break it.
 - **bd evidence:** v1.7.0 render/execute source plus BD-V5/BD-V6; no native bd behavior is changed by this requirement.
 - **Acceptance idea:** unchanged Rust/CLI/Python legacy requests and a schema-less differential against v1.7.0; ordinary brace text stays literal at render time, including missing optional references and raw/comment content.
@@ -1718,11 +1727,19 @@ path: any literal braces passed through must use an explicitly tested route
 that bd neither substitutes, errors on nor mangles. Unverified native behavior
 shall be documented as unknown, not emulated speculatively by sc-compose.
 
+sc-compose shall offer an explicit selection that leaves ordinary formula
+expressions for the bd command-line tool to evaluate. This selection shall
+preserve the existing legacy default; public selector spelling remains subject
+to the approved ADR-0024 interface decision.
+
 - **Source:** user compatibility and buggy-bd rulings; v1.7.0; d754230a/cd363380/5743907a/e1c086df/5f2633ac intent, with their changed default rejected.
 - **bd evidence:** BD-V1–V6 above on407fe27 plus #618's historical report: current titles accept padding but labels do not substitute; never generalize either result to all versions/fields.
 - **Acceptance idea:** unchanged legacy default/explicit bd selection, including redirected registry resolution; separately prove advanced created values survive literal braces without depending on `bd --var`.
 
 ##### FR-24.8 — compose with FR-23 attach and by-path pour
+
+When the caller explicitly selects sc-compose rendering, graph pour and attach
+shall accept bead-variable inputs as data rendered by sc-compose.
 
 An opted-in advanced operation shall retain FR-23 authorization, confinement,
 stable attach ids/provenance, safe repetition, atomic graph writes, relations
@@ -1758,6 +1775,11 @@ No render/validation failure may proceed to persistent creation. New error
 conditions not fitting those codes require an explicit documented decision.
 Preview may write its declared local artifacts but never persistent bd state;
 mutation still requires `CreatePersistentBeads`.
+
+A blocked graph-plan output path, including one occupied by a directory,
+shall be refused before any bd command is invoked. This output-path preflight
+rule does not prohibit bd read or validation calls needed for other graph
+checks; it is not a general ban on validation reads.
 
 - **Source:** FR-23.10, ADR-0021/0023; #785/#791; cd363380's invalid-selector request classification.
 - **bd evidence:** BD-V2 records missing-required native exit1; BD-V3 accepts undeclared keys; BD-V5/V6 separate render/native/graph failures. Map actual outcomes to the existing sc-compose classes, not native exit numbers by assumption.
