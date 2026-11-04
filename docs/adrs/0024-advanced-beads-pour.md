@@ -37,6 +37,12 @@ resolve a real named/path formula, use the approved advanced default, and
 verify created values through the same library execution contract; it is not
 a separate renderer or a delegation of variables to bd.
 
+FR-24.34 requires this workflow to create declared edges automatically as
+part of the supported graph operation, with stored-edge readback. Existing
+FR-23/ADR-0023 authorization, validation, atomicity and retry semantics apply;
+no subsequent manual dependency commands or implicit scheduling edges are
+part of successful completion.
+
 ## Existing boundaries
 
 Extends ADR-0021 and ADR-0023. General composition stays in sc-composer;

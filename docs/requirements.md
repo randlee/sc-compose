@@ -1652,6 +1652,22 @@ beads, and verify stored fields by reading them back from bd. Missing source
 or unresolved input must fail without creating beads. Confirm the actual
 formula source/registry identity before claiming that example passes.
 
+#### FR-24.34 — Automatic declared edges during pour
+
+Pouring a formula must create its declared dependency and relationship edges
+along with the beads, including the plan-fix workflow in FR-24.33. Callers
+must not need follow-up bd dep add commands to finish those declared edges.
+Render edge references with the same caller inputs as bead fields, preserve
+the declared endpoint direction and edge type, and verify the actual stored
+nodes and edges by reading bd. Do not invent dependencies from step order or
+from unrelated scheduling conventions.
+Preview creates no persistent nodes or edges. Invalid references or failed
+rendering/validation create none; authorization and graph atomicity remain
+FR-23/ADR-0023 obligations. A repeated supported pour/attach must preserve the
+existing operation's documented id/retry behavior and must not add duplicate
+edges or reset existing status/notes. Reuse correct existing edge creation
+where present and implement only the demonstrated missing behavior.
+
 #### Existing FR-24 cross-references
 
 The former background ids remain references to the approved behavior above:
