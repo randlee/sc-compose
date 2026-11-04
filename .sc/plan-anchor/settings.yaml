@@ -1,0 +1,6 @@
+# .sc/plan-anchor/settings.yaml
+# Repository settings for the sc-plan-anchor plugin; commit this file, never put secrets in it.
+schema_version: 1
+anchor_tracker: bd
+# allow_remote_judge: may plan text be sent to TypeSafe (Jev) for judging? Only the user decides it.
+allow_remote_judge: false
