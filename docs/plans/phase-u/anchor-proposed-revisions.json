@@ -1,0 +1,39 @@
+{
+  "status": "proposed, not applied",
+  "authority_revision": "675619f0",
+  "revisions": [
+    {
+      "id": "ANC-002",
+      "base_version": 1,
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "statement_before": "In advanced Beads rendering, tight {{key}} variable expressions must be rendered before bd receives the formula.",
+      "proposed_statement": "In advanced sc-compose Beads rendering, tight {{key}} variable expressions must be rendered before the bd command-line tool receives the formula.",
+      "status": "proposed, not applied",
+      "rubric_before": "inconclusive",
+      "rubric_after": "inconclusive",
+      "statement_submission_count": 3
+    },
+    {
+      "id": "ANC-003",
+      "base_version": 1,
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "statement_before": "In advanced Beads rendering, padded {{ key }} variable expressions must be rendered before bd receives the formula.",
+      "proposed_statement": "In advanced sc-compose Beads rendering, padded {{ key }} variable expressions must be rendered before the bd command-line tool receives the formula.",
+      "status": "proposed, not applied",
+      "rubric_before": "inconclusive",
+      "rubric_after": "inconclusive",
+      "statement_submission_count": 3
+    },
+    {
+      "id": "ANC-004",
+      "base_version": 1,
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "statement_before": "In advanced Beads rendering, variable expressions using the current loop item must be rendered before bd receives the formula.",
+      "proposed_statement": "In advanced sc-compose Beads rendering, expressions using the current loop iteration's values must be rendered before the bd command-line tool receives the formula.",
+      "status": "proposed, not applied",
+      "rubric_before": "inconclusive",
+      "rubric_after": "inconclusive",
+      "statement_submission_count": 3
+    }
+  ]
+}
