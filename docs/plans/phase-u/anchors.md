@@ -60,6 +60,23 @@ Intent: `docs/plans/phase-u/intent.md`
 | FR-24.10 | proposed | FR-24.10 approved replacement | 2026-11-03 |
 | FR-24.2 | proposed | FR-24.2 approved replacement | 2026-11-03 |
 | FR-25.1 | locked | FR-25.1 approved replacement | 2026-11-03 |
+| FR-24.13 | proposed | Approved Beads requirement 1 | 2026-11-04 |
+| FR-24.14 | proposed | Approved Beads requirement 2 | 2026-11-04 |
+| FR-24.15 | proposed | Approved Beads requirement 3 | 2026-11-04 |
+| FR-24.19 | proposed | Approved Beads requirement 7 | 2026-11-04 |
+| FR-24.20 | proposed | Approved Beads requirement 8 | 2026-11-04 |
+| FR-24.21 | proposed | Approved Beads requirement 9 | 2026-11-04 |
+| FR-24.22 | proposed | Approved Beads requirement 11 | 2026-11-04 |
+| FR-24.23 | proposed | Approved Beads requirement 12 | 2026-11-04 |
+| FR-24.24 | proposed | Approved Beads requirement 13 | 2026-11-04 |
+| FR-24.25 | proposed | Approved Beads requirement 15 | 2026-11-04 |
+| FR-24.26 | proposed | Approved Beads requirement 16 | 2026-11-04 |
+| FR-24.27 | locked | Approved Beads requirement 19 | 2026-11-04 |
+| FR-24.28 | proposed | Approved Beads requirement 20 | 2026-11-04 |
+| FR-24.29 | proposed | Approved Beads requirement 21 | 2026-11-04 |
+| FR-24.30 | proposed | Approved Beads requirement 22 | 2026-11-04 |
+| FR-24.31 | proposed | Approved Beads requirement 23 | 2026-11-04 |
+| FR-24.32 | proposed | Approved Beads requirement 24 | 2026-11-04 |
 
 ## ANC-001
 
@@ -809,12 +826,11 @@ Deterministic check to pair with the development gate: Compare actual successful
 
 ## FR-24.8
 
-Anchor: When the caller explicitly selects sc-compose rendering, graph pour and attach must accept bead-variable inputs as data rendered by sc-compose.
+Anchor: With advanced pour selected, graph pour by path and attach accept caller bead inputs; without it, they reject those inputs exactly as v1.7.0 does.
 
-> When the caller explicitly selects sc-compose rendering, graph pour and attach
-shall accept bead-variable inputs as data rendered by sc-compose.
+> With advanced pour selected, graph pour by path and attach accept caller bead inputs; without it, they reject those inputs exactly as v1.7.0 does.
 
-Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 1.
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 2.
 
 Summary: FR-24.8 approved replacement
 
@@ -824,12 +840,11 @@ Deterministic check to pair with the development gate: Verify FR-24.8 against it
 
 ## FR-24.7
 
-Anchor: sc-compose must offer an explicit selection that leaves ordinary formula expressions for the bd command-line tool to evaluate.
+Anchor: An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.
 
-> sc-compose shall offer an explicit selection that leaves ordinary formula
-expressions for the bd command-line tool to evaluate.
+> An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.
 
-Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 1.
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 2.
 
 Summary: FR-24.7 approved replacement
 
@@ -839,12 +854,11 @@ Deterministic check to pair with the development gate: Verify FR-24.7 against it
 
 ## FR-24.10
 
-Anchor: A blocked graph-plan output path, including one occupied by a directory, must be refused before any bd command is invoked.
+Anchor: A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.
 
-> A blocked graph-plan output path, including one occupied by a directory,
-shall be refused before any bd command is invoked.
+> A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.
 
-Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 1.
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 2.
 
 Summary: FR-24.10 approved replacement
 
@@ -854,13 +868,11 @@ Deterministic check to pair with the development gate: Verify FR-24.10 against i
 
 ## FR-24.2
 
-Anchor: Schema-less template output must match sc-compose v1.7.0 byte for byte, except issue-linked genuine-bug fixes recorded in tests/fixtures/render-regressions/approved-exceptions.json.
+Anchor: Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
 
-> Schema-less template output must match sc-compose v1.7.0 byte for byte, except
-issue-linked genuine-bug fixes recorded in
-`tests/fixtures/render-regressions/approved-exceptions.json`.
+> Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
 
-Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 1.
+Said by randlee, Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved., 2026-11-03. Status: proposed. Version 2.
 
 Summary: FR-24.2 approved replacement
 
@@ -883,3 +895,209 @@ Summary: FR-25.1 approved replacement
 Scope: All30 successful build cells: five named artifact families across all six OS/architecture targets.
 
 Deterministic check to pair with the development gate: Verify FR-25.1 against its approved requirement clause and actual positive/negative runtime evidence.
+
+## FR-24.13
+
+Anchor: Advanced pour is turned on by an explicit new option; without it, nothing changes.
+
+> Advanced pour is turned on by an explicit new option; without it, nothing changes.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 1
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.14
+
+Anchor: In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.
+
+> In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 2
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.15
+
+Anchor: In advanced pour, sc-compose never passes a value to bd as `--var`.
+
+> In advanced pour, sc-compose never passes a value to bd as `--var`.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 3
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.19
+
+Anchor: Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.
+
+> Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 7
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.20
+
+Anchor: Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
+
+> Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 8
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.21
+
+Anchor: A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.
+
+> A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 9
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.22
+
+Anchor: Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+
+> Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 11
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.23
+
+Anchor: The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.
+
+> The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 12
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.24
+
+Anchor: Without the new option, every existing Rust, CLI and Python call behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.
+
+> Without the new option, every existing Rust, CLI and Python call behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 13
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.25
+
+Anchor: Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.
+
+> Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 15
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.26
+
+Anchor: The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.
+
+> The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 16
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.27
+
+Anchor: If rendering or validation fails, no bead is created.
+
+> If rendering or validation fails, no bead is created.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: locked. Version 1.
+
+Summary: Approved Beads requirement 19
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+Beads: anchor `comp-80m`, plan questions `comp-80m.1`, dev questions `comp-80m.2`
+
+## FR-24.28
+
+Anchor: The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.
+
+> The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 20
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.29
+
+Anchor: The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
+
+> The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 21
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.30
+
+Anchor: `bead.md` documents each mode with a worked input-to-created-bead example.
+
+> `bead.md` documents each mode with a worked input-to-created-bead example.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 22
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.31
+
+Anchor: The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final candidate.
+
+> The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final candidate.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 23
+
+Scope: Phase U Beads rendering, graph and compatibility work
+
+## FR-24.32
+
+Anchor: The 229-template corpus that passed the v1.7.0 comparison is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7.
+
+> The 229-template corpus that passed the v1.7.0 comparison is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7.
+
+Said by randlee, User-approved Phase U Beads requirements, 2026-11-04. Status: proposed. Version 1.
+
+Summary: Approved Beads requirement 24
+
+Scope: Phase U Beads rendering, graph and compatibility work

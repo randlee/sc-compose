@@ -1,0 +1,191 @@
+{
+  "success": true,
+  "data": {
+    "threshold": 0.6,
+    "dry_run": false,
+    "fixture": false,
+    "path": "docs/plans/phase-u/anchors.json",
+    "anchors": [
+      {
+        "id": "FR-24.25",
+        "statement": "Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.",
+        "quote": "Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.",
+        "scope": "Phase U Beads rendering, graph and compatibility work",
+        "verdict": "inconclusive",
+        "failing": [
+          "single_constraint",
+          "scoped"
+        ],
+        "answers": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.46,
+            "probabilities": {
+              "no": 0.35,
+              "unclear": 0.01,
+              "yes": 0.64
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.97,
+            "probabilities": {
+              "no": 0.01,
+              "unclear": 0.01,
+              "yes": 0.98
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.88,
+            "probabilities": {
+              "no": 0.07,
+              "unclear": 0.01,
+              "yes": 0.92
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.48,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.33,
+              "yes": 0.65
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.64,
+            "probabilities": {
+              "no": 0.1,
+              "unclear": 0.14,
+              "yes": 0.76
+            }
+          }
+        },
+        "lint": {
+          "warnings": [],
+          "errors": []
+        },
+        "answers_second": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.44,
+            "probabilities": {
+              "no": 0.36,
+              "unclear": 0.01,
+              "yes": 0.63
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.97,
+            "probabilities": {
+              "no": 0.01,
+              "unclear": 0.01,
+              "yes": 0.98
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.86,
+            "probabilities": {
+              "no": 0.08,
+              "unclear": 0.01,
+              "yes": 0.91
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.52,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.3,
+              "yes": 0.68
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.62,
+            "probabilities": {
+              "no": 0.12,
+              "unclear": 0.13,
+              "yes": 0.75
+            }
+          }
+        },
+        "attempts": 2,
+        "confirmations": {
+          "verdict": "inconclusive",
+          "failing": [
+            "single_constraint",
+            "scoped"
+          ],
+          "low_confidence": [
+            "single_constraint",
+            "scoped"
+          ],
+          "unstable": [],
+          "initial_disagreements": [],
+          "resolved": {
+            "single_constraint": {
+              "choice": "yes",
+              "confidence": 0.44,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "observable": {
+              "choice": "yes",
+              "confidence": 0.97,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "faithful": {
+              "choice": "yes",
+              "confidence": 0.86,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "scoped": {
+              "choice": "yes",
+              "confidence": 0.48,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "self_contained": {
+              "choice": "yes",
+              "confidence": 0.62,
+              "matching_calls": [
+                1,
+                2
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "needs_work": [
+      "FR-24.25"
+    ],
+    "pass": false
+  },
+  "error": null
+}

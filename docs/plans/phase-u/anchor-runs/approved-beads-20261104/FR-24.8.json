@@ -1,0 +1,247 @@
+{
+  "success": true,
+  "data": {
+    "threshold": 0.6,
+    "dry_run": false,
+    "fixture": false,
+    "path": "docs/plans/phase-u/anchors.json",
+    "anchors": [
+      {
+        "id": "FR-24.8",
+        "statement": "With advanced pour selected, graph pour by path and attach accept caller bead inputs; without it, they reject those inputs exactly as v1.7.0 does.",
+        "quote": "With advanced pour selected, graph pour by path and attach accept caller bead inputs; without it, they reject those inputs exactly as v1.7.0 does.",
+        "scope": "Explicitly selected sc-compose rendering for graph-pour and attach operations.",
+        "verdict": "inconclusive",
+        "failing": [
+          "single_constraint",
+          "self_contained",
+          "not phrased as a testable requirement"
+        ],
+        "answers": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "no",
+            "confidence": 0.7,
+            "probabilities": {
+              "no": 0.8,
+              "unclear": 0.01,
+              "yes": 0.19
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.88,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.06,
+              "yes": 0.92
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.76,
+            "probabilities": {
+              "no": 0.15,
+              "unclear": 0.01,
+              "yes": 0.84
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.97,
+            "probabilities": {
+              "no": 0.0,
+              "unclear": 0.02,
+              "yes": 0.98
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "no",
+            "confidence": 0.14,
+            "probabilities": {
+              "no": 0.43,
+              "unclear": 0.17,
+              "yes": 0.4
+            }
+          }
+        },
+        "lint": {
+          "warnings": [
+            "not phrased as a testable requirement"
+          ],
+          "errors": [
+            "not phrased as a testable requirement"
+          ]
+        },
+        "answers_second": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "no",
+            "confidence": 0.66,
+            "probabilities": {
+              "no": 0.77,
+              "unclear": 0.01,
+              "yes": 0.22
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.91,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.04,
+              "yes": 0.94
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.83,
+            "probabilities": {
+              "no": 0.1,
+              "unclear": 0.01,
+              "yes": 0.89
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.97,
+            "probabilities": {
+              "no": 0.0,
+              "unclear": 0.02,
+              "yes": 0.98
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.14,
+            "probabilities": {
+              "no": 0.34,
+              "unclear": 0.23,
+              "yes": 0.43
+            }
+          }
+        },
+        "answers_third": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "no",
+            "confidence": 0.68,
+            "probabilities": {
+              "no": 0.79,
+              "unclear": 0.01,
+              "yes": 0.2
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.83,
+            "probabilities": {
+              "no": 0.04,
+              "unclear": 0.07,
+              "yes": 0.89
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.74,
+            "probabilities": {
+              "no": 0.15,
+              "unclear": 0.02,
+              "yes": 0.83
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.94,
+            "probabilities": {
+              "no": 0.01,
+              "unclear": 0.03,
+              "yes": 0.96
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "no",
+            "confidence": 0.16,
+            "probabilities": {
+              "no": 0.44,
+              "unclear": 0.18,
+              "yes": 0.38
+            }
+          }
+        },
+        "attempts": 3,
+        "confirmations": {
+          "verdict": "inconclusive",
+          "failing": [
+            "single_constraint",
+            "self_contained",
+            "not phrased as a testable requirement"
+          ],
+          "low_confidence": [
+            "self_contained"
+          ],
+          "unstable": [],
+          "initial_disagreements": [
+            "self_contained"
+          ],
+          "resolved": {
+            "single_constraint": {
+              "choice": "no",
+              "confidence": 0.66,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "observable": {
+              "choice": "yes",
+              "confidence": 0.88,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "faithful": {
+              "choice": "yes",
+              "confidence": 0.76,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "scoped": {
+              "choice": "yes",
+              "confidence": 0.97,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "self_contained": {
+              "choice": null,
+              "confidence": null,
+              "matching_calls": []
+            }
+          }
+        }
+      }
+    ],
+    "needs_work": [
+      "FR-24.8"
+    ],
+    "pass": false
+  },
+  "error": null
+}

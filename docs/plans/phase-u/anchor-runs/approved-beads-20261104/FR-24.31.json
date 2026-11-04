@@ -1,0 +1,194 @@
+{
+  "success": true,
+  "data": {
+    "threshold": 0.6,
+    "dry_run": false,
+    "fixture": false,
+    "path": "docs/plans/phase-u/anchors.json",
+    "anchors": [
+      {
+        "id": "FR-24.31",
+        "statement": "The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final candidate.",
+        "quote": "The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final candidate.",
+        "scope": "Phase U Beads rendering, graph and compatibility work",
+        "verdict": "inconclusive",
+        "failing": [
+          "self_contained",
+          "not phrased as a testable requirement"
+        ],
+        "answers": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.91,
+            "probabilities": {
+              "no": 0.05,
+              "unclear": 0.01,
+              "yes": 0.94
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.83,
+            "probabilities": {
+              "no": 0.03,
+              "unclear": 0.08,
+              "yes": 0.89
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.96,
+            "probabilities": {
+              "no": 0.03,
+              "unclear": 0.0,
+              "yes": 0.97
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.61,
+            "probabilities": {
+              "no": 0.03,
+              "unclear": 0.23,
+              "yes": 0.74
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.34,
+            "probabilities": {
+              "no": 0.34,
+              "unclear": 0.1,
+              "yes": 0.56
+            }
+          }
+        },
+        "lint": {
+          "warnings": [
+            "not phrased as a testable requirement"
+          ],
+          "errors": [
+            "not phrased as a testable requirement"
+          ]
+        },
+        "answers_second": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.91,
+            "probabilities": {
+              "no": 0.05,
+              "unclear": 0.01,
+              "yes": 0.94
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.85,
+            "probabilities": {
+              "no": 0.03,
+              "unclear": 0.07,
+              "yes": 0.9
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.89,
+            "probabilities": {
+              "no": 0.06,
+              "unclear": 0.01,
+              "yes": 0.93
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.74,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.15,
+              "yes": 0.83
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.4,
+            "probabilities": {
+              "no": 0.33,
+              "unclear": 0.07,
+              "yes": 0.6
+            }
+          }
+        },
+        "attempts": 2,
+        "confirmations": {
+          "verdict": "inconclusive",
+          "failing": [
+            "self_contained",
+            "not phrased as a testable requirement"
+          ],
+          "low_confidence": [
+            "self_contained"
+          ],
+          "unstable": [],
+          "initial_disagreements": [],
+          "resolved": {
+            "single_constraint": {
+              "choice": "yes",
+              "confidence": 0.91,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "observable": {
+              "choice": "yes",
+              "confidence": 0.83,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "faithful": {
+              "choice": "yes",
+              "confidence": 0.89,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "scoped": {
+              "choice": "yes",
+              "confidence": 0.61,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "self_contained": {
+              "choice": "yes",
+              "confidence": 0.34,
+              "matching_calls": [
+                1,
+                2
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "needs_work": [
+      "FR-24.31"
+    ],
+    "pass": false
+  },
+  "error": null
+}

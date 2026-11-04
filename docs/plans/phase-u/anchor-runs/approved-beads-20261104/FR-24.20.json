@@ -1,0 +1,248 @@
+{
+  "success": true,
+  "data": {
+    "threshold": 0.6,
+    "dry_run": false,
+    "fixture": false,
+    "path": "docs/plans/phase-u/anchors.json",
+    "anchors": [
+      {
+        "id": "FR-24.20",
+        "statement": "Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+        "quote": "Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+        "scope": "Phase U Beads rendering, graph and compatibility work",
+        "verdict": "inconclusive",
+        "failing": [
+          "single_constraint",
+          "faithful",
+          "scoped",
+          "self_contained"
+        ],
+        "answers": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "no",
+            "confidence": 0.58,
+            "probabilities": {
+              "no": 0.72,
+              "unclear": 0.01,
+              "yes": 0.27
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.94,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.02,
+              "yes": 0.96
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.37,
+            "probabilities": {
+              "no": 0.4,
+              "unclear": 0.02,
+              "yes": 0.58
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "unclear",
+            "confidence": 0.3,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.53,
+              "yes": 0.45
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.6,
+            "probabilities": {
+              "no": 0.15,
+              "unclear": 0.12,
+              "yes": 0.73
+            }
+          }
+        },
+        "lint": {
+          "warnings": [],
+          "errors": []
+        },
+        "answers_second": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "no",
+            "confidence": 0.61,
+            "probabilities": {
+              "no": 0.74,
+              "unclear": 0.01,
+              "yes": 0.25
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.96,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.01,
+              "yes": 0.97
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.4,
+            "probabilities": {
+              "no": 0.38,
+              "unclear": 0.02,
+              "yes": 0.6
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.33,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.43,
+              "yes": 0.55
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.53,
+            "probabilities": {
+              "no": 0.17,
+              "unclear": 0.14,
+              "yes": 0.69
+            }
+          }
+        },
+        "answers_third": {
+          "single_constraint": {
+            "type": "choice",
+            "choice": "no",
+            "confidence": 0.6,
+            "probabilities": {
+              "no": 0.73,
+              "unclear": 0.01,
+              "yes": 0.26
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.94,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.02,
+              "yes": 0.96
+            }
+          },
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.28,
+            "probabilities": {
+              "no": 0.46,
+              "unclear": 0.02,
+              "yes": 0.52
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.25,
+            "probabilities": {
+              "no": 0.03,
+              "unclear": 0.47,
+              "yes": 0.5
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.7,
+            "probabilities": {
+              "no": 0.12,
+              "unclear": 0.08,
+              "yes": 0.8
+            }
+          }
+        },
+        "attempts": 3,
+        "confirmations": {
+          "verdict": "inconclusive",
+          "failing": [
+            "single_constraint",
+            "faithful",
+            "scoped",
+            "self_contained"
+          ],
+          "low_confidence": [
+            "single_constraint",
+            "faithful",
+            "scoped",
+            "self_contained"
+          ],
+          "unstable": [],
+          "initial_disagreements": [
+            "scoped"
+          ],
+          "resolved": {
+            "single_constraint": {
+              "choice": "no",
+              "confidence": 0.58,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "observable": {
+              "choice": "yes",
+              "confidence": 0.94,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "faithful": {
+              "choice": "yes",
+              "confidence": 0.37,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "scoped": {
+              "choice": null,
+              "confidence": null,
+              "matching_calls": []
+            },
+            "self_contained": {
+              "choice": "yes",
+              "confidence": 0.53,
+              "matching_calls": [
+                1,
+                2
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "needs_work": [
+      "FR-24.20"
+    ],
+    "pass": false
+  },
+  "error": null
+}

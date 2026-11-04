@@ -2264,8 +2264,8 @@
       "id": "FR-24.8",
       "source_type": "REQ",
       "source_ref": "FR-24.8",
-      "statement": "When the caller explicitly selects sc-compose rendering, graph pour and attach must accept bead-variable inputs as data rendered by sc-compose.",
-      "quote": "When the caller explicitly selects sc-compose rendering, graph pour and attach\nshall accept bead-variable inputs as data rendered by sc-compose.",
+      "statement": "With advanced pour selected, graph pour by path and attach accept caller bead inputs; without it, they reject those inputs exactly as v1.7.0 does.",
+      "quote": "With advanced pour selected, graph pour by path and attach accept caller bead inputs; without it, they reject those inputs exactly as v1.7.0 does.",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
@@ -2278,7 +2278,7 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "proposed",
       "promoted_to": null,
       "beads": {
@@ -2291,6 +2291,16 @@
           "at": "2026-11-04T07:28:15+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T14:21:00.393564+00:00",
+          "event": "user_approved_requirement_text_replaced",
+          "previous": {
+            "statement": "When the caller explicitly selects sc-compose rendering, graph pour and attach must accept bead-variable inputs as data rendered by sc-compose.",
+            "quote": "When the caller explicitly selects sc-compose rendering, graph pour and attach\nshall accept bead-variable inputs as data rendered by sc-compose.",
+            "version": 1
+          },
+          "source": "2026-11-04 approved Beads requirements"
         }
       ]
     },
@@ -2298,8 +2308,8 @@
       "id": "FR-24.7",
       "source_type": "REQ",
       "source_ref": "FR-24.7",
-      "statement": "sc-compose must offer an explicit selection that leaves ordinary formula expressions for the bd command-line tool to evaluate.",
-      "quote": "sc-compose shall offer an explicit selection that leaves ordinary formula\nexpressions for the bd command-line tool to evaluate.",
+      "statement": "An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.",
+      "quote": "An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
@@ -2312,7 +2322,7 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "proposed",
       "promoted_to": null,
       "beads": {
@@ -2325,6 +2335,16 @@
           "at": "2026-11-04T07:28:16+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T14:21:00.393685+00:00",
+          "event": "user_approved_requirement_text_replaced",
+          "previous": {
+            "statement": "sc-compose must offer an explicit selection that leaves ordinary formula expressions for the bd command-line tool to evaluate.",
+            "quote": "sc-compose shall offer an explicit selection that leaves ordinary formula\nexpressions for the bd command-line tool to evaluate.",
+            "version": 1
+          },
+          "source": "2026-11-04 approved Beads requirements"
         }
       ]
     },
@@ -2332,8 +2352,8 @@
       "id": "FR-24.10",
       "source_type": "REQ",
       "source_ref": "FR-24.10",
-      "statement": "A blocked graph-plan output path, including one occupied by a directory, must be refused before any bd command is invoked.",
-      "quote": "A blocked graph-plan output path, including one occupied by a directory,\nshall be refused before any bd command is invoked.",
+      "statement": "A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.",
+      "quote": "A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
@@ -2346,7 +2366,7 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "proposed",
       "promoted_to": null,
       "beads": {
@@ -2359,6 +2379,16 @@
           "at": "2026-11-04T07:28:17+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T14:21:00.393687+00:00",
+          "event": "user_approved_requirement_text_replaced",
+          "previous": {
+            "statement": "A blocked graph-plan output path, including one occupied by a directory, must be refused before any bd command is invoked.",
+            "quote": "A blocked graph-plan output path, including one occupied by a directory,\nshall be refused before any bd command is invoked.",
+            "version": 1
+          },
+          "source": "2026-11-04 approved Beads requirements"
         }
       ]
     },
@@ -2366,8 +2396,8 @@
       "id": "FR-24.2",
       "source_type": "REQ",
       "source_ref": "FR-24.2",
-      "statement": "Schema-less template output must match sc-compose v1.7.0 byte for byte, except issue-linked genuine-bug fixes recorded in tests/fixtures/render-regressions/approved-exceptions.json.",
-      "quote": "Schema-less template output must match sc-compose v1.7.0 byte for byte, except\nissue-linked genuine-bug fixes recorded in\n`tests/fixtures/render-regressions/approved-exceptions.json`.",
+      "statement": "Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.",
+      "quote": "Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
@@ -2380,7 +2410,7 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "proposed",
       "promoted_to": null,
       "beads": {
@@ -2393,6 +2423,16 @@
           "at": "2026-11-04T07:28:17+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T14:21:00.393681+00:00",
+          "event": "user_approved_requirement_text_replaced",
+          "previous": {
+            "statement": "Schema-less template output must match sc-compose v1.7.0 byte for byte, except issue-linked genuine-bug fixes recorded in tests/fixtures/render-regressions/approved-exceptions.json.",
+            "quote": "Schema-less template output must match sc-compose v1.7.0 byte for byte, except\nissue-linked genuine-bug fixes recorded in\n`tests/fixtures/render-regressions/approved-exceptions.json`.",
+            "version": 1
+          },
+          "source": "2026-11-04 approved Beads requirements"
         }
       ]
     },
@@ -2427,6 +2467,598 @@
           "at": "2026-11-04T07:28:18+00:00",
           "event": "created",
           "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.13",
+      "source_type": "REQ",
+      "source_ref": "FR-24.13",
+      "statement": "Advanced pour is turned on by an explicit new option; without it, nothing changes.",
+      "quote": "Advanced pour is turned on by an explicit new option; without it, nothing changes.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 1",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:00+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.14",
+      "source_type": "REQ",
+      "source_ref": "FR-24.14",
+      "statement": "In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.",
+      "quote": "In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 2",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:00+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.15",
+      "source_type": "REQ",
+      "source_ref": "FR-24.15",
+      "statement": "In advanced pour, sc-compose never passes a value to bd as `--var`.",
+      "quote": "In advanced pour, sc-compose never passes a value to bd as `--var`.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 3",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:00+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.19",
+      "source_type": "REQ",
+      "source_ref": "FR-24.19",
+      "statement": "Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.",
+      "quote": "Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 7",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:00+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.20",
+      "source_type": "REQ",
+      "source_ref": "FR-24.20",
+      "statement": "Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+      "quote": "Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 8",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:00+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.21",
+      "source_type": "REQ",
+      "source_ref": "FR-24.21",
+      "statement": "A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.",
+      "quote": "A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 9",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:00+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.22",
+      "source_type": "REQ",
+      "source_ref": "FR-24.22",
+      "statement": "Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.",
+      "quote": "Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 11",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:00+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.23",
+      "source_type": "REQ",
+      "source_ref": "FR-24.23",
+      "statement": "The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.",
+      "quote": "The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 12",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:00+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.24",
+      "source_type": "REQ",
+      "source_ref": "FR-24.24",
+      "statement": "Without the new option, every existing Rust, CLI and Python call behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.",
+      "quote": "Without the new option, every existing Rust, CLI and Python call behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 13",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:01+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.25",
+      "source_type": "REQ",
+      "source_ref": "FR-24.25",
+      "statement": "Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.",
+      "quote": "Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 15",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:01+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.26",
+      "source_type": "REQ",
+      "source_ref": "FR-24.26",
+      "statement": "The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.",
+      "quote": "The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 16",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:01+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.27",
+      "source_type": "REQ",
+      "source_ref": "FR-24.27",
+      "statement": "If rendering or validation fails, no bead is created.",
+      "quote": "If rendering or validation fails, no bead is created.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 19",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": "comp-80m",
+        "plan_questions": "comp-80m.1",
+        "dev_questions": "comp-80m.2"
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:01+00:00",
+          "event": "created",
+          "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T14:22:12.532373+00:00",
+          "event": "locked",
+          "source": "approved requirement and testability rubric FR-24.27.json"
+        },
+        {
+          "at": "2026-11-04T14:22:49+00:00",
+          "event": "beads_set",
+          "beads": {
+            "anchor": "comp-80m",
+            "plan_questions": "comp-80m.1",
+            "dev_questions": "comp-80m.2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "FR-24.28",
+      "source_type": "REQ",
+      "source_ref": "FR-24.28",
+      "statement": "The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.",
+      "quote": "The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 20",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:01+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.29",
+      "source_type": "REQ",
+      "source_ref": "FR-24.29",
+      "statement": "The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).",
+      "quote": "The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 21",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:01+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.30",
+      "source_type": "REQ",
+      "source_ref": "FR-24.30",
+      "statement": "`bead.md` documents each mode with a worked input-to-created-bead example.",
+      "quote": "`bead.md` documents each mode with a worked input-to-created-bead example.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 22",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:01+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.31",
+      "source_type": "REQ",
+      "source_ref": "FR-24.31",
+      "statement": "The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final candidate.",
+      "quote": "The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final candidate.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 23",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:01+00:00",
+          "event": "created",
+          "status": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.32",
+      "source_type": "REQ",
+      "source_ref": "FR-24.32",
+      "statement": "The 229-template corpus that passed the v1.7.0 comparison is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7.",
+      "quote": "The 229-template corpus that passed the v1.7.0 comparison is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "summary": "Approved Beads requirement 24",
+      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T14:21:01+00:00",
+          "event": "created",
+          "status": "proposed"
         }
       ]
     }
