@@ -1525,9 +1525,9 @@ Governing decision: [ADR-0025](adrs/0025-platform-delivery-and-python-abi.md).
 These requirements record the user's Phase U platform, Python-floor and
 integration-only matrix rulings; they do not assert implementation completion.
 
-### FR-24: Advanced Beads Pour (Draft for Approval)
+### FR-24: Advanced Beads Pour
 
-Status: **DRAFT / not approved for implementation** (2026-11-04).
+Status: **The 24 items below are approved by the user (2026-11-04).** Remaining design choices and proposed background remain subject to review.
 Design proposal: [ADR-0024](adrs/0024-advanced-beads-pour.md).
 This draft does not authorize a port or claim tests have run.
 
@@ -1632,6 +1632,90 @@ These are candidate upstream reports for the user to decide. No issue has
 been filed. Detailed repro inputs, command labels, exits and outputs remain
 in comp's report; none is presented as an implemented advanced-mode test.
 
+#### Approved requirements (2026-11-04)
+
+The following user-approved items are verbatim. Items 4–6 map to the existing locked ANC-002/003, ANC-004 and ANC-001 respectively.
+
+##### FR-24.13 — Approved item 1
+
+Advanced pour is turned on by an explicit new option; without it, nothing changes.
+
+##### FR-24.14 — Approved item 2
+
+In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.
+
+##### FR-24.15 — Approved item 3
+
+In advanced pour, sc-compose never passes a value to bd as `--var`.
+
+##### FR-24.16 — Approved item 4
+
+Tight `{{key}}` and padded `{{ key }}` are both replaced by the caller's bead input before bd runs.
+
+##### FR-24.17 — Approved item 5
+
+A loop-local variable is replaced by that iteration's value.
+
+##### FR-24.18 — Approved item 6
+
+Values containing `{{ }}`, `{{{ }}}` or `{% %}` stay literal data and are never re-parsed.
+
+##### FR-24.19 — Approved item 7
+
+Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.
+
+##### FR-24.20 — Approved item 8
+
+Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
+
+##### FR-24.21 — Approved item 9
+
+A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.
+
+##### FR-24.22 — Approved item 11
+
+Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+
+##### FR-24.23 — Approved item 12
+
+The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.
+
+##### FR-24.24 — Approved item 13
+
+Without the new option, every existing Rust, CLI and Python call behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.
+
+##### FR-24.25 — Approved item 15
+
+Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.
+
+##### FR-24.26 — Approved item 16
+
+The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.
+
+##### FR-24.27 — Approved item 19
+
+If rendering or validation fails, no bead is created.
+
+##### FR-24.28 — Approved item 20
+
+The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.
+
+##### FR-24.29 — Approved item 21
+
+The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
+
+##### FR-24.30 — Approved item 22
+
+`bead.md` documents each mode with a worked input-to-created-bead example.
+
+##### FR-24.31 — Approved item 23
+
+The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final candidate.
+
+##### FR-24.32 — Approved item 24
+
+The 229-template corpus that passed the v1.7.0 comparison is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7.
+
 #### Numbered requirements
 
 ##### FR-24.1 — sc-compose constructs; bd validates/creates
@@ -1648,18 +1732,7 @@ must not be discarded merely for containing braces.
 
 ##### FR-24.2 — unchanged legacy default and schema-less compatibility
 
-Existing calls with no new advanced option shall retain their v1.7.0 behavior,
-including schema-less rendered bytes, MiniJinja semantics, policy controls,
-legacy bd argv and stable error classes, subject only to already user-approved
-Phase U compatibility exceptions. This port introduces no additional default
-change. The new variable-rendering behavior must
-be additive opt-in; a `.j2` suffix, frontmatter or upgrade shall not silently
-activate it. No strict-only global policy is introduced.
-
-Schema-less template output must match sc-compose v1.7.0 byte for byte, except
-issue-linked genuine-bug fixes recorded in
-`tests/fixtures/render-regressions/approved-exceptions.json`.
-Every unlisted byte difference shall fail the compatibility check.
+Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
 
 - **Source:** hard user compatibility ruling; v1.7.0; ADR-0021/0023; #791's strict-only request is not authority to break it.
 - **bd evidence:** v1.7.0 render/execute source plus BD-V5/BD-V6; no native bd behavior is changed by this requirement.
@@ -1720,17 +1793,7 @@ not facts inferred from bd defaults.
 
 ##### FR-24.7 — bd-owned expressions stay a documented legacy boundary
 
-The existing bd-owned path shall remain available without claiming that bd
-substitution is reliable. It shall preserve ordinary expression text and the
-existing registry `--var` contract. The advanced path shall not rely on that
-path: any literal braces passed through must use an explicitly tested route
-that bd neither substitutes, errors on nor mangles. Unverified native behavior
-shall be documented as unknown, not emulated speculatively by sc-compose.
-
-sc-compose shall offer an explicit selection that leaves ordinary formula
-expressions for the bd command-line tool to evaluate. This selection shall
-preserve the existing legacy default; public selector spelling remains subject
-to the approved ADR-0024 interface decision.
+An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.
 
 - **Source:** user compatibility and buggy-bd rulings; v1.7.0; d754230a/cd363380/5743907a/e1c086df/5f2633ac intent, with their changed default rejected.
 - **bd evidence:** BD-V1–V6 above on407fe27 plus #618's historical report: current titles accept padding but labels do not substitute; never generalize either result to all versions/fields.
@@ -1738,16 +1801,7 @@ to the approved ADR-0024 interface decision.
 
 ##### FR-24.8 — compose with FR-23 attach and by-path pour
 
-When the caller explicitly selects sc-compose rendering, graph pour and attach
-shall accept bead-variable inputs as data rendered by sc-compose.
-
-An opted-in advanced operation shall retain FR-23 authorization, confinement,
-stable attach ids/provenance, safe repetition, atomic graph writes, relations
-and receipts. Accepting bead inputs as sc-compose data for graph/attach is a
-new opt-in capability; legacy graph/attach still rejects them as before.
-No value already rendered by sc-compose shall then be forwarded as `bd --var`.
-The behavior for an advanced request whose output is in the active registry
-is an open routing decision; it must not silently regain native substitution.
+With advanced pour selected, graph pour by path and attach accept caller bead inputs; without it, they reject those inputs exactly as v1.7.0 does.
 
 - **Source:** user flat-output ruling; FR-23/ADR-0023; #618; source distinction documented by comp's trace.
 - **bd evidence:** BD-V6/BD-S1 above:407fe27 graph dry-run/apply and recovered attach preserved the tested literals; ADR-0023 supplies existing hierarchy/atomicity/grammar contracts.
@@ -1768,18 +1822,7 @@ raw bodies, Jinja tag/test/filter names or supplied literal data as variables.
 
 ##### FR-24.10 — failures have typed existing outcomes and no hidden creation
 
-Bad request/mode/options shall use the request/usage class (exit 3); rendering
-failure shall use `BEADS_RENDER_FAILED`; bd validation/graph failures retain
-the ADR-0021/0023 stable codes and receipt stages (execution/refusal exit 2).
-No render/validation failure may proceed to persistent creation. New error
-conditions not fitting those codes require an explicit documented decision.
-Preview may write its declared local artifacts but never persistent bd state;
-mutation still requires `CreatePersistentBeads`.
-
-A blocked graph-plan output path, including one occupied by a directory,
-shall be refused before any bd command is invoked. This output-path preflight
-rule does not prohibit bd read or validation calls needed for other graph
-checks; it is not a general ban on validation reads.
+A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.
 
 - **Source:** FR-23.10, ADR-0021/0023; #785/#791; cd363380's invalid-selector request classification.
 - **bd evidence:** BD-V2 records missing-required native exit1; BD-V3 accepts undeclared keys; BD-V5/V6 separate render/native/graph failures. Map actual outcomes to the existing sc-compose classes, not native exit numbers by assumption.
