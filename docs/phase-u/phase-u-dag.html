@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="phase-root-bead" content="comp-phase-u">
+  <meta name="wyvern:width" content="1536">
+  <meta name="wyvern:height" content="864">
+  <title>Sprint review · Phase U</title>
+  <script id="wyvern-initial-size">
+    (() => {
+      function sizeWindow(event) {
+        const bounds = (event && event.detail) || window.__wyvernViewportBounds || {};
+        const screen = window.screen || {};
+        const width = Math.round(0.8 * (bounds.available_width || screen.availWidth || 1920));
+        const height = Math.round(0.8 * (bounds.available_height || screen.availHeight || 1080));
+        document.querySelector('meta[name="wyvern:width"]').content = String(width);
+        document.querySelector('meta[name="wyvern:height"]').content = String(height);
+        if (window.ipc && typeof window.ipc.postMessage === 'function') {
+          window.ipc.postMessage('resize:' + width + 'x' + height);
+        }
+      }
+      window.addEventListener('wyvern:viewport-bounds', sizeWindow);
+      sizeWindow();
+    })();
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #172b43; background: white; font: 14px system-ui, sans-serif; }
+    header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px;
+      padding: 12px 18px; background: #f8fafc; border-bottom: 1px solid #dbe3ed; }
+    h1 { margin: 0 auto 0 0; font-size: 17px; }
+    button { font: inherit; color: inherit; background: white; border: 1px solid #a8b7c9;
+      border-radius: 5px; padding: 5px 12px; cursor: pointer; }
+    button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+    output { min-width: 45px; text-align: center; }
+    main { overflow: auto; height: calc(100vh - 59px); padding: 12px; }
+    #diagram { width: 100%; }
+    #diagram > svg { display: block; width: 100%; height: auto; }
+    @media print { header { position: static; } button, output { display: none; }
+      main { height: auto; overflow: visible; } #diagram { width: 100% !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sprint review · Phase U</h1>
+    <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+    <output id="zoom-level" aria-live="polite">100%</output>
+    <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+    <button id="fit" type="button">Fit</button>
+  </header>
+  <main aria-label="Sprint dependency diagram">
+    <div id="diagram"><svg xmlns="http://www.w3.org/2000/svg" width="4387.0pt" height="509.0pt" viewBox="0.0 0.0 4387.0 509.0">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(28.8 391.8)">
+<title>execution</title>
+<polygon fill="white" stroke="none" points="-28.8,28.8 -28.8,-391.8 4358.03,-391.8 4358.03,28.8 -28.8,28.8" />
+<text xml:space="preserve" text-anchor="middle" x="2164.62" y="-341" font-family="Arial" font-size="20.00">Phase U — execution order</text>
+<text xml:space="preserve" text-anchor="middle" x="2164.62" y="-317" font-family="Arial" font-size="20.00">Sprint completes → its gate passes → downstream sprint starts</text>
+<g id="clust1" class="cluster">
+<title>cluster_comp-u-1.group-dev</title>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_comp-u-2.group-dev</title>
+</g>
+<g id="clust3" class="cluster">
+<title>cluster_comp-u-3.group-dev</title>
+</g>
+<g id="clust4" class="cluster">
+<title>cluster_comp-u-4.group-dev</title>
+</g>
+<g id="clust5" class="cluster">
+<title>cluster_comp-u-5.group-dev</title>
+</g>
+<g id="clust6" class="cluster">
+<title>cluster_comp-u-6.group-dev</title>
+</g>
+<g id="clust7" class="cluster">
+<title>cluster_comp-u-7.group-dev</title>
+</g>
+<g id="clust8" class="cluster">
+<title>cluster_comp-u-8.group-dev</title>
+</g>
+<g id="clust9" class="cluster">
+<title>cluster_comp-u-9.group-dev</title>
+</g>
+<g id="clust10" class="cluster">
+<title>cluster_comp-u-10.group-dev</title>
+</g>
+<g id="clust11" class="cluster">
+<title>cluster_comp-u-11.group-dev</title>
+</g>
+<g id="clust12" class="cluster">
+<title>cluster_comp-u-12.group-dev</title>
+</g>
+<g id="clust13" class="cluster">
+<title>cluster_comp-u-13.group-dev</title>
+</g>
+
+<g id="node1" class="node">
+<title>comp-u-1.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M138.34,-178C138.34,-178 28,-178 28,-178 22,-178 16,-172 16,-166 16,-166 16,-154 16,-154 16,-148 22,-142 28,-142 28,-142 138.34,-142 138.34,-142 144.34,-142 150.34,-148 150.34,-154 150.34,-154 150.34,-166 150.34,-166 150.34,-172 144.34,-178 138.34,-178" />
+<text xml:space="preserve" text-anchor="middle" x="83.17" y="-156.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-1.group-dev</text>
+</g>
+
+<g id="node2" class="node">
+<title>comp-u-1.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M395.78,-166.74C395.78,-166.74 360.79,-190.49 360.79,-190.49 355.83,-193.86 344.87,-197.23 338.87,-197.23 338.87,-197.23 253.18,-197.23 253.18,-197.23 247.18,-197.23 236.22,-193.86 231.25,-190.49 231.25,-190.49 196.27,-166.74 196.27,-166.74 191.3,-163.37 191.3,-156.63 196.27,-153.26 196.27,-153.26 231.25,-129.51 231.25,-129.51 236.22,-126.14 247.18,-122.77 253.18,-122.77 253.18,-122.77 338.87,-122.77 338.87,-122.77 344.87,-122.77 355.83,-126.14 360.79,-129.51 360.79,-129.51 395.78,-153.26 395.78,-153.26 400.74,-156.63 400.74,-163.37 395.78,-166.74" />
+<text xml:space="preserve" text-anchor="middle" x="296.02" y="-163.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-1.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="296.02" y="-148.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge1" class="edge">
+<title>comp-u-1.group-dev-&gt;comp-u-1.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M150.59,-160C159.01,-160 167.82,-160 176.75,-160" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="176.47,-162.63 183.97,-160 176.47,-157.38 176.47,-162.63" />
+</g>
+
+<g id="node3" class="node">
+<title>comp-u-2.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M564.05,-147C564.05,-147 453.71,-147 453.71,-147 447.71,-147 441.71,-141 441.71,-135 441.71,-135 441.71,-123 441.71,-123 441.71,-117 447.71,-111 453.71,-111 453.71,-111 564.05,-111 564.05,-111 570.05,-111 576.05,-117 576.05,-123 576.05,-123 576.05,-135 576.05,-135 576.05,-141 570.05,-147 564.05,-147" />
+<text xml:space="preserve" text-anchor="middle" x="508.88" y="-125.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-2.group-dev</text>
+</g>
+
+<g id="edge10" class="edge">
+<title>comp-u-1.group-sanity-&gt;comp-u-2.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M387.06,-146.76C402.16,-144.54 417.71,-142.26 432.4,-140.1" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="432.67,-142.71 439.71,-139.02 431.9,-137.52 432.67,-142.71" />
+</g>
+
+<g id="node5" class="node">
+<title>comp-u-3.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M1841.17,-277C1841.17,-277 1730.83,-277 1730.83,-277 1724.83,-277 1718.83,-271 1718.83,-265 1718.83,-265 1718.83,-253 1718.83,-253 1718.83,-247 1724.83,-241 1730.83,-241 1730.83,-241 1841.17,-241 1841.17,-241 1847.17,-241 1853.17,-247 1853.17,-253 1853.17,-253 1853.17,-265 1853.17,-265 1853.17,-271 1847.17,-277 1841.17,-277" />
+<text xml:space="preserve" text-anchor="middle" x="1786" y="-255.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-3.group-dev</text>
+</g>
+
+<g id="edge12" class="edge">
+<title>comp-u-1.group-sanity-&gt;comp-u-3.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M366.26,-187.33C449.17,-217.55 592.86,-262 720.73,-262 720.73,-262 720.73,-262 1361.29,-262 1483.2,-262 1624.82,-260.74 1709.56,-259.86" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1709.38,-262.48 1716.85,-259.78 1709.32,-257.23 1709.38,-262.48" />
+</g>
+
+<g id="node11" class="node">
+<title>comp-u-6.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M1841.17,-61C1841.17,-61 1730.83,-61 1730.83,-61 1724.83,-61 1718.83,-55 1718.83,-49 1718.83,-49 1718.83,-37 1718.83,-37 1718.83,-31 1724.83,-25 1730.83,-25 1730.83,-25 1841.17,-25 1841.17,-25 1847.17,-25 1853.17,-31 1853.17,-37 1853.17,-37 1853.17,-49 1853.17,-49 1853.17,-55 1847.17,-61 1841.17,-61" />
+<text xml:space="preserve" text-anchor="middle" x="1786" y="-39.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-6.group-dev</text>
+</g>
+
+<g id="edge18" class="edge">
+<title>comp-u-1.group-sanity-&gt;comp-u-6.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M342.8,-122.36C368.06,-103.7 400.9,-82.69 433.71,-71 554.57,-27.92 592.42,-40 720.73,-40 720.73,-40 720.73,-40 1361.29,-40 1483.2,-40 1624.82,-41.26 1709.56,-42.14" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1709.32,-44.77 1716.85,-42.22 1709.38,-39.52 1709.32,-44.77" />
+</g>
+
+<g id="node13" class="node">
+<title>comp-u-7.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M1415.46,-208C1415.46,-208 1305.13,-208 1305.13,-208 1299.13,-208 1293.13,-202 1293.13,-196 1293.13,-196 1293.13,-184 1293.13,-184 1293.13,-178 1299.13,-172 1305.13,-172 1305.13,-172 1415.46,-172 1415.46,-172 1421.46,-172 1427.46,-178 1427.46,-184 1427.46,-184 1427.46,-196 1427.46,-196 1427.46,-202 1421.46,-208 1415.46,-208" />
+<text xml:space="preserve" text-anchor="middle" x="1360.29" y="-186.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-7.group-dev</text>
+</g>
+
+<g id="edge20" class="edge">
+<title>comp-u-1.group-sanity-&gt;comp-u-7.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M394.56,-167.94C480.39,-174.24 608.77,-182 720.73,-182 720.73,-182 720.73,-182 935.59,-182 1057.51,-182 1199.13,-185.35 1283.85,-187.72" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1283.57,-190.33 1291.15,-187.92 1283.72,-185.09 1283.57,-190.33" />
+</g>
+
+<g id="node4" class="node">
+<title>comp-u-2.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M821.49,-126.74C821.49,-126.74 786.5,-150.49 786.5,-150.49 781.54,-153.86 770.57,-157.23 764.57,-157.23 764.57,-157.23 678.89,-157.23 678.89,-157.23 672.89,-157.23 661.92,-153.86 656.96,-150.49 656.96,-150.49 621.97,-126.74 621.97,-126.74 617.01,-123.37 617.01,-116.63 621.97,-113.26 621.97,-113.26 656.96,-89.51 656.96,-89.51 661.92,-86.14 672.89,-82.77 678.89,-82.77 678.89,-82.77 764.57,-82.77 764.57,-82.77 770.57,-82.77 781.54,-86.14 786.5,-89.51 786.5,-89.51 821.49,-113.26 821.49,-113.26 826.45,-116.63 826.45,-123.37 821.49,-126.74" />
+<text xml:space="preserve" text-anchor="middle" x="721.73" y="-123.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-2.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="721.73" y="-108.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge11" class="edge">
+<title>comp-u-2.group-dev-&gt;comp-u-2.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M576.3,-126.16C586.78,-125.72 597.86,-125.24 609.03,-124.77" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="608.88,-127.4 616.26,-124.46 608.65,-122.16 608.88,-127.4" />
+</g>
+
+<g id="node7" class="node">
+<title>comp-u-4.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M989.75,-136C989.75,-136 879.42,-136 879.42,-136 873.42,-136 867.42,-130 867.42,-124 867.42,-124 867.42,-112 867.42,-112 867.42,-106 873.42,-100 879.42,-100 879.42,-100 989.75,-100 989.75,-100 995.75,-100 1001.75,-106 1001.75,-112 1001.75,-112 1001.75,-124 1001.75,-124 1001.75,-130 995.75,-136 989.75,-136" />
+<text xml:space="preserve" text-anchor="middle" x="934.59" y="-114.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-4.group-dev</text>
+</g>
+
+<g id="edge14" class="edge">
+<title>comp-u-2.group-sanity-&gt;comp-u-4.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M830.63,-118.98C839.88,-118.89 849.1,-118.8 858.02,-118.72" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="857.97,-121.34 865.44,-118.65 857.92,-116.09 857.97,-121.34" />
+</g>
+
+<g id="node6" class="node">
+<title>comp-u-3.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M2098.62,-260.74C2098.62,-260.74 2063.63,-284.49 2063.63,-284.49 2058.66,-287.86 2047.7,-291.23 2041.7,-291.23 2041.7,-291.23 1956.01,-291.23 1956.01,-291.23 1950.01,-291.23 1939.05,-287.86 1934.09,-284.49 1934.09,-284.49 1899.1,-260.74 1899.1,-260.74 1894.14,-257.37 1894.14,-250.63 1899.1,-247.26 1899.1,-247.26 1934.09,-223.51 1934.09,-223.51 1939.05,-220.14 1950.01,-216.77 1956.01,-216.77 1956.01,-216.77 2041.7,-216.77 2041.7,-216.77 2047.7,-216.77 2058.66,-220.14 2063.63,-223.51 2063.63,-223.51 2098.62,-247.26 2098.62,-247.26 2103.58,-250.63 2103.58,-257.37 2098.62,-260.74" />
+<text xml:space="preserve" text-anchor="middle" x="1998.86" y="-257.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-3.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="1998.86" y="-242.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge13" class="edge">
+<title>comp-u-3.group-dev-&gt;comp-u-3.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M1853.43,-257.42C1862.86,-257.2 1872.77,-256.97 1882.8,-256.73" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1882.85,-259.35 1890.29,-256.55 1882.73,-254.1 1882.85,-259.35" />
+</g>
+
+<g id="node17" class="node">
+<title>comp-u-9.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M2266.88,-171C2266.88,-171 2156.54,-171 2156.54,-171 2150.54,-171 2144.54,-165 2144.54,-159 2144.54,-159 2144.54,-147 2144.54,-147 2144.54,-141 2150.54,-135 2156.54,-135 2156.54,-135 2266.88,-135 2266.88,-135 2272.88,-135 2278.88,-141 2278.88,-147 2278.88,-147 2278.88,-159 2278.88,-159 2278.88,-165 2272.88,-171 2266.88,-171" />
+<text xml:space="preserve" text-anchor="middle" x="2211.71" y="-149.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-9.group-dev</text>
+</g>
+
+<g id="edge25" class="edge">
+<title>comp-u-3.group-sanity-&gt;comp-u-9.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M2066.51,-225.13C2082.96,-217.78 2100.46,-209.76 2116.54,-202 2133.8,-193.67 2152.58,-184.03 2168.79,-175.51" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="2169.58,-178.06 2174.99,-172.24 2167.13,-173.42 2169.58,-178.06" />
+</g>
+
+<g id="node8" class="node">
+<title>comp-u-4.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M1247.2,-122.74C1247.2,-122.74 1212.21,-146.49 1212.21,-146.49 1207.25,-149.86 1196.28,-153.23 1190.28,-153.23 1190.28,-153.23 1104.6,-153.23 1104.6,-153.23 1098.6,-153.23 1087.63,-149.86 1082.67,-146.49 1082.67,-146.49 1047.68,-122.74 1047.68,-122.74 1042.72,-119.37 1042.72,-112.63 1047.68,-109.26 1047.68,-109.26 1082.67,-85.51 1082.67,-85.51 1087.63,-82.14 1098.6,-78.77 1104.6,-78.77 1104.6,-78.77 1190.28,-78.77 1190.28,-78.77 1196.28,-78.77 1207.25,-82.14 1212.21,-85.51 1212.21,-85.51 1247.2,-109.26 1247.2,-109.26 1252.16,-112.63 1252.16,-119.37 1247.2,-122.74" />
+<text xml:space="preserve" text-anchor="middle" x="1147.44" y="-119.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-4.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="1147.44" y="-104.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge15" class="edge">
+<title>comp-u-4.group-dev-&gt;comp-u-4.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M1002.01,-117.37C1010.89,-117.29 1020.19,-117.2 1029.61,-117.11" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1029.46,-119.73 1036.94,-117.04 1029.41,-114.49 1029.46,-119.73" />
+</g>
+
+<g id="node9" class="node">
+<title>comp-u-5.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M1415.46,-127C1415.46,-127 1305.13,-127 1305.13,-127 1299.13,-127 1293.13,-121 1293.13,-115 1293.13,-115 1293.13,-103 1293.13,-103 1293.13,-97 1299.13,-91 1305.13,-91 1305.13,-91 1415.46,-91 1415.46,-91 1421.46,-91 1427.46,-97 1427.46,-103 1427.46,-103 1427.46,-115 1427.46,-115 1427.46,-121 1421.46,-127 1415.46,-127" />
+<text xml:space="preserve" text-anchor="middle" x="1360.29" y="-105.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-5.group-dev</text>
+</g>
+
+<g id="edge16" class="edge">
+<title>comp-u-4.group-sanity-&gt;comp-u-5.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M1252.63,-112.54C1263.12,-112.19 1273.62,-111.84 1283.72,-111.51" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1283.73,-114.14 1291.14,-111.26 1283.55,-108.89 1283.73,-114.14" />
+</g>
+
+<g id="node10" class="node">
+<title>comp-u-5.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M1672.91,-108.74C1672.91,-108.74 1637.92,-132.49 1637.92,-132.49 1632.96,-135.86 1621.99,-139.23 1615.99,-139.23 1615.99,-139.23 1530.31,-139.23 1530.31,-139.23 1524.31,-139.23 1513.34,-135.86 1508.38,-132.49 1508.38,-132.49 1473.39,-108.74 1473.39,-108.74 1468.43,-105.37 1468.43,-98.63 1473.39,-95.26 1473.39,-95.26 1508.38,-71.51 1508.38,-71.51 1513.34,-68.14 1524.31,-64.77 1530.31,-64.77 1530.31,-64.77 1615.99,-64.77 1615.99,-64.77 1621.99,-64.77 1632.96,-68.14 1637.92,-71.51 1637.92,-71.51 1672.91,-95.26 1672.91,-95.26 1677.87,-98.63 1677.87,-105.37 1672.91,-108.74" />
+<text xml:space="preserve" text-anchor="middle" x="1573.15" y="-105.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-5.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="1573.15" y="-90.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge17" class="edge">
+<title>comp-u-5.group-dev-&gt;comp-u-5.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M1427.72,-106.79C1437.72,-106.46 1448.26,-106.11 1458.91,-105.76" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1458.72,-108.39 1466.13,-105.52 1458.54,-103.15 1458.72,-108.39" />
+</g>
+
+<g id="node15" class="node">
+<title>comp-u-8.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M1841.17,-171C1841.17,-171 1730.83,-171 1730.83,-171 1724.83,-171 1718.83,-165 1718.83,-159 1718.83,-159 1718.83,-147 1718.83,-147 1718.83,-141 1724.83,-135 1730.83,-135 1730.83,-135 1841.17,-135 1841.17,-135 1847.17,-135 1853.17,-141 1853.17,-147 1853.17,-147 1853.17,-159 1853.17,-159 1853.17,-165 1847.17,-171 1841.17,-171" />
+<text xml:space="preserve" text-anchor="middle" x="1786" y="-149.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-8.group-dev</text>
+</g>
+
+<g id="edge22" class="edge">
+<title>comp-u-5.group-sanity-&gt;comp-u-8.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M1654.77,-121.5C1672.85,-125.87 1691.97,-130.5 1709.82,-134.81" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1708.87,-137.29 1716.78,-136.5 1710.11,-132.18 1708.87,-137.29" />
+</g>
+
+<g id="node12" class="node">
+<title>comp-u-6.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M2098.62,-59.74C2098.62,-59.74 2063.63,-83.49 2063.63,-83.49 2058.66,-86.86 2047.7,-90.23 2041.7,-90.23 2041.7,-90.23 1956.01,-90.23 1956.01,-90.23 1950.01,-90.23 1939.05,-86.86 1934.09,-83.49 1934.09,-83.49 1899.1,-59.74 1899.1,-59.74 1894.14,-56.37 1894.14,-49.63 1899.1,-46.26 1899.1,-46.26 1934.09,-22.51 1934.09,-22.51 1939.05,-19.14 1950.01,-15.77 1956.01,-15.77 1956.01,-15.77 2041.7,-15.77 2041.7,-15.77 2047.7,-15.77 2058.66,-19.14 2063.63,-22.51 2063.63,-22.51 2098.62,-46.26 2098.62,-46.26 2103.58,-49.63 2103.58,-56.37 2098.62,-59.74" />
+<text xml:space="preserve" text-anchor="middle" x="1998.86" y="-56.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-6.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="1998.86" y="-41.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge19" class="edge">
+<title>comp-u-6.group-dev-&gt;comp-u-6.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M1853.43,-46.15C1864,-46.65 1875.18,-47.18 1886.46,-47.72" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1886.15,-50.33 1893.77,-48.06 1886.4,-45.09 1886.15,-50.33" />
+</g>
+
+<g id="edge26" class="edge">
+<title>comp-u-6.group-sanity-&gt;comp-u-9.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M2067.16,-81.49C2083.42,-88.63 2100.69,-96.42 2116.54,-104 2133.83,-112.27 2152.61,-121.9 2168.82,-130.43" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="2167.16,-132.52 2175.02,-133.7 2169.61,-127.88 2167.16,-132.52" />
+</g>
+
+<g id="node14" class="node">
+<title>comp-u-7.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M1672.91,-206.74C1672.91,-206.74 1637.92,-230.49 1637.92,-230.49 1632.96,-233.86 1621.99,-237.23 1615.99,-237.23 1615.99,-237.23 1530.31,-237.23 1530.31,-237.23 1524.31,-237.23 1513.34,-233.86 1508.38,-230.49 1508.38,-230.49 1473.39,-206.74 1473.39,-206.74 1468.43,-203.37 1468.43,-196.63 1473.39,-193.26 1473.39,-193.26 1508.38,-169.51 1508.38,-169.51 1513.34,-166.14 1524.31,-162.77 1530.31,-162.77 1530.31,-162.77 1615.99,-162.77 1615.99,-162.77 1621.99,-162.77 1632.96,-166.14 1637.92,-169.51 1637.92,-169.51 1672.91,-193.26 1672.91,-193.26 1677.87,-196.63 1677.87,-203.37 1672.91,-206.74" />
+<text xml:space="preserve" text-anchor="middle" x="1573.15" y="-203.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-7.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="1573.15" y="-188.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge21" class="edge">
+<title>comp-u-7.group-dev-&gt;comp-u-7.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M1427.72,-193.15C1438.29,-193.65 1449.48,-194.18 1460.75,-194.72" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1460.45,-197.33 1468.06,-195.06 1460.69,-192.09 1460.45,-197.33" />
+</g>
+
+<g id="edge23" class="edge">
+<title>comp-u-7.group-sanity-&gt;comp-u-8.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M1656.58,-181.63C1674.08,-177.72 1692.48,-173.62 1709.71,-169.78" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1710.15,-172.37 1716.9,-168.18 1709.01,-167.25 1710.15,-172.37" />
+</g>
+
+<g id="node16" class="node">
+<title>comp-u-8.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M2098.62,-159.74C2098.62,-159.74 2063.63,-183.49 2063.63,-183.49 2058.66,-186.86 2047.7,-190.23 2041.7,-190.23 2041.7,-190.23 1956.01,-190.23 1956.01,-190.23 1950.01,-190.23 1939.05,-186.86 1934.09,-183.49 1934.09,-183.49 1899.1,-159.74 1899.1,-159.74 1894.14,-156.37 1894.14,-149.63 1899.1,-146.26 1899.1,-146.26 1934.09,-122.51 1934.09,-122.51 1939.05,-119.14 1950.01,-115.77 1956.01,-115.77 1956.01,-115.77 2041.7,-115.77 2041.7,-115.77 2047.7,-115.77 2058.66,-119.14 2063.63,-122.51 2063.63,-122.51 2098.62,-146.26 2098.62,-146.26 2103.58,-149.63 2103.58,-156.37 2098.62,-159.74" />
+<text xml:space="preserve" text-anchor="middle" x="1998.86" y="-156.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-8.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="1998.86" y="-141.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge24" class="edge">
+<title>comp-u-8.group-dev-&gt;comp-u-8.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M1853.43,-153C1861.85,-153 1870.66,-153 1879.59,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="1879.31,-155.63 1886.81,-153 1879.31,-150.38 1879.31,-155.63" />
+</g>
+
+<g id="edge27" class="edge">
+<title>comp-u-8.group-sanity-&gt;comp-u-9.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M2109.3,-153C2118.06,-153 2126.79,-153 2135.24,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="2135.04,-155.63 2142.54,-153 2135.04,-150.38 2135.04,-155.63" />
+</g>
+
+<g id="node18" class="node">
+<title>comp-u-9.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M2524.32,-159.74C2524.32,-159.74 2489.34,-183.49 2489.34,-183.49 2484.37,-186.86 2473.41,-190.23 2467.41,-190.23 2467.41,-190.23 2381.72,-190.23 2381.72,-190.23 2375.72,-190.23 2364.76,-186.86 2359.8,-183.49 2359.8,-183.49 2324.81,-159.74 2324.81,-159.74 2319.84,-156.37 2319.84,-149.63 2324.81,-146.26 2324.81,-146.26 2359.8,-122.51 2359.8,-122.51 2364.76,-119.14 2375.72,-115.77 2381.72,-115.77 2381.72,-115.77 2467.41,-115.77 2467.41,-115.77 2473.41,-115.77 2484.37,-119.14 2489.34,-122.51 2489.34,-122.51 2524.32,-146.26 2524.32,-146.26 2529.29,-149.63 2529.29,-156.37 2524.32,-159.74" />
+<text xml:space="preserve" text-anchor="middle" x="2424.57" y="-156.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-9.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="2424.57" y="-141.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge28" class="edge">
+<title>comp-u-9.group-dev-&gt;comp-u-9.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M2279.14,-153C2287.56,-153 2296.36,-153 2305.3,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="2305.02,-155.63 2312.52,-153 2305.02,-150.38 2305.02,-155.63" />
+</g>
+
+<g id="node19" class="node">
+<title>comp-u-10.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M2699.82,-171C2699.82,-171 2582.25,-171 2582.25,-171 2576.25,-171 2570.25,-165 2570.25,-159 2570.25,-159 2570.25,-147 2570.25,-147 2570.25,-141 2576.25,-135 2582.25,-135 2582.25,-135 2699.82,-135 2699.82,-135 2705.82,-135 2711.82,-141 2711.82,-147 2711.82,-147 2711.82,-159 2711.82,-159 2711.82,-165 2705.82,-171 2699.82,-171" />
+<text xml:space="preserve" text-anchor="middle" x="2641.04" y="-149.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-10.group-dev</text>
+</g>
+
+<g id="edge2" class="edge">
+<title>comp-u-9.group-sanity-&gt;comp-u-10.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M2535,-153C2543.72,-153 2552.42,-153 2560.88,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="2560.7,-155.63 2568.2,-153 2560.7,-150.38 2560.7,-155.63" />
+</g>
+
+<g id="node20" class="node">
+<title>comp-u-10.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M2968.91,-159.5C2968.91,-159.5 2931.29,-183.73 2931.29,-183.73 2926.25,-186.98 2915.2,-190.23 2909.2,-190.23 2909.2,-190.23 2817.61,-190.23 2817.61,-190.23 2811.61,-190.23 2800.57,-186.98 2795.53,-183.73 2795.53,-183.73 2757.91,-159.5 2757.91,-159.5 2752.86,-156.25 2752.86,-149.75 2757.91,-146.5 2757.91,-146.5 2795.53,-122.27 2795.53,-122.27 2800.57,-119.02 2811.61,-115.77 2817.61,-115.77 2817.61,-115.77 2909.2,-115.77 2909.2,-115.77 2915.2,-115.77 2926.25,-119.02 2931.29,-122.27 2931.29,-122.27 2968.91,-146.5 2968.91,-146.5 2973.95,-149.75 2973.95,-156.25 2968.91,-159.5" />
+<text xml:space="preserve" text-anchor="middle" x="2863.41" y="-156.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-10.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="2863.41" y="-141.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge3" class="edge">
+<title>comp-u-10.group-dev-&gt;comp-u-10.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M2712.07,-153C2720.39,-153 2729.07,-153 2737.87,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="2737.84,-155.63 2745.34,-153 2737.84,-150.38 2737.84,-155.63" />
+</g>
+
+<g id="node21" class="node">
+<title>comp-u-11.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M3144.56,-171C3144.56,-171 3027,-171 3027,-171 3021,-171 3015,-165 3015,-159 3015,-159 3015,-147 3015,-147 3015,-141 3021,-135 3027,-135 3027,-135 3144.56,-135 3144.56,-135 3150.56,-135 3156.56,-141 3156.56,-147 3156.56,-147 3156.56,-159 3156.56,-159 3156.56,-165 3150.56,-171 3144.56,-171" />
+<text xml:space="preserve" text-anchor="middle" x="3085.78" y="-149.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-11.group-dev</text>
+</g>
+
+<g id="edge4" class="edge">
+<title>comp-u-10.group-sanity-&gt;comp-u-11.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M2979.76,-153C2988.48,-153 2997.15,-153 3005.56,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="3005.34,-155.63 3012.84,-153 3005.34,-150.38 3005.34,-155.63" />
+</g>
+
+<g id="node22" class="node">
+<title>comp-u-11.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M3413.66,-159.5C3413.66,-159.5 3376.04,-183.73 3376.04,-183.73 3370.99,-186.98 3359.95,-190.23 3353.95,-190.23 3353.95,-190.23 3262.36,-190.23 3262.36,-190.23 3256.36,-190.23 3245.32,-186.98 3240.27,-183.73 3240.27,-183.73 3202.65,-159.5 3202.65,-159.5 3197.61,-156.25 3197.61,-149.75 3202.65,-146.5 3202.65,-146.5 3240.27,-122.27 3240.27,-122.27 3245.32,-119.02 3256.36,-115.77 3262.36,-115.77 3262.36,-115.77 3353.95,-115.77 3353.95,-115.77 3359.95,-115.77 3370.99,-119.02 3376.04,-122.27 3376.04,-122.27 3413.66,-146.5 3413.66,-146.5 3418.7,-149.75 3418.7,-156.25 3413.66,-159.5" />
+<text xml:space="preserve" text-anchor="middle" x="3308.15" y="-156.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-11.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="3308.15" y="-141.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge5" class="edge">
+<title>comp-u-11.group-dev-&gt;comp-u-11.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M3156.81,-153C3165.14,-153 3173.82,-153 3182.62,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="3182.59,-155.63 3190.09,-153 3182.59,-150.38 3182.59,-155.63" />
+</g>
+
+<g id="node23" class="node">
+<title>comp-u-12.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M3589.31,-171C3589.31,-171 3471.74,-171 3471.74,-171 3465.74,-171 3459.74,-165 3459.74,-159 3459.74,-159 3459.74,-147 3459.74,-147 3459.74,-141 3465.74,-135 3471.74,-135 3471.74,-135 3589.31,-135 3589.31,-135 3595.31,-135 3601.31,-141 3601.31,-147 3601.31,-147 3601.31,-159 3601.31,-159 3601.31,-165 3595.31,-171 3589.31,-171" />
+<text xml:space="preserve" text-anchor="middle" x="3530.53" y="-149.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-12.group-dev</text>
+</g>
+
+<g id="edge6" class="edge">
+<title>comp-u-11.group-sanity-&gt;comp-u-12.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M3424.5,-153C3433.22,-153 3441.9,-153 3450.31,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="3450.09,-155.63 3457.59,-153 3450.09,-150.38 3450.09,-155.63" />
+</g>
+
+<g id="node24" class="node">
+<title>comp-u-12.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M3858.4,-159.5C3858.4,-159.5 3820.78,-183.73 3820.78,-183.73 3815.74,-186.98 3804.69,-190.23 3798.69,-190.23 3798.69,-190.23 3707.1,-190.23 3707.1,-190.23 3701.1,-190.23 3690.06,-186.98 3685.02,-183.73 3685.02,-183.73 3647.4,-159.5 3647.4,-159.5 3642.35,-156.25 3642.35,-149.75 3647.4,-146.5 3647.4,-146.5 3685.02,-122.27 3685.02,-122.27 3690.06,-119.02 3701.1,-115.77 3707.1,-115.77 3707.1,-115.77 3798.69,-115.77 3798.69,-115.77 3804.69,-115.77 3815.74,-119.02 3820.78,-122.27 3820.78,-122.27 3858.4,-146.5 3858.4,-146.5 3863.44,-149.75 3863.44,-156.25 3858.4,-159.5" />
+<text xml:space="preserve" text-anchor="middle" x="3752.9" y="-156.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-12.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="3752.9" y="-141.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge7" class="edge">
+<title>comp-u-12.group-dev-&gt;comp-u-12.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M3601.56,-153C3609.88,-153 3618.56,-153 3627.36,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="3627.33,-155.63 3634.83,-153 3627.33,-150.38 3627.33,-155.63" />
+</g>
+
+<g id="node25" class="node">
+<title>comp-u-13.group-dev — Blocked by unfinished prerequisites</title>
+<path fill="#edf3fb" stroke="#9caec2" d="M4034.06,-171C4034.06,-171 3916.49,-171 3916.49,-171 3910.49,-171 3904.49,-165 3904.49,-159 3904.49,-159 3904.49,-147 3904.49,-147 3904.49,-141 3910.49,-135 3916.49,-135 3916.49,-135 4034.06,-135 4034.06,-135 4040.06,-135 4046.06,-141 4046.06,-147 4046.06,-147 4046.06,-159 4046.06,-159 4046.06,-165 4040.06,-171 4034.06,-171" />
+<text xml:space="preserve" text-anchor="middle" x="3975.27" y="-149.1" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-13.group-dev</text>
+</g>
+
+<g id="edge8" class="edge">
+<title>comp-u-12.group-sanity-&gt;comp-u-13.group-dev</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M3869.25,-153C3877.97,-153 3886.64,-153 3895.06,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="3894.83,-155.63 3902.33,-153 3894.83,-150.38 3894.83,-155.63" />
+</g>
+
+<g id="node26" class="node">
+<title>comp-u-13.group-sanity — Blocked by unfinished prerequisites; completed sanity iterations: 0</title>
+<path fill="#e6f1e9" stroke="#a0b8a8" d="M4303.15,-159.5C4303.15,-159.5 4265.53,-183.73 4265.53,-183.73 4260.48,-186.98 4249.44,-190.23 4243.44,-190.23 4243.44,-190.23 4151.85,-190.23 4151.85,-190.23 4145.85,-190.23 4134.81,-186.98 4129.76,-183.73 4129.76,-183.73 4092.14,-159.5 4092.14,-159.5 4087.1,-156.25 4087.1,-149.75 4092.14,-146.5 4092.14,-146.5 4129.76,-122.27 4129.76,-122.27 4134.81,-119.02 4145.85,-115.77 4151.85,-115.77 4151.85,-115.77 4243.44,-115.77 4243.44,-115.77 4249.44,-115.77 4260.48,-119.02 4265.53,-122.27 4265.53,-122.27 4303.15,-146.5 4303.15,-146.5 4308.19,-149.75 4308.19,-156.25 4303.15,-159.5" />
+<text xml:space="preserve" text-anchor="middle" x="4197.64" y="-156.9" font-family="Arial" font-size="13.00" fill="#172b43">comp-u-13.group-dev</text>
+<text xml:space="preserve" text-anchor="middle" x="4197.64" y="-141.3" font-family="Arial" font-size="13.00" fill="#172b43">sanity gate</text>
+</g>
+
+<g id="edge9" class="edge">
+<title>comp-u-13.group-dev-&gt;comp-u-13.group-sanity</title>
+<path fill="none" stroke="#647a94" stroke-width="1.15" d="M4046.3,-153C4054.63,-153 4063.31,-153 4072.11,-153" />
+<polygon fill="#647a94" stroke="#647a94" stroke-width="1.15" points="4072.08,-155.63 4079.58,-153 4072.08,-150.38 4072.08,-155.63" />
+</g>
+<g class="state-badges"><g class="state-badge" transform="translate(73.17 -187)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(73.17 -151)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-1.group-qa</title></g><g class="state-badge" transform="translate(277.02 -206.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(498.88 -156)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(498.88 -120)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-2.group-qa</title></g><g class="state-badge" transform="translate(1776 -286)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(1776 -250)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-3.group-qa</title></g><g class="state-badge" transform="translate(1776 -70)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(1776 -34)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-6.group-qa</title></g><g class="state-badge" transform="translate(1350.29 -217)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(1350.29 -181)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-7.group-qa</title></g><g class="state-badge" transform="translate(702.73 -166.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(924.59 -145)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(924.59 -109)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-4.group-qa</title></g><g class="state-badge" transform="translate(1979.86 -300.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(2201.71 -180)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(2201.71 -144)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-9.group-qa</title></g><g class="state-badge" transform="translate(1128.44 -162.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(1350.29 -136)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(1350.29 -100)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-5.group-qa</title></g><g class="state-badge" transform="translate(1554.15 -148.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(1776 -180)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(1776 -144)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-8.group-qa</title></g><g class="state-badge" transform="translate(1979.86 -99.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(1554.15 -246.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(1979.86 -199.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(2405.57 -199.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(2631.04 -180)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(2631.04 -144)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-10.group-qa</title></g><g class="state-badge" transform="translate(2844.41 -199.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(3075.78 -180)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(3075.78 -144)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-11.group-qa</title></g><g class="state-badge" transform="translate(3289.15 -199.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(3520.53 -180)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(3520.53 -144)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-12.group-qa</title></g><g class="state-badge" transform="translate(3733.9 -199.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g><g class="state-badge" transform="translate(3965.27 -180)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><g class="qa-badge" transform="translate(3965.27 -144)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><path d="M4 10V14H16V10 M10 3V10 M7 7L10 10L13 7" fill="none" stroke="#64748b" stroke-width="1.5" /><title>QA IN PROGRESS; comp-u-13.group-qa</title></g><g class="state-badge" transform="translate(4178.64 -199.23)"><rect width="38" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text><text x="27" y="13" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#b91c1c">0</text></g></g></g>
+<g class="state-legend" font-family="Arial" font-size="14" fill="#334155"><rect x="0" y="421.0" width="4387.0" height="88" fill="white" /><g class="state-badge" transform="translate(30 430)"><rect width="20" height="18" rx="6" fill="white" stroke="#15803d" stroke-width="1.2" /><path d="M 5 9 L 8 12 L 14 5" fill="none" stroke="#15803d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /></g><text x="56" y="444.0">Complete / sanity PASS</text><g class="state-badge" transform="translate(232 430)"><rect width="20" height="18" rx="6" fill="white" stroke="#64748b" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#64748b">○</text></g><text x="258" y="444.0">Pending</text><g class="state-badge" transform="translate(329 430)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><text x="355" y="444.0">Blocked</text><g class="state-badge" transform="translate(426 430)"><rect width="20" height="18" rx="6" fill="white" stroke="#2563eb" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#2563eb">↻</text></g><text x="452" y="444.0">Active</text><g class="state-badge" transform="translate(516 430)"><rect width="20" height="18" rx="6" fill="white" stroke="#b91c1c" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b91c1c">!</text></g><text x="542" y="444.0">Findings</text><g class="state-badge" transform="translate(620 430)"><rect width="20" height="18" rx="6" fill="white" stroke="#b45309" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#b45309">?</text></g><text x="646" y="444.0">Unconfirmed</text><g class="state-badge" transform="translate(745 430)"><rect width="20" height="18" rx="6" fill="white" stroke="#7e22ce" stroke-width="1.2" /><text x="10" y="13" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#7e22ce">↷</text></g><text x="771" y="444.0">User override</text><text x="30" y="473.0" font-size="12">Top = dev/sanity; gate number = completed sanity iterations; ? = unavailable. Dev check requires sanity PASS. Snapshot: 2026-11-04T04:30:44.979232+00:00</text><text x="30" y="495.0" font-size="12">Bottom = QA: assigned / active / pass, or open blocking:important:minor findings after FAIL. Blank = undispatched.</text></g></svg></div>
+  </main>
+  <script>
+    const diagram = document.getElementById('diagram');
+    let zoom = 1;
+    function setZoom(value) {
+      zoom = Math.max(0.5, Math.min(4, value));
+      diagram.style.width = (zoom * 100) + '%';
+      document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+    }
+    document.getElementById('zoom-out').addEventListener('click', () => setZoom(zoom / 1.25));
+    document.getElementById('zoom-in').addEventListener('click', () => setZoom(zoom * 1.25));
+    document.getElementById('fit').addEventListener('click', () => setZoom(1));
+  </script>
+</body>
+</html>
