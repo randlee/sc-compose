@@ -73,11 +73,11 @@ literal text by `attach` and graph-mode `pour`.
 | Field | Required | Meaning |
 |---|---|---|
 | `schema` | yes | Always `sc-compose/beads/v1`. |
-| `operation` | yes | Set by the subcommand. |
-| `working_directory` | yes | Absolute workspace root. Templates and rendered formulas must stay inside it; symlinks out of it are refused. |
+| `operation` | yes | Wire values use snake_case: `render`, `validate`, `preview_pour`, `pour`, `preview_attach`, or `attach`. The CLI preview subcommands use hyphens and determine the effective operation. |
+| `working_directory` | yes | Workspace root. Relative paths resolve from the process working directory; an absolute path is recommended. Templates and rendered formulas must stay inside it; symlinks out of it are refused. |
 | `template` | yes | The `.formula.toml.j2` or `.formula.json.j2` template, relative to `working_directory`. |
 | `rendered_formula` | yes | Where the rendered `.formula.toml` / `.formula.json` is written. Any existing directory inside `working_directory`; no Beads `formulas/` directory is needed. |
-| `formula_name` | for `pour` and `preview-pour` | The formula's name in the active registry. Optional for the other operations; only `attach` and `preview-attach` require the portable name grammar. |
+| `formula_name` | for `pour` and `preview-pour` | The formula's name in the active registry. Optional for other operations. Attach and preview-attach require the portable name grammar; a non-portable value is rejected during request deserialization. Other subcommands tolerate legacy names. |
 | `compose_variables` | yes (may be `{}`) | Structured JSON values for the template (`{{{ ... }}}`, loops, conditionals). |
 | `bead_variables` | yes (may be `{}`) | Scalar values passed to `bd` as `--var` by registry pour only. Must be `{}` for attach and graph pour. |
 | `bd_executable` | no | Path to `bd`; default `bd` on `PATH`. |
@@ -85,6 +85,8 @@ literal text by `attach` and graph-mode `pour`.
 | `parent` | for attach ops only | Id of the existing bead to attach under. |
 | `ref` | for attach ops only | Name of this attachment, `[A-Za-z0-9_-]{1,32}` (no `.`; `-` is allowed, for example `qa1-f1-r1`). |
 | `relations` | no | Extra edges; attach operations and graph pour only. See "Linking to existing beads". |
+
+Unknown request fields are ignored.
 
 ## render and validate
 
@@ -365,7 +367,9 @@ A pour only knows whether it is a registry or graph pour after locating the
 registry, so two pour mistakes are refused receipts (exit `2`) instead:
 `bead_variables` set on a graph pour (`BEADS_GRAPH_FORMULA_UNSUPPORTED`,
 reason `bead_variables_set`) and `relations` on a registry pour
-(`BEADS_GRAPH_RELATION_INVALID`, reason `registry_pour`). In a graph pour,
+(`BEADS_GRAPH_RELATION_INVALID`). Its refusal stage is `preview_pour` or
+`pour`, and the stage diagnostic is `relations are unavailable for registry pour`.
+In a graph pour,
 `validate` still runs `bd cook --dry-run` as before (the mode is not known
 yet); the graph checks above run at the start of the `preview_pour` / `pour`
 stage, after `resolve_active_registry` has selected graph mode.
@@ -438,6 +442,9 @@ identifier grammar. They retain usage exit 3. An invalid identifier in an otherw
 well-formed, authorized request keeps its typed `BEADS_GRAPH_ID_INVALID` error; the
 subcommand, not the request file's `operation`, decides how it is reported: exit 3
 (a request error) for `render`, `validate`, `preview-pour` and `pour`, and a refused
-receipt with exit 2 only for `attach` and `preview-attach`. The subcommand likewise
+receipt with exit 2 for invalid parent, ref, step or bead identifiers in `attach`
+and `preview-attach`. A non-portable `formula_name` on either attach command is
+instead rejected during request deserialization with
+`BEADS_REQUEST_DESERIALIZATION_FAILED` (exit 3). The subcommand likewise
 decides whether a legacy (non-portable) `formula_name` is tolerated: it is for every
 subcommand except `attach` and `preview-attach`.
