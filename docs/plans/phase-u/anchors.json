@@ -36,6 +36,1094 @@
           "status": "locked"
         }
       ]
+    },
+    {
+      "id": "ANC-002",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "In advanced Beads rendering, tight {{key}} variable expressions must be rendered before bd receives the formula.",
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "tight values before bd",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "render.rs:bead_variables_render_padded_and_tight_placeholders",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-007"
+        }
+      ]
+    },
+    {
+      "id": "ANC-003",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "In advanced Beads rendering, padded {{ key }} variable expressions must be rendered before bd receives the formula.",
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "padded values before bd",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "render.rs:bead_variables_render_padded_and_tight_placeholders",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-007"
+        }
+      ]
+    },
+    {
+      "id": "ANC-004",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "In advanced Beads rendering, variable expressions using the current loop item must be rendered before bd receives the formula.",
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "loop-local values before bd",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "bdb3bdae single_pass_render.rs FUZZ-171-03",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-007"
+        }
+      ]
+    },
+    {
+      "id": "ANC-005",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "In advanced Beads rendering, applying the lowercase filter to the value A{BC must produce a{bc.",
+      "quote": "Filters act on the real value, so A{BC lowercases to a{bc and has length 4.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-009; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "lowercase sees literal value",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "bdb3bdae single_pass_render.rs FUZZ-171-09",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-009"
+        }
+      ]
+    },
+    {
+      "id": "ANC-006",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "In advanced Beads rendering, applying the length filter to the value A{BC must produce 4.",
+      "quote": "Filters act on the real value, so A{BC lowercases to a{bc and has length 4.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-009; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "length sees literal value",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "bdb3bdae single_pass_render.rs FUZZ-171-09",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-009"
+        }
+      ]
+    },
+    {
+      "id": "ANC-007",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "In advanced Beads rendering, an included fragment's frontmatter default must supply an otherwise missing variable value.",
+      "quote": "Include defaults.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-010; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "included default supplies missing value",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "bdb3bdae:single_pass_render.rs:fuzz_171_11_include_defaults_reach_the_render_context; d754230a:render.rs:frontmatter_default_satisfies_an_otherwise_undefined_variable",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-010"
+        }
+      ]
+    },
+    {
+      "id": "ANC-008",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Graph-based Beads pour must accept caller-supplied bead variable inputs.",
+      "quote": "Bead inputs on graph and attach pour",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-011; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "bead inputs on graph pour",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "d754230a graph.rs/graph_bd.rs graph input cases",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-011"
+        }
+      ]
+    },
+    {
+      "id": "ANC-009",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Beads attach pour must accept caller-supplied bead variable inputs.",
+      "quote": "Bead inputs on graph and attach pour",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-011; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "bead inputs on attach pour",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "d754230a graph.rs/graph_bd.rs attach input cases",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-011"
+        }
+      ]
+    },
+    {
+      "id": "ANC-010",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Beads rendering must offer an explicit bd-owned mode that leaves ordinary {{ expression }} text for bd to evaluate.",
+      "quote": "bd-owned expressions as an explicit mode",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-012; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "explicit bd-owned mode",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "bdb3bdae:single_pass_render.rs:bd_mode_keeps_ordinary_expressions_byte_exact",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-012"
+        }
+      ]
+    },
+    {
+      "id": "ANC-011",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Beads preview-attach must refuse a graph-plan output path occupied by a directory before invoking bd.",
+      "quote": "refusing blocked graph plans before bd",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-013; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "blocked graph path before any bd",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "44bcea50:CLI fuzz_171_21_preview_attach_refuses_blocked_graph_plan_before_bd; trace must not exist",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-013"
+        }
+      ]
+    },
+    {
+      "id": "ANC-012",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "A Beads graph-plan output-path failure must identify the failing graph-plan path in the human diagnostic.",
+      "quote": "naming plan path failures",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-015; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "human graph-plan path",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "44bcea50:CLI fuzz_171_21_preview_attach_refuses_blocked_graph_plan_before_bd",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-015"
+        }
+      ]
+    },
+    {
+      "id": "ANC-013",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "A Beads graph-plan output-path failure must name graph_plan as its JSON error details.field.",
+      "quote": "naming plan path failures",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-015; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "JSON graph-plan field",
+      "scope": "sc-composer-beads rendering and sc-compose bead render/pour/attach commands",
+      "deterministic_check": "44bcea50:CLI fuzz_171_21_preview_attach_refuses_blocked_graph_plan_before_bd; cbd26d57:error_json.rs",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-015"
+        }
+      ]
+    },
+    {
+      "id": "ANC-014",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "sc-compose must use docli to generate its CLI documentation.",
+      "quote": "we need to add docli for cli documentation generation",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-003; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "docli generates CLI documentation",
+      "scope": "u-6 CLI documentation generation",
+      "deterministic_check": "inspect generator invocation and generated reference source",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-003"
+        }
+      ]
+    },
+    {
+      "id": "ANC-015",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Every sc-compose publish must run docli.",
+      "quote": "docli must be run every publish (stale documentation blocks preflight)",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "docli runs every publish",
+      "scope": "u-6/u-9 publishing preparation and later release workflow",
+      "deterministic_check": "inspect publish/preflight docli invocation",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-004"
+        }
+      ]
+    },
+    {
+      "id": "ANC-016",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Stale sc-compose CLI documentation must block release preflight.",
+      "quote": "docli must be run every publish (stale documentation blocks preflight)",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "stale CLI docs block preflight",
+      "scope": "u-6/u-9 preflight configuration",
+      "deterministic_check": "stale generated reference negative preflight test",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-004"
+        }
+      ]
+    },
+    {
+      "id": "ANC-017",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The Rust CLI archive must support macOS x64, macOS arm64, Windows x64, Windows arm64, Linux x64 and Linux arm64.",
+      "quote": "support of mac x64/arm, win x64/arm, linux x64/arm for rust/wheel/go distributed through all applicable channels",
+      "kind": "structural",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-001; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "six platforms for Rust CLI archive",
+      "scope": "Phase U release artifact platform configuration",
+      "deterministic_check": "compare six platform targets against v1.7.0 manifest, workflows and Go module artifacts",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-001"
+        }
+      ]
+    },
+    {
+      "id": "ANC-018",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The sc-compose Python wheel must support macOS x64, macOS arm64, Windows x64, Windows arm64, Linux x64 and Linux arm64.",
+      "quote": "support of mac x64/arm, win x64/arm, linux x64/arm for rust/wheel/go distributed through all applicable channels",
+      "kind": "structural",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-001; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "six platforms for sc-compose Python wheel",
+      "scope": "Phase U release artifact platform configuration",
+      "deterministic_check": "compare six platform targets against v1.7.0 manifest, workflows and Go module artifacts",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-001"
+        }
+      ]
+    },
+    {
+      "id": "ANC-019",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The sc-sha Python wheel must support macOS x64, macOS arm64, Windows x64, Windows arm64, Linux x64 and Linux arm64.",
+      "quote": "support of mac x64/arm, win x64/arm, linux x64/arm for rust/wheel/go distributed through all applicable channels",
+      "kind": "structural",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-001; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "six platforms for sc-sha Python wheel",
+      "scope": "Phase U release artifact platform configuration",
+      "deterministic_check": "compare six platform targets against v1.7.0 manifest, workflows and Go module artifacts",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-001"
+        }
+      ]
+    },
+    {
+      "id": "ANC-020",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The sc-composer-beads Python wheel must support macOS x64, macOS arm64, Windows x64, Windows arm64, Linux x64 and Linux arm64.",
+      "quote": "support of mac x64/arm, win x64/arm, linux x64/arm for rust/wheel/go distributed through all applicable channels",
+      "kind": "structural",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-001; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "six platforms for sc-composer-beads Python wheel",
+      "scope": "Phase U release artifact platform configuration",
+      "deterministic_check": "compare six platform targets against v1.7.0 manifest, workflows and Go module artifacts",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-001"
+        }
+      ]
+    },
+    {
+      "id": "ANC-021",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The sc-sha-go Go native module must support macOS x64, macOS arm64, Windows x64, Windows arm64, Linux x64 and Linux arm64.",
+      "quote": "support of mac x64/arm, win x64/arm, linux x64/arm for rust/wheel/go distributed through all applicable channels",
+      "kind": "structural",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-001; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "six platforms for sc-sha-go Go native module",
+      "scope": "Phase U release artifact platform configuration",
+      "deterministic_check": "compare six platform targets against v1.7.0 manifest, workflows and Go module artifacts",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-001"
+        }
+      ]
+    },
+    {
+      "id": "ANC-022",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Each sc-compose release artifact must be distributed through every channel applicable to that artifact.",
+      "quote": "support of mac x64/arm, win x64/arm, linux x64/arm for rust/wheel/go distributed through all applicable channels",
+      "kind": "structural",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-001; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "applicable artifact channels",
+      "scope": "Phase U release channel configuration",
+      "deterministic_check": "artifact/channel table from v1.7.0 release/publish-artifacts.toml; scope table pins artifact identities without inventing channels",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-001"
+        }
+      ]
+    },
+    {
+      "id": "ANC-023",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "CI must run the full install matrix only in the integration test required by release preflight.",
+      "quote": "I want ci running full matrix ONLY for integration test (required for preflight) NOT every sprint",
+      "kind": "prohibition",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-002; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "full matrix only in integration test",
+      "scope": "u-8/u-9 GitHub integration workflow and preflight",
+      "deterministic_check": "inspect triggers and preflight dependency; full install matrix is platform/Python/installer coverage",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-002"
+        }
+      ]
+    },
+    {
+      "id": "ANC-024",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Sprint CI must not run the full install matrix.",
+      "quote": "I want ci running full matrix ONLY for integration test (required for preflight) NOT every sprint",
+      "kind": "prohibition",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-002; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "no full matrix in sprint CI",
+      "scope": "u-8/u-9 sprint CI workflows",
+      "deterministic_check": "inspect sprint/PR CI for full install matrix invocation",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-002"
+        }
+      ]
+    },
+    {
+      "id": "ANC-025",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The final Beads regression exercise must verify that previous fuzz test cases have no regression.",
+      "quote": "it should have fuzz tests at the end to confirm everything works (and verify previous fuzz tests run have no regression).",
+      "kind": "structural",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-018; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "previous fuzz cases at end",
+      "scope": "u-13 closing Beads fuzz/regression sprint",
+      "deterministic_check": "replay the preserved historical inputs on final candidate; missing repros remain missing",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-018"
+        }
+      ]
+    },
+    {
+      "id": "ANC-026",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Beads pouring must be documented in requirements or an architectural decision record.",
+      "quote": "pouring clearly documented (or ADR)",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-020; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "summary": "pouring documented",
+      "scope": "u-10/u-11 consuming planning requirements and ADR",
+      "deterministic_check": "FR24/ADR0024 contain operation inputs/output/pour ownership",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "524772f4:ANC-020"
+        }
+      ]
+    },
+    {
+      "id": "ANC-027",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Phase U must exclude publishing from its sprint work.",
+      "quote": "we will publish AFTER phase-u, do not include publishing as part of phase-u.  w/ publish of 1.8.0 assumed, let's continue this discussion",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source user transcript line5233",
+      "summary": "publish after Phase U",
+      "scope": "all Phase U sprints, especially u-1/u-9",
+      "deterministic_check": "no publishing step in Phase U execution",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "user transcript line5233"
+        }
+      ]
+    },
+    {
+      "id": "ANC-028",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The release following Phase U must be planned as version 1.8.0.",
+      "quote": "we will publish AFTER phase-u, do not include publishing as part of phase-u.  w/ publish of 1.8.0 assumed, let's continue this discussion",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source user transcript line5233",
+      "summary": "next release 1.8.0",
+      "scope": "u-1/u-9 version and release preparation",
+      "deterministic_check": "inspect release version targets without publishing",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "user transcript line5233"
+        }
+      ]
+    },
+    {
+      "id": "ANC-029",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Phase U tests must use controlled inputs so their results do not depend on races, timing, sleeps, event-loop ordering or load.",
+      "quote": "Flaky tests are prohibited by design. Any flaky test identified (one that relies on a race, timing, sleeps, event-loop ordering or load) must be re-designed to be deterministic by driving the logic with controlled inputs.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source /Users/randlee/.claude/CLAUDE.md",
+      "summary": "deterministic tests",
+      "scope": "all test-writing/verification sprints including u-3/u-10/u-12",
+      "deterministic_check": "review relevant tests for controlled deterministic drivers",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "/Users/randlee/.claude/CLAUDE.md"
+        }
+      ]
+    },
+    {
+      "id": "ANC-030",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Changes to Windows-specific code must receive a cargo-xwin Windows cross-build check.",
+      "quote": "use xwin",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source memory/windows-cross-check-before-ci.md quoted Rand words; scope supplied by that note",
+      "summary": "Windows cross-build",
+      "scope": "u-4 Windows cross checks and any sprint touching Windows paths",
+      "deterministic_check": "cargo xwin test --target x86_64-pc-windows-msvc --no-run",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "memory/windows-cross-check-before-ci.md quoted Rand words; scope supplied by that note"
+        }
+      ]
+    },
+    {
+      "id": "ANC-031",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Phase U lint work must leave lint passing.",
+      "quote": "you need to attribute or add the words so lint passes",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source memory/lint-must-pass-allowlist-words.md quoted Rand words; narrow original codespell context retained for review",
+      "summary": "lint passes",
+      "scope": "u-2 lint policy and u-9 aggregate acceptance",
+      "deterministic_check": "just lint on exact candidate; no disabling rules",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "memory/lint-must-pass-allowlist-words.md quoted Rand words; narrow original codespell context retained for review"
+        }
+      ]
+    },
+    {
+      "id": "ANC-032",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Windows amd64 integration tests must run on GitHub instead of unavailable local Windows amd64 hardware.",
+      "quote": "you can run win amd64 and manylinux on github, but do not add them to the normal ci pipeline runs.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source user transcript5764;5756 states local hardware unavailable",
+      "summary": "Windows integration runs on GitHub",
+      "scope": "u-8/u-9 full integration test platform execution",
+      "deterministic_check": "inspect integration runner selection",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "user transcript5764;5756 states local hardware unavailable"
+        }
+      ]
+    },
+    {
+      "id": "ANC-033",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Normal CI pipeline runs must exclude the Windows amd64 and manylinux integration runs.",
+      "quote": "you can run win amd64 and manylinux on github, but do not add them to the normal ci pipeline runs.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source user transcript5764",
+      "summary": "integration runs outside normal CI",
+      "scope": "u-8/u-9 full integration workflow",
+      "deterministic_check": "inspect CI invocation paths; does not ban ordinary Windows unit CI",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "user transcript5764"
+        }
+      ]
     }
   ]
 }
