@@ -1,0 +1,16 @@
+# u-4: windows-cross-contract
+
+## Description
+
+### Final cross contract; no mandatory throwaway 0.8.4 success milestone
+### Deliverables
+1. Consume U.2's approved policy and the approved >=3.11/all-three-packages ABI3 contract to declare final Windows check/clippy rows and cargo-xwin/rustup prerequisites for U.5. Use command=["cargo","check","--workspace"], platform="windows", target="x86_64-pc-windows-msvc"; matching clippy selects all-targets/all-features/-D warnings. cwd/env_paths are explicit where required.
+2. Do not require PYO3_CROSS_PYTHON_VERSION for migrated abi3 packages. All three packages are ABI3 under D5; final xwin rows must run without PYO3_CROSS_PYTHON_VERSION. Do not retain an interpreter-specific sibling escape hatch. Diagnose the observed PyO3/lld-link/Cargo-metadata issue against the actual final contract, never suppress Clippy or exclude Python members.
+3. Provide deterministic row-selection/provisioning fixtures and the supported kit input consumed by U.5. Preserve native Windows MSVC+x64/GNU+x64 and LinuxARM64 coverage. Local xwin check/clippy rows target Windows x64; required Windows ARM64 release artifacts and runtime/install verification belong to U7/U8 and are not excluded. Explicit all/windows selection must include the intended rows; host-only skips are not proof.
+4. Do not block this contract on full success under the superseded 0.8.4 environment or first encode a mandatory 3.11-only configuration that ABI migration immediately replaces. U.5 installs the final supported 0.8.5 contract; U.9 owns actual upgrade cross/CI success and U.13 rechecks the complete final candidate. Any unresolved runtime issue stays visible there, never waived.
+
+Approved Windows cross-command assertion: extend the existing cross-row fixtures with a deterministic script-level check of the actual dispatched argv. Every Windows cross-build/check must invoke cargo-xwin (cargo xwin check/clippy as applicable); generic consumer rows are checked after driver expansion. Native Windows jobs are excluded from this cross-host rule. Include a valid cross argv, a missing-xwin rejection and a native-Windows control; controlled inputs only.
+
+## Acceptance criteria
+
+cargo test --workspace, workspace build and deterministic row/provisioning fixtures pass. Supported released-kit input schema validates; all intended check/clippy rows and prerequisites are selected by explicit all/windows scope. Package-specific ABI/env declarations match D4/D5 and no member/rule is excluded. Contract is handed to U.5. This closes row/provisioning definition only; actual final selected-row success and Linux/Windows/ARM64 CI remain mandatory U.9 acceptance, not a false contract PASS for runtime execution. The script-level argv assertion proves every selected Windows cross-build/check uses cargo-xwin and does not reject native Windows jobs; it checks effective driver argv rather than grepping generic cargo rows.

@@ -1,0 +1,17 @@
+# u-7: stable-abi-wheels
+
+## Description
+
+### Issue/release and decisions
+#820 https://github.com/randlee/sc-compose/issues/820 spans U.7 build and U.8 install validation; both are REQUIRED for 1.8.0. #819 is superseded, close when #820 lands. D4/D5 APPROVED: CPython >=3.11 for ALL THREE packages sc-compose, sc-sha and sc-composer-beads. This sprint does not close #820 alone. No publishing.
+### Deliverables
+1. For issue #820 (FR-8 constrains deterministic results/diagnostics), under D4/D5 approval add pyo3 abi3-py311 to sc-compose-py on the carried PyO3 0.30/#829 layer, set requires-python >=3.11 and matching metadata/classifiers as approved. Keep extension-module wheel linkage separate from normal Rust tests. Enable cp311-abi3 wheel builds for all6 targets: macOS x64/arm64, Windows x64/arm64 and Linux x64/arm64. U.8 builds once per platform and reuses those hashes across all install cells. Frozen #829 is not edited. The approved floor is 3.11; do not substitute another floor. Windows arm64 and macOS Intel are required, not deferred.
+2. Audit bindings/python/python and stubs for Python 3.11 compatibility: runtime tomllib, evaluated X|Y annotations, imported typing APIs and packaging constraints. Use compatibility code/dependencies only where actual 3.11 execution requires it; test package import/annotations/stubs at the selected floor. Audit all three packages' metadata, Python/stubs and extension sources under the same 3.11 floor.
+3. Compile all selected extension modules with PyO3 0.30 limited API enabled and inspect symbols/tags for accidental non-limited APIs. Run cargo check -p sc-compose-py --features pyo3/abi3-py311, cargo test --workspace and built-wheel binding regressions; equivalent checks for both sibling packages are required. A filename alone is not ABI proof. Hand U.8 the accepted package/build invocation and selected floor/package decisions; the 24-cell install matrix and index rehearsal belong to U.8.
+4. Hand U.8 the accepted ABI feature/package metadata, floor/sibling decisions and built-wheel invocation/artifact contract. U.4 owns final xwin configuration and U.8 owns six-platform build-once/install validation. This sprint never edits shared lint/kit/CI files or waits for CLI-reference output. #787 always-on checked JSON behavior is approved under D3 and implemented by comp's recovery replay; do not add the dropped opt-in _checked variants. This ABI sprint preserves that approved behavior.
+
+Current user ruling: abi3-py311 and requires-python>=3.11 on all3 distributions, no artificial upper bound. Same wheel supports3.12+;<=3.10 excluded by choice. Document macOS CLT3.9 needing an upgraded interpreter. Six OS/architecture targets are all required; U8 executes their artifact/install matrix.
+
+## Acceptance criteria
+
+D4/D5 approved: all three bindings have matching PyO3 0.30 ABI feature, metadata and Python/stub floor-audit evidence; >=3.11/cp311-abi3 is required. cargo check -p sc-compose-py --features pyo3/abi3-py311 and cargo test --workspace pass, with both sibling equivalents, actual limited-API symbol/tag inspection and binding regressions. No public API removal or default change beyond approved D3 #787. Accepted package/build contract handed to U.8; no claim that final xwin rows or the 24-cell install matrix already passed. Both U.7 and U.8 remain required for #820.

@@ -1,0 +1,114 @@
+[
+  {
+    "id": "comp-u-7",
+    "title": "u-7: stable-abi-wheels",
+    "description": "## Issue/release and decisions\n#820 https://github.com/randlee/sc-compose/issues/820 spans U.7 build and U.8 install validation; both are REQUIRED for 1.8.0. #819 is superseded, close when #820 lands. D4/D5 APPROVED: CPython \u003e=3.11 for ALL THREE packages sc-compose, sc-sha and sc-composer-beads. This sprint does not close #820 alone. No publishing.\n## Deliverables\n1. For issue #820 (FR-8 constrains deterministic results/diagnostics), under D4/D5 approval add pyo3 abi3-py311 to sc-compose-py on the carried PyO3 0.30/#829 layer, set requires-python \u003e=3.11 and matching metadata/classifiers as approved. Keep extension-module wheel linkage separate from normal Rust tests. Enable cp311-abi3 wheel builds for all6 targets: macOS x64/arm64, Windows x64/arm64 and Linux x64/arm64. U.8 builds once per platform and reuses those hashes across all install cells. Frozen #829 is not edited. The approved floor is 3.11; do not substitute another floor. Windows arm64 and macOS Intel are required, not deferred.\n2. Audit bindings/python/python and stubs for Python 3.11 compatibility: runtime tomllib, evaluated X|Y annotations, imported typing APIs and packaging constraints. Use compatibility code/dependencies only where actual 3.11 execution requires it; test package import/annotations/stubs at the selected floor. Audit all three packages' metadata, Python/stubs and extension sources under the same 3.11 floor.\n3. Compile all selected extension modules with PyO3 0.30 limited API enabled and inspect symbols/tags for accidental non-limited APIs. Run cargo check -p sc-compose-py --features pyo3/abi3-py311, cargo test --workspace and built-wheel binding regressions; equivalent checks for both sibling packages are required. A filename alone is not ABI proof. Hand U.8 the accepted package/build invocation and selected floor/package decisions; the 24-cell install matrix and index rehearsal belong to U.8.\n4. Hand U.8 the accepted ABI feature/package metadata, floor/sibling decisions and built-wheel invocation/artifact contract. U.4 owns final xwin configuration and U.8 owns six-platform build-once/install validation. This sprint never edits shared lint/kit/CI files or waits for CLI-reference output. #787 always-on checked JSON behavior is approved under D3 and implemented by comp's recovery replay; do not add the dropped opt-in _checked variants. This ABI sprint preserves that approved behavior.\n\nCurrent user ruling: abi3-py311 and requires-python\u003e=3.11 on all3 distributions, no artificial upper bound. Same wheel supports3.12+;\u003c=3.10 excluded by choice. Document macOS CLT3.9 needing an upgraded interpreter. Six OS/architecture targets are all required; U8 executes their artifact/install matrix.",
+    "design": "Agent level: frontier. Own binding Cargo/pyproject files, Python runtime/stubs, limited-API feature/compile/symbol checks and Cargo.lock. All listed binding paths are in scope under approved D5. Approved D4 settings: pyo3 = { version = \"0.30\", features = [\"abi3-py311\"] }; requires-python = \"\u003e=3.11\"; wheel tag cp311-abi3-\u003cplatform\u003e; extension-module remains separate for maturin. Preserve API defaults/signatures except the explicit approved #787 malformed-JSON outcome change; no composer/ATM integration. FR-25.1/25.2 and accepted user-decision ADR-0025 govern platform scope and the Python ABI floor; ADR-0018/0021 preserve adapter boundaries. U.4 declares final xwin rows from D4/D5 independently; U.8 consumes this package candidate/build invocation for actual install tests. No documentation, managed kit or cross-config prerequisite: runs in parallel with U.2/U.3/U.6 after U.1. No shared root-file edits. E2 controls temporary build/check evidence.\nExact Target: all3 binding Cargo/pyproject/native/stub surfaces in owned_paths, PyO3 limited-API compile and supported Python metadata. Preserve source compatibility and root strict MiniJinja lock while changing binding features.",
+    "acceptance_criteria": "D4/D5 approved: all three bindings have matching PyO3 0.30 ABI feature, metadata and Python/stub floor-audit evidence; \u003e=3.11/cp311-abi3 is required. cargo check -p sc-compose-py --features pyo3/abi3-py311 and cargo test --workspace pass, with both sibling equivalents, actual limited-API symbol/tag inspection and binding regressions. No public API removal or default change beyond approved D3 #787. Accepted package/build contract handed to U.8; no claim that final xwin rows or the 24-cell install matrix already passed. Both U.7 and U.8 remain required for #820.",
+    "status": "open",
+    "priority": 1,
+    "issue_type": "task",
+    "created_at": "2026-11-04T04:18:23Z",
+    "updated_at": "2026-11-04T05:05:55Z",
+    "metadata": {
+      "adrs": [
+        "ADR-0018",
+        "ADR-0021",
+        "ADR-0025"
+      ],
+      "agent_level": "frontier",
+      "branch": "sprint/u-7-stable-abi-wheels",
+      "closure_type": "integration",
+      "difficulty": "hard",
+      "layer": 7,
+      "model_class": "",
+      "owned_paths": [
+        "bindings/python/Cargo.toml",
+        "bindings/python/pyproject.toml",
+        "bindings/python/python/**",
+        "bindings/python/README.md",
+        "bindings/python/tests/**",
+        "bindings/sc-sha-python/Cargo.toml",
+        "bindings/sc-sha-python/pyproject.toml",
+        "bindings/sc-sha-python/python/**",
+        "bindings/sc-sha-python/tests/**",
+        "bindings/sc-composer-beads-python/Cargo.toml",
+        "bindings/sc-composer-beads-python/pyproject.toml",
+        "bindings/sc-composer-beads-python/python/**",
+        "bindings/sc-composer-beads-python/tests/**",
+        "Cargo.lock",
+        "bindings/python/src/**",
+        "bindings/sc-sha-python/src/**",
+        "bindings/sc-composer-beads-python/src/**"
+      ],
+      "phase": "u",
+      "pr_target": "sprint/u-1-frozen-carry-in",
+      "relation": "parallel_safe",
+      "release_train": "1.8.0",
+      "requirements": [
+        "FR-25.1",
+        "FR-25.2"
+      ],
+      "sprint": "u-7",
+      "stack": "phase-u",
+      "target_boundary": "Python stable-ABI extension build and runtime floor",
+      "worktree": "/Users/randlee/github/sc-compose-worktrees/sprint/u-7-stable-abi-wheels"
+    },
+    "labels": [
+      "draft",
+      "phase-u",
+      "stack:phase-u",
+      "stage:sprint",
+      "train:1.8.0"
+    ],
+    "dependencies": [
+      {
+        "id": "comp-phase-u",
+        "title": "phase-u: managed lint, complete platform delivery and existing Beads ports — DRAFT",
+        "description": "## DRAFT goal\nDeliver release-ready Phase U changes on integrate/phase-u; publish1.8.0 only AFTER Phase U. Beads is the plan authority. This draft is not dispatch approval.\n## Sprint set / agent level\nU1 frozen carry-in/rebuild [fast]; U2 policy+early byte check [normal]; U3 ONE existing-refactor verification batch, three crate sections [normal]; U4 cross contract [frontier]; U5 released lint/publish kits+consumer preflight config [frontier]; U6 external sc-docli reference [normal]; U7 all-three ABI3 bindings [frontier]; U8 complete platform/integration install matrix [normal]; U9 upgrade acceptance [frontier]; U10 port/verify compatible Beads [normal]; U11 port/verify existing advanced pour [frontier]; U12 extend/reuse compatibility check [normal]; U13 closing regression/fuzz+whole-phase review [frontier]. Numbering is contiguous; branch/layer numbers never serialize independent work.\n## Current decisions\nD1 APPROVED: [line_counts] max_production_lines=1000, no exclusions.\nD2 APPROVED: exact identity policy and canonical env owners from the reviewed proposal; ONE canonical non-Rust JSON fixture supplies policy/test token data, including ATM_HOME; repo_boundaries.rs removes concat! and loads the fixture. Forbidden literals remain randlee/team-lead/arch-comp/arch-ccomp/comp/comps/team-lead@example.invalid/ATM_HOME; canonical owners remain template_store.rs for SC_COMPOSE_DATA_DIR/SC_COMPOSE_TEMPLATE_DIR and commands/template_lint.rs for SC_COMPOSE_TEMPLATE_CONTRACTS_SCOPE.\nD3 APPROVED — FIX #787, owner comp's completed recovery replay, recorded by U.1 (dc134dc2 plus 6311b90a in the selected base): wheel compose(), compose_file() and render_loaded_template() always apply the CLI checked-render contract to JSON outputs selected by extension/format, raising ScRenderError ERR_RENDER_JSON_MALFORMED. Replay source 588ab3d7 / prior replay 49e4dd59, with a caller-visible CHANGELOG Fixed entry naming #787. Drop a50d4d9f/e8143961 opt-in variants. Preserve non-JSON bytes and schema-less MiniJinja rendering semantics; D7 names the approved malformed-JSON checked-output exception and the accepted validation false-positive removals; unrelated legacy behavior is not exempted.\nD4 SUPERSEDING RULING: CPython\u003e=3.11, abi3-py311, for ALL THREE distributions;3.12+ uses the same stable-ABI wheel.\u003c=3.10 is excluded by choice. macOS CLT /usr/bin/python3 at3.9 needs a newer interpreter. D5 all-three package scope retained.\nD6 CURRENT BASE: origin/integrate/phase-u, now on develop9a39bc1b. No develop replacement/reset/recovery lease step. Preserve MiniJinja =2.18.0 and accepted recovery deltas; U1 rebuilds the frozen #825/#831 stack on this base.\nD7 APPROVED: v1.7.0 Rust/Python/CLI/overlaid-suite/schema-less compatibility verification in U.12 with final U.13 acceptance, with the #787 JSON bug-fix exception in D3 and this accepted exception: D7 permits only the diagnostic false-positive removals already in selected-base commits 9402a2bb/0a1052d8/2a06513a (True/False/None literals, filter/call targets, Jinja test/block-tag names and comment/raw bodies cease erroneous ERR_VAL_UNDECLARED_TOKEN); render bytes remain identical where both versions succeed, no real variable may be missed and no new rejection may be introduced. The user condition is MET by independent QM PASS 01M6HZR22HZXX4HDW1CMFHHA86: 229 unique *.j2 (atm-core150 + sc-compose79;178 content duplicates removed), v1.7.0 f4fda4b9 vs 3997e3566a5ff1ee6d97c5fc16c4e840ffd850db, across validate, validate --strict, render, render+vars and render --strict --check-render. The only new acceptance was14 previously false-rejected plan-hardening/orchestration XML templates; unchanged exit comparison excludes those explicitly approved rejection-to-acceptance cases. This does not exempt arbitrary CLI/JSON diagnostic changes or future regressions.\n\n## Delivery coverage\nRequired6platforms(macOS/Windows/Linux x x64/arm64) x5artifacts(Rust CLI, sc-compose/sc-sha/sc-composer-beads wheels, sc-sha-go)=30 artifact/platform cells, through applicable existing channels. Rust:GitHub/Homebrew/winget/Scoop; wheels:PyPI with TestPyPI rehearsal; Go:target ZIP modules/GitHub assets. Preserve crates.io source-package delivery; do not invent a Go package registry. Current missing cells are obligations, not optional triage.\nFull install matrix is ONLY the workflow_dispatch integration test and MUST be verified by consumer preflight before publish. Tested Python minors3.11/3.12/3.13/3.14 retain the previous declared ceiling, not an upper product bound;6platforms x4minors=24 interpreter/platform cells, all3wheels, pip+uv. Current-only golden byte checks run in every normal sprint CI and locally. Sprint CI never runs the full integration matrix.\n## Existing Beads implementation\nPort and verify the existing recovered code/tests/fuzz; do not rebuild from scratch or blindly import strict-only ancestry. sc-compose constructs structure/values, bd validates/creates; advanced mode avoids bd interpolation defects. Preserve legacy Rust/Python/CLI compatibility and public struct literals. Existing tests pin safe transport, include defaults, filters, explicit native ownership, invalid-graph/path handling and diagnostics. Use real orchestration sprint/finding formulas as fixtures. User confirmations, source/test pins and accepted narrow API adaptations are recorded in planning, not silently chosen during a port.\n## Issue ownership\n#648 U6/U9; #817 U1/U9; #820 U7/U8/U9; #819 superseded by820; #618 U11/U12/U13; #785 retained stripping verified U10; #791 explicit validation U10, never a strict-only default. All remain open until actual acceptance; no publication in this phase.\n\n## Planning-owned dispatch preconditions (single gate definition)\nBefore dispatching U10 or U11, the lead records the approved FR-24 revision and accepted ADR-0024 revision, plus a disposition/evidence for each ADR-0024 Open decision1 selector/source-compatible API,2 input collisions,3 registry routing/flat literal-safe boundary,4 include/default/missing-value semantics,5 explicit schema-validation surface,6 literal-safe evaluation strategy,7 broader pinned-bd semantics. Separately record the supported bd release artifact/version/checksum/platform scope; development probe407fe27 is not an implicit production pin. Unresolved entries block those port sprints, including U10 explicit validate --brace-count under decision5. These are planning-owned choices, not choices delegated to port developers. ADR-0024 decision8 gates only the U13 complete historical-coverage claim, not unrelated implementation. Plan-QA PASS alone does not resolve these decisions. Current state: these entries remain pending; no values are fabricated by this plan correction.",
+        "design": "## Boundary map\nCLI owns orchestration/external-tool invocation and error normalization; sc-composer stays pure; Beads library owns host-neutral rendering/argv/graph receipts; bindings are thin adapters. No ATM runtime dependency. CLI-\u003ecomposer/beads, beads-\u003ecomposer, composer-\u003esc-sha; adapters-\u003eowned libraries. U1 preserves the approved dependency/advisory/inventory fixes and strict MiniJinja pin.\n## Landing rules — sole owner\nL1. All Phase U code is based on integrate/phase-u. U1 rebuilds/lands the frozen #831 then17 #825 rows early, preserving source/QA mappings, approved adaptations and drop dispositions. No planner reset or develop replacement.\nL2. One authorized stack writer composes append-only layers. Developers use isolated worktrees/disjoint fences; planned PR targets are lower bounds, not a serial schedule. No direct sprint PR to develop.\nL3. After final exact-candidate acceptance and ONE all-change phase-ending review in U13, the authorized lead/writer performs the ordinary reviewed phase landing from integrate/phase-u to develop. This planning task does not land code. Publication1.8.0 follows Phase U.\n## Parallel ownership\nAfter U1, U2/U3/U6/U7 run concurrently. U3 is readonly on the carried candidate. U2-\u003eU4-\u003eU5 is the policy/kit track; U7 supplies ABI code. U8 depends on U7 AND U5 because it executes the actual kit/build-manifest contract and owns overlapping release configuration after the kit install; this is a real producer/file dependency, not a docs-to-ABI edge. U9 consumes U3/U6/U8 (U5 is already an ancestor), then the user-directed U10-\u003eU11-\u003eU12-\u003eU13 Beads chain. No U6-\u003eU7 edge. U2's byte-check CI step precedes U5/U9 edits to ci.yml. U12/U13 extend the same harness, never create a competing baseline framework.\n## Evidence lifetime — sole owner\nE1. U1 has the one frozen18-row source/QA table. Stop maintaining it after carry-in acceptance except changed-head dispositions; retain ordinary phase history. The old import payload is historical, not a second plan; live Beads is authoritative. Only index/config/DAG are committed orchestration metadata.\nE2. Keep ordinary command stdout/stderr, exits, candidate identities, run links and real artifact hashes. Full-matrix workflow evidence must remain accessible through the publication preflight that consumes it (which is after phase closure); expired/missing evidence is not PASS, retain via existing CI controls or rerun that actual candidate. Reuse exact-head evidence; affected changes/failures justify reruns. After the final consumer accepts it, stop maintaining summaries and let ordinary scratch/artifact retention expire. No new evidence service/certificate/schema/database. Persistent regressions and shipped docs remain product assets.\nE3. Every real-bd exercise uses one isolated throwaway instance at a time, never shared3308; lead coordinates exclusive use. Remove owned probe services, install environments, baseline overlays and temporary worktrees after needed results/inputs are retained, success or failure. Private rehearsal uploads nowhere. Actual repository plan writes use only this repo's configured tracker.\n## Contracts and decisions\nManaged sc-lint0.8.5 is verified from the released native/wheel/kit: exit10 retains ok:true/data.findings, helper5 retains ok:false/error.details.findings (capped10 plus true findings_count); config3/usage2; never turn findings into strict green. Preserve pytests, logging/artifacts, interpreter PATH and cross rows. sc-publish upgrade includes PR847 and consumes supported preflight_checks id/description/run plus kit docli config, no hand-patched vendored kit or consumer-specific kit feature. sc-docli is an external tool, never a crate dependency.\nThe approved defaults/compatibility rules govern ports. ADR/requirements decisions and amendments are planning-owned on the reviewed docs branch based on c089c8a3, never imported from the old strict-only plan ancestry. Existing-code/test evidence resolves meaning where it already exists; genuine remaining choices are named by the lead, not an excuse to rebuild. No new anchor locking is implied by pouring this draft.\n\nCorrective ownership: when U3/U12/U13 finds a defect, the lead/sole integration writer assigns the reviewed append-only corrective layer to the existing implementation owner and amends its explicit file fence before edits; verification sprints do not acquire arbitrary write scope. Cargo.lock has one writer: U7 after carry-in; U6 uses existing dependencies and does not regenerate it; U9 integration writer resolves combined manifest/lock consistency before acceptance. E2 requires a new qualifying publication-time full matrix for the final candidate after U10-U13 changes; U8 upgrade-time evidence is not reusable for changed shipped code.",
+        "acceptance_criteria": "1. Required exact-candidate macOS setup/lint/test, cargo test --workspace, all-scope Windows xwin compile/clippy and required Linux/Windows/ARM64 CI pass with strict rules; no skipped pytests, weakened assertions or flaky tests.\n2. All30 artifact/platform cells and all-three abi3-py311 metadata/installs are accounted for. Workflow-dispatch integration matrix is required by publish preflight; normal sprint CI runs the small byte check/cached install path, never the full matrix.\n3. U2's one current-only Python byte regression command uses committed v1.7.0 goldens and issue-linked approved bug exceptions; U5 exposes the same command through consumer preflight_checks; U12 extends/reuses it. Missing cases/goldens and failed render commands cannot pass as empty output.\n4. Existing Beads ports preserve supported APIs/default bytes except approved real bug fixes. Real sprint/finding orchestration formulas, actual created-value readback and closing historical fuzz regressions pass. Missing171-10 requires recovery or explicitly approved equivalent before complete coverage is claimed.\n5. U13 aggregates the final entire change set and single phase-ending review; root landing/evidence rules apply once. Nothing is published or merged by this draft planning operation. No dispatch until the plan-review bead is closed PASS.",
+        "notes": "DRAFT Phase U planning only. Imported from plan/phase-u-beads@00fc84c8; being revised to current user rulings. Not approved for implementation/dispatch. Beads is authoritative; no develop replacement or publishing during Phase U.",
+        "status": "open",
+        "priority": 2,
+        "issue_type": "epic",
+        "created_at": "2026-11-04T04:18:23Z",
+        "updated_at": "2026-11-04T05:05:51Z",
+        "metadata": {
+          "integration_branch": "integrate/phase-u",
+          "phase": "u",
+          "plan_scope": "epic"
+        },
+        "labels": [
+          "draft",
+          "phase-u",
+          "scope:epic"
+        ],
+        "dependency_type": "parent-child"
+      },
+      {
+        "id": "comp-phase-u-plan-qa",
+        "title": "phase-u: draft plan review — no dispatch before PASS",
+        "description": "Review the live Phase U epic/sprint beads after capped2-round scope/adversarial hardening. This bead remains open until quality-mgr accepts the exact live plan. Requirements/ADRs and root current user decisions govern; no implementation/publish is dispatched by this draft.",
+        "status": "open",
+        "priority": 2,
+        "issue_type": "task",
+        "owner": "randlee@users.noreply.github.com",
+        "created_at": "2026-11-04T04:26:55Z",
+        "created_by": "comps",
+        "updated_at": "2026-11-04T04:26:55Z",
+        "labels": [
+          "draft",
+          "phase-u",
+          "stage:plan-review"
+        ],
+        "dependency_type": "blocks"
+      }
+    ],
+    "parent": "comp-phase-u",
+    "dependent_count": 3,
+    "dependency_count": 2,
+    "comment_count": 0,
+    "revision": "-7631093430539349873"
+  }
+]

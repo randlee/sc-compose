@@ -1,0 +1,14 @@
+# u-12: beads-compatibility-differential
+
+## Description
+
+### Reuse and extend the existing differential
+### Deliverables
+1. Reuse U2 scripts/check_render_regressions.py, committed fixed schema-less corpus/goldens/approved per-issue exceptions and the SAME normal-CI/local/preflight command. Extend the assets with preserved Beads regression inputs and real orchestration sprint/finding formulas. Do not build a second golden framework or execute v1.7.0 during CI/preflight.
+2. Recover/copy the real133-case driver/corpus (19mixed files x7 args) and independent229-template inputs where available; distinguish actual schema-less cases from frontmatter/JSON/includes. Baseline goldens are generated ONCE with exact v1.7.0=f4fda4b9 then reviewed/committed. Missing inputs or baseline failures are not fabricated PASS.
+3. Preserve the broader Rust public-struct/API, CLI and Python legacy comparisons from the existing differential using mutually supported interpreter3.11 and the selected bd artifact. New explicit advanced behavior has its own positive oracle, not a demand to equal deliberately unexpanded legacy strings. Approved D7 exceptions only, no unapproved API/default/output drift.
+4. Run actual comparisons/real-bd created-value readback, route incompatibilities to owning corrective work, and rerun affected checks on changes. Hand the exact candidate to U13. This is verification/integration, not a new runtime feature or release approval.
+
+## Acceptance criteria
+
+cargo test --workspace and actual API/CLI/Python comparisons pass on the exact candidate. Same current-only byte check passes locally/normal CI/preflight, fails unlisted differences/failed render/missing inputs, and preserves genuine approved exceptions only. Every claimed corpus case has actual input/oracle/result; no golden regeneration against broken candidate output. No source/default/API removal outside approved exceptions.

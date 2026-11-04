@@ -1,0 +1,14 @@
+# u-6: generated-cli-reference
+
+## Description
+
+### #648: sc-docli-generated CLI reference
+### Deliverables
+1. Emit the ACTUAL Clap command tree as the external sc-docli tool's supported model, including all public nested commands/options/defaults/values/help. Keep any model adapter thin; do not write a custom Markdown/HTML reference engine.
+2. Invoke pinned sc-docli externally to produce deterministic Markdown/offline and HTML/site reference. No docli/sc-docli Cargo dependency. Keep the manual/site navigation/version linked to the generated reference; no second handwritten flag inventory.
+3. Provide direct generate/check commands before U9 root wiring. Check detects stale output and changed public CLI metadata. U5 kit docli config invokes the same supported tool at publish; U9 verifies actual installed offline payload/site and preflight failure.
+4. Preserve examples/escaping and complete nested command coverage. No dependency on U7 ABI implementation or unrelated kit work to develop the model/reference producer.
+
+## Acceptance criteria
+
+cargo test --workspace plus actual-Clap coverage/escaping/version/determinism tests pass. External sc-docli generates both supported formats; identical fixed model yields identical bytes; a stale/omitted nested command fails check. No custom competing generator or crate dependency. U9 verifies installed/offline/site delivery.

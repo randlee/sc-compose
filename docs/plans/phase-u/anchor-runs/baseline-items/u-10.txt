@@ -1,0 +1,17 @@
+# u-10: beads-compatible-a-port
+
+## Description
+
+### Port and verify existing — DRAFT appended sprint — after U.9 upgrades; no code/port authorization from this plan
+### Deliverables
+1. After the root planning-owned dispatch preconditions are met (including approved ADR-0024 decision5 for explicit validation, decision7 semantics and the separately recorded supported bd artifact), compose only the compatible A candidates ed7f6a5a (real-bd relations/inheritance/loop/expansion coverage), e2bdd8b2 (truthful retained-contract docs) and 0b214687 (explicit validate --brace-count) onto the actual U.9 candidate. These source commits already exist on fix/beads-compatible-pre-fuzz off c089c8a3 and remain pending review; preserve source/new-head mappings, do not recreate a frozen branch or assume prior approval.
+2. Retain existing registry/by-path/attach behavior, source-compatible request/receipt/error APIs and default rendering. Triple-brace strict validation is explicit (--strict --brace-count 3); omitted options retain legacy scanning. Do not import #791's global strict-only frontmatter enforcement or a required request-mode field.
+3. Exercise real pinned-bd relations, inheritance and both valid/invalid expanded-id cases; adapt historical fixture expectations only to the approved contract. Do not enable a #618 advanced-mode test before U.11 implements the feature. Document current operations/path/formula-name/refusal behavior without advertising unavailable modes.
+4. Hand U.11 the reviewed compatible baseline and ordinary test results. Any rejected candidate is explicitly mapped to its requirement gap; source-commit presence alone is not acceptance. No Beads version upgrade, native-substitution guarantee or new upstream filing is implicit.
+Regenerate the existing U.6/U.9 Clap-derived Markdown/HTML through its supported command whenever this sprint changes public CLI metadata; do not leave generated-reference CI or installer payloads stale after adding the new validation/mode options.
+
+Reuse the existing recovered pre-fuzz code/tests/fuzz and source mappings; do not rebuild from scratch. Include REAL .claude/skills/atm-bd-orchestration/formulas/sprint-group.formula.toml.j2 and finding-group.formula.toml.j2 plus their .relations.json in fixtures. Compare actual rendered/poured/read-back descriptions/design/acceptance/metadata and graph ids/edges; no shape-only success. Preserve simplification wins: typed graph/path errors before the appropriate side effect, safe literal argv/control transport without extra refusals, and shared rendering semantics rather than duplicate parser/marker frameworks.
+
+## Acceptance criteria
+
+cargo test --workspace, targeted Beads real-bd graph tests and explicit validate --strict --brace-count 3 positive/negative cases pass on the recorded candidate. Omitted flags/unchanged requests retain legacy behavior and typed codes; CLI JSON errors and graph relations/ids match ADR-0023. Read the three candidate diffs against accepted FR-24 before accepting them; no source/default/API break or global strict-only code. Quality-mgr doc review and applicable lead decisions are recorded before implementation; this DRAFT entry does not provide that approval. Existing generated-reference check passes against this sprint's actual command tree; no handwritten second option list.

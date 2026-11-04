@@ -1,0 +1,45 @@
+# u-3: refactor-verification-batch
+
+## Description
+
+### One verification batch — existing implementation, no new development sprint per crate
+Source: fix/lint-function-length at ab07145be770ec2e1140840814bde778ab0288eb, based on #841 c8ddd706a378bac89090c0d2f55bb5004dc1a240. Preserve the source branch. These 25 commits already exist; the authorized integration writer composes the branch once with #842 and the selected recovered base.
+### Deliverables
+1. Consume the fixed clean-base integration candidate composed by the authorized writer under early U1/root L1 on integrate/phase-u, with the approved 25 refactor deltas and #842 source/replay heads recorded. Do not test or ordinary-merge the contaminated source branch as the recovered candidate. Verification starts only when that concrete head is available. Verify the existing source as ONE batch on that recorded candidate, using the three crate sections below. No recreation, splitting of the frozen branch, fresh commit quota or separate dev/sanity cycle for each section.
+2. Check each section's existing <80-code-line function limit and focused behavior: CLI argv/diagnostics/receipts; Beads graph/execution/quoting; composer extraction/frontmatter/schema/API/spans. Preserve independent test oracles. Record actual failures, not three synthetic completion reports.
+3. Run focused crate checks plus ONE cargo test --workspace for this candidate. Reuse that exact-head workspace result across all three sections; rerun only when the source or test configuration changes or a real failure warrants it. Final combined regression coverage belongs to U.9.
+
+#### CLI — 8 existing commits
+- `38932b198b0004e8226000b4c2e495835b008df3` refactor: consolidate pass group initialization
+- `cb38493f9d99e3b596f7d505ac156d1af5e93b0d` refactor: isolate Beads subcommand options
+- `6acdda446026616fc827788dcf73c0cab5f3f77e` refactor: isolate validation request setup
+- `bfb51f99f855ef5efaecf662b46875dbe33b078d` refactor: isolate checked output writes
+- `d44ae7dd379b3c4c3a6352b6f3a738fe689464ca` refactor: isolate append JSON preparation
+- `88a7b3b2b2191fd7da0608d13af70f00d4555d1c` refactor: isolate custom render output handling
+- `5fbcbea669bc5c563c5aa61928fa7e2d33db8450` refactor: isolate template escape mode selection
+- `c785a6b008bd9abadb9bbb8535d1c1e90b8ed30a` refactor: isolate semantic report spec loading
+
+#### Beads — 6 existing commits
+- `c3bfe96542471fe52dbe24ba2ff2521935fdd68a` refactor: isolate graph error context
+- `ee74d7c343ce450576814d58eadff7d9512091e3` refactor: isolate Beads request preflight checks
+- `d914b243eab403338050d81b4a6fbc3d02022eac` Refactor graph receipt path restoration
+- `a38d5c45cc843a01f2e5bda31fd691eeb50ef47b` Extract planned graph edge serialization
+- `1b3dc80a5bf09a76c82ca82a09487c2b6d4d3761` Extract graph formula shape validation
+- `b5a47227eb3075f7268cda9e0799daecbeff463d` Extract registry pour execution
+
+#### Composer — 11 existing commits
+- `b0515963fad870b99391600a79433a0cff396934` Extract root template assembly
+- `045941fba8593e5f69c72c5c9551d962c9de2758` Extract JSON string matching
+- `ba1e82611973f7cee6de0c805260b98f2e23f527` Separate strict JSON visitor from deserialization
+- `83ffe276da17755e10396d9884663a2ee76262ed` Separate YAML visitor from deserialization
+- `869c0061146849959e319d2bf34b5b533de097f1` Extract YAML string matching
+- `5b298b9246d57153c9cf03e752a48c7bcd4e4073` Extract static text matching
+- `6743f90b24223ee0b48af1ab38213c25e4ae7a97` Extract XML confidence reporting
+- `c414c617e837ce1b0fd57eeab8a3fdb728ebcc4d` Extract XML entity decoding
+- `609a62f4df330b6a608b86607306380be9bfe4bf` Extract frontmatter default parsing
+- `4a9e38791eef75af282416e7bb8ff12bd790cba6` Extract workspace template validation
+- `ab07145be770ec2e1140840814bde778ab0288eb` Group extraction format diagnostic codes
+
+## Acceptance criteria
+
+All three sections are checked against the same recorded candidate and the 25 source commits are accounted for. Run focused sc-compose/sc-composer-beads/sc-composer checks and one cargo test --workspace; record actual outcomes, including function-size/API/diagnostic/timing findings. U.3 closure is verified-or-routed: passing checks are verified; failures become explicit open corrective-layer findings blocking U.9 until fixed and retested, never a claimed PASS or fixed-by-U.3 result. No growth allowances, suppressions or timing-dependent tests. Existing 0.8.4 size findings may be compared as input; final 0.8.5 aggregate proof remains U.9. Read-only sanity consumes this one batch result; no three replacement handoff sprints.

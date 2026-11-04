@@ -1,0 +1,1085 @@
+{
+  "schema": "plan-anchoring/run/1",
+  "run_id": "plan-20261104T074754Z-comp-u-11",
+  "gate": "plan",
+  "created_at": "2026-11-04T07:47:54+00:00",
+  "anchors_path": "/Users/randlee/github/sc-compose-worktrees/plan/phase-u-anchor-candidates/docs/plans/phase-u/anchors.json",
+  "plan": "phase-u",
+  "item": {
+    "id": "comp-u-11",
+    "title": "u-11: beads-advanced-pour",
+    "source": "/Users/randlee/github/sc-compose-worktrees/plan/phase-u-anchor-candidates/docs/plans/phase-u/anchor-runs/baseline-items/u-11.txt",
+    "chars": 4532,
+    "truncated": false,
+    "chars_before_reduction": 4532,
+    "code_reduced": {
+      "blocks": 0,
+      "lines": 0
+    }
+  },
+  "model_requested": "jev-latest",
+  "model_answered": "jev-1.14.0",
+  "threshold": 0.6,
+  "max_request_bytes": 24000,
+  "min_item_chars": 2000,
+  "dry_run": false,
+  "fixture": false,
+  "results": [
+    {
+      "anchor_id": "ANC-014",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The docli tool must be added to sc-compose as the generator of command-line documentation.",
+      "quote": "we need to add docli for cli documentation generation",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-003; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "inspect generator invocation and generated reference source",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "not_addressed",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.88,
+            "no": 0.12,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.8,
+          "probabilities": {
+            "yes": 0.08,
+            "no": 0.87,
+            "unclear": 0.05
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.73,
+          "probabilities": {
+            "yes": 0.14,
+            "no": 0.82,
+            "unclear": 0.04
+          }
+        }
+      },
+      "min_confidence": 0.73,
+      "explanation": "This bead does not carry the directive forward.",
+      "usage": {
+        "input_tokens": 1941,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7460
+    },
+    {
+      "anchor_id": "ANC-015",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The docli command-line documentation generator must run each time sc-compose is published.",
+      "quote": "docli must be run every publish (stale documentation blocks preflight)",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "inspect publish/preflight docli invocation",
+      "kind": "directive",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.98,
+            "no": 0.02,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.43,
+          "probabilities": {
+            "yes": 0.62,
+            "no": 0.3,
+            "unclear": 0.08
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.09,
+            "no": 0.88,
+            "unclear": 0.03
+          }
+        }
+      },
+      "min_confidence": 0.43,
+      "explanation": "Jev was not confident (min confidence 0.43); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1940,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "yes",
+          "confidence": 0.43
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7466
+    },
+    {
+      "anchor_id": "ANC-016",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Release preflight for sc-compose must fail if the docli tool reports that the command-line documentation is stale.",
+      "quote": "docli must be run every publish (stale documentation blocks preflight)",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "stale generated reference negative preflight test",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.98,
+            "no": 0.02,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.14,
+          "probabilities": {
+            "yes": 0.35,
+            "no": 0.43,
+            "unclear": 0.22
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.79,
+          "probabilities": {
+            "yes": 0.11,
+            "no": 0.86,
+            "unclear": 0.03
+          }
+        }
+      },
+      "min_confidence": 0.14,
+      "explanation": "Jev was not confident (min confidence 0.14); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1950,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "no",
+          "confidence": 0.14
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7467
+    },
+    {
+      "anchor_id": "ANC-031",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The codespell spelling check for sc-compose must pass.",
+      "quote": "you need to attribute or add the words so lint passes",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source memory/lint-must-pass-allowlist-words.md quoted Rand words; narrow original codespell context retained for review",
+      "anchor_version": 4,
+      "deterministic_check": "just lint on exact candidate; no disabling rules",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.4,
+          "probabilities": {
+            "yes": 0.39,
+            "no": 0.6,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.97,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.92,
+          "probabilities": {
+            "yes": 0.04,
+            "no": 0.95,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.4,
+      "explanation": "Jev was not confident (min confidence 0.40); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1940,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.4
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7441
+    },
+    {
+      "anchor_id": "ANC-033",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Normal CI pipeline runs must exclude the Windows amd64 and manylinux integration runs.",
+      "quote": "you can run win amd64 and manylinux on github, but do not add them to the normal ci pipeline runs.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source user transcript5764",
+      "anchor_version": 3,
+      "deterministic_check": "inspect CI invocation paths; does not ban ordinary Windows unit CI",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.49,
+          "probabilities": {
+            "yes": 0.32,
+            "no": 0.66,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.98,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.97,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.49,
+      "explanation": "Jev was not confident (min confidence 0.49); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1944,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.49
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7441
+    },
+    {
+      "anchor_id": "FR-25.1",
+      "source_type": "REQ",
+      "source_ref": "FR-25.1",
+      "statement": "All30 artifact/platform cells must build successfully: Rust CLI, sc-compose/sc-sha/sc-composer-beads wheels and sc-sha-go native module, each for macOS/Windows/Linux on x64/arm64.",
+      "quote": "All 30 artifact/platform cells must build successfully: the Rust CLI, the\nsc-compose, sc-sha and sc-composer-beads wheels, and the sc-sha-go native module,\neach for macOS, Windows and Linux on x64 and arm64.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved.",
+      "anchor_version": 1,
+      "deterministic_check": "Verify FR-25.1 against its approved requirement clause and actual positive/negative runtime evidence.",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.49,
+          "probabilities": {
+            "yes": 0.33,
+            "no": 0.66,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.88,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.92,
+            "unclear": 0.06
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.92,
+          "probabilities": {
+            "yes": 0.04,
+            "no": 0.95,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.49,
+      "explanation": "Jev was not confident (min confidence 0.49); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1987,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.49
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7608
+    },
+    {
+      "anchor_id": "ANC-001",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Values containing {{ }}, {{{ }}} or {% %} must stay data and must never be re-parsed.",
+      "quote": "Values containing {{ }}, {{{ }}} or {% %} stay data and are never re-parsed.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Phase U planning, 2026-11-04",
+      "anchor_version": 2,
+      "deterministic_check": "supply values containing each delimiter and read back identical literal text from the text passed to bd",
+      "kind": "directive",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "satisfied",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 1.0,
+            "no": 0.0,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.99,
+            "no": 0.01,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.98,
+      "explanation": "The directive is carried forward.",
+      "usage": {
+        "input_tokens": 1971,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7532
+    },
+    {
+      "anchor_id": "ANC-002",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "When sc-compose renders a Beads formula template, a tight variable expression with no spaces inside its braces, such as {{key}}, must be replaced by its supplied value in the output text.",
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "render.rs:bead_variables_render_padded_and_tight_placeholders",
+      "kind": "directive",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "satisfied",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 1.0,
+            "no": 0.0,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.66,
+          "probabilities": {
+            "yes": 0.77,
+            "no": 0.13,
+            "unclear": 0.1
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.03,
+            "no": 0.97,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.66,
+      "explanation": "The directive is carried forward.",
+      "usage": {
+        "input_tokens": 1972,
+        "output_tokens": 117
+      },
+      "attempts": 2,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7584
+    },
+    {
+      "anchor_id": "ANC-003",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "When sc-compose renders a Beads formula template, a padded variable expression such as {{ key }} must be replaced by its supplied value in the output text.",
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "render.rs:bead_variables_render_padded_and_tight_placeholders",
+      "kind": "directive",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "satisfied",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 1.0,
+            "no": 0.0,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.94,
+          "probabilities": {
+            "yes": 0.96,
+            "no": 0.03,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.98,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.94,
+      "explanation": "The directive is carried forward.",
+      "usage": {
+        "input_tokens": 1965,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7552
+    },
+    {
+      "anchor_id": "ANC-004",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "When sc-compose renders a Beads formula template, a variable expression that refers to a loop-local value must be replaced by that value in the output text.",
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "bdb3bdae single_pass_render.rs FUZZ-171-03",
+      "kind": "directive",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "satisfied",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 1.0,
+            "no": 0.0,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.99,
+            "no": 0.01,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.98,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.97,
+      "explanation": "The directive is carried forward.",
+      "usage": {
+        "input_tokens": 1965,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7553
+    },
+    {
+      "anchor_id": "ANC-023",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The macOS/Windows/Linux x64/arm64 Rust/wheel/Go matrix, including supported wheel Python versions with pip and uv, must run only in preflight integration tests, excluded from routine sprint continuous integration.",
+      "quote": "I want ci running full matrix ONLY for integration test (required for preflight) NOT every sprint",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-002; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "inspect triggers and preflight dependency; full install matrix is platform/Python/installer coverage",
+      "kind": "prohibition",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.73,
+          "probabilities": {
+            "yes": 0.17,
+            "no": 0.82,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.98,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.91,
+          "probabilities": {
+            "yes": 0.05,
+            "no": 0.94,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.73,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 2037,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 4532,
+      "item_shortened": false,
+      "request_bytes": 7876
+    }
+  ],
+  "summary": {
+    "counts": {
+      "not_addressed": 1,
+      "underspecified": 5,
+      "satisfied": 4,
+      "not_applicable": 1
+    },
+    "failing": [
+      "ANC-014",
+      "ANC-015",
+      "ANC-016",
+      "ANC-031",
+      "ANC-033",
+      "FR-25.1"
+    ],
+    "leaning_counts": {
+      "not_addressed": 2,
+      "not_applicable": 4,
+      "satisfied": 5
+    },
+    "unstable": [],
+    "errors": [],
+    "excluded": [],
+    "shortened": [],
+    "pass": false
+  }
+}
