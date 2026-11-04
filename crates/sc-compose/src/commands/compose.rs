@@ -127,8 +127,18 @@ pub(crate) fn run_validate(
         )
     };
     let (request, single_pass_fallback) = request;
-    let mut report =
-        sc_composer::validate_with_observer(&request, observer).map_err(CommandError::compose)?;
+    let mut report = if let Some(brace_count) = args.brace_count {
+        let open_delimiter = "{".repeat(usize::from(brace_count));
+        let close_delimiter = "}".repeat(usize::from(brace_count));
+        sc_composer::validate_with_observer_and_delimiters(
+            &request,
+            observer,
+            Some((&open_delimiter, &close_delimiter)),
+        )
+        .map_err(CommandError::compose)?
+    } else {
+        sc_composer::validate_with_observer(&request, observer).map_err(CommandError::compose)?
+    };
     if single_pass_fallback {
         report.warnings.push(single_pass_all_warning());
     }

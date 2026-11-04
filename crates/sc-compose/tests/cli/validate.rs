@@ -275,6 +275,35 @@ fn validate_strict_does_not_report_filter_or_call_targets_as_tokens() {
 }
 
 #[test]
+fn validate_strict_discovers_triple_brace_tokens_with_brace_count() {
+    let root = temp_root("validate-strict-triple-brace-tokens");
+    write_file(
+        &root.join("formula.toml.j2"),
+        "---\nrequired_variables:\n  - phase\n---\ndescription = \"{{{ phase }}} {{{ nobody }}}\"\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--strict",
+            "--brace-count",
+            "3",
+            "--mode",
+            "file",
+            "--root",
+        ])
+        .arg(&root)
+        .args(["--file", "formula.toml.j2", "--var", "phase=x"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("ERR_VAL_UNDECLARED_TOKEN"), "{stdout}");
+    assert!(stdout.contains("nobody"), "{stdout}");
+}
+
+#[test]
 fn render_strict_does_not_read_tokens_inside_jinja_comments() {
     let root = temp_root("render-strict-jinja-comment");
     write_file(
