@@ -1,5 +1,21 @@
 # Phase U proposed anchors — source findings and unresolved wording
 
+## Current lifecycle update — approved 2026-11-04
+
+The earlier sections below are retained research snapshots, not current status.
+Rand approved the approval page through ATM01M6JJ70WRQYV1KCEDZZK6WGJW.
+Live anchors.json now locks ANC-002/003/004/014/015/016/023/031/033 after
+fresh testable rubric results; ANC-001 remains locked. ANC-032 is retired as
+a duplicate of ANC-033. ANC-022/030/035/049 record approved clarified meanings
+but remain proposed because the unchanged rubric was inconclusive. ANC-049
+is the approved combined30-cell build candidate. ANC-008/009/010/011 remain
+proposed pending FR-24 approval and REQ registration. Quotes are unchanged.
+No fixture or question override is installed. Section-D fixtures are still
+awaiting separate approval. Committed rubric/API evidence is under
+anchor-runs/approval-20261104/; all failed wording attempts remain in local
+reports. No integration metadata, FR-25 or ADR-0025 landing was performed.
+
+
 Draft only. ANC-001 is the unchanged locked develop record; ANC-002..033 are proposed. No lock, push, merge, question override or tracker import performed. The current branch is based on origin/integrate/phase-u@9a39bc1b. The twenty-anchor524772f4 draft is provenance only: its locked labels were not copied as approval.
 
 ## Boundaries from Rand's later corrections

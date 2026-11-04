@@ -1,0 +1,133 @@
+{
+  "approval_message_id": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+  "newly_locked": [
+    "ANC-002",
+    "ANC-003",
+    "ANC-004",
+    "ANC-016",
+    "ANC-033",
+    "ANC-014",
+    "ANC-015",
+    "ANC-031",
+    "ANC-023"
+  ],
+  "previously_locked": [
+    "ANC-001"
+  ],
+  "retired": [
+    "ANC-032"
+  ],
+  "retired_replacement": "ANC-033",
+  "approved_meaning_lock_withheld": [
+    "ANC-022",
+    "ANC-030",
+    "ANC-035",
+    "ANC-049"
+  ],
+  "feature_candidates_still_proposed": [
+    "ANC-008",
+    "ANC-009",
+    "ANC-010",
+    "ANC-011"
+  ],
+  "fixtures_installed": false,
+  "question_tuning_started": false,
+  "evidence": [
+    {
+      "id": "ANC-002",
+      "status": "locked",
+      "rubric": "testable",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-002/rubric.json",
+      "sha256": "8b7f69d777f1e500fa9345904f374bf087cc3ea00415783c2762ef681f98d72b"
+    },
+    {
+      "id": "ANC-003",
+      "status": "locked",
+      "rubric": "testable",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-003/rubric.json",
+      "sha256": "de360c0ac1b9a46e5f5c74bb50ed852b7fcbac82809fb50f3b015b1a1d57c2e8"
+    },
+    {
+      "id": "ANC-004",
+      "status": "locked",
+      "rubric": "testable",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-004/rubric.json",
+      "sha256": "f0beb0a2c7a3ea7477b56a08f6ddbf2ebe631829fd8734787842bdd07de2c735"
+    },
+    {
+      "id": "ANC-016",
+      "status": "locked",
+      "rubric": "testable",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-016/rubric.json",
+      "sha256": "9b465b5356ed70e04e242a75270d3762c3465f19fe4c9943334e7ea75a5a0f62"
+    },
+    {
+      "id": "ANC-033",
+      "status": "locked",
+      "rubric": "testable",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-033/rubric.json",
+      "sha256": "766e14bbfe6bd644153b43b07eefb3ee6c418e5de830c8b5c06e6e89369bcd28"
+    },
+    {
+      "id": "ANC-014",
+      "status": "locked",
+      "rubric": "testable",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-014/rubric.json",
+      "sha256": "71cc07f7eb23bdfc27de891a0d1c97b4456f3c4913437dd386f88d7d04403b88"
+    },
+    {
+      "id": "ANC-015",
+      "status": "locked",
+      "rubric": "testable",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-015/rubric.json",
+      "sha256": "7e14f9344ef7cd653ab9f5d157f8e70a15ba41b784aa165eb348eeb749d5eb9c"
+    },
+    {
+      "id": "ANC-031",
+      "status": "locked",
+      "rubric": "testable",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-031/rubric.json",
+      "sha256": "4de097a5348f20cb30b2daabe5266c438de691341d207fb9793ef236159def8f"
+    },
+    {
+      "id": "ANC-023",
+      "status": "locked",
+      "rubric": "testable",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-023/rubric.json",
+      "sha256": "088b1dd297e9e6a8ed685c18426ec9ec79e62f755cddc473e47ff303dd60cfa4"
+    },
+    {
+      "id": "ANC-022",
+      "status": "proposed",
+      "rubric": "inconclusive",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-022/rubric.json",
+      "sha256": "605731a68d1bbc4715bd1bed669bc8fd8e80c573cc9013f3279e95dc4d033abd"
+    },
+    {
+      "id": "ANC-030",
+      "status": "proposed",
+      "rubric": "inconclusive",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-030/rubric.json",
+      "sha256": "9c97cd627956c623851b100ccc09a39253ac3c7aef0bd2faef951b8fe696ebab"
+    },
+    {
+      "id": "ANC-035",
+      "status": "proposed",
+      "rubric": "inconclusive",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-035/rubric.json",
+      "sha256": "14721b0a80de904025b1180cb4f6bc3d67811e000b4266c386ec97c5c5b1f2b8"
+    },
+    {
+      "id": "ANC-049",
+      "status": "proposed",
+      "rubric": "inconclusive",
+      "evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-049/rubric.json",
+      "sha256": "64b243dccdfcd0bacb7fb2dff1ee5ce15fd36acad1fd2ce52431a047f557ecc1"
+    }
+  ],
+  "record_status_counts": {
+    "locked": 10,
+    "proposed": 38,
+    "retired": 1
+  }
+}

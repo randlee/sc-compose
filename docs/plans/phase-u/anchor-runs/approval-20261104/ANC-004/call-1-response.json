@@ -1,0 +1,59 @@
+{
+  "model": "jev-1.14.0",
+  "answers": {
+    "single_constraint": {
+      "type": "choice",
+      "choice": "yes",
+      "confidence": 0.98,
+      "probabilities": {
+        "no": 0.01,
+        "unclear": 0.0,
+        "yes": 0.99
+      }
+    },
+    "observable": {
+      "type": "choice",
+      "choice": "yes",
+      "confidence": 0.96,
+      "probabilities": {
+        "no": 0.01,
+        "unclear": 0.02,
+        "yes": 0.97
+      }
+    },
+    "faithful": {
+      "type": "choice",
+      "choice": "yes",
+      "confidence": 0.74,
+      "probabilities": {
+        "no": 0.16,
+        "unclear": 0.01,
+        "yes": 0.83
+      }
+    },
+    "scoped": {
+      "type": "choice",
+      "choice": "yes",
+      "confidence": 0.88,
+      "probabilities": {
+        "no": 0.02,
+        "unclear": 0.06,
+        "yes": 0.92
+      }
+    },
+    "self_contained": {
+      "type": "choice",
+      "choice": "yes",
+      "confidence": 0.68,
+      "probabilities": {
+        "no": 0.09,
+        "unclear": 0.12,
+        "yes": 0.79
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 1080,
+    "output_tokens": 189
+  }
+}

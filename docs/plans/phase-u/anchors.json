@@ -41,7 +41,7 @@
       "id": "ANC-002",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "In advanced Beads rendering, tight {{key}} variable expressions must be rendered before bd receives the formula.",
+      "statement": "When sc-compose renders a Beads formula template, a tight variable expression with no spaces inside its braces, such as {{key}}, must be replaced by its supplied value in the output text.",
       "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
       "kind": "directive",
       "stated_by": "randlee",
@@ -55,8 +55,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 3,
+      "status": "locked",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -68,6 +68,24 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-007"
+        },
+        {
+          "at": "2026-11-04T06:03:53+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "In advanced Beads rendering, tight {{key}} variable expressions must be rendered before bd receives the formula."
+        },
+        {
+          "at": "2026-11-04T06:03:53+00:00",
+          "event": "locked",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "previous_status": "proposed",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-002/rubric.json",
+          "rubric_sha256": "8b7f69d777f1e500fa9345904f374bf087cc3ea00415783c2762ef681f98d72b",
+          "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-002/rubric.json"
         }
       ]
     },
@@ -75,7 +93,7 @@
       "id": "ANC-003",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "In advanced Beads rendering, padded {{ key }} variable expressions must be rendered before bd receives the formula.",
+      "statement": "When sc-compose renders a Beads formula template, a padded variable expression such as {{ key }} must be replaced by its supplied value in the output text.",
       "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
       "kind": "directive",
       "stated_by": "randlee",
@@ -89,8 +107,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 3,
+      "status": "locked",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -102,6 +120,24 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-007"
+        },
+        {
+          "at": "2026-11-04T06:03:53+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "In advanced Beads rendering, padded {{ key }} variable expressions must be rendered before bd receives the formula."
+        },
+        {
+          "at": "2026-11-04T06:03:53+00:00",
+          "event": "locked",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "previous_status": "proposed",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-003/rubric.json",
+          "rubric_sha256": "de360c0ac1b9a46e5f5c74bb50ed852b7fcbac82809fb50f3b015b1a1d57c2e8",
+          "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-003/rubric.json"
         }
       ]
     },
@@ -109,7 +145,7 @@
       "id": "ANC-004",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "In advanced Beads rendering, variable expressions using the current loop item must be rendered before bd receives the formula.",
+      "statement": "When sc-compose renders a Beads formula template, a variable expression that refers to a loop-local value must be replaced by that value in the output text.",
       "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
       "kind": "directive",
       "stated_by": "randlee",
@@ -123,8 +159,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 3,
+      "status": "locked",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -136,6 +172,24 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-007"
+        },
+        {
+          "at": "2026-11-04T06:03:53+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "In advanced Beads rendering, variable expressions using the current loop item must be rendered before bd receives the formula."
+        },
+        {
+          "at": "2026-11-04T06:03:53+00:00",
+          "event": "locked",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "previous_status": "proposed",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-004/rubric.json",
+          "rubric_sha256": "f0beb0a2c7a3ea7477b56a08f6ddbf2ebe631829fd8734787842bdd07de2c735",
+          "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-004/rubric.json"
         }
       ]
     },
@@ -449,22 +503,22 @@
       "id": "ANC-014",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "sc-compose must use docli to generate its CLI documentation.",
+      "statement": "The docli tool must be added to sc-compose as the generator of command-line documentation.",
       "quote": "we need to add docli for cli documentation generation",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
       "context": "Proposed from524772f4:ANC-003; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
       "summary": "docli generates CLI documentation",
-      "scope": "u-6 CLI documentation generation",
+      "scope": "sc-compose command-line documentation generation",
       "deterministic_check": "inspect generator invocation and generated reference source",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 3,
+      "status": "locked",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -476,6 +530,25 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-003"
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "updated",
+          "fields": [
+            "statement",
+            "scope"
+          ],
+          "previous_statement": "sc-compose must use docli to generate its CLI documentation."
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "locked",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "previous_status": "proposed",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-014/rubric.json",
+          "rubric_sha256": "71cc07f7eb23bdfc27de891a0d1c97b4456f3c4913437dd386f88d7d04403b88",
+          "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/plain-scope/ANC-014/rubric.json"
         }
       ]
     },
@@ -483,22 +556,22 @@
       "id": "ANC-015",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "Every sc-compose publish must run docli.",
+      "statement": "The docli command-line documentation generator must run each time sc-compose is published.",
       "quote": "docli must be run every publish (stale documentation blocks preflight)",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
       "context": "Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
       "summary": "docli runs every publish",
-      "scope": "u-6/u-9 publishing preparation and later release workflow",
+      "scope": "sc-compose publishing preparation and release workflow",
       "deterministic_check": "inspect publish/preflight docli invocation",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 3,
+      "status": "locked",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -510,6 +583,25 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-004"
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "updated",
+          "fields": [
+            "statement",
+            "scope"
+          ],
+          "previous_statement": "Every sc-compose publish must run docli."
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "locked",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "previous_status": "proposed",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-015/rubric.json",
+          "rubric_sha256": "7e14f9344ef7cd653ab9f5d157f8e70a15ba41b784aa165eb348eeb749d5eb9c",
+          "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/plain-scope/ANC-015/rubric.json"
         }
       ]
     },
@@ -517,7 +609,7 @@
       "id": "ANC-016",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "Stale sc-compose CLI documentation must block release preflight.",
+      "statement": "Release preflight for sc-compose must fail if the docli tool reports that the command-line documentation is stale.",
       "quote": "docli must be run every publish (stale documentation blocks preflight)",
       "kind": "directive",
       "stated_by": "randlee",
@@ -531,8 +623,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 3,
+      "status": "locked",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -544,6 +636,24 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-004"
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "Stale sc-compose CLI documentation must block release preflight."
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "locked",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "previous_status": "proposed",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-016/rubric.json",
+          "rubric_sha256": "9b465b5356ed70e04e242a75270d3762c3465f19fe4c9943334e7ea75a5a0f62",
+          "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-016/rubric.json"
         }
       ]
     },
@@ -721,21 +831,21 @@
       "id": "ANC-022",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "Each sc-compose release artifact must be distributed through every channel applicable to that artifact.",
+      "statement": "Each sc-compose release artifact must be distributed through every channel assigned to that artifact in the approved release channel contract.",
       "quote": "support of mac x64/arm, win x64/arm, linux x64/arm for rust/wheel/go distributed through all applicable channels",
       "kind": "structural",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
       "context": "Proposed from524772f4:ANC-001; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
       "summary": "applicable artifact channels",
-      "scope": "Phase U release channel configuration",
+      "scope": "Phase U release artifact distribution. Rand approved via ATM01M6JJ70WRQYV1KCEDZZK6WGJW that applicable channels mean exactly the per-artifact assignments in the approved release channel contract; this clarification is normative alongside the unchanged original quote.",
       "deterministic_check": "artifact/channel table from v1.7.0 release/publish-artifacts.toml; scope table pins artifact identities without inventing channels",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "proposed",
       "promoted_to": null,
       "beads": {
@@ -748,6 +858,23 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-001"
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "updated",
+          "fields": [
+            "statement",
+            "scope"
+          ],
+          "previous_statement": "Each sc-compose release artifact must be distributed through every channel applicable to that artifact."
+        },
+        {
+          "at": "2026-11-04T06:03:55+00:00",
+          "event": "meaning_approved",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "lock_withheld": "Rubric inconclusive; threshold unchanged",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-022/rubric.json",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/wording-refinement/approved-C-scope/ANC-022/variant-1/rubric.json"
         }
       ]
     },
@@ -755,22 +882,22 @@
       "id": "ANC-023",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "CI must run the full install matrix only in the integration test required by release preflight.",
+      "statement": "The macOS/Windows/Linux x64/arm64 Rust/wheel/Go matrix, including supported wheel Python versions with pip and uv, must run only in preflight integration tests, excluded from routine sprint continuous integration.",
       "quote": "I want ci running full matrix ONLY for integration test (required for preflight) NOT every sprint",
       "kind": "prohibition",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
       "context": "Proposed from524772f4:ANC-002; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
       "summary": "full matrix only in integration test",
-      "scope": "u-8/u-9 GitHub integration workflow and preflight",
+      "scope": "sc-compose integration tests and preflight; Rand approved clarification YES via relay ATM01M6JJ70WRQYV1KCEDZZK6WGJW: full matrix includes all supported artifact/platform cells plus wheel Python-version and pip/uv install combinations; restricted to integration tests required by preflight, excluded from normal sprint continuous integration.",
       "deterministic_check": "inspect triggers and preflight dependency; full install matrix is platform/Python/installer coverage",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 3,
+      "status": "locked",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -782,6 +909,25 @@
           "event": "proposed",
           "status": "proposed",
           "source": "524772f4:ANC-002"
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "updated",
+          "fields": [
+            "statement",
+            "scope"
+          ],
+          "previous_statement": "CI must run the full install matrix only in the integration test required by release preflight."
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "locked",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "previous_status": "proposed",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-023/rubric.json",
+          "rubric_sha256": "088b1dd297e9e6a8ed685c18426ec9ec79e62f755cddc473e47ff303dd60cfa4",
+          "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/wording-refinement/approved-C-workflows/ANC-023/variant-4/rubric.json"
         }
       ]
     },
@@ -993,21 +1139,21 @@
       "id": "ANC-030",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "Changes to Windows-specific code must receive a cargo-xwin Windows cross-build check.",
+      "statement": "Phase U Windows-target cross-build and cross-check commands must use the cargo xwin command prefix.",
       "quote": "use xwin",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
       "context": "Proposed; source memory/windows-cross-check-before-ci.md quoted Rand words; scope supplied by that note",
       "summary": "Windows cross-build",
-      "scope": "u-4 Windows cross checks and any sprint touching Windows paths",
+      "scope": "Every Phase U Windows cross-build/check. Rand approved via ATM01M6JJ70WRQYV1KCEDZZK6WGJW that EVERY such build/check uses cargo-xwin; this clarification is normative alongside the unchanged original quote.",
       "deterministic_check": "cargo xwin test --target x86_64-pc-windows-msvc --no-run",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "proposed",
       "promoted_to": null,
       "beads": {
@@ -1020,6 +1166,23 @@
           "event": "proposed",
           "status": "proposed",
           "source": "memory/windows-cross-check-before-ci.md quoted Rand words; scope supplied by that note"
+        },
+        {
+          "at": "2026-11-04T06:03:55+00:00",
+          "event": "updated",
+          "fields": [
+            "statement",
+            "scope"
+          ],
+          "previous_statement": "Changes to Windows-specific code must receive a cargo-xwin Windows cross-build check."
+        },
+        {
+          "at": "2026-11-04T06:03:55+00:00",
+          "event": "meaning_approved",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "lock_withheld": "Rubric inconclusive; threshold unchanged",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-030/rubric.json",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/wording-refinement/approved-C-scope/ANC-030/variant-5/rubric.json"
         }
       ]
     },
@@ -1027,22 +1190,22 @@
       "id": "ANC-031",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "Phase U lint work must leave lint passing.",
+      "statement": "The codespell spelling check for sc-compose must pass.",
       "quote": "you need to attribute or add the words so lint passes",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
       "context": "Proposed; source memory/lint-must-pass-allowlist-words.md quoted Rand words; narrow original codespell context retained for review",
       "summary": "lint passes",
-      "scope": "u-2 lint policy and u-9 aggregate acceptance",
+      "scope": "The spelling lint check for project-specific words in sc-compose.",
       "deterministic_check": "just lint on exact candidate; no disabling rules",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 3,
+      "status": "locked",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -1054,6 +1217,25 @@
           "event": "proposed",
           "status": "proposed",
           "source": "memory/lint-must-pass-allowlist-words.md quoted Rand words; narrow original codespell context retained for review"
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "updated",
+          "fields": [
+            "statement",
+            "scope"
+          ],
+          "previous_statement": "Phase U lint work must leave lint passing."
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "locked",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "previous_status": "proposed",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-031/rubric.json",
+          "rubric_sha256": "4de097a5348f20cb30b2daabe5266c438de691341d207fb9793ef236159def8f",
+          "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/plain-scope/ANC-031/rubric.json"
         }
       ]
     },
@@ -1075,8 +1257,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -1088,6 +1270,12 @@
           "event": "proposed",
           "status": "proposed",
           "source": "user transcript5764;5756 states local hardware unavailable"
+        },
+        {
+          "at": "2026-11-04T06:03:55+00:00",
+          "event": "retired",
+          "replaced_by": "ANC-033",
+          "reason": "Duplicate CI exclusion; Rand approved registry fold in ATM01M6JJ70WRQYV1KCEDZZK6WGJW"
         }
       ]
     },
@@ -1109,8 +1297,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "locked",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -1122,6 +1310,16 @@
           "event": "proposed",
           "status": "proposed",
           "source": "user transcript5764"
+        },
+        {
+          "at": "2026-11-04T06:03:54+00:00",
+          "event": "locked",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "previous_status": "proposed",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-033/rubric.json",
+          "rubric_sha256": "766e14bbfe6bd644153b43b07eefb3ee6c418e5de830c8b5c06e6e89369bcd28",
+          "scope_note": "Equivalent plain-language scope labels; approved statement/meaning unchanged.",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/approved-execution/lock-time/ANC-033/rubric.json"
         }
       ]
     },
@@ -1163,21 +1361,21 @@
       "id": "ANC-035",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "Schema-less templates must render byte-identically to v1.7.0 except for genuine bug fixes.",
+      "statement": "Template output without schemas must match sc-compose v1.7.0 byte for byte, allowing only differences recorded in approved-exceptions.json as genuine bug fixes with issue links.",
       "quote": "schema-less templates render byte-identical to v1.7.0 except genuine bugs",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
       "context": "Lead01M6JAKMVZ5RXHGS45A59P45G6 exact new quote; bug exception transcript6183; execution detail01M6JAMQ7ZCF4C8C8K63N01S62/01M6JAN3316GWY4V43QZFK00Z2/01M6JANVK3N4Q4K535KCK9QPG3",
       "summary": "schema-less byte regression",
-      "scope": "all normal sprint CI and local checks; u-2 early harness, u-3/u-10/u-12 compatibility, u-5 preflight entry",
+      "scope": "sc-compose schema-less template byte regression checks; Rand approved clarification YES via relay ATM01M6JJ70WRQYV1KCEDZZK6WGJW: permitted byte differences are issue-linked genuine-bug fixes recorded in the byte-regression approved-exceptions.json list.",
       "deterministic_check": "one Python script compares fixed corpus stdout bytes against committed v1.7.0 goldens; unlisted difference nonzero; approved exception per genuine bug with issue; no baseline executable in CI/preflight",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "proposed",
       "promoted_to": null,
       "beads": {
@@ -1190,6 +1388,23 @@
           "event": "proposed",
           "status": "proposed",
           "source": "Lead01M6JAKMVZ5RXHGS45A59P45G6 exact new quote; bug exception transcript6183; execution detail01M6JAMQ7ZCF4C8C8K63N01S62/01M6JAN3316GWY4V43QZFK00Z2/01M6JANVK3N4Q4K535KCK9QPG3"
+        },
+        {
+          "at": "2026-11-04T06:03:55+00:00",
+          "event": "updated",
+          "fields": [
+            "statement",
+            "scope"
+          ],
+          "previous_statement": "Schema-less templates must render byte-identically to v1.7.0 except for genuine bug fixes."
+        },
+        {
+          "at": "2026-11-04T06:03:55+00:00",
+          "event": "meaning_approved",
+          "approval": "ATM01M6JJ70WRQYV1KCEDZZK6WGJW",
+          "lock_withheld": "Rubric inconclusive; threshold unchanged",
+          "rubric_evidence": "docs/plans/phase-u/anchor-runs/approval-20261104/ANC-035/rubric.json",
+          "original_report_path": "/Users/randlee/.codex/reports/phase-u-anchor-candidates-20261104/wording-refinement/approved-C-workflows/ANC-035/variant-7/rubric.json"
         }
       ]
     },
@@ -1632,6 +1847,40 @@
           "event": "proposed",
           "status": "proposed",
           "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S14 classification=invalid anyway"
+        }
+      ]
+    },
+    {
+      "id": "ANC-049",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "All 30 release artifact/platform combinations must build successfully: five artifacts (Rust CLI, three Python wheels, Go native module) × six targets (macOS, Windows, Linux × x64, arm64).",
+      "quote": "support of mac x64/arm, win x64/arm, linux x64/arm for rust/wheel/go distributed through all applicable channels",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Meaning approved by ATM01M6JJ70WRQYV1KCEDZZK6WGJW; remains proposed because rubric is inconclusive.",
+      "summary": "all30 artifact/platform builds",
+      "scope": "Phase U release builds. Rand approved via ATM01M6JJ70WRQYV1KCEDZZK6WGJW that support requires actual successful builds of Rust CLI + three Python wheels + Go native module on macOS/Windows/Linux x64/arm64, all 30 cells; this clarification is normative alongside the unchanged original quote.",
+      "deterministic_check": "Compare actual successful build outputs against all30 required artifact/platform cells, no missing cell passes.",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T06:03:55+00:00",
+          "event": "created",
+          "status": "proposed"
         }
       ]
     }
