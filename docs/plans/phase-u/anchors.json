@@ -2278,8 +2278,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 2,
-      "status": "proposed",
+      "version": 3,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -2301,6 +2301,12 @@
             "version": 1
           },
           "source": "2026-11-04 approved Beads requirements"
+        },
+        {
+          "at": "2026-11-04T20:06:01+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.8a",
+          "reason": "All parts locked as testable statements"
         }
       ]
     },
@@ -3062,8 +3068,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -3075,6 +3081,12 @@
           "at": "2026-11-04T14:21:01+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T20:06:02+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.30a",
+          "reason": "All parts locked as testable statements"
         }
       ]
     },
@@ -3096,8 +3108,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -3109,6 +3121,12 @@
           "at": "2026-11-04T14:21:01+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T20:06:02+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.31a",
+          "reason": "All parts locked as testable statements"
         }
       ]
     },
@@ -4263,6 +4281,210 @@
       "history": [
         {
           "at": "2026-11-04T20:03:09+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.8b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.8b",
+      "statement": "With `--render-by bd`, graph pour by path must reject caller bead inputs with `BEADS_GRAPH_FORMULA_UNSUPPORTED`.",
+      "quote": "bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does (graph pour by path: `BEADS_GRAPH_FORMULA_UNSUPPORTED` with reason `bead_variables_set`; attach: request error `attach forbids bead_variables`).",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (10b, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8b.json",
+      "summary": "Approved Beads requirement 10b",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T20:06:00+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.8d",
+      "source_type": "REQ",
+      "source_ref": "FR-24.8d",
+      "statement": "With `--render-by bd`, attach must reject caller bead inputs with the error `attach forbids bead_variables`.",
+      "quote": "bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does (graph pour by path: `BEADS_GRAPH_FORMULA_UNSUPPORTED` with reason `bead_variables_set`; attach: request error `attach forbids bead_variables`).",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (10d, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8d.json",
+      "summary": "Approved Beads requirement 10d",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T20:06:00+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.24b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.24b",
+      "statement": "With `--render-by bd`, sc-compose must run the same bd command line as v1.7.0 for every v1.7.0 call.",
+      "quote": "With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (13b, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.24b.json",
+      "summary": "Approved Beads requirement 13b",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T20:06:00+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.30a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.30a",
+      "statement": "`bead.md` must document each `--render-by` mode with a worked input-to-created-bead example.",
+      "quote": "`bead.md` (`crates/sc-compose/docs/manual/bead.md`) documents each mode (`--render-by sc-compose` and `--render-by bd`) with a worked input-to-created-bead example.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (22, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.30a.json",
+      "summary": "Approved Beads requirement 22",
+      "scope": "advanced bead pour in sc-composer-beads and the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T20:06:00+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.31a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.31a",
+      "statement": "The closing fuzz sprint must rerun FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 on the final candidate.",
+      "quote": "The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 (recovered in `crates/sc-composer-beads/tests/single_pass_render.rs` and `crates/sc-compose/tests/cli/fuzz_regressions.rs`; FUZZ-171-10 is not yet recovered) as regression tests on the final candidate.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (23, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.31a.json",
+      "summary": "Approved Beads requirement 23",
+      "scope": "the closing fuzz sprint of Phase U",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T20:06:01+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.32a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.32a",
+      "statement": "Without `--strict`, the final candidate must accept every corpus template that 1.7.0 accepted.",
+      "quote": "The 229-template corpus that passed the v1.7.0 comparison (QA report 01M6HZR22HZXX4HDW1CMFHHA86: 150 atm-core and 79 sc-compose `.j2` templates) is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7 (`ERR_VAL_UNDECLARED_TOKEN` no longer reported for True/False/None literals, filter and call targets, Jinja test and block-tag names, and comment and raw bodies).",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (24a, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.32a.json",
+      "summary": "Approved Beads requirement 24a",
+      "scope": "the closing corpus check of Phase U",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T20:06:01+00:00",
           "event": "created",
           "status": "locked"
         }

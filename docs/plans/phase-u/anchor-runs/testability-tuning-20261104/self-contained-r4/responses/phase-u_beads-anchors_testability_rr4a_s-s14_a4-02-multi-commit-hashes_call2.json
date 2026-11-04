@@ -1,0 +1,24 @@
+{
+ "attempts": 1,
+ "request_sha256": "aaea298ea91c27f459be1b195591007c464b5a530bd14506ba29226bdfa5477a",
+ "response": {
+  "answers": {
+   "self_contained": {
+    "choice": "yes",
+    "confidence": 0.96,
+    "probabilities": {
+     "no": 0.02,
+     "unclear": 0.01,
+     "yes": 0.97
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 628,
+   "output_tokens": 41
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:rr4a:s-s14:a4-02-multi-commit-hashes:call2"
+}

@@ -1,0 +1,795 @@
+{
+ "approval_status": "a3 approved 2026-11-04; a4 derived from sealed criteria under the user's standing approval relayed by the coordinator ('I don't need to \"approve\" or \"lock\" every time')",
+ "base_corpus": {
+  "case_count": 17,
+  "path": ".claude/skills/plan-anchoring/assets/fixtures/testability-calibration.v2.json",
+  "sha256": "ce5f4efcfee74ecc767bb8c140bf749ef2e33c779f82397d5c42d96698a7b1bc"
+ },
+ "dedupe_pairs": [
+  {
+   "a": {
+    "quote": "The service must log requests as JSON and retry failed requests twice.",
+    "scope": "request logging",
+    "statement": "The service must write request logs as JSON."
+   },
+   "b": {
+    "quote": "The service must log requests as JSON and retry failed requests twice.",
+    "scope": "failed request handling",
+    "statement": "The service must retry failed requests twice."
+   },
+   "expected": "no",
+   "pair_id": "dup-01-shared-quote-distinct",
+   "rationale": "Same quote, distinct atomic obligations."
+  },
+  {
+   "a": {
+    "quote": "CLI output must always be JSON",
+    "scope": "all CLI commands",
+    "statement": "Every CLI command must emit JSON to stdout."
+   },
+   "b": {
+    "quote": "all commands should print machine-readable JSON",
+    "scope": "all CLI commands",
+    "statement": "Every CLI command must emit JSON to stdout."
+   },
+   "expected": "yes",
+   "pair_id": "dup-02-same-statement-different-quotes",
+   "rationale": "Identical statement, different provenance."
+  },
+  {
+   "a": {
+    "quote": "retry service unavailable twice",
+    "scope": "API client",
+    "statement": "The API client must retry HTTP 503 responses twice."
+   },
+   "b": {
+    "quote": "two retries for 503",
+    "scope": "API client",
+    "statement": "On HTTP 503, the API client must make two retry attempts."
+   },
+   "expected": "yes",
+   "pair_id": "dup-03-paraphrased-duplicate",
+   "rationale": "Mutually entailing paraphrases."
+  },
+  {
+   "a": {
+    "quote": "retry 503 twice",
+    "scope": "API client",
+    "statement": "The API client must retry HTTP 503 responses twice."
+   },
+   "b": {
+    "quote": "log 503 as JSON",
+    "scope": "API client",
+    "statement": "The API client must log HTTP 503 responses as JSON."
+   },
+   "expected": "no",
+   "pair_id": "dup-04-related-distinct",
+   "rationale": "Related subject, different obligations."
+  }
+ ],
+ "extension_lint": [
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a3-01-inline-defined-mode",
+   "verbatim_quote_error": false,
+   "warnings": []
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a3-02-inline-defined-meaning",
+   "verbatim_quote_error": false,
+   "warnings": []
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a3-03-product-command-name",
+   "verbatim_quote_error": false,
+   "warnings": []
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a3-04-caller-role-flag",
+   "verbatim_quote_error": false,
+   "warnings": []
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a3-05-identified-expected-output",
+   "verbatim_quote_error": false,
+   "warnings": []
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a3-06-undefined-mode-label",
+   "verbatim_quote_error": false,
+   "warnings": []
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a3-07-unidentified-expected-output",
+   "verbatim_quote_error": false,
+   "warnings": []
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a3-08-unrecorded-signoff",
+   "verbatim_quote_error": false,
+   "warnings": []
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a3-09-recorded-approval",
+   "verbatim_quote_error": false,
+   "warnings": []
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a4-01-multi-diagnostic-codes",
+   "verbatim_quote_error": false
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a4-02-multi-commit-hashes",
+   "verbatim_quote_error": false
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a4-03-report-id-record",
+   "verbatim_quote_error": false
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a4-04-exact-file-list",
+   "verbatim_quote_error": false
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a4-05-buried-undefined-label",
+   "verbatim_quote_error": false
+  },
+  {
+   "errors": [],
+   "expected": "pass",
+   "got": "pass",
+   "id": "a4-06-buried-subjective-quality",
+   "verbatim_quote_error": false
+  }
+ ],
+ "extension_schema": "plan-anchor/testability-calibration-extension/4",
+ "label_authority": "sealed rubric criteria text (self_contained/observable digest 37f90cf6...) and the A0 cases each extension case mirrors",
+ "phase_u_text_excluded": true,
+ "plan_independent": true,
+ "previous_corpus_sha256": "dd88add1126dcde62d26d1fd2052987dcdeb035a6325fecb1d42acb5886c63d2",
+ "requirement_form_lint_cases": [
+  {
+   "expected": "pass",
+   "id": "lint-01-must",
+   "statement": "The build must emit build.json."
+  },
+  {
+   "expected": "pass",
+   "id": "lint-02-prohibition",
+   "statement": "The logger must never print raw tokens."
+  },
+  {
+   "expected": "pass",
+   "id": "lint-03-is",
+   "statement": "The registry path is .codex/agents/registry.yaml."
+  },
+  {
+   "expected": "fail",
+   "id": "lint-04-first-person",
+   "statement": "I want the build to emit build.json."
+  },
+  {
+   "expected": "fail",
+   "id": "lint-05-second-person",
+   "statement": "You need to record the build digest."
+  },
+  {
+   "expected": "fail",
+   "id": "lint-06-suggestion",
+   "statement": "We should keep the installer reliable."
+  },
+  {
+   "expected": "fail",
+   "id": "lint-07-question",
+   "statement": "Should the build emit build.json?"
+  },
+  {
+   "expected": "fail",
+   "id": "lint-08-imperative",
+   "statement": "Record the build digest in build.json."
+  }
+ ],
+ "schema": "plan-anchor/testability-calibration-corpus/1",
+ "semantic_cases": [
+  {
+   "anchor": {
+    "quote": "the release command needs to write a JSON manifest to dist/release.json",
+    "scope": "release command output",
+    "statement": "The release command must write a JSON manifest to dist/release.json."
+   },
+   "case_id": "a0-01-valid-directive",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "One supported, observable, scoped directive.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "do not print raw auth tokens in request logs or errors",
+    "scope": "request logging and error output",
+    "statement": "The request logger must never write raw authentication tokens to stdout or stderr."
+   },
+   "case_id": "a0-02-valid-prohibition",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Concrete negative prose is a valid, self-contained prohibition.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "keep the parser module under src/parser",
+    "scope": "repository structure",
+    "statement": "The parser module must remain under src/parser/."
+   },
+   "case_id": "a0-03-structural-scope",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "A path is observable and structural scope is identifiable.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "all CLI commands should print JSON on stdout",
+    "scope": "all CLI subcommands",
+    "statement": "Every CLI subcommand must emit a JSON object on stdout."
+   },
+   "case_id": "a0-04-global-scope",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "An explicit global command boundary is valid scope.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "Use cargo for compilation, and run pytest for integration tests.",
+    "scope": "build compilation",
+    "statement": "The build pipeline must use cargo for compilation."
+   },
+   "case_id": "a0-05-atomic-from-multi-directive",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "The statement may capture one supported directive without exhausting the quote.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "the CLI must emit JSON and the daemon must write an audit log",
+    "scope": "CLI output and daemon audit",
+    "statement": "The CLI must emit JSON and the daemon must write an audit log."
+   },
+   "case_id": "a0-06-genuinely-bundled",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "no"
+   },
+   "rationale": "Two independently satisfiable obligations must split.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "encrypt backup archives",
+    "scope": "backup storage",
+    "statement": "Backup archives must use AES-256-GCM encryption."
+   },
+   "case_id": "a0-07-unsupported-elaboration",
+   "expected": {
+    "faithful": "no",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "The algorithm and strength are an unsupported added policy.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "make the installer robust",
+    "scope": "installer behavior",
+    "statement": "The installer must be robust."
+   },
+   "case_id": "a0-08-vague-outcome",
+   "expected": {
+    "faithful": "yes",
+    "observable": "no",
+    "scoped": "yes",
+    "self_contained": "no",
+    "single_constraint": "yes"
+   },
+   "rationale": "Robust has no observable outcome and requires private interpretation.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "with --privacy, replace email addresses with [redacted]",
+    "scope": "exporter privacy mode",
+    "statement": "When --privacy is set, the exporter must replace every email address with [redacted]."
+   },
+   "case_id": "a0-09-explicit-testable-condition",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "A trigger/action/outcome condition is self-contained.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "test a transport failure with a canary TypeSafe key and make sure console output and saved run files contain neither the key nor its bearer header",
+    "scope": "transport-error output and persisted run artifacts",
+    "statement": "When TYPESAFE_API_KEY is set to canary-123 and transport fails, stdout, stderr, and saved run artifacts must omit canary-123 and Authorization: Bearer canary-123."
+   },
+   "case_id": "a0-10-api-key-redaction",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Concrete input/action/outcome proves redaction without literal statement-token dependence.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "make the deploy path satisfy R7",
+    "scope": "deployment",
+    "statement": "The deploy path must satisfy R7."
+   },
+   "case_id": "a0-11-private-shorthand",
+   "expected": {
+    "faithful": "yes",
+    "observable": "no",
+    "scoped": "yes",
+    "self_contained": "no",
+    "single_constraint": "yes"
+   },
+   "rationale": "R7 is undefined private shorthand.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "only publish after the release lead says yes",
+    "scope": "package publishing",
+    "statement": "The package may publish only when the release lead approves."
+   },
+   "case_id": "a0-12-unrecorded-approval",
+   "expected": {
+    "faithful": "yes",
+    "observable": "no",
+    "scoped": "yes",
+    "self_contained": "no",
+    "single_constraint": "yes"
+   },
+   "rationale": "No recorded approval artifact or decision rule is identified.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "The service must log requests as JSON and retry failed requests twice.",
+    "scope": "request logging",
+    "statement": "The service must write request logs as JSON."
+   },
+   "case_id": "a0-13-shared-quote-first-atomic",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "First of two distinct atomic anchors from one quote.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "The service must log requests as JSON and retry failed requests twice.",
+    "scope": "failed request handling",
+    "statement": "The service must retry failed requests twice."
+   },
+   "case_id": "a0-14-shared-quote-second-atomic",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Second of two distinct atomic anchors from one quote.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "CLI output must always be JSON",
+    "scope": "all CLI commands",
+    "statement": "Every CLI command must emit JSON to stdout."
+   },
+   "case_id": "a0-15-duplicate-first",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Individually valid; dedupe is statement-based.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "all commands should print machine-readable JSON",
+    "scope": "all CLI commands",
+    "statement": "Every CLI command must emit JSON to stdout."
+   },
+   "case_id": "a0-16-duplicate-second",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Same testable statement despite different provenance.",
+   "requirement_form_lint": "pass"
+  },
+  {
+   "anchor": {
+    "quote": "you need to record the build digest in build.json",
+    "scope": "build output",
+    "statement": "You need to record the build digest in build.json."
+   },
+   "case_id": "a0-17-nondeclarative-form",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Semantic cells are positive, but deterministic grammar lint must reject second-person instruction form.",
+   "requirement_form_lint": "fail"
+  },
+  {
+   "anchor": {
+    "quote": "offline mode just means --offline is passed; in that mode the installer should only read packages from ./vendor",
+    "scope": "installer offline mode",
+    "statement": "In offline mode (when the --offline flag is set), the installer must read packages only from the ./vendor directory."
+   },
+   "case_id": "a3-01-inline-defined-mode",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "The mode term is defined inline by an explicit flag condition; self_contained yes criterion: explicit input/action/outcome conditions suffice.",
+   "requirement_form_lint": "pass",
+   "title": "inline-defined-mode"
+  },
+  {
+   "anchor": {
+    "quote": "strict mode is strict: true in the config, and then any lint warning should fail the run with exit 1",
+    "scope": "linter strict mode",
+    "statement": "In strict mode, meaning the config file sets strict: true, the linter must exit with status 1 when it reports any warning."
+   },
+   "case_id": "a3-02-inline-defined-meaning",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Mode defined in the statement by a concrete config value; nothing decisive is left undefined.",
+   "requirement_form_lint": "pass",
+   "title": "inline-defined-meaning"
+  },
+  {
+   "anchor": {
+    "quote": "pkg sync-lock has to rewrite package.lock with entries sorted by package name",
+    "scope": "pkg sync-lock command",
+    "statement": "The pkg sync-lock command must rewrite package.lock so that its entries are sorted by package name."
+   },
+   "case_id": "a3-03-product-command-name",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "A named product command and file are ordinary technical terms, not private shorthand (yes criterion).",
+   "requirement_form_lint": "pass",
+   "title": "product-command-name"
+  },
+  {
+   "anchor": {
+    "quote": "if the caller passes --dry-run, deploy must not modify anything under /srv",
+    "scope": "deploy command dry-run",
+    "statement": "When the caller passes --dry-run to the deploy command, the deploy command must not modify any file under /srv."
+   },
+   "case_id": "a3-04-caller-role-flag",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "'The caller' is an ordinary role term and the condition/prohibition is concrete.",
+   "requirement_form_lint": "pass",
+   "title": "caller-role-flag"
+  },
+  {
+   "anchor": {
+    "quote": "for every file in tests/fixtures the formatter output has to match the .expected file next to it byte for byte",
+    "scope": "formatter golden tests",
+    "statement": "For each input file in tests/fixtures/, the formatter output must be byte-identical to the file with the same name and an .expected suffix in that directory."
+   },
+   "case_id": "a3-05-identified-expected-output",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "The expected output is an identified recorded artifact; nothing outside the statement is needed.",
+   "requirement_form_lint": "pass",
+   "title": "identified-expected-output"
+  },
+  {
+   "anchor": {
+    "quote": "run the importer in Mode K",
+    "scope": "importer",
+    "statement": "The importer must run in Mode K."
+   },
+   "case_id": "a3-06-undefined-mode-label",
+   "expected": {
+    "faithful": "yes",
+    "observable": "no",
+    "scoped": "yes",
+    "self_contained": "no",
+    "single_constraint": "yes"
+   },
+   "rationale": "Mode K is an undefined private label, the same shape as a0-11 R7: self_contained no (private label) and observable no (undefined shorthand).",
+   "requirement_form_lint": "pass",
+   "title": "undefined-mode-label"
+  },
+  {
+   "anchor": {
+    "quote": "make the formatter produce the expected output",
+    "scope": "formatter output",
+    "statement": "The formatter must produce the expected output."
+   },
+   "case_id": "a3-07-unidentified-expected-output",
+   "expected": {
+    "faithful": "yes",
+    "observable": "no",
+    "scoped": "yes",
+    "self_contained": "no",
+    "single_constraint": "yes"
+   },
+   "rationale": "Compliance depends on an expected output that is never identified or recorded; decisive term is an undefined reference (self_contained no) and no observable record settles it (observable no), mirroring a0-12.",
+   "requirement_form_lint": "pass",
+   "title": "unidentified-expected-output"
+  },
+  {
+   "anchor": {
+    "quote": "migrations only run after the database owner signs off",
+    "scope": "schema migrations",
+    "statement": "Schema migrations may run only after the database owner signs off."
+   },
+   "case_id": "a3-08-unrecorded-signoff",
+   "expected": {
+    "faithful": "yes",
+    "observable": "no",
+    "scoped": "yes",
+    "self_contained": "no",
+    "single_constraint": "yes"
+   },
+   "rationale": "Human approval with no identified record, same shape as a0-12: self_contained no, observable no.",
+   "requirement_form_lint": "pass",
+   "title": "unrecorded-signoff"
+  },
+  {
+   "anchor": {
+    "quote": "migrations only run once their ID is listed in docs/approvals/migrations.md",
+    "scope": "schema migrations",
+    "statement": "A schema migration may run only when its migration ID is listed in docs/approvals/migrations.md."
+   },
+   "case_id": "a3-09-recorded-approval",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Approval is an identified recorded artifact, the contrast to a3-08: self_contained yes and observable yes.",
+   "requirement_form_lint": "pass",
+   "title": "recorded-approval"
+  },
+  {
+   "anchor": {
+    "quote": "out/lint.json has to list W001-unused-import, W014-shadowed-name and E203-missing-return by their codes",
+    "scope": "lint report output",
+    "statement": "The lint report written to out/lint.json must list each of the diagnostics W001-unused-import, W014-shadowed-name, and E203-missing-return by its code."
+   },
+   "case_id": "a4-01-multi-diagnostic-codes",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Several named diagnostic codes and one path are concrete records of one listing duty; nothing decisive is undefined.",
+   "requirement_form_lint": "pass",
+   "title": "multi-diagnostic-codes"
+  },
+  {
+   "anchor": {
+    "quote": "the 1.4.0 release notes need to cite commits 3f2a9c1, 8b7d0e4 and c41f5a2 by short hash",
+    "scope": "release notes",
+    "statement": "The release notes in docs/release-notes/1.4.0.md must cite commits 3f2a9c1, 8b7d0e4, and c41f5a2 by their short hashes."
+   },
+   "case_id": "a4-02-multi-commit-hashes",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Commit hashes and a path are identified records; one citation duty.",
+   "requirement_form_lint": "pass",
+   "title": "multi-commit-hashes"
+  },
+  {
+   "anchor": {
+    "quote": "only close the parser fuzz campaign once report FZ-2026-031 in docs/reports shows zero open crashes for fuzz/corpus/parser",
+    "scope": "fuzz campaign closure",
+    "statement": "The parser fuzz campaign may be closed only when report FZ-2026-031 in docs/reports/ records zero open crashes for the corpus fuzz/corpus/parser/."
+   },
+   "case_id": "a4-03-report-id-record",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "The report id is the identified record of the corpus outcome (contrast a3-08 unrecorded sign-off).",
+   "requirement_form_lint": "pass",
+   "title": "report-id-record"
+  },
+  {
+   "anchor": {
+    "quote": "dist/tool-1.4.0.tar.gz should contain exactly bin/tool, lib/libtool.so, share/man/man1/tool.1 and LICENSE",
+    "scope": "release archive contents",
+    "statement": "The archive dist/tool-1.4.0.tar.gz must contain exactly the files bin/tool, lib/libtool.so, share/man/man1/tool.1, and LICENSE."
+   },
+   "case_id": "a4-04-exact-file-list",
+   "expected": {
+    "faithful": "yes",
+    "observable": "yes",
+    "scoped": "yes",
+    "self_contained": "yes",
+    "single_constraint": "yes"
+   },
+   "rationale": "Four concrete paths enumerate one exact-contents duty.",
+   "requirement_form_lint": "pass",
+   "title": "exact-file-list"
+  },
+  {
+   "anchor": {
+    "quote": "the release job copies build/out/manifest.json, dist/checksums.txt and docs/CHANGELOG.md into the Q-tier bucket",
+    "scope": "release artifact upload",
+    "statement": "The release job must copy build/out/manifest.json, dist/checksums.txt, and docs/CHANGELOG.md into the Q-tier bucket."
+   },
+   "case_id": "a4-05-buried-undefined-label",
+   "expected": {
+    "faithful": "yes",
+    "observable": "no",
+    "scoped": "yes",
+    "self_contained": "no",
+    "single_constraint": "yes"
+   },
+   "rationale": "Q-tier bucket is an undefined private label and is the decisive destination; same shape as a3-06 Mode K: self_contained no, observable no.",
+   "requirement_form_lint": "pass",
+   "title": "buried-undefined-label"
+  },
+  {
+   "anchor": {
+    "quote": "scripts/migrate_v4.py should turn db/schema_v3.sql, db/seed_v3.sql and db/views_v3.sql into clean v4 equivalents",
+    "scope": "schema migration script",
+    "statement": "The script scripts/migrate_v4.py must convert db/schema_v3.sql, db/seed_v3.sql, and db/views_v3.sql into clean v4 equivalents."
+   },
+   "case_id": "a4-06-buried-subjective-quality",
+   "expected": {
+    "faithful": "yes",
+    "observable": "no",
+    "scoped": "yes",
+    "self_contained": "no",
+    "single_constraint": "yes"
+   },
+   "rationale": "Clean is a decisive subjective quality, same shape as a0-08 robust: self_contained no, observable no.",
+   "requirement_form_lint": "pass",
+   "title": "buried-subjective-quality"
+  }
+ ]
+}

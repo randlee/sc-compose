@@ -1,0 +1,24 @@
+{
+ "attempts": 1,
+ "request_sha256": "ec498090f9ffa14b3854e0a6522bf14e46d463526eb2b38e09e3e08381307eb5",
+ "response": {
+  "answers": {
+   "self_contained": {
+    "choice": "yes",
+    "confidence": 0.73,
+    "probabilities": {
+     "no": 0.15,
+     "unclear": 0.03,
+     "yes": 0.82
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 615,
+   "output_tokens": 41
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:rr4a:s-s14:a4-01-multi-diagnostic-codes:call2"
+}
