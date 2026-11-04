@@ -1124,6 +1124,516 @@
           "source": "user transcript5764"
         }
       ]
+    },
+    {
+      "id": "ANC-034",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The sc-compose ABI3 wheels must support CPython 3.11 and newer.",
+      "quote": "I would limit python to 3.11 if macos didn't ship 3.9... it is so out of date",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAJWE373EJC3EV62AZHE14 explicitly conveys Rand ruling CPython>=3.11; hedge remains verbatim provenance, no lock",
+      "summary": "ABI3 Python floor3.11",
+      "scope": "u-7/u-8/u-9 wheel ABI and install checks",
+      "deterministic_check": "abi3-py311 tags and requires-python>=3.11; install same wheel on3.12+",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAJWE373EJC3EV62AZHE14 explicitly conveys Rand ruling CPython>=3.11; hedge remains verbatim provenance, no lock"
+        }
+      ]
+    },
+    {
+      "id": "ANC-035",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Schema-less templates must render byte-identically to v1.7.0 except for genuine bug fixes.",
+      "quote": "schema-less templates render byte-identical to v1.7.0 except genuine bugs",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAKMVZ5RXHGS45A59P45G6 exact new quote; bug exception transcript6183; execution detail01M6JAMQ7ZCF4C8C8K63N01S62/01M6JAN3316GWY4V43QZFK00Z2/01M6JANVK3N4Q4K535KCK9QPG3",
+      "summary": "schema-less byte regression",
+      "scope": "all normal sprint CI and local checks; u-2 early harness, u-3/u-10/u-12 compatibility, u-5 preflight entry",
+      "deterministic_check": "one Python script compares fixed corpus stdout bytes against committed v1.7.0 goldens; unlisted difference nonzero; approved exception per genuine bug with issue; no baseline executable in CI/preflight",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAKMVZ5RXHGS45A59P45G6 exact new quote; bug exception transcript6183; execution detail01M6JAMQ7ZCF4C8C8K63N01S62/01M6JAN3316GWY4V43QZFK00Z2/01M6JANVK3N4Q4K535KCK9QPG3"
+        }
+      ]
+    },
+    {
+      "id": "ANC-036",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "sc-compose must pass option-like bead identifiers to bd as identifier arguments rather than options.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S01 classification=must pass",
+      "summary": "S01 must pass",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_016_option_like_bead_ids_are_never_parsed_as_bd_options; fuzz_016_option_like_relation_sources_are_not_dep_list_options",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S01 classification=must pass"
+        }
+      ]
+    },
+    {
+      "id": "ANC-037",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Printed Beads recovery commands must shell-quote their arguments so literal values survive shell parsing.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S02 classification=must pass",
+      "summary": "S02 must pass",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped; shell_quote_control_characters_round_trip_under_posix_shells",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S02 classification=must pass"
+        }
+      ]
+    },
+    {
+      "id": "ANC-038",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Printed Beads recovery commands must escape control, zero-width and bidi characters rather than emit them verbatim.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S03 classification=must pass",
+      "summary": "S03 must pass",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped; character set pinned by this named test, no broader rejection",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S03 classification=must pass"
+        }
+      ]
+    },
+    {
+      "id": "ANC-039",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "sc-compose must refuse attach graph references outside [A-Za-z0-9_-]{1,32} before invoking bd.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S04 classification=invalid anyway",
+      "summary": "S04 invalid anyway",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_021_invalid_refs_and_relation_steps_keep_typed_errors; fuzz_021_invalid_attach_ref_is_typed_validation_error",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S04 classification=invalid anyway"
+        }
+      ]
+    },
+    {
+      "id": "ANC-040",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "sc-compose must refuse relation step identifiers outside [A-Za-z0-9_]{1,64} before invoking bd.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S05 classification=invalid anyway",
+      "summary": "S05 invalid anyway",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_021_invalid_refs_and_relation_steps_keep_typed_errors; cooked-step output case is separately discovered after cook",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S05 classification=invalid anyway"
+        }
+      ]
+    },
+    {
+      "id": "ANC-041",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "sc-compose must refuse empty parent or relation bead identifiers, or those containing whitespace or control characters, before invoking bd.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S06 classification=invalid anyway",
+      "summary": "S06 invalid anyway",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "invalid_parent_and_relation_bead_ids_keep_native_typed_errors;9311ea46 contract.rs;44bcea50 fuzz_171_17_control_char_graph_ids_are_refused_before_bd",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S06 classification=invalid anyway"
+        }
+      ]
+    },
+    {
+      "id": "ANC-042",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "sc-compose must refuse a rendered-formula path whose parent is missing or is a file before invoking bd.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S07 classification=invalid anyway",
+      "summary": "S07 invalid anyway",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_042_missing_rendered_formula_directory_is_typed; fuzz_042_parent_file_and_relative_output_are_typed",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S07 classification=invalid anyway"
+        }
+      ]
+    },
+    {
+      "id": "ANC-043",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "A missing non-UTF8 Beads request-file path must produce BEADS_REQUEST_READ_FAILED instead of failing to format the diagnostic.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S09 classification=invalid anyway: missing file; non-UTF8 alone not invalid",
+      "summary": "S09 invalid anyway: missing file; non-UTF8 alone not invalid",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_038_non_utf8_request_paths_are_typed_errors_in_json_and_human_modes; no blanket non-UTF8 refusal",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S09 classification=invalid anyway: missing file; non-UTF8 alone not invalid"
+        }
+      ]
+    },
+    {
+      "id": "ANC-044",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Human Beads attach-refusal diagnostics must escape identifier control characters.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S10 classification=must pass: diagnostic transport",
+      "summary": "S10 must pass: diagnostic transport",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_040_human_attach_refusals_escape_identifier_controls_without_changing_json; preserve raw JSON values under existing oracle",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S10 classification=must pass: diagnostic transport"
+        }
+      ]
+    },
+    {
+      "id": "ANC-045",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Beads request-shape errors must take precedence over graph-identifier errors.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S12a classification=invalid anyway",
+      "summary": "S12a invalid anyway",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_052_request_errors_take_precedence_over_invalid_ids (unknown operation, wrong type, missing field)",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S12a classification=invalid anyway"
+        }
+      ]
+    },
+    {
+      "id": "ANC-046",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Beads pour-authorization errors must take precedence over graph-identifier errors.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S12b classification=invalid anyway",
+      "summary": "S12b invalid anyway",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "fuzz_052_request_errors_take_precedence_over_invalid_ids (unauthorized attach)",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S12b classification=invalid anyway"
+        }
+      ]
+    },
+    {
+      "id": "ANC-047",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Dependency types read from bd must match [A-Za-z][A-Za-z0-9_-]* before sc-compose plans graph mutations.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S13 classification=invalid anyway: external read result, only knowable after bd read",
+      "summary": "S13 invalid anyway: external read result, only knowable after bd read",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "graph.rs:dependency_read_rejects_unsafe_type_tokens_before_planning; three read calls already occurred, no mutation",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S13 classification=invalid anyway: external read result, only knowable after bd read"
+        }
+      ]
+    },
+    {
+      "id": "ANC-048",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "sc-compose must refuse a rendered-formula destination equal to the input template before invoking bd.",
+      "quote": "invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S14 classification=invalid anyway",
+      "summary": "S14 invalid anyway",
+      "scope": "Beads request validation, bd argv/recovery output and graph planning",
+      "deterministic_check": "9311ea46 execute.rs:validate_request rendered_formula==template; no source overwrite",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "proposed",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "event": "proposed",
+          "status": "proposed",
+          "source": "Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S14 classification=invalid anyway"
+        }
+      ]
     }
   ]
 }

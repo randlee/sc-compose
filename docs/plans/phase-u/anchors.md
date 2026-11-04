@@ -39,6 +39,21 @@ Intent: `docs/plans/phase-u/intent.md`
 | ANC-031 | proposed | lint passes | 2026-11-03 |
 | ANC-032 | proposed | Windows integration runs on GitHub | 2026-11-03 |
 | ANC-033 | proposed | integration runs outside normal CI | 2026-11-03 |
+| ANC-034 | proposed | ABI3 Python floor3.11 | 2026-11-03 |
+| ANC-035 | proposed | schema-less byte regression | 2026-11-03 |
+| ANC-036 | proposed | S01 must pass | 2026-11-03 |
+| ANC-037 | proposed | S02 must pass | 2026-11-03 |
+| ANC-038 | proposed | S03 must pass | 2026-11-03 |
+| ANC-039 | proposed | S04 invalid anyway | 2026-11-03 |
+| ANC-040 | proposed | S05 invalid anyway | 2026-11-03 |
+| ANC-041 | proposed | S06 invalid anyway | 2026-11-03 |
+| ANC-042 | proposed | S07 invalid anyway | 2026-11-03 |
+| ANC-043 | proposed | S09 invalid anyway: missing file; non-UTF8 alone not invalid | 2026-11-03 |
+| ANC-044 | proposed | S10 must pass: diagnostic transport | 2026-11-03 |
+| ANC-045 | proposed | S12a invalid anyway | 2026-11-03 |
+| ANC-046 | proposed | S12b invalid anyway | 2026-11-03 |
+| ANC-047 | proposed | S13 invalid anyway: external read result, only knowable after bd read | 2026-11-03 |
+| ANC-048 | proposed | S14 invalid anyway | 2026-11-03 |
 
 ## ANC-001
 
@@ -501,3 +516,213 @@ Summary: integration runs outside normal CI
 Scope: u-8/u-9 full integration workflow
 
 Deterministic check to pair with the development gate: inspect CI invocation paths; does not ban ordinary Windows unit CI
+
+## ANC-034
+
+Anchor: The sc-compose ABI3 wheels must support CPython 3.11 and newer.
+
+> I would limit python to 3.11 if macos didn't ship 3.9... it is so out of date
+
+Said by randlee, Lead01M6JAJWE373EJC3EV62AZHE14 explicitly conveys Rand ruling CPython>=3.11; hedge remains verbatim provenance, no lock, 2026-11-03. Status: proposed. Version 1.
+
+Summary: ABI3 Python floor3.11
+
+Scope: u-7/u-8/u-9 wheel ABI and install checks
+
+Deterministic check to pair with the development gate: abi3-py311 tags and requires-python>=3.11; install same wheel on3.12+
+
+## ANC-035
+
+Anchor: Schema-less templates must render byte-identically to v1.7.0 except for genuine bug fixes.
+
+> schema-less templates render byte-identical to v1.7.0 except genuine bugs
+
+Said by randlee, Lead01M6JAKMVZ5RXHGS45A59P45G6 exact new quote; bug exception transcript6183; execution detail01M6JAMQ7ZCF4C8C8K63N01S62/01M6JAN3316GWY4V43QZFK00Z2/01M6JANVK3N4Q4K535KCK9QPG3, 2026-11-03. Status: proposed. Version 1.
+
+Summary: schema-less byte regression
+
+Scope: all normal sprint CI and local checks; u-2 early harness, u-3/u-10/u-12 compatibility, u-5 preflight entry
+
+Deterministic check to pair with the development gate: one Python script compares fixed corpus stdout bytes against committed v1.7.0 goldens; unlisted difference nonzero; approved exception per genuine bug with issue; no baseline executable in CI/preflight
+
+## ANC-036
+
+Anchor: sc-compose must pass option-like bead identifiers to bd as identifier arguments rather than options.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S01 classification=must pass, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S01 must pass
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_016_option_like_bead_ids_are_never_parsed_as_bd_options; fuzz_016_option_like_relation_sources_are_not_dep_list_options
+
+## ANC-037
+
+Anchor: Printed Beads recovery commands must shell-quote their arguments so literal values survive shell parsing.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S02 classification=must pass, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S02 must pass
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped; shell_quote_control_characters_round_trip_under_posix_shells
+
+## ANC-038
+
+Anchor: Printed Beads recovery commands must escape control, zero-width and bidi characters rather than emit them verbatim.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S03 classification=must pass, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S03 must pass
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_040_recovery_arguments_are_shell_quoted_and_control_escaped; character set pinned by this named test, no broader rejection
+
+## ANC-039
+
+Anchor: sc-compose must refuse attach graph references outside [A-Za-z0-9_-]{1,32} before invoking bd.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S04 classification=invalid anyway, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S04 invalid anyway
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_021_invalid_refs_and_relation_steps_keep_typed_errors; fuzz_021_invalid_attach_ref_is_typed_validation_error
+
+## ANC-040
+
+Anchor: sc-compose must refuse relation step identifiers outside [A-Za-z0-9_]{1,64} before invoking bd.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S05 classification=invalid anyway, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S05 invalid anyway
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_021_invalid_refs_and_relation_steps_keep_typed_errors; cooked-step output case is separately discovered after cook
+
+## ANC-041
+
+Anchor: sc-compose must refuse empty parent or relation bead identifiers, or those containing whitespace or control characters, before invoking bd.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S06 classification=invalid anyway, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S06 invalid anyway
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: invalid_parent_and_relation_bead_ids_keep_native_typed_errors;9311ea46 contract.rs;44bcea50 fuzz_171_17_control_char_graph_ids_are_refused_before_bd
+
+## ANC-042
+
+Anchor: sc-compose must refuse a rendered-formula path whose parent is missing or is a file before invoking bd.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S07 classification=invalid anyway, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S07 invalid anyway
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_042_missing_rendered_formula_directory_is_typed; fuzz_042_parent_file_and_relative_output_are_typed
+
+## ANC-043
+
+Anchor: A missing non-UTF8 Beads request-file path must produce BEADS_REQUEST_READ_FAILED instead of failing to format the diagnostic.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S09 classification=invalid anyway: missing file; non-UTF8 alone not invalid, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S09 invalid anyway: missing file; non-UTF8 alone not invalid
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_038_non_utf8_request_paths_are_typed_errors_in_json_and_human_modes; no blanket non-UTF8 refusal
+
+## ANC-044
+
+Anchor: Human Beads attach-refusal diagnostics must escape identifier control characters.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S10 classification=must pass: diagnostic transport, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S10 must pass: diagnostic transport
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_040_human_attach_refusals_escape_identifier_controls_without_changing_json; preserve raw JSON values under existing oracle
+
+## ANC-045
+
+Anchor: Beads request-shape errors must take precedence over graph-identifier errors.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S12a classification=invalid anyway, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S12a invalid anyway
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_052_request_errors_take_precedence_over_invalid_ids (unknown operation, wrong type, missing field)
+
+## ANC-046
+
+Anchor: Beads pour-authorization errors must take precedence over graph-identifier errors.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S12b classification=invalid anyway, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S12b invalid anyway
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: fuzz_052_request_errors_take_precedence_over_invalid_ids (unauthorized attach)
+
+## ANC-047
+
+Anchor: Dependency types read from bd must match [A-Za-z][A-Za-z0-9_-]* before sc-compose plans graph mutations.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S13 classification=invalid anyway: external read result, only knowable after bd read, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S13 invalid anyway: external read result, only knowable after bd read
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: graph.rs:dependency_read_rejects_unsafe_type_tokens_before_planning; three read calls already occurred, no mutation
+
+## ANC-048
+
+Anchor: sc-compose must refuse a rendered-formula destination equal to the input template before invoking bd.
+
+> invalid graph is fine to fail fast. I do not want inputs overly scrutinized and things that would actually pass to fail fast.
+
+Said by randlee, Lead01M6JAYXV21RZ3X8WSKWJC2RKC supplies Rand quote and existing-tests-only constraint; S14 classification=invalid anyway, 2026-11-03. Status: proposed. Version 1.
+
+Summary: S14 invalid anyway
+
+Scope: Beads request validation, bd argv/recovery output and graph planning
+
+Deterministic check to pair with the development gate: 9311ea46 execute.rs:validate_request rendered_formula==template; no source overwrite

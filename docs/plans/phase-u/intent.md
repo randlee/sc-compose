@@ -14,7 +14,7 @@ Source: Rand via lead, ATM01M6JA233ZPP2RCZ2JWFDCFEYZ.
 
 - Consumers currently write and maintain pour scripts. Source: purpose quote1.
 - bd rendering is unreliable across fields: probed bd1.3.2-dev407fe27 leaves labels unexpanded and rewrites triple braces under runtime vars. Source: purpose quote1; `bd-132-probe/evidence.md` BD-V1/V4 (observations, not additional user requirements).
-- cp311-only wheels and missing platform artifacts limit installations. Source: purpose quote2; user platform quote, transcript8470; v1.7.0 publish manifest (baseline observations).
+- ABI3 wheels now target CPython3.11+ (abi3-py311);3.12+ reuse them. Python<=3.10 is deliberately excluded; macOS CLT /usr/bin/python3 at3.9 needs an upgrade. Source: Rand via lead01M6JAJWE373EJC3EV62AZHE14. cp311-only wheels and missing platform artifacts limit installations. Source: purpose quote2; user platform quote, transcript8470; v1.7.0 publish manifest (baseline observations).
 
 ## Success for a consumer
 
@@ -27,7 +27,7 @@ Source: Rand via lead, ATM01M6JA233ZPP2RCZ2JWFDCFEYZ.
 ## Boundaries and non-goals
 
 - sc-compose constructs structure; bd validates and creates. Source: lead01M6JA2YXXZD98FVG6BS39WGRD identifies this as Rand's stated boundary; FR24/ADR0024 records it. Original transcript quote not recovered yet.
-- Schema-less rendering retains v1.7.0 behavior, except genuine bug fixes. Source: memory/no-frontmatter-no-schema-render-as-v170.md; transcript6183, “we are not maintaining parity w/ a bug just because a bug exists on 1.7.0”. Memory prose is not presented as a verbatim quote.
+- Schema-less rendering stays byte-identical to v1.7.0 except genuine bugs. Source: Rand via lead01M6JAKMVZ5RXHGS45A59P45G6, “schema-less templates render byte-identical to v1.7.0 except genuine bugs”; exception clarified by transcript6183.
 - Publishing is after Phase U, with1.8.0 assumed. Source: transcript5233, “we will publish AFTER phase-u, do not include publishing as part of phase-u.”
 - No new consumer-specific features; sc-compose does not guarantee bd concurrency. Source: lead01M6JA2YXXZD98FVG6BS39WGRD identifies these as Rand-stated boundaries; original quotes/tests still to locate, not new requirements invented here.
 
@@ -41,4 +41,4 @@ Source: Rand via lead, ATM01M6JA233ZPP2RCZ2JWFDCFEYZ.
 
 ## Questions for Rand
 
-- None asserted yet: source gaps and genuinely undetermined definitions will be listed after the recovered-test comparison. Draft anchor wording and fixtures remain unapproved.
+- The existing tests settle defaults and blocked-path timing. Generic JSON-depth safety needs a separate source quote; the unsafe-graph quote does not define generic render policy. New safety drafts and fixtures remain unapproved; Option A wording was approved via lead01M6JAPEKYDRBSBMQMD2PRCG0G, without locking.
