@@ -1,0 +1,2848 @@
+{
+ "success": true,
+ "canceled": false,
+ "aborted_by": null,
+ "data": {
+  "operation": "testability",
+  "gate": "testability",
+  "accepted": false,
+  "rubric_version": 2,
+  "tournament_protocol_version": "plan-anchor/question-tournament/2.0.0",
+  "production_confidence_threshold": 0.6,
+  "confidence_reference_threshold": 0.8,
+  "corpus_sha256": "dd88add1126dcde62d26d1fd2052987dcdeb035a6325fecb1d42acb5886c63d2",
+  "corpus_case_count": 26,
+  "rubric_question_set": null,
+  "candidate_rankings": [
+   {
+    "role": "self_contained",
+    "candidate_id": "s1_r1c1",
+    "accepted_v3_round": true,
+    "prior_v2_round1_accepted": false,
+    "accepted_across_all_evidence": false,
+    "exact_cells": 26,
+    "confident_cells": 26,
+    "stable_cells": 26,
+    "total_cells": 26,
+    "third_calls": 0,
+    "min_confidence": 0.64,
+    "mean_confidence": 0.8948,
+    "calls_below_0_8_reference": 8,
+    "complexity_chars": 927,
+    "reason": "accepted on v3 (26/26) and in the five-role confirmation; but r1 on v2 recorded a0-17-nondeclarative-form yes@0.52/0.67 below 0.6, so it is not accepted across all evidence",
+    "rank": 1,
+    "selected": false
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "s0_sealed",
+    "accepted_v3_round": false,
+    "prior_v2_round1_accepted": true,
+    "accepted_across_all_evidence": false,
+    "exact_cells": 26,
+    "confident_cells": 25,
+    "stable_cells": 26,
+    "total_cells": 26,
+    "third_calls": 0,
+    "min_confidence": 0.49,
+    "mean_confidence": 0.8915,
+    "calls_below_0_8_reference": 8,
+    "complexity_chars": 771,
+    "reason": "rejected: a3-06-undefined-mode-label expected no got [['no', 0.6], ['no', 0.49]]",
+    "rank": 2,
+    "selected": false
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "s6_new",
+    "accepted_v3_round": false,
+    "prior_v2_round1_accepted": null,
+    "accepted_across_all_evidence": false,
+    "exact_cells": 26,
+    "confident_cells": 23,
+    "stable_cells": 26,
+    "total_cells": 26,
+    "third_calls": 0,
+    "min_confidence": 0.43,
+    "mean_confidence": 0.915,
+    "calls_below_0_8_reference": 9,
+    "complexity_chars": 887,
+    "reason": "rejected: a0-07-unsupported-elaboration expected yes got [['yes', 0.56], ['yes', 0.66]]; a0-12-unrecorded-approval expected no got [['no', 0.53], ['no', 0.43]]; a3-08-unrecorded-signoff expected no got [['no', 0.68], ['no', 0.56]]",
+    "rank": 3,
+    "selected": false
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "s5_new",
+    "accepted_v3_round": false,
+    "prior_v2_round1_accepted": null,
+    "accepted_across_all_evidence": false,
+    "exact_cells": 26,
+    "confident_cells": 25,
+    "stable_cells": 26,
+    "total_cells": 26,
+    "third_calls": 0,
+    "min_confidence": 0.58,
+    "mean_confidence": 0.8365,
+    "calls_below_0_8_reference": 14,
+    "complexity_chars": 923,
+    "reason": "rejected: a0-09-explicit-testable-condition expected yes got [['yes', 0.58], ['yes', 0.66]]",
+    "rank": 4,
+    "selected": false
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "s2_r1c2",
+    "accepted_v3_round": false,
+    "prior_v2_round1_accepted": true,
+    "accepted_across_all_evidence": false,
+    "exact_cells": 26,
+    "confident_cells": 25,
+    "stable_cells": 26,
+    "total_cells": 26,
+    "third_calls": 0,
+    "min_confidence": 0.37,
+    "mean_confidence": 0.8598,
+    "calls_below_0_8_reference": 14,
+    "complexity_chars": 786,
+    "reason": "rejected: a3-08-unrecorded-signoff expected no got [['no', 0.37], ['no', 0.38]]",
+    "rank": 5,
+    "selected": false
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "s4_new",
+    "accepted_v3_round": false,
+    "prior_v2_round1_accepted": null,
+    "accepted_across_all_evidence": false,
+    "exact_cells": 25,
+    "confident_cells": 25,
+    "stable_cells": 25,
+    "total_cells": 26,
+    "third_calls": 1,
+    "min_confidence": 0.25,
+    "mean_confidence": 0.896,
+    "calls_below_0_8_reference": 4,
+    "complexity_chars": 1103,
+    "reason": "rejected: a0-10-api-key-redaction expected yes got [['no', 0.37], ['yes', 0.25], ['no', 0.31]]",
+    "rank": 6,
+    "selected": false
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "s3_r1c3",
+    "accepted_v3_round": false,
+    "prior_v2_round1_accepted": false,
+    "accepted_across_all_evidence": false,
+    "exact_cells": 24,
+    "confident_cells": 22,
+    "stable_cells": 25,
+    "total_cells": 26,
+    "third_calls": 1,
+    "min_confidence": 0.25,
+    "mean_confidence": 0.8681,
+    "calls_below_0_8_reference": 9,
+    "complexity_chars": 738,
+    "reason": "rejected: a0-12-unrecorded-approval expected no got [['yes', 0.26], ['no', 0.28], ['no', 0.26]]; a3-06-undefined-mode-label expected no got [['no', 0.4], ['no', 0.49]]; a3-07-unidentified-expected-output expected no got [['no', 0.35], ['no', 0.42]]; a3-08-unrecorded-signoff expected no got [['yes', 0.37], ['yes', 0.25]]",
+    "rank": 7,
+    "selected": false
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "s7_new",
+    "accepted_v3_round": false,
+    "prior_v2_round1_accepted": null,
+    "accepted_across_all_evidence": false,
+    "exact_cells": 23,
+    "confident_cells": 21,
+    "stable_cells": 26,
+    "total_cells": 26,
+    "third_calls": 0,
+    "min_confidence": 0.34,
+    "mean_confidence": 0.7685,
+    "calls_below_0_8_reference": 24,
+    "complexity_chars": 888,
+    "reason": "rejected: a0-04-global-scope expected yes got [['yes', 0.55], ['yes', 0.64]]; a0-06-genuinely-bundled expected yes got [['no', 0.34], ['no', 0.38]]; a0-07-unsupported-elaboration expected yes got [['yes', 0.46], ['yes', 0.43]]; a0-10-api-key-redaction expected yes got [['no', 0.48], ['no', 0.49]]; a0-17-nondeclarative-form expected yes got [['no', 0.64], ['no', 0.6]]; a3-05-identified-expected-output expected yes got [['yes', 0.49], ['yes', 0.49]]",
+    "rank": 8,
+    "selected": false
+   }
+  ],
+  "acceptance_table": [
+   {
+    "case_id": "a0-01-valid-directive",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.85
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-02-valid-prohibition",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-03-structural-scope",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.89
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-04-global-scope",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.85
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.85
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-05-atomic-from-multi-directive",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.85
+      ],
+      [
+       "yes",
+       0.88
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-06-genuinely-bundled",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.83
+      ],
+      [
+       "yes",
+       0.82
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-07-unsupported-elaboration",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-08-vague-outcome",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.8
+      ],
+      [
+       "yes",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-09-explicit-testable-condition",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.83
+      ],
+      [
+       "yes",
+       0.82
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.79
+      ],
+      [
+       "yes",
+       0.85
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-10-api-key-redaction",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.88
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-11-private-shorthand",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.97
+      ],
+      [
+       "no",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-12-unrecorded-approval",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.8
+      ],
+      [
+       "no",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.85
+      ],
+      [
+       "no",
+       0.8
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-13-shared-quote-first-atomic",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.83
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.85
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-14-shared-quote-second-atomic",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.76
+      ],
+      [
+       "yes",
+       0.76
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.82
+      ],
+      [
+       "yes",
+       0.8
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-15-duplicate-first",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.88
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-16-duplicate-second",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.86
+      ],
+      [
+       "yes",
+       0.76
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-17-nondeclarative-form",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.68
+      ],
+      [
+       "yes",
+       0.61
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-01-inline-defined-mode",
+    "origin": "extension-v3",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.89
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-02-inline-defined-meaning",
+    "origin": "extension-v3",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.91
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-03-product-command-name",
+    "origin": "extension-v3",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.83
+      ],
+      [
+       "yes",
+       0.8
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-04-caller-role-flag",
+    "origin": "extension-v3",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.85
+      ],
+      [
+       "yes",
+       0.76
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-05-identified-expected-output",
+    "origin": "extension-v3",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.82
+      ],
+      [
+       "yes",
+       0.8
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.85
+      ],
+      [
+       "yes",
+       0.73
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-06-undefined-mode-label",
+    "origin": "extension-v3",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "yes",
+       0.14
+      ],
+      [
+       "yes",
+       0.3
+      ]
+     ],
+     "cell": "inconclusive"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.8
+      ],
+      [
+       "no",
+       0.73
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-07-unidentified-expected-output",
+    "origin": "extension-v3",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "unclear",
+       0.2
+      ],
+      [
+       "unclear",
+       0.2
+      ]
+     ],
+     "cell": "inconclusive"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.88
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.76
+      ],
+      [
+       "no",
+       0.8
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-08-unrecorded-signoff",
+    "origin": "extension-v3",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.68
+      ],
+      [
+       "no",
+       0.62
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.76
+      ],
+      [
+       "yes",
+       0.83
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.79
+      ],
+      [
+       "no",
+       0.82
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-09-recorded-approval",
+    "origin": "extension-v3",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.91
+      ],
+      [
+       "yes",
+       0.89
+      ]
+     ],
+     "cell": "accepted"
+    }
+   }
+  ],
+  "confirmation_summary": {
+   "two_call_cells": 130,
+   "third_call_cells": 0,
+   "inconclusive_cells": 2,
+   "unstable_cells": 0
+  },
+  "deterministic_lint": {
+   "requirement_form_all_match": true,
+   "extension_lint": [
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-01-inline-defined-mode",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-02-inline-defined-meaning",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-03-product-command-name",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-04-caller-role-flag",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-05-identified-expected-output",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-06-undefined-mode-label",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-07-unidentified-expected-output",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-08-unrecorded-signoff",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-09-recorded-approval",
+     "verbatim_quote_error": false,
+     "warnings": []
+    }
+   ],
+   "base_evidence": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/deterministic-lint.json"
+  },
+  "dedupe": {
+   "note": "dedupe pairs and the dedupe question are unchanged by this reopen; prior byte-identical paired result reused",
+   "rows": [
+    {
+     "pair_id": "dup-01-shared-quote-distinct",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "stable": true,
+     "exact": true,
+     "confident": true,
+     "byte_identical": true
+    },
+    {
+     "pair_id": "dup-02-same-statement-different-quotes",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "stable": true,
+     "exact": true,
+     "confident": true,
+     "byte_identical": true
+    },
+    {
+     "pair_id": "dup-03-paraphrased-duplicate",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.83
+      ],
+      [
+       "yes",
+       0.77
+      ]
+     ],
+     "stable": true,
+     "exact": true,
+     "confident": true,
+     "byte_identical": true
+    },
+    {
+     "pair_id": "dup-04-related-distinct",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "stable": true,
+     "exact": true,
+     "confident": true,
+     "byte_identical": true
+    }
+   ],
+   "evidence": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/dedupe-score.json"
+  },
+  "evidence": {
+   "directory": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/self-contained-r2",
+   "oracle_v3": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/self-contained-r2/oracle.json",
+   "oracle_v3_sha256": "dd88add1126dcde62d26d1fd2052987dcdeb035a6325fecb1d42acb5886c63d2",
+   "oracle_frozen_before_first_jev_call": true,
+   "base_corpus_sha256": "ce5f4efcfee74ecc767bb8c140bf749ef2e33c779f82397d5c42d96698a7b1bc",
+   "base_17_cases_unchanged": true,
+   "extension_case_count": 9,
+   "extension_approval_status": "tuner-authored extension pending user approval; base 17 cases unchanged",
+   "candidates": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/self-contained-r2/candidates-sc1.json",
+   "bundles": [
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/self-contained-r2/bundles-rsc1.json",
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/self-contained-r2/bundles-rsc2.json"
+   ],
+   "scores": [
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/self-contained-r2/score-sc1.json",
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/self-contained-r2/score-sc2.json"
+   ],
+   "raw_requests_dir": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/self-contained-r2/requests",
+   "raw_responses_dir": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/self-contained-r2/responses",
+   "rounds": {
+    "sc1_self_contained_tournament": {
+     "round": "sc1",
+     "requests": 418,
+     "third_calls": 2,
+     "failed": [],
+     "byte_identical_pairs": true
+    },
+    "sc2_five_role_confirmation": {
+     "round": "sc2",
+     "requests": 52,
+     "third_calls": 0,
+     "failed": [],
+     "byte_identical_pairs": true
+    }
+   },
+   "jev_model_answered": "jev-1.14.0",
+   "current_seal_retained": "37f90cf634720a56027472ef1ebfbcc9d16e38405e7cdcaa96ae17ec67120b03 (v2 corpus); not revoked by this run",
+   "sealed_self_contained_on_extension": "a3-06-undefined-mode-label no@0.60/0.49: fails the 0.6 floor; confirms the coverage gap is real",
+   "blocking_cells_five_role_confirmation": [
+    {
+     "role": "observable",
+     "case": "a3-06-undefined-mode-label",
+     "expected": "no",
+     "calls": [
+      [
+       "yes",
+       0.14
+      ],
+      [
+       "yes",
+       0.3
+      ]
+     ]
+    },
+    {
+     "role": "observable",
+     "case": "a3-07-unidentified-expected-output",
+     "expected": "no",
+     "calls": [
+      [
+       "unclear",
+       0.2
+      ],
+      [
+       "unclear",
+       0.2
+      ]
+     ]
+    }
+   ],
+   "planner_observation": "untrusted; r7-*.json and cands7.json were not read or used"
+  },
+  "explanation": "Reopened self_contained only. The planner's gap claim was checked and holds: the v2 corpus has no inline-defined term, product command name, or unidentified reference artifact case. A 9-case plan-independent v3 extension was frozen before any call (base 17 unchanged; labels derived from the sealed criteria and the A0 cases each mirrors). On it the sealed self_contained fails (a3-06 at 0.60/0.49). Of 8 self_contained candidates, s1_r1c1 passed all 26 cases and the five-role confirmation, but its own round-1 v2 run had a0-17 at 0.52, so it is not accepted across all evidence. The decisive blocker is outside the reopened role: the sealed observable question fails extension cases a3-06 (yes at 0.14/0.30 for an undefined mode label) and a3-07 (unclear at 0.20). The frozen labels cannot be changed and observable was not authorized for reopening, so no five-role rubric can be sealed against v3. The existing seal 37f90cf6 remains the v2 seal. Next: get the v3 extension labels approved (see the a3-07 recommendation) and authorize reopening observable with self_contained; s1_r1c1 is the leading self_contained candidate.",
+  "authority_recommendations": [
+   {
+    "kind": "calibration_extension_approval",
+    "target": "testability calibration corpus v3 extension (dd88add1126dcde62d26d1fd2052987dcdeb035a6325fecb1d42acb5886c63d2)",
+    "request": "Approve the 9 tuner-authored a3-* cases and their labels before they become normative; until approved the A0 v2 corpus remains the authority."
+   },
+   {
+    "kind": "clarity",
+    "target": "observable criteria (sealed 37f90cf6) vs a3-07-unidentified-expected-output",
+    "ambiguity": "The observable 'unclear' criterion ('some evidence is named, but the observation needed to settle compliance remains ambiguous') can be read to cover 'the expected output' with no identified record, while the frozen label is 'no' by analogy to a0-12 (no observable record).",
+    "proposed": "Confirm that a reference to an output, approval, or artifact that has no identified record is 'no' for observable, or relabel a3-07 observable to 'unclear' in an approved v3 revision.",
+    "meaning_unchanged_because": "Either choice only states which existing criterion applies to an unrecorded reference; it adds no new testability requirement."
+   },
+   {
+    "kind": "reopen_scope",
+    "target": "observable role",
+    "request": "a3-06 (undefined private mode label, same shape as approved a0-11 R7) is an oracle mismatch for the sealed observable question independent of a3-07; reopening observable is required before any v3 seal."
+   }
+  ],
+  "candidate_count": 8,
+  "semantic_score": {
+   "exact_cells": 128,
+   "confident_cells": 128,
+   "stable_cells": 130,
+   "total_cells": 130
+  },
+  "dedupe_case_count": 4,
+  "dedupe_score": {
+   "exact_cells": 4,
+   "confident_cells": 4,
+   "stable_cells": 4,
+   "total_cells": 4
+  },
+  "repeat_requests_byte_identical": true
+ },
+ "error": null,
+ "metadata": {
+  "duration_ms": 660000,
+  "tool_calls": 13,
+  "retry_count": 0,
+  "correlation_id": "phase-u:beads-anchors:testability:self-contained-r2",
+  "jev_run_ids": [
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s0_sealed:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s1_r1c1:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s2_r1c2:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-12-unrecorded-approval:call3",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s3_r1c3:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-10-api-key-redaction:call3",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s4_new:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s5_new:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s6_new:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc1:s7_new:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:rsc2:S2:a3-09-recorded-approval:call2"
+  ],
+  "planner_observation_trust": "untrusted",
+  "authoritative_sources_unchanged": true
+ }
+}

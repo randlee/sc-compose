@@ -1,0 +1,151 @@
+{
+  "round": 1,
+  "note": "Bundle b0 is the incumbent sealed rubric (assets/questions/testability.json v2). Bundles b1-b3 are new wordings. Questions in one request are answered independently, so each role's candidate is scored per role; bundles only group requests.",
+  "roles": {
+    "single_constraint": {
+      "c1": {
+        "type": "choice",
+        "instructions": "Does `anchor.statement` impose one requirement rather than several separate ones? It is one requirement when every listed target, output stream, file, value, or condition qualifies the same required action or prohibition of the same subject; for example, 'must omit X from stdout, stderr and saved files' is one requirement. It is several requirements when it joins separate required actions that could each be met while the other is not; for example, 'the CLI must emit JSON and the daemon must write an audit log'. Judge only this; ignore vagueness, fidelity to the quote, and scope.",
+        "criteria": {
+          "yes": "One subject has one required action or one prohibition; any list only enumerates the targets, surfaces, values, or conditions of that same action.",
+          "no": "The statement joins two or more required actions, or two subjects each with its own action, so one part could be met while another is not.",
+          "unclear": "The parts could equally be read as one action with several targets or as separate actions."
+        }
+      },
+      "c2": {
+        "type": "choice",
+        "instructions": "Imagine checking `anchor.statement` with pass/fail tests. Would every part of the statement be settled by checking one required behavior, or does the statement join separate obligations that would each need their own check because one can pass while the other fails? Listing several outputs, files, streams or conditions for the same behavior is still one behavior. Ignore whether the statement is vague, faithful to the quote, or scoped.",
+        "criteria": {
+          "yes": "All parts describe one required behavior or prohibition, including its trigger and every surface it applies to.",
+          "no": "It joins separate obligations, such as different actions or different subjects, that can pass or fail independently.",
+          "unclear": "It cannot be told whether the parts are one behavior or separate obligations."
+        }
+      },
+      "c3": {
+        "type": "choice",
+        "instructions": "Is `anchor.statement` free of a conjunction of independent duties? An independent duty is a required action that could be satisfied while another required action in the same statement is violated. A single action described with a trigger, a list of targets or output surfaces, or concrete example values is one duty, not several.",
+        "criteria": {
+          "yes": "The statement contains a single duty; any 'and' or list joins targets, surfaces or values of that duty.",
+          "no": "The statement contains at least two independent duties joined together.",
+          "unclear": "Whether the joined parts are independent duties is ambiguous."
+        }
+      }
+    },
+    "observable": {
+      "c1": {
+        "type": "choice",
+        "instructions": "Could a reviewer decide pass or fail for `anchor.statement` by inspecting a concrete behavior, output, file, path, value, command result, or recorded artifact? A subjective quality word (such as robust, clean, or reliable), an undefined label or code (such as R7), or a person's approval with no named record does not give anything concrete to inspect. Judge only whether the required outcome can be inspected; ignore bundling, fidelity, and scope.",
+        "criteria": {
+          "yes": "The statement names a concrete behavior, output, file, path, value, or prohibited content whose presence or absence can be checked.",
+          "no": "Compliance rests on a subjective quality, an undefined label or code, or a person's approval with no named record, so no inspection settles it.",
+          "unclear": "A concrete outcome is partly named, but what to inspect remains ambiguous."
+        }
+      },
+      "c2": {
+        "type": "choice",
+        "instructions": "Does `anchor.statement` say what a reviewer would look at to confirm compliance: a command's output, a file or path, a value, a stream, or a behavior under a stated condition? Answer no when the only thing required is a quality judgment (for example 'robust'), conformance to an unexplained name or code, or someone's say-so that leaves no record.",
+        "criteria": {
+          "yes": "A reviewer could inspect the named output, file, path, value, stream or behavior and get a definite pass or fail.",
+          "no": "The requirement is only a quality judgment, an unexplained name or code, or an unrecorded approval.",
+          "unclear": "Something inspectable is mentioned, but it does not settle compliance."
+        }
+      },
+      "c3": {
+        "type": "choice",
+        "instructions": "Is the outcome required by `anchor.statement` observable? Observable outcomes include writing or not writing specific content, a file existing at a path, a module located under a directory, a tool being used for a step, a value being replaced, and output appearing on a named stream. Not observable: a subjective quality, satisfying an undefined label, or depending on a person's decision that has no record.",
+        "criteria": {
+          "yes": "The required outcome is concrete content, location, tool use, replacement, or output that can be observed.",
+          "no": "The required outcome is a subjective quality, an undefined label, or an unrecorded personal decision.",
+          "unclear": "The outcome is partly concrete but its observation is ambiguous."
+        }
+      }
+    },
+    "faithful": {
+      "c1": {
+        "type": "choice",
+        "instructions": "Compare `anchor.statement` with `anchor.quote`. Does the statement restate something the quote asks for without adding a requirement the quote does not ask for? Allowed: rewording; formal must or must never phrasing; naming the plain concrete surface of a quoted action (print becomes emit on stdout, logs or errors become stdout or stderr); concrete example values that instantiate a check the quote describes; and keeping only one of several directives in the quote. Not allowed: adding a specific algorithm, strength, number, technology, trigger, or policy that the quote neither states nor clearly implies, or reversing the quote. Ignore vagueness, bundling, and scope.",
+        "criteria": {
+          "yes": "Every requirement in the statement is stated or clearly implied by the quote; differences are only rewording, formal phrasing, a plain concrete surface, example values, or keeping one directive.",
+          "no": "The statement adds a specific choice the quote neither states nor implies, such as a named algorithm, strength, number, technology, trigger, or policy, or it contradicts the quote.",
+          "unclear": "It cannot be told whether a detail in the statement is implied by the quote."
+        }
+      },
+      "c2": {
+        "type": "choice",
+        "instructions": "Would someone who said `anchor.quote` agree that `anchor.statement` asks for what they asked for, and nothing they did not ask for? Treat a formal rewrite, a more precise naming of the same thing, illustrative test values, or keeping only one of their several directives as agreement. Treat a newly chosen algorithm, strength, number, tool, trigger, or extra policy as something they did not ask for. Do not judge whether the statement is vague.",
+        "criteria": {
+          "yes": "The speaker asked for what the statement requires; the statement only formalizes, names more precisely, illustrates, or selects one of their directives.",
+          "no": "The statement requires something the speaker did not ask for, such as a chosen algorithm, strength, number, tool, trigger, or policy, or the opposite of what they asked.",
+          "unclear": "It cannot be determined whether the speaker asked for a detail the statement requires."
+        }
+      },
+      "c3": {
+        "type": "choice",
+        "instructions": "Does `anchor.statement` introduce any substantive requirement that is absent from `anchor.quote`? Substantive means a new choice that changes what would comply: a specific algorithm, key size, count, technology, trigger, scope extension, or policy. Formal wording, synonyms, naming the obvious output surface, test values that illustrate a quoted check, and covering only one directive of a multi-directive quote are not substantive. Answer yes when the statement introduces nothing substantive.",
+        "criteria": {
+          "yes": "Nothing substantive is introduced; the statement is a faithful formalization of the quote or of one directive in it.",
+          "no": "A substantive requirement absent from the quote is introduced, or the quote's meaning is changed.",
+          "unclear": "Whether an added detail is substantive cannot be determined."
+        }
+      }
+    },
+    "scoped": {
+      "c1": {
+        "type": "choice",
+        "instructions": "From `anchor.statement` and `anchor.scope`, can a reviewer tell which component, command, artifact, process, or repository area the requirement governs? An explicit global set such as 'every CLI subcommand' or 'all CLI commands' counts as identified. Judge only whether the governed area is identifiable; ignore whether the requirement itself is vague, faithful, or bundled.",
+        "criteria": {
+          "yes": "The governed component, command, artifact, process, repository area, or explicit global set is named.",
+          "no": "Neither the statement nor the scope names any governed area.",
+          "unclear": "An area is mentioned, but it cannot be told what work it covers."
+        }
+      },
+      "c2": {
+        "type": "choice",
+        "instructions": "Does `anchor.statement` or `anchor.scope` name the subject the requirement applies to, such as a command, module, service, pipeline, artifact, process, path, or an explicit 'all' or 'every' set? A named subject is enough even when the requirement about it is vague or poorly worded.",
+        "criteria": {
+          "yes": "A subject (component, artifact, process, path, or explicit set) is named.",
+          "no": "No subject is named; the requirement applies to nothing identifiable.",
+          "unclear": "A subject is hinted at but cannot be identified."
+        }
+      },
+      "c3": {
+        "type": "choice",
+        "instructions": "Would a reviewer know which work items this anchor applies to, based on the component, command, artifact, process, or explicit global set named in `anchor.statement` and `anchor.scope`? Do not consider whether the requirement is testable, faithful, or single.",
+        "criteria": {
+          "yes": "The named component, command, artifact, process, or explicit global set tells a reviewer where the anchor applies.",
+          "no": "Nothing in the statement or scope tells a reviewer where the anchor applies.",
+          "unclear": "Something is named, but which work it governs is ambiguous."
+        }
+      }
+    },
+    "self_contained": {
+      "c1": {
+        "type": "choice",
+        "instructions": "Can `anchor.statement` be understood and applied by a reader who has only the statement, without outside context? Ordinary technical terms, commands, flags, paths, environment variables, file formats, streams, and concrete prohibitions or conditions need no outside context. Outside context is needed when a decisive term is a subjective quality (such as robust), a private label or code with no definition (such as R7), or a person's approval with no identified record. Ignore grammar, bundling, fidelity, and scope.",
+        "criteria": {
+          "yes": "Every decisive term is ordinary technical language or concrete content, so the statement applies without outside context.",
+          "no": "A decisive term is a subjective quality, an undefined private label or code, or an approval with no identified record.",
+          "unclear": "A term might depend on outside context, but it is not clear whether it is decisive."
+        }
+      },
+      "c2": {
+        "type": "choice",
+        "instructions": "Does applying `anchor.statement` require knowledge that is not in the statement itself? Answer yes when nothing outside is needed. Common technical vocabulary (commands, paths, flags, formats, streams, environment variables, named tools) is not outside knowledge. A subjective quality word, an unexplained label or requirement code, or a person's approval that is not recorded anywhere is outside knowledge.",
+        "criteria": {
+          "yes": "No outside knowledge is needed; the statement uses common technical vocabulary and concrete content only.",
+          "no": "Applying it needs outside knowledge: the meaning of a subjective quality, an unexplained label or code, or an unrecorded approval.",
+          "unclear": "It is unclear whether some term needs outside knowledge."
+        }
+      },
+      "c3": {
+        "type": "choice",
+        "instructions": "Is every decisive term in `anchor.statement` defined by the statement itself or by common technical usage? Undefined terms include subjective qualities (robust, clean, reliable), private shorthand or requirement codes (R7, the usual way), and approvals by a person with no named record. Concrete prohibitions, lists, paths, flags, commands, formats, and input-action-outcome conditions are defined.",
+        "criteria": {
+          "yes": "All decisive terms are defined by the statement or common technical usage.",
+          "no": "At least one decisive term is a subjective quality, private shorthand or code, or an approval with no named record.",
+          "unclear": "A term may be undefined, but whether it is decisive is unclear."
+        }
+      }
+    }
+  }
+}

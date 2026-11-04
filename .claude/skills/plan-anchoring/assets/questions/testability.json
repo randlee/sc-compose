@@ -1,52 +1,52 @@
 {
   "schema": "plan-anchoring/questions/1",
   "gate": "testability",
-  "version": 2,
-  "notes": "Independently calibrated against the frozen plan-independent A0 corpus. Requirement form is deterministic lint, not a Jev vote. Each semantic cell is called twice; a third call is made only after choice disagreement. Production confidence is 0.6; 0.8 is diagnostic only.",
+  "version": 4,
+  "notes": "Sealed 2026-11-04 by anchor-tuning (digest 3f1c0f65...) on the 26-case calibration set (17 A0 + 9 user-approved a3 cases). Evidence: docs/plans/phase-u/anchor-runs/testability-tuning-20261104/. Requirement form is deterministic lint. Production confidence 0.6; 0.8 diagnostic.",
   "questions": {
-    "single_constraint": {
+    "faithful": {
       "criteria": {
-        "no": "At least two independently enforceable duties are joined in the statement.",
-        "unclear": "The statement leaves independence of its duties ambiguous.",
-        "yes": "All details enforce the same invariant and would be evaluated together."
+        "no": "The statement adds a new decision the quote leaves open, or asks for something different from the quote.",
+        "unclear": "It cannot be told whether an extra detail is the obvious reading or a new decision.",
+        "yes": "The statement asks for what the quote asks for; any extra detail is only the obvious precise reading of the quote."
       },
-      "instructions": "Is anchor.statement one invariant applied to a subject, trigger, and possibly several output surfaces? Do not count the number of nouns or listed artifacts; count independently enforceable duties.",
+      "instructions": "First identify what `anchor.quote` asks for. Then decide whether `anchor.statement` asks for that same thing, possibly worded more precisely, or adds a new decision. Making the quote precise in the obvious way is not a new decision: the stream a CLI prints to is stdout; logs and error messages go to stdout or stderr; JSON output is a JSON object; a CLI's commands are its subcommands; must replaces should or needs to; concrete values may illustrate a described test; and one directive may be taken from several. A new decision is a choice the quote leaves open, such as a specific algorithm or key strength where the quote only says encrypt, a count, a tool, or a trigger. Do not judge vagueness, bundling, or scope.",
       "type": "choice"
     },
     "observable": {
       "criteria": {
-        "no": "It supplies only a subjective quality, undefined shorthand, or an approval with no observable record.",
-        "unclear": "Some evidence is named, but the observation needed to settle compliance remains ambiguous.",
-        "yes": "It names evidence or behavior that can be inspected with a determinate outcome."
+        "no": "A required outcome rests on a subjective quality, an undefined label or mode, or an expected output, approval, or standard with no identified record.",
+        "unclear": "An outcome is partly concrete, but what to inspect cannot be determined even though nothing is undefined or unrecorded.",
+        "yes": "Every required outcome is a concrete behavior, output, file, path, value, tool use, or identified record that can be inspected."
       },
-      "instructions": "Does anchor.statement define a checkable behavior or artifact without relying on an undefined label or an approval that has no identified record? Judge only whether the stated outcome can be observed.",
-      "type": "choice"
-    },
-    "faithful": {
-      "criteria": {
-        "no": "Even after ordinary normalization, the statement requires a new policy, implementation choice, strength, trigger, or outcome.",
-        "unclear": "Ordinary normalization does not settle whether the meaning was preserved.",
-        "yes": "Those normalization rules are sufficient and no substantive requirement was invented."
-      },
-      "instructions": "Is anchor.statement a faithful formal requirement derived from anchor.quote? Preserve meaning, not wording: informal directives may become must, print may become emit to stdout, machine-readable JSON may become JSON, and one directive in a compound quote may become one anchor. Do not penalize vagueness here.",
+      "instructions": "Can each outcome that `anchor.statement` requires be checked by inspecting something concrete: a behavior, output, exit status, file, path, value, tool used, or an identified record? Bundled duties, added details, and informal wording do not matter here. Nothing can be inspected for a subjective quality (robust), a label or mode the statement never defines (R7, Mode K), an expected output, approval, or standard whose record the statement does not identify, or a person's say-so with no identified record. A mode the statement defines inline is inspectable.",
       "type": "choice"
     },
     "scoped": {
       "criteria": {
-        "no": "No work area or applicability set is identifiable.",
-        "unclear": "An area is named but its applicability cannot be determined.",
-        "yes": "A reviewer can identify the work area where this anchor applies, including an explicit all-items set."
+        "no": "No subject is named; the requirement applies to nothing identifiable.",
+        "unclear": "A subject is hinted at but cannot be identified.",
+        "yes": "A subject (component, artifact, process, path, or explicit set) is named."
       },
-      "instructions": "Do anchor.statement and anchor.scope identify the governed activity, component, artifact, or explicit global set, independent of whether the requirement itself is vague or otherwise defective?",
+      "instructions": "Does `anchor.statement` or `anchor.scope` name the subject the requirement applies to, such as a command, module, service, pipeline, artifact, process, path, or an explicit 'all' or 'every' set? A named subject is enough even when the requirement about it is vague or poorly worded.",
       "type": "choice"
     },
     "self_contained": {
       "criteria": {
-        "no": "At least one decisive term is an undefined quality or private label, or compliance depends on an approval with no identified record.",
-        "unclear": "A possible outside-context dependency exists but the statement does not show whether it is decisive.",
-        "yes": "None of those outside-context dependencies is needed; ordinary technical terms, concrete prohibitions, lists, and explicit input/action/outcome conditions are sufficient."
+        "no": "A decisive term is a subjective quality, an undefined label or mode, an unidentified expected output or standard, or an approval with no identified record.",
+        "unclear": "A term may not be understood, but it cannot be told whether it is decisive.",
+        "yes": "Every decisive term can be understood from the statement or common technical knowledge."
       },
-      "instructions": "Is anchor.statement independently understandable and applicable without any of these disqualifiers: an undefined subjective quality (for example robust), private shorthand, or a human approval that has no identified recorded artifact? Ignore grammar, bundling, fidelity, and scope.",
+      "instructions": "Can each decisive term in `anchor.statement` be understood from the statement itself or from common technical knowledge? Understood terms include commands, subcommands, flags, files, paths, values, environment variables, formats, streams, roles such as 'the caller', and terms the statement defines inline. Bundled duties, added details, sentence form, and who is told to act (a named component, 'you', or nobody) do not matter here. A term cannot be understood when it is a subjective quality (robust), a label or mode the statement never defines (R7, Mode K), an expected output or standard whose record the statement does not identify, or a person's approval with no identified record.",
+      "type": "choice"
+    },
+    "single_constraint": {
+      "criteria": {
+        "no": "The statement joins two or more required actions, or two subjects each with its own action, so one part could be met while another is not.",
+        "unclear": "The parts could equally be read as one action with several targets or as separate actions.",
+        "yes": "One subject has one required action or one prohibition; any list only enumerates the targets, surfaces, values, or conditions of that same action."
+      },
+      "instructions": "Does `anchor.statement` impose one requirement rather than several separate ones? It is one requirement when every listed target, output stream, file, value, or condition qualifies the same required action or prohibition of the same subject; for example, 'must omit X from stdout, stderr and saved files' is one requirement. It is several requirements when it joins separate required actions that could each be met while the other is not; for example, 'the CLI must emit JSON and the daemon must write an audit log'. Judge only this; ignore vagueness, fidelity to the quote, and scope.",
       "type": "choice"
     }
   }

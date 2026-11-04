@@ -1,0 +1,10 @@
+{
+ "corpus_sha256": "dd88add1126dcde62d26d1fd2052987dcdeb035a6325fecb1d42acb5886c63d2",
+ "case_count": 26,
+ "approval": "9 a3 cases and labels approved by the user 2026-11-04, relayed verbatim by the coordinator ('approve'); a3-07 observable label 'no' kept as frozen pending user discussion",
+ "reopened_roles": [
+  "observable",
+  "self_contained"
+ ],
+ "frozen_before_first_call": true
+}

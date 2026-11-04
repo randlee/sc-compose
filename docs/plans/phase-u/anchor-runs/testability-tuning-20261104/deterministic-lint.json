@@ -1,0 +1,242 @@
+{
+ "semantic_cases": [
+  {
+   "id": "a0-01-valid-directive",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-02-valid-prohibition",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-03-structural-scope",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-04-global-scope",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-05-atomic-from-multi-directive",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-06-genuinely-bundled",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": true,
+   "warnings": [
+    "statement is the verbatim quote"
+   ],
+   "match": true
+  },
+  {
+   "id": "a0-07-unsupported-elaboration",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-08-vague-outcome",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [
+    "vague term; name the observable outcome"
+   ],
+   "match": true
+  },
+  {
+   "id": "a0-09-explicit-testable-condition",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-10-api-key-redaction",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-11-private-shorthand",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-12-unrecorded-approval",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-13-shared-quote-first-atomic",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-14-shared-quote-second-atomic",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-15-duplicate-first",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-16-duplicate-second",
+   "expected": "pass",
+   "got": "pass",
+   "requirement_form_errors": [],
+   "verbatim_quote_error": false,
+   "warnings": [],
+   "match": true
+  },
+  {
+   "id": "a0-17-nondeclarative-form",
+   "expected": "fail",
+   "got": "fail",
+   "requirement_form_errors": [
+    "written as speech, not as a requirement",
+    "not phrased as a testable requirement"
+   ],
+   "verbatim_quote_error": true,
+   "warnings": [
+    "statement is the verbatim quote",
+    "written as speech, not as a requirement",
+    "not phrased as a testable requirement"
+   ],
+   "match": true
+  }
+ ],
+ "lint_cases": [
+  {
+   "id": "lint-01-must",
+   "expected": "pass",
+   "got": "pass",
+   "errors": [],
+   "match": true
+  },
+  {
+   "id": "lint-02-prohibition",
+   "expected": "pass",
+   "got": "pass",
+   "errors": [],
+   "match": true
+  },
+  {
+   "id": "lint-03-is",
+   "expected": "pass",
+   "got": "pass",
+   "errors": [],
+   "match": true
+  },
+  {
+   "id": "lint-04-first-person",
+   "expected": "fail",
+   "got": "fail",
+   "errors": [
+    "written as speech, not as a requirement",
+    "not phrased as a testable requirement"
+   ],
+   "match": true
+  },
+  {
+   "id": "lint-05-second-person",
+   "expected": "fail",
+   "got": "fail",
+   "errors": [
+    "written as speech, not as a requirement",
+    "not phrased as a testable requirement"
+   ],
+   "match": true
+  },
+  {
+   "id": "lint-06-suggestion",
+   "expected": "fail",
+   "got": "fail",
+   "errors": [
+    "hedged wording; state the requirement",
+    "written as speech, not as a requirement",
+    "not phrased as a testable requirement"
+   ],
+   "match": true
+  },
+  {
+   "id": "lint-07-question",
+   "expected": "fail",
+   "got": "fail",
+   "errors": [
+    "hedged wording; state the requirement",
+    "not phrased as a testable requirement"
+   ],
+   "match": true
+  },
+  {
+   "id": "lint-08-imperative",
+   "expected": "fail",
+   "got": "fail",
+   "errors": [
+    "not phrased as a testable requirement"
+   ],
+   "match": true
+  }
+ ],
+ "all_match": true
+}

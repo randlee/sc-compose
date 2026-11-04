@@ -1,0 +1,48 @@
+{
+ "bundles": {
+  "f4": {
+   "faithful": {
+    "criteria": {
+     "no": "The statement adds a requirement the quote does not express, such as a specific algorithm, strength, number, tool, trigger, or policy, or it changes the quote's meaning.",
+     "unclear": "It cannot be determined whether a difference is ordinary normalization or an added requirement.",
+     "yes": "The statement differs from the quote only by ordinary normalization of this kind, and adds no requirement the quote does not express."
+    },
+    "instructions": "Is `anchor.statement` a faithful formal requirement derived from `anchor.quote`? Preserve meaning, not wording. Ordinary normalization is faithful: informal directives (needs to, should, do not, make sure) become must or must never; print or output becomes emit or write to stdout, and logs or error output become stdout or stderr; machine-readable JSON becomes JSON or a JSON object; commands become CLI commands or subcommands; a person saying yes becomes that person approving; a described test becomes concrete example values; and one directive of a compound quote may become one anchor. Do not penalize vagueness, bundling, or scope here.",
+    "type": "choice"
+   }
+  },
+  "f5": {
+   "faithful": {
+    "criteria": {
+     "no": "The statement requires something the formally read quote does not ask for, such as a chosen algorithm, key strength, number, tool, trigger, or policy, or it contradicts the quote.",
+     "unclear": "Whether the quote asks for some requirement in the statement cannot be determined.",
+     "yes": "Everything the statement requires is asked for by the formally read quote."
+    },
+    "instructions": "Is every requirement in `anchor.statement` already asked for by `anchor.quote`, once the quote is read as a formal requirement? Reading the quote formally includes: should, needs to, or do not becoming must or must never; printing or output meaning the program's stdout, and logs or errors meaning stdout or stderr; JSON output meaning a JSON object; commands of a CLI meaning its commands or subcommands; a described test becoming concrete test values; and taking only one of several directives. Do not judge vagueness, bundling, or scope.",
+    "type": "choice"
+   }
+  },
+  "f6": {
+   "faithful": {
+    "criteria": {
+     "no": "The statement adds a new decision the quote leaves open, or asks for something different from the quote.",
+     "unclear": "It cannot be told whether an extra detail is the obvious reading or a new decision.",
+     "yes": "The statement asks for what the quote asks for; any extra detail is only the obvious precise reading of the quote."
+    },
+    "instructions": "First identify what `anchor.quote` asks for. Then decide whether `anchor.statement` asks for that same thing, possibly worded more precisely, or adds a new decision. Making the quote precise in the obvious way is not a new decision: the stream a CLI prints to is stdout; logs and error messages go to stdout or stderr; JSON output is a JSON object; a CLI's commands are its subcommands; must replaces should or needs to; concrete values may illustrate a described test; and one directive may be taken from several. A new decision is a choice the quote leaves open, such as a specific algorithm or key strength where the quote only says encrypt, a count, a tool, or a trigger. Do not judge vagueness, bundling, or scope.",
+    "type": "choice"
+   }
+  },
+  "f7": {
+   "faithful": {
+    "criteria": {
+     "no": "The statement adds a substantive design decision absent from the quote or contradicts it.",
+     "unclear": "Whether a detail is a substantive design decision cannot be determined.",
+     "yes": "The statement adds no substantive design decision and does not contradict the quote."
+    },
+    "instructions": "Compare `anchor.statement` with `anchor.quote`. Answer no only when the statement adds a substantive design decision that the quote does not contain (for example a specific algorithm or key size, a numeric limit, a named tool, a new trigger, or a broader scope) or contradicts the quote. Precision any reader of the quote would assume is faithful: the output stream of printed output (stdout, or stdout and stderr for logs and errors), JSON meaning a JSON object, commands meaning CLI commands or subcommands, formal must or must never wording, illustrative test values for a described check, and covering one directive of several. Do not judge vagueness, bundling, or scope.",
+    "type": "choice"
+   }
+  }
+ }
+}

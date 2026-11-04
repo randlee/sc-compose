@@ -1,0 +1,1285 @@
+{
+ "rounds": [
+  "2"
+ ],
+ "candidates": {
+  "r2:f4:faithful": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.67,
+   "mean_conf": 0.9132,
+   "below_ref_0_8": 3,
+   "accepted": true,
+   "complexity_chars": 1128
+  },
+  "r2:f5:faithful": {
+   "exact": 17,
+   "confident": 14,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-02-valid-prohibition",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.66
+      ],
+      [
+       "yes",
+       0.58
+      ]
+     ]
+    },
+    {
+     "case": "a0-10-api-key-redaction",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.53
+      ],
+      [
+       "yes",
+       0.4
+      ]
+     ]
+    },
+    {
+     "case": "a0-16-duplicate-second",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.52
+      ],
+      [
+       "yes",
+       0.68
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.4,
+   "mean_conf": 0.8406,
+   "below_ref_0_8": 11,
+   "accepted": false,
+   "complexity_chars": 963
+  },
+  "r2:f6:faithful": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.72,
+   "mean_conf": 0.9009,
+   "below_ref_0_8": 3,
+   "accepted": true,
+   "complexity_chars": 1108
+  },
+  "r2:f7:faithful": {
+   "exact": 14,
+   "confident": 11,
+   "stable": 16,
+   "total": 17,
+   "third": 1,
+   "mismatches": [
+    {
+     "case": "a0-02-valid-prohibition",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.55
+      ],
+      [
+       "yes",
+       0.62
+      ]
+     ]
+    },
+    {
+     "case": "a0-04-global-scope",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.42
+      ],
+      [
+       "no",
+       0.43
+      ]
+     ]
+    },
+    {
+     "case": "a0-09-explicit-testable-condition",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.58
+      ],
+      [
+       "yes",
+       0.6
+      ]
+     ]
+    },
+    {
+     "case": "a0-10-api-key-redaction",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.55
+      ],
+      [
+       "yes",
+       0.56
+      ]
+     ]
+    },
+    {
+     "case": "a0-15-duplicate-first",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.26
+      ],
+      [
+       "yes",
+       0.31
+      ],
+      [
+       "yes",
+       0.26
+      ]
+     ]
+    },
+    {
+     "case": "a0-16-duplicate-second",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.49
+      ],
+      [
+       "no",
+       0.49
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.26,
+   "mean_conf": 0.7418,
+   "below_ref_0_8": 18,
+   "accepted": false,
+   "complexity_chars": 1007
+  }
+ },
+ "cells": [
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.67
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f4:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.66
+    ],
+    [
+     "yes",
+     0.58
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.74
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.53
+    ],
+    [
+     "yes",
+     0.4
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.74
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.52
+    ],
+    [
+     "yes",
+     0.68
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r2:f5:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f6:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.68
+    ],
+    [
+     "yes",
+     0.7
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.55
+    ],
+    [
+     "yes",
+     0.62
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.7
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.42
+    ],
+    [
+     "no",
+     0.43
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.58
+    ],
+    [
+     "yes",
+     0.6
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.55
+    ],
+    [
+     "yes",
+     0.56
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.26
+    ],
+    [
+     "yes",
+     0.31
+    ],
+    [
+     "yes",
+     0.26
+    ]
+   ],
+   "cell": "unstable"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.49
+    ],
+    [
+     "no",
+     0.49
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r2:f7:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  }
+ ]
+}

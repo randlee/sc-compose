@@ -1,0 +1,114 @@
+{
+ "bundles": {
+  "o-o4": {
+   "observable": {
+    "criteria": {
+     "no": "Compliance rests on a subjective quality, a label or mode the statement never defines, or an expected output, approval, or standard with no identified record.",
+     "unclear": "A concrete outcome is partly named, but it cannot be told what to inspect even though nothing is undefined or unrecorded.",
+     "yes": "The statement names a concrete behavior, output, file, path, value, prohibited content, or identified record whose presence or absence can be checked."
+    },
+    "instructions": "Could a reviewer decide pass or fail for `anchor.statement` by inspecting a concrete behavior, output, file, path, value, command result, or recorded artifact? A mode, profile, or label is inspectable only when the statement itself defines it (for example 'offline mode (when --offline is set)'); a name the statement never defines (such as Mode K or R7) gives nothing to inspect. A reference to an expected output, approval, or standard is inspectable only when the statement identifies where it is recorded (a named file, path, or list); 'the expected output' or 'after the owner signs off' with no identified record gives nothing to inspect. A subjective quality (robust, clean) gives nothing to inspect. Ignore bundling, fidelity, and scope.",
+    "type": "choice"
+   }
+  },
+  "o-o5": {
+   "observable": {
+    "criteria": {
+     "no": "Checking requires an undefined name, a subjective word, an unidentified expected output, or an unrecorded approval.",
+     "unclear": "The thing to inspect is identified but it is ambiguous how inspecting it settles compliance.",
+     "yes": "The thing to inspect is concrete and fully identified by the statement."
+    },
+    "instructions": "Name to yourself the thing a reviewer would inspect to check `anchor.statement`. Answer yes only if that thing is concrete and fully identified by the statement: a command's output or exit status, a file or directory at a stated path, a stated value, a stream, a recorded list or file, or a behavior under a stated condition (including a mode the statement defines). Answer no if checking would require knowing what an undefined name means (such as Mode K or R7), what a subjective word means (such as robust), what 'the expected output' is when no file or content is identified, or whether a person approved when no record is identified.",
+    "type": "choice"
+   }
+  },
+  "o-o6": {
+   "observable": {
+    "criteria": {
+     "no": "The outcome is a subjective quality, an undefined mode, label, or code, an unidentified expected output, or an unrecorded approval.",
+     "unclear": "The outcome is partly identified but its observation remains ambiguous.",
+     "yes": "An observable outcome of the listed kinds is identified."
+    },
+    "instructions": "Does `anchor.statement` identify an observable outcome? Observable: specific content written or omitted, a file at a path, a location under a directory, a tool used for a step, a value replaced, an exit status, output on a named stream, matching an identified file, or a listing in an identified record, including under a condition or mode that the statement defines. Not observable: a subjective quality; running in or satisfying a mode, label, or code that the statement does not define; producing 'the expected output' without identifying it; depending on a person's approval that has no identified record.",
+    "type": "choice"
+   }
+  },
+  "o-o_incumbent_v2": {
+   "observable": {
+    "criteria": {
+     "no": "It supplies only a subjective quality, undefined shorthand, or an approval with no observable record.",
+     "unclear": "Some evidence is named, but the observation needed to settle compliance remains ambiguous.",
+     "yes": "It names evidence or behavior that can be inspected with a determinate outcome."
+    },
+    "instructions": "Does anchor.statement define a checkable behavior or artifact without relying on an undefined label or an approval that has no identified record? Judge only whether the stated outcome can be observed.",
+    "type": "choice"
+   }
+  },
+  "o-o_r1b2": {
+   "observable": {
+    "criteria": {
+     "no": "The requirement is only a quality judgment, an unexplained name or code, or an unrecorded approval.",
+     "unclear": "Something inspectable is mentioned, but it does not settle compliance.",
+     "yes": "A reviewer could inspect the named output, file, path, value, stream or behavior and get a definite pass or fail."
+    },
+    "instructions": "Does `anchor.statement` say what a reviewer would look at to confirm compliance: a command's output, a file or path, a value, a stream, or a behavior under a stated condition? Answer no when the only thing required is a quality judgment (for example 'robust'), conformance to an unexplained name or code, or someone's say-so that leaves no record.",
+    "type": "choice"
+   }
+  },
+  "o-o_sealed": {
+   "observable": {
+    "criteria": {
+     "no": "Compliance rests on a subjective quality, an undefined label or code, or a person's approval with no named record, so no inspection settles it.",
+     "unclear": "A concrete outcome is partly named, but what to inspect remains ambiguous.",
+     "yes": "The statement names a concrete behavior, output, file, path, value, or prohibited content whose presence or absence can be checked."
+    },
+    "instructions": "Could a reviewer decide pass or fail for `anchor.statement` by inspecting a concrete behavior, output, file, path, value, command result, or recorded artifact? A subjective quality word (such as robust, clean, or reliable), an undefined label or code (such as R7), or a person's approval with no named record does not give anything concrete to inspect. Judge only whether the required outcome can be inspected; ignore bundling, fidelity, and scope.",
+    "type": "choice"
+   }
+  },
+  "s-s1": {
+   "self_contained": {
+    "criteria": {
+     "no": "A decisive term is a subjective quality, an undefined private label or code, or an approval with no identified record.",
+     "unclear": "A term might depend on outside context, but it is not clear whether it is decisive.",
+     "yes": "Every decisive term is ordinary technical language or concrete content, so the statement applies without outside context."
+    },
+    "instructions": "Can `anchor.statement` be understood and applied by a reader who has only the statement, without outside context? Ordinary technical terms, commands, flags, paths, environment variables, file formats, streams, and concrete prohibitions or conditions need no outside context. Outside context is needed when a decisive term is a subjective quality (such as robust), a private label or code with no definition (such as R7), or a person's approval with no identified record. Ignore grammar, bundling, fidelity, and scope.",
+    "type": "choice"
+   }
+  },
+  "s-s8": {
+   "self_contained": {
+    "criteria": {
+     "no": "A decisive term is a subjective quality, an undefined label, code, or mode, an unidentified reference artifact, or an approval with no identified record.",
+     "unclear": "A term might depend on outside context, but it is not clear whether it is decisive.",
+     "yes": "Every decisive term is ordinary technical language, a named command, flag, file, path, or role, an inline-defined term, or concrete content."
+    },
+    "instructions": "Can `anchor.statement` be understood and applied by a reader who has only the statement, without outside context? Grammar and voice do not matter: second-person, imperative, or informal wording is still self-contained when its terms are concrete. Ordinary technical terms, product command and subcommand names, flags, paths, environment variables, file formats, streams, roles such as 'the caller', terms the statement defines inline, and concrete prohibitions or conditions need no outside context. Outside context is needed when a decisive term is a subjective quality (such as robust), a label, code, or mode the statement does not define (such as R7 or Mode K), a reference artifact the statement does not identify (such as 'the expected output' with no file named), or a person's approval with no identified record. Ignore bundling, fidelity, and scope.",
+    "type": "choice"
+   }
+  },
+  "s-s9": {
+   "self_contained": {
+    "criteria": {
+     "no": "At least one decisive term lacks its own meaning: a subjective quality, an unexplained label, code, or mode, an unidentified expected output or standard, or an unrecorded approval.",
+     "unclear": "Whether a term lacks its own meaning, or whether it is decisive, cannot be determined.",
+     "yes": "Every decisive term carries its own meaning."
+    },
+    "instructions": "Does every decisive term in `anchor.statement` carry its own meaning, either through common technical usage or through the statement itself? Commands, subcommands, flags, file names, paths, formats, streams, environment variables, roles such as 'the caller', and terms explained inline carry their own meaning, regardless of whether the sentence is phrased as must, never, you need to, or an instruction. A decisive term lacks its own meaning when it is a subjective quality (robust, clean), a private label, code, or mode name the statement never explains (R7, Mode K), an expected output or standard the statement never identifies, or a person's approval with no identified record.",
+    "type": "choice"
+   }
+  },
+  "s-s_incumbent_v2": {
+   "self_contained": {
+    "criteria": {
+     "no": "At least one decisive term is an undefined quality or private label, or compliance depends on an approval with no identified record.",
+     "unclear": "A possible outside-context dependency exists but the statement does not show whether it is decisive.",
+     "yes": "None of those outside-context dependencies is needed; ordinary technical terms, concrete prohibitions, lists, and explicit input/action/outcome conditions are sufficient."
+    },
+    "instructions": "Is anchor.statement independently understandable and applicable without any of these disqualifiers: an undefined subjective quality (for example robust), private shorthand, or a human approval that has no identified recorded artifact? Ignore grammar, bundling, fidelity, and scope.",
+    "type": "choice"
+   }
+  }
+ }
+}

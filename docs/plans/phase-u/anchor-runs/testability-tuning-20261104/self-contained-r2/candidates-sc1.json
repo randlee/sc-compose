@@ -1,0 +1,78 @@
+{
+ "round": "sc1",
+ "role": "self_contained",
+ "candidates": {
+  "s0_sealed": {
+   "criteria": {
+    "no": "At least one decisive term is an undefined quality or private label, or compliance depends on an approval with no identified record.",
+    "unclear": "A possible outside-context dependency exists but the statement does not show whether it is decisive.",
+    "yes": "None of those outside-context dependencies is needed; ordinary technical terms, concrete prohibitions, lists, and explicit input/action/outcome conditions are sufficient."
+   },
+   "instructions": "Is anchor.statement independently understandable and applicable without any of these disqualifiers: an undefined subjective quality (for example robust), private shorthand, or a human approval that has no identified recorded artifact? Ignore grammar, bundling, fidelity, and scope.",
+   "type": "choice"
+  },
+  "s1_r1c1": {
+   "type": "choice",
+   "instructions": "Can `anchor.statement` be understood and applied by a reader who has only the statement, without outside context? Ordinary technical terms, commands, flags, paths, environment variables, file formats, streams, and concrete prohibitions or conditions need no outside context. Outside context is needed when a decisive term is a subjective quality (such as robust), a private label or code with no definition (such as R7), or a person's approval with no identified record. Ignore grammar, bundling, fidelity, and scope.",
+   "criteria": {
+    "yes": "Every decisive term is ordinary technical language or concrete content, so the statement applies without outside context.",
+    "no": "A decisive term is a subjective quality, an undefined private label or code, or an approval with no identified record.",
+    "unclear": "A term might depend on outside context, but it is not clear whether it is decisive."
+   }
+  },
+  "s2_r1c2": {
+   "type": "choice",
+   "instructions": "Does applying `anchor.statement` require knowledge that is not in the statement itself? Answer yes when nothing outside is needed. Common technical vocabulary (commands, paths, flags, formats, streams, environment variables, named tools) is not outside knowledge. A subjective quality word, an unexplained label or requirement code, or a person's approval that is not recorded anywhere is outside knowledge.",
+   "criteria": {
+    "yes": "No outside knowledge is needed; the statement uses common technical vocabulary and concrete content only.",
+    "no": "Applying it needs outside knowledge: the meaning of a subjective quality, an unexplained label or code, or an unrecorded approval.",
+    "unclear": "It is unclear whether some term needs outside knowledge."
+   }
+  },
+  "s3_r1c3": {
+   "type": "choice",
+   "instructions": "Is every decisive term in `anchor.statement` defined by the statement itself or by common technical usage? Undefined terms include subjective qualities (robust, clean, reliable), private shorthand or requirement codes (R7, the usual way), and approvals by a person with no named record. Concrete prohibitions, lists, paths, flags, commands, formats, and input-action-outcome conditions are defined.",
+   "criteria": {
+    "yes": "All decisive terms are defined by the statement or common technical usage.",
+    "no": "At least one decisive term is a subjective quality, private shorthand or code, or an approval with no named record.",
+    "unclear": "A term may be undefined, but whether it is decisive is unclear."
+   }
+  },
+  "s4_new": {
+   "type": "choice",
+   "instructions": "Can `anchor.statement` be applied using only its own words and common technical knowledge? Count as self-contained: terms the statement defines itself (for example in parentheses, or with 'meaning' or 'when'), named commands, subcommands, flags, files, paths, formats, and roles such as 'the caller'. Count as not self-contained only a decisive term that is a subjective quality (such as robust), a label, code, or mode that is never defined (such as R7), an artifact referred to but not identified (such as 'the expected output' with no file named), or a person's approval with no identified record. Ignore grammar, bundling, fidelity, and scope.",
+   "criteria": {
+    "yes": "Every decisive term is defined in the statement or is common technical vocabulary, a named command, flag, file, path, or role, or an identified artifact.",
+    "no": "A decisive term is a subjective quality, an undefined label, code, or mode, an unidentified artifact, or an approval with no identified record.",
+    "unclear": "A term might be undefined, but it cannot be told whether it is decisive."
+   }
+  },
+  "s5_new": {
+   "type": "choice",
+   "instructions": "Is everything needed to apply `anchor.statement` either written in the statement or ordinary technical knowledge? A term the statement explains inline, a named command or flag, a named file or directory, and a generic role like 'the caller' all count as available. Information is missing when compliance depends on what a subjective word means, on an unexplained label or mode name, on an unnamed reference artifact such as 'the expected output', or on someone's approval that is not recorded in an identified place.",
+   "criteria": {
+    "yes": "Nothing decisive is missing: the statement explains its own terms or uses ordinary technical, command, file, or role names.",
+    "no": "Something decisive is missing: a subjective word, an unexplained label or mode, an unnamed reference artifact, or an unrecorded approval.",
+    "unclear": "It is unclear whether some missing information is decisive."
+   }
+  },
+  "s6_new": {
+   "type": "choice",
+   "instructions": "Does `anchor.statement` avoid every one of these outside-context dependencies: (1) a subjective quality such as robust or clean; (2) a private label, code, or mode name that the statement does not define, such as R7; (3) a reference artifact the statement does not identify, such as 'the expected output' with no file or location; (4) a person's approval with no identified record? Anything else, including terms defined inline, named product commands and flags, files, paths, and roles such as 'the caller', is not an outside-context dependency. Ignore grammar, bundling, fidelity, and scope.",
+   "criteria": {
+    "yes": "None of the four dependencies is present in a decisive term.",
+    "no": "At least one of the four dependencies is present in a decisive term.",
+    "unclear": "A possible dependency is present but it cannot be told whether it is decisive."
+   }
+  },
+  "s7_new": {
+   "type": "choice",
+   "instructions": "Could an engineer who has never seen this project apply `anchor.statement` correctly, given that they can read the named commands, flags, files, and paths? A term the statement itself defines (for example 'offline mode (when --offline is set)') is understood. The engineer would be stuck only if a decisive term is a subjective quality, an undefined label or mode, an unidentified reference artifact, or a person's approval with no identified record.",
+   "criteria": {
+    "yes": "The engineer could apply it: every decisive term is defined in the statement or names a concrete command, flag, file, path, role, or identified artifact.",
+    "no": "The engineer would be stuck on a subjective quality, an undefined label or mode, an unidentified reference artifact, or an unrecorded approval.",
+    "unclear": "It cannot be told whether the engineer would be stuck."
+   }
+  }
+ }
+}

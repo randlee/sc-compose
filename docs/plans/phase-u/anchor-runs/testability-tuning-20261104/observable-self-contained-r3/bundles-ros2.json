@@ -1,0 +1,70 @@
+{
+ "bundles": {
+  "o-o7": {
+   "observable": {
+    "criteria": {
+     "no": "Compliance rests on a subjective quality, a label or mode the statement never defines, or an expected output, approval, or standard with no identified record.",
+     "unclear": "A concrete outcome is partly named, but it cannot be told what to inspect even though nothing is undefined or unrecorded.",
+     "yes": "The statement names a concrete behavior, output, file, path, value, prohibited content, or identified record whose presence or absence can be checked."
+    },
+    "instructions": "Could a reviewer decide pass or fail for `anchor.statement` by inspecting a concrete behavior, output, file, path, value, command result, or recorded artifact? A mode, profile, or label is inspectable only when the statement itself defines it (for example 'offline mode (when --offline is set)'); a name the statement never defines (such as Mode K or R7) gives nothing to inspect. A reference to an expected output, approval, or standard is inspectable only when the statement identifies where it is recorded (a named file, path, or list); 'the expected output' or 'after the owner signs off' with no identified record gives nothing to inspect. A subjective quality (robust, clean) gives nothing to inspect. Judge each required outcome on its own: a statement that bundles several duties, or that adds detail beyond its quote, is still observable when its outcomes can be inspected. Ignore bundling, fidelity, and scope.",
+    "type": "choice"
+   }
+  },
+  "o-o8": {
+   "observable": {
+    "criteria": {
+     "no": "A required outcome rests on a subjective quality, an undefined label or mode, or an expected output, approval, or standard with no identified record.",
+     "unclear": "An outcome is partly concrete, but what to inspect cannot be determined even though nothing is undefined or unrecorded.",
+     "yes": "Every required outcome is a concrete behavior, output, file, path, value, tool use, or identified record that can be inspected."
+    },
+    "instructions": "Can each outcome that `anchor.statement` requires be checked by inspecting something concrete: a behavior, output, exit status, file, path, value, tool used, or an identified record? Bundled duties, added details, and informal wording do not matter here. Nothing can be inspected for a subjective quality (robust), a label or mode the statement never defines (R7, Mode K), an expected output, approval, or standard whose record the statement does not identify, or a person's say-so with no identified record. A mode the statement defines inline is inspectable.",
+    "type": "choice"
+   }
+  },
+  "o-o9": {
+   "observable": {
+    "criteria": {
+     "no": "Compliance rests on a subjective quality, a label or mode the statement never defines, or an expected output, approval, or standard with no identified record.",
+     "unclear": "A concrete outcome is partly named, but it cannot be told what to inspect even though nothing is undefined or unrecorded.",
+     "yes": "Every required outcome is a concrete behavior, output, file, path, value, prohibited content, or identified record whose presence or absence can be checked, even if the statement joins several such outcomes."
+    },
+    "instructions": "Could a reviewer decide pass or fail for `anchor.statement` by inspecting a concrete behavior, output, file, path, value, command result, or recorded artifact? A mode, profile, or label is inspectable only when the statement itself defines it (for example 'offline mode (when --offline is set)'); a name the statement never defines (such as Mode K or R7) gives nothing to inspect. A reference to an expected output, approval, or standard is inspectable only when the statement identifies where it is recorded (a named file, path, or list); 'the expected output' or 'after the owner signs off' with no identified record gives nothing to inspect. A subjective quality (robust, clean) gives nothing to inspect. Ignore bundling, fidelity, and scope.",
+    "type": "choice"
+   }
+  },
+  "s-s10": {
+   "self_contained": {
+    "criteria": {
+     "no": "At least one decisive term is an undefined dependency.",
+     "unclear": "A term may be an undefined dependency, but whether it is decisive cannot be told.",
+     "yes": "No decisive term is an undefined dependency."
+    },
+    "instructions": "Is `anchor.statement` free of undefined dependencies? An undefined dependency is a decisive term that is a subjective quality (such as robust), a private label, code, or mode the statement does not explain (such as R7 or Mode K), an expected output or standard the statement does not identify by file or content, or a person's approval with no identified record. Everything else is defined: commands, subcommands, flags, paths, file names, environment variables, example values, roles such as 'the caller', and terms the statement explains inline. Wording such as 'you need to' or an imperative does not matter. Ignore bundling, fidelity, and scope.",
+    "type": "choice"
+   }
+  },
+  "s-s11": {
+   "self_contained": {
+    "criteria": {
+     "no": "A decisive term is a subjective quality, an undefined private label or code, or an approval with no identified record.",
+     "unclear": "A term might depend on outside context, but it is not clear whether it is decisive.",
+     "yes": "Every decisive term is ordinary technical language or concrete content, so the statement applies without outside context."
+    },
+    "instructions": "Can `anchor.statement` be understood and applied by a reader who has only the statement, without outside context? Ordinary technical terms, commands, flags, paths, environment variables, file formats, streams, and concrete prohibitions or conditions need no outside context. Outside context is needed when a decisive term is a subjective quality (such as robust), a private label or code with no definition (such as R7), or a person's approval with no identified record. Sentence form does not matter: 'you need to', imperative, or must wording are equally self-contained. Ignore grammar, bundling, fidelity, and scope.",
+    "type": "choice"
+   }
+  },
+  "s-s12": {
+   "self_contained": {
+    "criteria": {
+     "no": "Applying it needs the meaning of a subjective quality, an unexplained label, code, or mode, an unidentified expected output or standard, or an unrecorded approval.",
+     "unclear": "It cannot be told whether something decisive is missing.",
+     "yes": "The statement and common technical knowledge are enough to apply it."
+    },
+    "instructions": "Could someone apply `anchor.statement` using only the statement and common technical knowledge? Commands, flags, paths, environment variables, file formats, streams, concrete values, roles such as 'the caller', and terms the statement defines inline are enough. They could not apply it if a decisive term is a subjective quality (robust), an unexplained label, code, or mode (R7, Mode K), an unidentified expected output or standard, or a person's approval with no identified record. Sentence form, bundling, fidelity, and scope do not matter.",
+    "type": "choice"
+   }
+  }
+ }
+}

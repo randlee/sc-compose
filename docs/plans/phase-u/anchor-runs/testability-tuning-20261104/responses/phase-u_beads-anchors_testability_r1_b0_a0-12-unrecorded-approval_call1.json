@@ -1,0 +1,64 @@
+{
+ "attempts": 1,
+ "request_sha256": "b77b95599661b6302f30a4dfc40c09b88c4905df9ac4da7a403f74b198d92a72",
+ "response": {
+  "answers": {
+   "faithful": {
+    "choice": "yes",
+    "confidence": 0.94,
+    "probabilities": {
+     "no": 0.04,
+     "unclear": 0.0,
+     "yes": 0.96
+    },
+    "type": "choice"
+   },
+   "observable": {
+    "choice": "no",
+    "confidence": 0.52,
+    "probabilities": {
+     "no": 0.68,
+     "unclear": 0.13,
+     "yes": 0.19
+    },
+    "type": "choice"
+   },
+   "scoped": {
+    "choice": "yes",
+    "confidence": 0.94,
+    "probabilities": {
+     "no": 0.0,
+     "unclear": 0.04,
+     "yes": 0.96
+    },
+    "type": "choice"
+   },
+   "self_contained": {
+    "choice": "no",
+    "confidence": 0.74,
+    "probabilities": {
+     "no": 0.83,
+     "unclear": 0.02,
+     "yes": 0.15
+    },
+    "type": "choice"
+   },
+   "single_constraint": {
+    "choice": "yes",
+    "confidence": 1.0,
+    "probabilities": {
+     "no": 0.0,
+     "unclear": 0.0,
+     "yes": 1.0
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 1033,
+   "output_tokens": 189
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:r1:b0:a0-12-unrecorded-approval:call1"
+}

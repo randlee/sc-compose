@@ -1,0 +1,24 @@
+{
+ "attempts": 1,
+ "request_sha256": "5f64dc1d1133094b78fe80624a7bb4563d58fbf93a67826aa758c753fa557b07",
+ "response": {
+  "answers": {
+   "faithful": {
+    "choice": "yes",
+    "confidence": 0.96,
+    "probabilities": {
+     "no": 0.03,
+     "unclear": 0.0,
+     "yes": 0.97
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 580,
+   "output_tokens": 41
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:r2:f6:a0-05-atomic-from-multi-directive:call2"
+}

@@ -1,0 +1,24 @@
+{
+ "attempts": 1,
+ "request_sha256": "69b77d80fd014e5e339ec4e7400d5b0f0b240b117cfa5b4f1e05e179aa0af7a5",
+ "response": {
+  "answers": {
+   "self_contained": {
+    "choice": "yes",
+    "confidence": 0.77,
+    "probabilities": {
+     "no": 0.13,
+     "unclear": 0.02,
+     "yes": 0.85
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 557,
+   "output_tokens": 41
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:ros3:s-s15:a0-09-explicit-testable-condition:call2"
+}

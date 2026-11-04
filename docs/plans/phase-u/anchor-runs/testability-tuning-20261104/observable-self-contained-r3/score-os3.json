@@ -1,0 +1,1339 @@
+{
+ "rounds": [
+  "os3"
+ ],
+ "candidates": {
+  "ros3:s-s13:self_contained": {
+   "exact": 26,
+   "confident": 26,
+   "stable": 26,
+   "total": 26,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.68,
+   "mean_conf": 0.9298,
+   "below_ref_0_8": 3,
+   "accepted": true,
+   "complexity_chars": 1093
+  },
+  "ros3:s-s14:self_contained": {
+   "exact": 26,
+   "confident": 26,
+   "stable": 26,
+   "total": 26,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.64,
+   "mean_conf": 0.9098,
+   "below_ref_0_8": 9,
+   "accepted": true,
+   "complexity_chars": 1060
+  },
+  "ros3:s-s15:self_contained": {
+   "exact": 25,
+   "confident": 23,
+   "stable": 26,
+   "total": 26,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-06-genuinely-bundled",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.4
+      ],
+      [
+       "yes",
+       0.37
+      ]
+     ]
+    },
+    {
+     "case": "a0-07-unsupported-elaboration",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.56
+      ],
+      [
+       "no",
+       0.4
+      ]
+     ]
+    },
+    {
+     "case": "a0-17-nondeclarative-form",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.53
+      ],
+      [
+       "yes",
+       0.5
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.37,
+   "mean_conf": 0.8,
+   "below_ref_0_8": 22,
+   "accepted": false,
+   "complexity_chars": 1033
+  }
+ },
+ "cells": [
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.97
+    ],
+    [
+     "no",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.86
+    ],
+    [
+     "no",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.68
+    ],
+    [
+     "no",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s13:self_contained",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.73
+    ],
+    [
+     "no",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.64
+    ],
+    [
+     "yes",
+     0.7
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.73
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.74
+    ],
+    [
+     "no",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.8
+    ],
+    [
+     "no",
+     0.68
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.79
+    ],
+    [
+     "no",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s14:self_contained",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.66
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.4
+    ],
+    [
+     "yes",
+     0.37
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.56
+    ],
+    [
+     "no",
+     0.4
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.68
+    ],
+    [
+     "yes",
+     0.64
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.86
+    ],
+    [
+     "no",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.67
+    ],
+    [
+     "yes",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.64
+    ],
+    [
+     "yes",
+     0.61
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.53
+    ],
+    [
+     "yes",
+     0.5
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.62
+    ],
+    [
+     "yes",
+     0.61
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.74
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.83
+    ],
+    [
+     "no",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "ros3:s-s15:self_contained",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  }
+ ]
+}

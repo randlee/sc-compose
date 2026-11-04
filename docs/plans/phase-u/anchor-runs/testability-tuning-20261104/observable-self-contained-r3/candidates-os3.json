@@ -1,0 +1,32 @@
+{
+ "round": "os3",
+ "self_contained": {
+  "s13": {
+   "type": "choice",
+   "instructions": "Can each decisive term in `anchor.statement` be understood from the statement itself or from common technical knowledge? Understood terms include commands, subcommands, flags, files, paths, values, environment variables, formats, streams, roles such as 'the caller', and terms the statement defines inline. Bundled duties, added details, sentence form, and who is told to act (a named component, 'you', or nobody) do not matter here. A term cannot be understood when it is a subjective quality (robust), a label or mode the statement never defines (R7, Mode K), an expected output or standard whose record the statement does not identify, or a person's approval with no identified record.",
+   "criteria": {
+    "yes": "Every decisive term can be understood from the statement or common technical knowledge.",
+    "no": "A decisive term is a subjective quality, an undefined label or mode, an unidentified expected output or standard, or an approval with no identified record.",
+    "unclear": "A term may not be understood, but it cannot be told whether it is decisive."
+   }
+  },
+  "s14": {
+   "type": "choice",
+   "instructions": "Can `anchor.statement` be understood and applied by a reader who has only the statement, without outside context? Ordinary technical terms, commands, flags, paths, environment variables, file formats, streams, and concrete prohibitions or conditions need no outside context. Outside context is needed when a decisive term is a subjective quality (such as robust), a private label or code with no definition (such as R7), or a person's approval with no identified record. Who is told to act (a named component, 'you', or nobody) and how the sentence is phrased never create an outside-context dependency. Ignore grammar, bundling, fidelity, and scope.",
+   "criteria": {
+    "yes": "Every decisive term is ordinary technical language or concrete content, so the statement applies without outside context.",
+    "no": "A decisive term is a subjective quality, an undefined private label or code, or an approval with no identified record.",
+    "unclear": "A term might depend on outside context, but it is not clear whether it is decisive."
+   }
+  },
+  "s15": {
+   "type": "choice",
+   "instructions": "Do the terms that decide compliance with `anchor.statement` carry their meaning without outside context? Concrete things carry their meaning: actions on named files, paths, commands, flags, streams, values, environment variables, and terms the statement defines inline. Who is addressed ('you', 'the caller', a component) and the sentence form do not matter, nor do bundled duties or details beyond the quote. Meaning is missing only for a subjective quality (robust), a label or mode the statement never defines (R7, Mode K), an expected output or standard with no identified record, or a person's approval with no identified record.",
+   "criteria": {
+    "yes": "Every term that decides compliance carries its meaning without outside context.",
+    "no": "A term that decides compliance is a subjective quality, an undefined label or mode, an unidentified expected output or standard, or an unrecorded approval.",
+    "unclear": "It cannot be told whether a term that decides compliance carries its meaning."
+   }
+  }
+ }
+}

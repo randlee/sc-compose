@@ -1,0 +1,24 @@
+{
+ "attempts": 1,
+ "request_sha256": "6fd7d6344eaa578989de4ffffc6e9546e34b162c5bb32e57ef291893963724e8",
+ "response": {
+  "answers": {
+   "self_contained": {
+    "choice": "no",
+    "confidence": 0.77,
+    "probabilities": {
+     "no": 0.85,
+     "unclear": 0.01,
+     "yes": 0.14
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 559,
+   "output_tokens": 41
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:ros3:s-s14:a3-08-unrecorded-signoff:call2"
+}

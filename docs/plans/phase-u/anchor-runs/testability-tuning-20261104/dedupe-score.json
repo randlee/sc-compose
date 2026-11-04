@@ -1,0 +1,84 @@
+{
+ "question_set": "assets/questions/dedupe.json v2 (unchanged)",
+ "rows": [
+  {
+   "pair_id": "dup-01-shared-quote-distinct",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "stable": true,
+   "exact": true,
+   "confident": true,
+   "byte_identical": true
+  },
+  {
+   "pair_id": "dup-02-same-statement-different-quotes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "stable": true,
+   "exact": true,
+   "confident": true,
+   "byte_identical": true
+  },
+  {
+   "pair_id": "dup-03-paraphrased-duplicate",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "stable": true,
+   "exact": true,
+   "confident": true,
+   "byte_identical": true
+  },
+  {
+   "pair_id": "dup-04-related-distinct",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "stable": true,
+   "exact": true,
+   "confident": true,
+   "byte_identical": true
+  }
+ ],
+ "third_calls": 0,
+ "score": {
+  "exact": 4,
+  "confident": 4,
+  "stable": 4,
+  "total": 4
+ }
+}

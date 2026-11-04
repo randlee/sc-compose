@@ -1,0 +1,24 @@
+{
+ "attempts": 1,
+ "request_sha256": "6210154365adbab17a87f26c9dd8c68610787d871f71d8ddcc58d026eb73ac4b",
+ "response": {
+  "answers": {
+   "same_constraint": {
+    "choice": "no",
+    "confidence": 1.0,
+    "probabilities": {
+     "no": 1.0,
+     "unclear": 0.0,
+     "yes": 0.0
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 430,
+   "output_tokens": 40
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:dedupe:dup-04-related-distinct:call2"
+}

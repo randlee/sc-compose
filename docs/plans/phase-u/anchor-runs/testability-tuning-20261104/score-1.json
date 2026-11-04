@@ -1,0 +1,5899 @@
+{
+ "rounds": [
+  "1"
+ ],
+ "candidates": {
+  "r1:b0:single_constraint": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.68,
+   "mean_conf": 0.9279,
+   "below_ref_0_8": 5,
+   "accepted": true,
+   "complexity_chars": 487
+  },
+  "r1:b0:observable": {
+   "exact": 17,
+   "confident": 16,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-12-unrecorded-approval",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.52
+      ],
+      [
+       "no",
+       0.55
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.52,
+   "mean_conf": 0.9388,
+   "below_ref_0_8": 2,
+   "accepted": false,
+   "complexity_chars": 558
+  },
+  "r1:b0:faithful": {
+   "exact": 17,
+   "confident": 16,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-02-valid-prohibition",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.5
+      ],
+      [
+       "yes",
+       0.68
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.5,
+   "mean_conf": 0.8797,
+   "below_ref_0_8": 9,
+   "accepted": false,
+   "complexity_chars": 680
+  },
+  "r1:b0:scoped": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.89,
+   "mean_conf": 0.9668,
+   "below_ref_0_8": 0,
+   "accepted": true,
+   "complexity_chars": 491
+  },
+  "r1:b0:self_contained": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.73,
+   "mean_conf": 0.9109,
+   "below_ref_0_8": 4,
+   "accepted": true,
+   "complexity_chars": 771
+  },
+  "r1:b1:single_constraint": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.79,
+   "mean_conf": 0.9591,
+   "below_ref_0_8": 2,
+   "accepted": true,
+   "complexity_chars": 1047
+  },
+  "r1:b1:observable": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.8,
+   "mean_conf": 0.9759,
+   "below_ref_0_8": 0,
+   "accepted": true,
+   "complexity_chars": 884
+  },
+  "r1:b1:faithful": {
+   "exact": 17,
+   "confident": 15,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-04-global-scope",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.5
+      ],
+      [
+       "yes",
+       0.38
+      ]
+     ]
+    },
+    {
+     "case": "a0-16-duplicate-second",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.49
+      ],
+      [
+       "yes",
+       0.5
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.38,
+   "mean_conf": 0.8838,
+   "below_ref_0_8": 6,
+   "accepted": false,
+   "complexity_chars": 1211
+  },
+  "r1:b1:scoped": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.86,
+   "mean_conf": 0.9768,
+   "below_ref_0_8": 0,
+   "accepted": true,
+   "complexity_chars": 687
+  },
+  "r1:b1:self_contained": {
+   "exact": 17,
+   "confident": 16,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-17-nondeclarative-form",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.52
+      ],
+      [
+       "yes",
+       0.67
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.52,
+   "mean_conf": 0.9124,
+   "below_ref_0_8": 2,
+   "accepted": false,
+   "complexity_chars": 927
+  },
+  "r1:b2:single_constraint": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.73,
+   "mean_conf": 0.8891,
+   "below_ref_0_8": 6,
+   "accepted": true,
+   "complexity_chars": 830
+  },
+  "r1:b2:observable": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.79,
+   "mean_conf": 0.9491,
+   "below_ref_0_8": 1,
+   "accepted": true,
+   "complexity_chars": 717
+  },
+  "r1:b2:faithful": {
+   "exact": 15,
+   "confident": 14,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-04-global-scope",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.34
+      ],
+      [
+       "no",
+       0.26
+      ]
+     ]
+    },
+    {
+     "case": "a0-15-duplicate-first",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.46
+      ],
+      [
+       "yes",
+       0.44
+      ]
+     ]
+    },
+    {
+     "case": "a0-16-duplicate-second",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.58
+      ],
+      [
+       "no",
+       0.48
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.26,
+   "mean_conf": 0.8021,
+   "below_ref_0_8": 15,
+   "accepted": false,
+   "complexity_chars": 940
+  },
+  "r1:b2:scoped": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 1.0,
+   "mean_conf": 1.0,
+   "below_ref_0_8": 0,
+   "accepted": true,
+   "complexity_chars": 560
+  },
+  "r1:b2:self_contained": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.66,
+   "mean_conf": 0.8876,
+   "below_ref_0_8": 6,
+   "accepted": true,
+   "complexity_chars": 786
+  },
+  "r1:b3:single_constraint": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.68,
+   "mean_conf": 0.9453,
+   "below_ref_0_8": 4,
+   "accepted": true,
+   "complexity_chars": 652
+  },
+  "r1:b3:observable": {
+   "exact": 17,
+   "confident": 17,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.64,
+   "mean_conf": 0.9465,
+   "below_ref_0_8": 4,
+   "accepted": true,
+   "complexity_chars": 767
+  },
+  "r1:b3:faithful": {
+   "exact": 17,
+   "confident": 14,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-04-global-scope",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.28
+      ],
+      [
+       "yes",
+       0.33
+      ]
+     ]
+    },
+    {
+     "case": "a0-15-duplicate-first",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.44
+      ],
+      [
+       "yes",
+       0.58
+      ]
+     ]
+    },
+    {
+     "case": "a0-16-duplicate-second",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.33
+      ],
+      [
+       "yes",
+       0.48
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.28,
+   "mean_conf": 0.7729,
+   "below_ref_0_8": 13,
+   "accepted": false,
+   "complexity_chars": 856
+  },
+  "r1:b3:scoped": {
+   "exact": 17,
+   "confident": 16,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-14-shared-quote-second-atomic",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.43
+      ],
+      [
+       "yes",
+       0.67
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.43,
+   "mean_conf": 0.8635,
+   "below_ref_0_8": 6,
+   "accepted": false,
+   "complexity_chars": 596
+  },
+  "r1:b3:self_contained": {
+   "exact": 17,
+   "confident": 16,
+   "stable": 17,
+   "total": 17,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-12-unrecorded-approval",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.35
+      ],
+      [
+       "no",
+       0.33
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.33,
+   "mean_conf": 0.9303,
+   "below_ref_0_8": 2,
+   "accepted": false,
+   "complexity_chars": 738
+  }
+ },
+ "cells": [
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.68
+    ],
+    [
+     "yes",
+     0.68
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.74
+    ],
+    [
+     "yes",
+     0.73
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:single_constraint",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.88
+    ],
+    [
+     "no",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.52
+    ],
+    [
+     "no",
+     0.55
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:observable",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.5
+    ],
+    [
+     "yes",
+     0.68
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.66
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:scoped",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.96
+    ],
+    [
+     "no",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.74
+    ],
+    [
+     "no",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b0:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.73
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:single_constraint",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.8
+    ],
+    [
+     "no",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:observable",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.5
+    ],
+    [
+     "yes",
+     0.38
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.49
+    ],
+    [
+     "yes",
+     0.5
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b1:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:scoped",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.86
+    ],
+    [
+     "no",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b1:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.52
+    ],
+    [
+     "yes",
+     0.67
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.73
+    ],
+    [
+     "yes",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:single_constraint",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.88
+    ],
+    [
+     "no",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.88
+    ],
+    [
+     "no",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:observable",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.6
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.62
+    ],
+    [
+     "yes",
+     0.6
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.74
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.34
+    ],
+    [
+     "no",
+     0.26
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.76
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.46
+    ],
+    [
+     "yes",
+     0.44
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.58
+    ],
+    [
+     "no",
+     0.48
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b2:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:scoped",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.94
+    ],
+    [
+     "no",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.66
+    ],
+    [
+     "no",
+     0.67
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b2:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.66
+    ],
+    [
+     "yes",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.68
+    ],
+    [
+     "yes",
+     0.68
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.73
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:single_constraint",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.91
+    ],
+    [
+     "no",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.64
+    ],
+    [
+     "no",
+     0.68
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.68
+    ],
+    [
+     "yes",
+     0.68
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:observable",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.76
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.68
+    ],
+    [
+     "yes",
+     0.7
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.28
+    ],
+    [
+     "yes",
+     0.33
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.92
+    ],
+    [
+     "no",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.68
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.66
+    ],
+    [
+     "yes",
+     0.7
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.44
+    ],
+    [
+     "yes",
+     0.58
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.33
+    ],
+    [
+     "yes",
+     0.48
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b3:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.43
+    ],
+    [
+     "yes",
+     0.67
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:scoped",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.89
+    ],
+    [
+     "no",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.35
+    ],
+    [
+     "no",
+     0.33
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r1:b3:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  }
+ ]
+}
