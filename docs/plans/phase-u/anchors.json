@@ -2654,8 +2654,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -2667,6 +2667,12 @@
           "at": "2026-11-04T14:21:00+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T19:57:17+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.20a",
+          "reason": "All parts locked as testable statements"
         }
       ]
     },
@@ -2688,8 +2694,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -2701,6 +2707,12 @@
           "at": "2026-11-04T14:21:00+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T19:57:17+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.21a",
+          "reason": "All parts locked as testable statements"
         }
       ]
     },
@@ -2722,8 +2734,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "proposed",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": null,
@@ -2735,6 +2747,12 @@
           "at": "2026-11-04T14:21:00+00:00",
           "event": "created",
           "status": "proposed"
+        },
+        {
+          "at": "2026-11-04T19:57:18+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.22a",
+          "reason": "All parts locked as testable statements"
         }
       ]
     },
@@ -3665,6 +3683,278 @@
       "history": [
         {
           "at": "2026-11-04T19:53:54+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.20a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.20a",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the `lower` filter applied to the value `A{BC` must return `a{bc`.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 8); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20a.json",
+      "summary": "Approved Beads requirement 8",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T19:57:15+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.20b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.20b",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the `length` filter applied to the value `A{BC` must return 4.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 8b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20b.json",
+      "summary": "Approved Beads requirement 8b",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T19:57:15+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.20c",
+      "source_type": "REQ",
+      "source_ref": "FR-24.20c",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), taking the first three characters of the value `A{BC` must return `A{B`.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 8c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20c.json",
+      "summary": "Approved Beads requirement 8c",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T19:57:15+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.21a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.21a",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), a variable the caller does not supply must take the default declared in the included template's frontmatter.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 9a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.21a.json",
+      "summary": "Approved Beads requirement 9a",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T19:57:15+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.22b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.22b",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), `sc-compose bead attach` must create all of its beads in bd or none of them.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 11b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22b.json",
+      "summary": "Approved Beads requirement 11b",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T19:57:16+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.22c",
+      "source_type": "REQ",
+      "source_ref": "FR-24.22c",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), `sc-compose bead attach` must create no bead when its request does not set `pour_authorization` to `CreatePersistentBeads`.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 11c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22c.json",
+      "summary": "Approved Beads requirement 11c",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T19:57:16+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.22d",
+      "source_type": "REQ",
+      "source_ref": "FR-24.22d",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), running the same `sc-compose bead attach` request twice must leave the status and notes of the beads from the first run unchanged.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 11d); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22d.json",
+      "summary": "Approved Beads requirement 11d",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T19:57:16+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    },
+    {
+      "id": "FR-24.23b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.23b",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), pouring `.claude/skills/atm-bd-orchestration/formulas/finding-group.formula.toml.j2` must create beads whose titles, descriptions, labels, ids and dependency edges equal those recorded in `crates/sc-compose/tests/fixtures/bead/finding-group.expected.json`.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 12b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.23b.json",
+      "summary": "Approved Beads requirement 12b",
+      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "deterministic_check": "",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T19:57:17+00:00",
           "event": "created",
           "status": "locked"
         }
