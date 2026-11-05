@@ -18,4 +18,4 @@ runs:
             raise SystemExit('The managed sc-lint installer supports only randlee/sc-lint')
     - name: Install verified sc-lint release
       shell: python
-      run: python .github/scripts/setup_sc_lint_managed.py
+      run: __import__('runpy').run_path('.github/scripts/setup_sc_lint_managed.py', run_name='__main__')

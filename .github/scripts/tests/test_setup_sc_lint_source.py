@@ -143,9 +143,12 @@ class SourceSetupTests(unittest.TestCase):
         self.assertNotIn('if', steps[setup_index])
         action = yaml.safe_load((root / '.github/actions/setup-sc-lint-managed/action.yml').read_text())
         install = next(step for step in action['runs']['steps'] if step['name'] == 'Install verified sc-lint release')
-        self.assertIn("'.sc-lint/bootstrap.py', 'setup'", install['run'])
-        self.assertIn("'--config', 'sc-lint.toml'", install['run'])
-        self.assertIn("GITHUB_PATH", install['run'])
+        self.assertEqual(install['shell'], 'python')
+        self.assertIn('.github/scripts/setup_sc_lint_managed.py', install['run'])
+        managed = (root / '.github/scripts/setup_sc_lint_managed.py').read_text()
+        self.assertIn("'.sc-lint/bootstrap.py', 'setup'", managed)
+        self.assertIn("'--config', 'sc-lint.toml'", managed)
+        self.assertIn("GITHUB_PATH", managed)
         self.assertIn('minimum_version = "0.8.5"', (root / 'sc-lint.toml').read_text())
 
     def test_existing_python_environment_rejected_before_fetch(self):
