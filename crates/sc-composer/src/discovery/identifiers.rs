@@ -56,6 +56,7 @@ pub(super) fn collect_identifiers(
         .collect::<BTreeSet<_>>();
 
     let masked_expression = mask_test_names(&mask_filter_names(&mask_quoted_literals(expression)));
+    let masked_expression = join_indexed_attributes(&masked_expression);
     for candidate in masked_expression.split(|character: char| {
         !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
     }) {
@@ -76,6 +77,42 @@ pub(super) fn collect_identifiers(
             tokens.insert(variable);
         }
     }
+}
+
+fn join_indexed_attributes(expression: &str) -> String {
+    let chars: Vec<char> = expression.chars().collect();
+    let mut result = String::with_capacity(expression.len());
+    let mut cursor = 0;
+    while cursor < chars.len() {
+        if chars[cursor] == '[' {
+            let prefix_start = (0..cursor)
+                .rev()
+                .find(|&i| {
+                    !(chars[i].is_ascii_alphanumeric() || matches!(chars[i], '_' | '-' | '.'))
+                })
+                .map_or(0, |i| i + 1);
+            let mut end = cursor + 1;
+            while end < chars.len() && chars[end].is_ascii_digit() {
+                end += 1;
+            }
+            if prefix_start < cursor
+                && (chars[prefix_start].is_ascii_alphabetic() || chars[prefix_start] == '_')
+                && is_identifier_char(chars[cursor - 1])
+                && end > cursor + 1
+                && chars.get(end) == Some(&']')
+                && chars.get(end + 1) == Some(&'.')
+                && chars
+                    .get(end + 2)
+                    .is_some_and(|c| c.is_ascii_alphabetic() || *c == '_')
+            {
+                cursor = end + 1;
+                continue;
+            }
+        }
+        result.push(chars[cursor]);
+        cursor += 1;
+    }
+    result
 }
 
 fn is_loop_context_name(candidate: &str, expression: &str, scopes: &[LoopScope]) -> bool {
