@@ -16,14 +16,7 @@ generate-sc-sha-rust mode="write":
 # Prepare the ignored, host-native static library required only to run the
 # source-tree Go tests. Released consumers use a self-contained bundle instead.
 prepare-sc-sha-go-native:
-    host="$(rustc -vV | awk '/^host:/ { print $2 }')"; \
-    case "$host" in \
-      x86_64-unknown-linux-gnu|aarch64-apple-darwin|x86_64-pc-windows-gnu) library="target/debug/libsc_sha_go.a" ;; \
-      *) echo "unsupported sc-sha-go host target: $host" >&2; exit 2 ;; \
-    esac; \
-    cargo build -p sc-sha-go; \
-    python3 scripts/release_artifacts.py install-go-native-library \
-      --manifest release/publish-artifacts.toml --target "$host" --native-library "$library"
+    python3 bindings/sc-sha-go/prepare_native.py
 
 ensure-lint-runtime:
     python3 scripts/materialize_sc_lint_runtime.py --root .
