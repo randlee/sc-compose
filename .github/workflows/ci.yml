@@ -179,6 +179,8 @@ jobs:
 
       - name: Set up lint toolchain
         uses: ./.github/actions/setup-lint-toolchain
+        with:
+          cargo-shear-version: "1.12.0"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
