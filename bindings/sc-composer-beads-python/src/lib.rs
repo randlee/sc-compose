@@ -280,6 +280,15 @@ impl PyBeadStage {
     const ATTACH: &'static str = BeadStage::Attach.as_str();
 }
 
+// RBP-F005 (documented non-fix): the enum-like receipt fields below
+// (`kind`, `stage`, `operation`, `pour_mode`) are deliberately plain Python
+// `str` values. The Python `str` wire value IS the public contract; a
+// Python-side enum type would be an ABI/API redesign. `as_str()` on the Rust
+// enums (`BeadOperation`, `BeadStage`, `BeadPourMode`, `PourAuthorization`) is
+// the single source of truth for every value, the `BeadOperation` /
+// `BeadStage` classattr constants expose the same set, `operation_from_str`
+// validates the `operation=` argument against it, and unit tests pin the wire
+// values (`pour_mode_as_str_matches_contract_wire_values`).
 #[pyclass(name = "BeadStageOutcome")]
 #[derive(Clone, Debug)]
 struct PyBeadStageOutcome {
