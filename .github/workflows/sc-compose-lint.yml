@@ -38,6 +38,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             "clang-19=$llvm_version" \
+            "clang-tools-19=$llvm_version" \
             "lld-19=$llvm_version" \
             "llvm-19=$llvm_version" \
             "llvm-19-tools=$llvm_version"
@@ -59,6 +60,7 @@ jobs:
           clang-cl --version | grep --fixed-strings 'clang version 19.1.7'
           llvm-ar --version | grep --fixed-strings 'LLVM version 19.1.7'
           test "$(dpkg-query --show --showformat='${Version}' clang-19)" = "$llvm_version"
+          test "$(dpkg-query --show --showformat='${Version}' clang-tools-19)" = "$llvm_version"
           test "$(dpkg-query --show --showformat='${Version}' llvm-19)" = "$llvm_version"
           test -x /usr/lib/llvm-19/bin/clang-cl
           test -x /usr/lib/llvm-19/bin/llvm-lib
