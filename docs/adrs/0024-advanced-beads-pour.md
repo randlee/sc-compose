@@ -153,3 +153,9 @@ This ADR is a product contract, not a new publishing or process gate.
 FR-24.36 and ADR-0023 govern identifier/argv safety, graph-plan diagnostics,
 missing non-UTF8 request-path handling and request/authorization error precedence.
 V3 tests paired permitted/refused cases; no generic template-input ban is added.
+
+FR-24.14 transport acceptance inspects the exact formula/graph bytes passed
+to bd: all source template expressions are evaluated before handoff, with no
+executable expression left for bd. Paired literal-delimiter values remain
+unchanged data under FR-24.18; a blanket delimiter-byte ban is invalid.
+The V3 contract and isolated-bd tests cover both cases.
