@@ -1,7 +1,7 @@
 {
   "minimum_version": "0.8.5",
   "ci": {
-    "enabled": true,
+    "enabled": false,
     "os": [
       "linux",
       "macos",
@@ -235,7 +235,8 @@
       "cargo-xwin": "0.18.4"
     },
     "rustup_targets": [
-      "x86_64-pc-windows-msvc"
+      "x86_64-pc-windows-msvc",
+      "aarch64-pc-windows-msvc"
     ]
   }
 }
