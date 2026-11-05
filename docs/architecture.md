@@ -155,6 +155,24 @@ keeps generated binding code separate from release orchestration: the binding
 owns its module and native-target contract, while the peer package owns matrix
 selection, staging, and version-lockstep validation.
 
+#### Cross-target verification
+
+The shipped Go contract (`native_loader.go`) links `libsc_sha_go.a` for six
+coordinates, with Windows as `x86_64-pc-windows-gnu` (amd64) and
+`aarch64-pc-windows-gnullvm` (arm64). The required cross-check for that
+contract is `just check-sc-sha-go-cross`, which runs `cargo check -p sc-sha-go`
+for exactly those two triples. The msvc `cargo xwin` checks (`check.xwin`,
+`clippy.xwin`) verify the Windows CLI contract, not the Go one, and do not
+satisfy it.
+
+These are compile-time checks only. Linking and running Go is a manual
+preflight step (ANC-023, FR-25.4): the host-native `go test` runs through
+`just prepare-sc-sha-go-native` on the operator's host, and the recorded run to
+date is darwin/arm64 only. The other five coordinates are covered by the Python
+fixture tests plus `cargo check`; the Linux `-lpthread` and Windows static link
+libraries are therefore not executed in CI or in manual preflight until a host
+of that coordinate runs the Go test.
+
 ### 3.6 `sc-composer-beads`
 
 `sc-composer-beads` is the host-neutral Beads formula-composition library. It
