@@ -1,0 +1,180 @@
+{
+  "success": true,
+  "data": {
+    "threshold": 0.6,
+    "dry_run": false,
+    "fixture": false,
+    "path": "docs/plans/phase-u/anchors.json",
+    "anchors": [
+      {
+        "id": "FR-24.29a",
+        "statement": "The release's sc-composer-beads code and tests must be carried over from `crates/sc-composer-beads` on the `rebuild/from-main` branch, not rewritten.",
+        "quote": "The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/from-main` branch) are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).",
+        "scope": "An item that ports, recovers, reuses or reimplements sc-composer-beads code or its tests, including from the rebuild/from-main branch.",
+        "verdict": "testable",
+        "failing": [],
+        "answers": {
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.76,
+            "probabilities": {
+              "no": 0.15,
+              "unclear": 0.01,
+              "yes": 0.84
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.82,
+            "probabilities": {
+              "no": 0.09,
+              "unclear": 0.03,
+              "yes": 0.88
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 1.0,
+            "probabilities": {
+              "no": 0.0,
+              "unclear": 0.0,
+              "yes": 1.0
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.8,
+            "probabilities": {
+              "no": 0.12,
+              "unclear": 0.01,
+              "yes": 0.87
+            }
+          },
+          "single_constraint": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.61,
+            "probabilities": {
+              "no": 0.24,
+              "unclear": 0.02,
+              "yes": 0.74
+            }
+          }
+        },
+        "lint": {
+          "warnings": [],
+          "errors": []
+        },
+        "answers_second": {
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.76,
+            "probabilities": {
+              "no": 0.15,
+              "unclear": 0.01,
+              "yes": 0.84
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.83,
+            "probabilities": {
+              "no": 0.08,
+              "unclear": 0.03,
+              "yes": 0.89
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 1.0,
+            "probabilities": {
+              "no": 0.0,
+              "unclear": 0.0,
+              "yes": 1.0
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.8,
+            "probabilities": {
+              "no": 0.12,
+              "unclear": 0.01,
+              "yes": 0.87
+            }
+          },
+          "single_constraint": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.61,
+            "probabilities": {
+              "no": 0.24,
+              "unclear": 0.02,
+              "yes": 0.74
+            }
+          }
+        },
+        "attempts": 2,
+        "confirmations": {
+          "verdict": "testable",
+          "failing": [],
+          "low_confidence": [],
+          "unstable": [],
+          "initial_disagreements": [],
+          "resolved": {
+            "faithful": {
+              "choice": "yes",
+              "confidence": 0.76,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "observable": {
+              "choice": "yes",
+              "confidence": 0.82,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "scoped": {
+              "choice": "yes",
+              "confidence": 1.0,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "self_contained": {
+              "choice": "yes",
+              "confidence": 0.8,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "single_constraint": {
+              "choice": "yes",
+              "confidence": 0.61,
+              "matching_calls": [
+                1,
+                2
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "needs_work": [],
+    "pass": true
+  },
+  "error": null
+}

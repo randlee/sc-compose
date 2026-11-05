@@ -1,0 +1,4052 @@
+{
+  "schema": "plan-anchoring/run/1",
+  "run_id": "plan-20261105T005158Z-comp-v-6",
+  "gate": "plan",
+  "created_at": "2026-11-05T00:51:58+00:00",
+  "anchors_path": "docs/plans/phase-u/anchors.json",
+  "plan": "phase-u",
+  "item": {
+    "id": "comp-v-6",
+    "title": "v-6: delivery-integration",
+    "source": "docs/plans/phase-u/anchor-runs/phase-v-plan-gate/items/v6.txt",
+    "chars": 3874,
+    "truncated": false,
+    "chars_before_reduction": 3874,
+    "code_reduced": {
+      "blocks": 0,
+      "lines": 0
+    }
+  },
+  "model_requested": "jev-latest",
+  "model_answered": "jev-1.14.0",
+  "threshold": 0.6,
+  "max_request_bytes": 24000,
+  "min_item_chars": 2000,
+  "dry_run": false,
+  "fixture": false,
+  "results": [
+    {
+      "anchor_id": "FR-24.27",
+      "source_type": "REQ",
+      "source_ref": "FR-24.27",
+      "statement": "If rendering or validation fails, no bead is created.",
+      "quote": "If rendering or validation fails, no bead is created.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirements",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "not_addressed",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.91,
+          "probabilities": {
+            "yes": 0.94,
+            "no": 0.06,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.68,
+          "probabilities": {
+            "yes": 0.09,
+            "no": 0.79,
+            "unclear": 0.12
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.89,
+          "probabilities": {
+            "yes": 0.05,
+            "no": 0.93,
+            "unclear": 0.02
+          }
+        }
+      },
+      "min_confidence": 0.68,
+      "explanation": "This bead does not carry the directive forward.",
+      "usage": {
+        "input_tokens": 1804,
+        "output_tokens": 117
+      },
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6781
+    },
+    {
+      "anchor_id": "FR-24.2e",
+      "source_type": "REQ",
+      "source_ref": "FR-24.2e",
+      "statement": "Each entry in `tests/fixtures/render-regressions/approved-exceptions.json` must link the GitHub issue that records the user's approval of that difference.",
+      "quote": "Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (14e); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2e.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_addressed",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.89,
+          "probabilities": {
+            "yes": 0.93,
+            "no": 0.07,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.76,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.84,
+            "unclear": 0.14
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.98,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.76,
+      "explanation": "This bead does not carry the directive forward.",
+      "usage": {
+        "input_tokens": 1840,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6918
+    },
+    {
+      "anchor_id": "ANC-001",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Values containing {{ }}, {{{ }}} or {% %} must stay data and must never be re-parsed.",
+      "quote": "Values containing {{ }}, {{{ }}} or {% %} stay data and are never re-parsed.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Phase U planning, 2026-11-04",
+      "anchor_version": 2,
+      "deterministic_check": "supply values containing each delimiter and read back identical literal text from the text passed to bd",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "near_threshold": true,
+      "unstable": true,
+      "answers_second": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.52,
+          "probabilities": {
+            "yes": 0.28,
+            "no": 0.68,
+            "unclear": 0.04
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.97,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.97,
+            "unclear": 0.01
+          }
+        }
+      },
+      "verdict_first": "not_applicable",
+      "verdict_second": "underspecified",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.66,
+          "probabilities": {
+            "yes": 0.21,
+            "no": 0.77,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.98,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.97,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.52,
+      "explanation": "Jev was not confident (min confidence 0.52); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1837,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "second",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.52
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6875
+    },
+    {
+      "anchor_id": "ANC-015",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The docli command-line documentation generator must run each time sc-compose is published.",
+      "quote": "docli must be run every publish (stale documentation blocks preflight)",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "inspect publish/preflight docli invocation",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.99,
+            "no": 0.01,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.3,
+          "probabilities": {
+            "yes": 0.38,
+            "no": 0.53,
+            "unclear": 0.09
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.58,
+          "probabilities": {
+            "yes": 0.21,
+            "no": 0.72,
+            "unclear": 0.07
+          }
+        }
+      },
+      "min_confidence": 0.3,
+      "explanation": "Jev was not confident (min confidence 0.30); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1806,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "no",
+          "confidence": 0.3
+        },
+        {
+          "ask": "first",
+          "role": "conflict",
+          "question_id": "contradicted",
+          "choice": "no",
+          "confidence": 0.58
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6809
+    },
+    {
+      "anchor_id": "ANC-016",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Release preflight for sc-compose must fail if the docli tool reports that the command-line documentation is stale.",
+      "quote": "docli must be run every publish (stale documentation blocks preflight)",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "stale generated reference negative preflight test",
+      "kind": "directive",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.98,
+            "no": 0.02,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.3,
+          "probabilities": {
+            "yes": 0.53,
+            "no": 0.31,
+            "unclear": 0.16
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.85,
+          "probabilities": {
+            "yes": 0.05,
+            "no": 0.9,
+            "unclear": 0.05
+          }
+        }
+      },
+      "min_confidence": 0.3,
+      "explanation": "Jev was not confident (min confidence 0.30); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1816,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "yes",
+          "confidence": 0.3
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6810
+    },
+    {
+      "anchor_id": "ANC-033",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Normal CI pipeline runs must exclude the Windows amd64 and manylinux integration runs.",
+      "quote": "you can run win amd64 and manylinux on github, but do not add them to the normal ci pipeline runs.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source user transcript5764",
+      "anchor_version": 3,
+      "deterministic_check": "inspect CI invocation paths; does not ban ordinary Windows unit CI",
+      "kind": "directive",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.99,
+            "no": 0.01,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.31,
+          "probabilities": {
+            "yes": 0.54,
+            "no": 0.29,
+            "unclear": 0.17
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.83,
+          "probabilities": {
+            "yes": 0.09,
+            "no": 0.89,
+            "unclear": 0.02
+          }
+        }
+      },
+      "min_confidence": 0.31,
+      "explanation": "Jev was not confident (min confidence 0.31); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1810,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "yes",
+          "confidence": 0.31
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6784
+    },
+    {
+      "anchor_id": "FR-24.24b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.24b",
+      "statement": "With `--render-by bd`, sc-compose must run the same bd command line as v1.7.0 for every v1.7.0 call.",
+      "quote": "With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (13b, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.24b.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.58,
+          "probabilities": {
+            "yes": 0.27,
+            "no": 0.72,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.94,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.96,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.97,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.58,
+      "explanation": "Jev was not confident (min confidence 0.58); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1886,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.58
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7081
+    },
+    {
+      "anchor_id": "FR-24.24c",
+      "source_type": "REQ",
+      "source_ref": "FR-24.24c",
+      "statement": "With `--render-by bd` (sc-compose leaves `{{ }}` expressions for bd to render, as v1.7.0 does), an input that sc-compose v1.7.0 (commit f4fda4b9) rejects must be rejected with the same error code.",
+      "quote": "With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (13c, clarity-edited 2026-11-04); testable under sealed rubric 28ce3aec, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v5/FR-24.24c.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.55,
+          "probabilities": {
+            "yes": 0.7,
+            "no": 0.29,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.2,
+          "probabilities": {
+            "yes": 0.36,
+            "no": 0.47,
+            "unclear": 0.17
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.97,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.2,
+      "explanation": "Jev was not confident (min confidence 0.20); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1907,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "yes",
+          "confidence": 0.55
+        },
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "no",
+          "confidence": 0.2
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7106
+    },
+    {
+      "anchor_id": "FR-24.25a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.25a",
+      "statement": "Adding `--render-by` must not add a required field to any `sc-composer-beads` request struct, so existing struct literals compile unchanged.",
+      "quote": "Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (15); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.25a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.53,
+          "probabilities": {
+            "yes": 0.28,
+            "no": 0.69,
+            "unclear": 0.03
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.94,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.96,
+            "unclear": 0.03
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.98,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.53,
+      "explanation": "Jev was not confident (min confidence 0.53); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1845,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.53
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6941
+    },
+    {
+      "anchor_id": "FR-24.26a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.26a",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), one request must give the same rendered output from Rust, the CLI and Python.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (16a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.26a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.5,
+          "probabilities": {
+            "yes": 0.31,
+            "no": 0.67,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.92,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.95,
+            "unclear": 0.03
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.98,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.5,
+      "explanation": "Jev was not confident (min confidence 0.50); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1888,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.5
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7151
+    },
+    {
+      "anchor_id": "FR-24.26b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.26b",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the same request must give identical bd command lines from Rust, the CLI and Python.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 16b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.26b.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "unstable": true,
+      "answers_second": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.61,
+          "probabilities": {
+            "yes": 0.24,
+            "no": 0.74,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.97,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "verdict_first": "underspecified",
+      "verdict_second": "not_applicable",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.52,
+          "probabilities": {
+            "yes": 0.3,
+            "no": 0.68,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.97,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.52,
+      "explanation": "Jev was not confident (min confidence 0.52); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1889,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.52
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7158
+    },
+    {
+      "anchor_id": "FR-24.29b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.29b",
+      "statement": "Strict validation must stay off unless the caller passes `--strict` or the matching API option.",
+      "quote": "The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 21b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.29b.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.4,
+          "probabilities": {
+            "yes": 0.37,
+            "no": 0.6,
+            "unclear": 0.03
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.98,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.98,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.4,
+      "explanation": "Jev was not confident (min confidence 0.40); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1833,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.4
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6896
+    },
+    {
+      "anchor_id": "FR-24.2a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.2a",
+      "statement": "Schema-less template output must be byte-identical to the sc-compose v1.7.0 golden output, except for differences listed in `approved-exceptions.json`.",
+      "quote": "Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 14a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.88,
+            "no": 0.11,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.3,
+          "probabilities": {
+            "yes": 0.21,
+            "no": 0.53,
+            "unclear": 0.26
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.76,
+          "probabilities": {
+            "yes": 0.14,
+            "no": 0.84,
+            "unclear": 0.02
+          }
+        }
+      },
+      "min_confidence": 0.3,
+      "explanation": "Jev was not confident (min confidence 0.30); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1839,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "no",
+          "confidence": 0.3
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6915
+    },
+    {
+      "anchor_id": "FR-24.2b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.2b",
+      "statement": "Every entry in `approved-exceptions.json` must name the GitHub issue linked to that difference.",
+      "quote": "Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 14b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2b.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "unstable": true,
+      "answers_second": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.68,
+          "probabilities": {
+            "yes": 0.79,
+            "no": 0.2,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.92,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.95,
+            "unclear": 0.04
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.97,
+            "unclear": 0.01
+          }
+        }
+      },
+      "verdict_first": "underspecified",
+      "verdict_second": "not_addressed",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.52,
+          "probabilities": {
+            "yes": 0.68,
+            "no": 0.3,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.94,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.96,
+            "unclear": 0.03
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.98,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.52,
+      "explanation": "Jev was not confident (min confidence 0.52); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1825,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "yes",
+          "confidence": 0.52
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6859
+    },
+    {
+      "anchor_id": "FR-24.2c",
+      "source_type": "REQ",
+      "source_ref": "FR-24.2c",
+      "statement": "The golden files in `tests/fixtures/render-regressions/goldens/` must be generated once by running sc-compose v1.7.0 (commit f4fda4b9).",
+      "quote": "Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (14c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2c.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.99,
+            "no": 0.01,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.5,
+          "probabilities": {
+            "yes": 0.67,
+            "no": 0.24,
+            "unclear": 0.09
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.7,
+          "probabilities": {
+            "yes": 0.18,
+            "no": 0.8,
+            "unclear": 0.02
+          }
+        }
+      },
+      "min_confidence": 0.5,
+      "explanation": "Jev was not confident (min confidence 0.50); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1847,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "yes",
+          "confidence": 0.5
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6899
+    },
+    {
+      "anchor_id": "FR-24.2d",
+      "source_type": "REQ",
+      "source_ref": "FR-24.2d",
+      "statement": "The CI byte-regression check must fail when schema-less output differs from the v1.7.0 golden output in a way not listed in `approved-exceptions.json`.",
+      "quote": "Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 14d); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2d.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.94,
+          "probabilities": {
+            "yes": 0.96,
+            "no": 0.03,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.28,
+          "probabilities": {
+            "yes": 0.13,
+            "no": 0.52,
+            "unclear": 0.35
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.05,
+            "no": 0.88,
+            "unclear": 0.07
+          }
+        }
+      },
+      "min_confidence": 0.28,
+      "explanation": "Jev was not confident (min confidence 0.28); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1841,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "no",
+          "confidence": 0.28
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6915
+    },
+    {
+      "anchor_id": "FR-24.2f",
+      "source_type": "REQ",
+      "source_ref": "FR-24.2f",
+      "statement": "The byte-regression check must never rewrite `tests/fixtures/render-regressions/goldens/` from candidate output.",
+      "quote": "Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (14f); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.2f.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.99,
+            "no": 0.01,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.44,
+          "probabilities": {
+            "yes": 0.07,
+            "no": 0.63,
+            "unclear": 0.3
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.92,
+          "probabilities": {
+            "yes": 0.03,
+            "no": 0.95,
+            "unclear": 0.02
+          }
+        }
+      },
+      "min_confidence": 0.44,
+      "explanation": "Jev was not confident (min confidence 0.44); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1832,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "compliance",
+          "question_id": "addressed",
+          "choice": "no",
+          "confidence": 0.44
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6876
+    },
+    {
+      "anchor_id": "FR-24.30a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.30a",
+      "statement": "`bead.md` must document each `--render-by` mode with a worked input-to-created-bead example.",
+      "quote": "`bead.md` (`crates/sc-compose/docs/manual/bead.md`) documents each mode (`--render-by sc-compose` and `--render-by bd`) with a worked input-to-created-bead example.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (22, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.30a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "unstable": true,
+      "answers_second": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.61,
+          "probabilities": {
+            "yes": 0.24,
+            "no": 0.74,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.91,
+          "probabilities": {
+            "yes": 0.02,
+            "no": 0.94,
+            "unclear": 0.04
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.88,
+          "probabilities": {
+            "yes": 0.07,
+            "no": 0.92,
+            "unclear": 0.01
+          }
+        }
+      },
+      "verdict_first": "underspecified",
+      "verdict_second": "not_applicable",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.53,
+          "probabilities": {
+            "yes": 0.29,
+            "no": 0.69,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.94,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.96,
+            "unclear": 0.03
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.11,
+            "no": 0.88,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.53,
+      "explanation": "Jev was not confident (min confidence 0.53); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1838,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "no",
+          "confidence": 0.53
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6893
+    },
+    {
+      "anchor_id": "FR-24.32a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.32a",
+      "statement": "Without `--strict`, the final candidate must accept every corpus template that 1.7.0 accepted.",
+      "quote": "The 229-template corpus that passed the v1.7.0 comparison (QA report 01M6HZR22HZXX4HDW1CMFHHA86: 150 atm-core and 79 sc-compose `.j2` templates) is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7 (`ERR_VAL_UNDECLARED_TOKEN` no longer reported for True/False/None literals, filter and call targets, Jinja test and block-tag names, and comment and raw bodies).",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (24a, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.32a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_addressed",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.3,
+          "probabilities": {
+            "yes": 0.53,
+            "no": 0.43,
+            "unclear": 0.04
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.91,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.94,
+            "unclear": 0.05
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.88,
+          "probabilities": {
+            "yes": 0.05,
+            "no": 0.92,
+            "unclear": 0.03
+          }
+        }
+      },
+      "min_confidence": 0.3,
+      "explanation": "Jev was not confident (min confidence 0.30); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1813,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "relevance",
+          "question_id": "relevant",
+          "choice": "yes",
+          "confidence": 0.3
+        }
+      ],
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6805
+    },
+    {
+      "anchor_id": "FR-25.1",
+      "source_type": "REQ",
+      "source_ref": "FR-25.1",
+      "statement": "All30 artifact/platform cells must build successfully: Rust CLI, sc-compose/sc-sha/sc-composer-beads wheels and sc-sha-go native module, each for macOS/Windows/Linux on x64/arm64.",
+      "quote": "All 30 artifact/platform cells must build successfully: the Rust CLI, the\nsc-compose, sc-sha and sc-composer-beads wheels, and the sc-sha-go native module,\neach for macOS, Windows and Linux on x64 and arm64.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Approved corrections ATM01M6JPXYDJAHCYXVX4WDR1KQVB; docs/requirements.md on plan/phase-u-live-beads@275f17ed; source clauses only, ADR-0024 open decisions are not implicitly approved.",
+      "anchor_version": 1,
+      "deterministic_check": "Verify FR-25.1 against its approved requirement clause and actual positive/negative runtime evidence.",
+      "kind": "directive",
+      "leaning": "contradicted",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "underspecified",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 1.0,
+            "no": 0.0,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.67,
+          "probabilities": {
+            "yes": 0.78,
+            "no": 0.13,
+            "unclear": 0.09
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.26,
+          "probabilities": {
+            "yes": 0.51,
+            "no": 0.47,
+            "unclear": 0.02
+          }
+        }
+      },
+      "min_confidence": 0.26,
+      "explanation": "Jev was not confident (min confidence 0.26); the anchor or the bead may be underspecified.",
+      "usage": {
+        "input_tokens": 1853,
+        "output_tokens": 117
+      },
+      "low_questions": [
+        {
+          "ask": "first",
+          "role": "conflict",
+          "question_id": "contradicted",
+          "choice": "yes",
+          "confidence": 0.26
+        }
+      ],
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6951
+    },
+    {
+      "anchor_id": "ANC-014",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The docli tool must be added to sc-compose as the generator of command-line documentation.",
+      "quote": "we need to add docli for cli documentation generation",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-003; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "inspect generator invocation and generated reference source",
+      "kind": "directive",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "satisfied",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 1.0,
+            "no": 0.0,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.76,
+          "probabilities": {
+            "yes": 0.84,
+            "no": 0.15,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.11,
+            "no": 0.88,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.76,
+      "explanation": "The directive is carried forward.",
+      "usage": {
+        "input_tokens": 1807,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6803
+    },
+    {
+      "anchor_id": "ANC-023",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The macOS/Windows/Linux x64/arm64 Rust/wheel/Go matrix, including supported wheel Python versions with pip and uv, must run only in preflight integration tests, excluded from routine sprint continuous integration.",
+      "quote": "I want ci running full matrix ONLY for integration test (required for preflight) NOT every sprint",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-002; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "inspect triggers and preflight dependency; full install matrix is platform/Python/installer coverage",
+      "kind": "prohibition",
+      "leaning": "satisfied",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "satisfied",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 1.0,
+            "no": 0.0,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "yes",
+          "confidence": 0.86,
+          "probabilities": {
+            "yes": 0.91,
+            "no": 0.08,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.68,
+          "probabilities": {
+            "yes": 0.19,
+            "no": 0.79,
+            "unclear": 0.02
+          }
+        }
+      },
+      "min_confidence": 0.68,
+      "explanation": "The directive is carried forward.",
+      "usage": {
+        "input_tokens": 1903,
+        "output_tokens": 117
+      },
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7219
+    },
+    {
+      "anchor_id": "ANC-002",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "When sc-compose renders a Beads formula template, a tight variable expression with no spaces inside its braces, such as {{key}}, must be replaced by its supplied value in the output text.",
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "render.rs:bead_variables_render_padded_and_tight_placeholders",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.76,
+          "probabilities": {
+            "yes": 0.14,
+            "no": 0.84,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.98,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.76,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1838,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6927
+    },
+    {
+      "anchor_id": "ANC-003",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "When sc-compose renders a Beads formula template, a padded variable expression such as {{ key }} must be replaced by its supplied value in the output text.",
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "render.rs:bead_variables_render_padded_and_tight_placeholders",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.68,
+          "probabilities": {
+            "yes": 0.18,
+            "no": 0.79,
+            "unclear": 0.03
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.98,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.68,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1831,
+        "output_tokens": 117
+      },
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6895
+    },
+    {
+      "anchor_id": "ANC-004",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "When sc-compose renders a Beads formula template, a variable expression that refers to a loop-local value must be replaced by that value in the output text.",
+      "quote": "Variables rendered before bd. Tight {{key}} and padded {{ key }}, including loop-local values.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed from524772f4:ANC-007; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
+      "anchor_version": 4,
+      "deterministic_check": "bdb3bdae single_pass_render.rs FUZZ-171-03",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.72,
+          "probabilities": {
+            "yes": 0.17,
+            "no": 0.81,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.72,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1831,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6896
+    },
+    {
+      "anchor_id": "ANC-031",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "The codespell spelling check for sc-compose must pass.",
+      "quote": "you need to attribute or add the words so lint passes",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Proposed; source memory/lint-must-pass-allowlist-words.md quoted Rand words; narrow original codespell context retained for review",
+      "anchor_version": 4,
+      "deterministic_check": "just lint on exact candidate; no disabling rules",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": true
+      },
+      "questions_sha256": "02c683ca5893c80857ab46baa59bb2b3fb54a25fefc04226818821875849d7a0",
+      "questions": {
+        "relevant": {
+          "type": "choice",
+          "instructions": "The state holds one planning item (`item.title`, `item.text`) and one anchor: a directive the user stated verbatim in `anchor.statement`, with the area it governs in `anchor.scope`. Does the work described in `item.text` touch the subject that `anchor.statement` talks about? Judge overlap of subject matter only. Do not judge whether the item obeys the anchor.",
+          "criteria": {
+            "yes": "The item plans, changes, or depends on the thing the anchor statement is about, directly or as a clear prerequisite.",
+            "no": "The item is about a different part of the system or a different activity, and completing it would neither follow nor break the anchor.",
+            "unclear": "The item text is too vague to tell what part of the system it touches."
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "instructions": "Does `item.text` carry out, preserve, or plan for the directive given in `anchor.statement`? Look for the directive's specific content being present in the item as something the item does: the same starting point, method, constraint, or an explicit step that does what the statement asks. A generic mention of the topic does not count. An item that does something different from, or opposite to, the directive does not carry it out.",
+          "criteria": {
+            "yes": "The item text contains the directive's specific content as a step, constraint, or stated starting point that the item carries out.",
+            "no": "The item does not carry out the directive: it is silent about it, or it does something different from or opposite to what the directive asks.",
+            "unclear": "The item alludes to the directive's topic but it is not possible to tell whether the item carries the directive out."
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "instructions": "Does `item.text` propose doing something that `anchor.statement` rules out, or propose a different approach than the one `anchor.statement` requires? Examples of contradiction: the anchor says to start from an existing implementation and the item plans a fresh implementation; the anchor forbids a dependency and the item adds it; the anchor fixes an order of work and the item reverses it. Silence about the directive is not a contradiction. Judge conflict only.",
+          "criteria": {
+            "yes": "The item text states a plan, approach, or decision that cannot be reconciled with the directive in the anchor statement.",
+            "no": "Nothing in the item text conflicts with the directive, whether or not the directive is mentioned.",
+            "unclear": "The item text is ambiguous enough that it might or might not conflict with the directive."
+          }
+        }
+      },
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.1,
+            "no": 0.88,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.82,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1806,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6784
+    },
+    {
+      "anchor_id": "FR-24.10a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.10a",
+      "statement": "When the graph-plan output path is blocked, including by an existing directory, sc-compose must refuse the command before running any bd command.",
+      "quote": "A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 18); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.10a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.86,
+          "probabilities": {
+            "yes": 0.08,
+            "no": 0.91,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.86,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1821,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6874
+    },
+    {
+      "anchor_id": "FR-24.13a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.13a",
+      "statement": "When `--render-by` is not specified, the sc-compose bead commands must use sc-compose rendering (sc-compose renders every template expression before bd runs).",
+      "quote": "Advanced pour is the default: sc-compose rendering is used when `--render-by` is not specified, and `--render-by bd` selects bd rendering.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 1); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.13a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.7,
+          "probabilities": {
+            "yes": 0.18,
+            "no": 0.8,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.92,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.95,
+            "unclear": 0.04
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.7,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1884,
+        "output_tokens": 117
+      },
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7139
+    },
+    {
+      "anchor_id": "FR-24.13b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.13b",
+      "statement": "`--render-by bd` must make the sc-compose bead commands use bd rendering, leaving `{{ }}` expressions for bd.",
+      "quote": "Advanced pour is the default: sc-compose rendering is used when `--render-by` is not specified, and `--render-by bd` selects bd rendering.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (1b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.13b.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.79,
+          "probabilities": {
+            "yes": 0.12,
+            "no": 0.86,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.97,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.79,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1879,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7090
+    },
+    {
+      "anchor_id": "FR-24.14a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.14a",
+      "statement": "The formula or graph that sc-compose sends to bd in advanced pour (the explicit opt-in mode in which sc-compose renders the template before bd runs) must contain no `{{`, `{%` or `{#` template expression.",
+      "quote": "In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 2); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.14a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.79,
+          "probabilities": {
+            "yes": 0.12,
+            "no": 0.86,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.79,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1860,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7005
+    },
+    {
+      "anchor_id": "FR-24.15a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.15a",
+      "statement": "The bd command line that sc-compose runs in advanced pour (the explicit opt-in mode in which sc-compose renders the template before bd runs) must contain no `--var` argument.",
+      "quote": "In advanced pour, sc-compose never passes a value to bd as `--var`.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 3); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.15a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.68,
+          "probabilities": {
+            "yes": 0.19,
+            "no": 0.79,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.68,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1851,
+        "output_tokens": 117
+      },
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6975
+    },
+    {
+      "anchor_id": "FR-24.19a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.19a",
+      "statement": "When the caller asks sc-compose to render the template itself before bd runs, every field of each created bead, including its labels, must hold the rendered value when that bead is read back from bd.",
+      "quote": "Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 7); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.19a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.92,
+          "probabilities": {
+            "yes": 0.04,
+            "no": 0.95,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.92,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1839,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6947
+    },
+    {
+      "anchor_id": "FR-24.20a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.20a",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the `lower` filter applied to the value `A{BC` must return `a{bc`.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 8); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.79,
+          "probabilities": {
+            "yes": 0.13,
+            "no": 0.86,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.79,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1893,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7140
+    },
+    {
+      "anchor_id": "FR-24.20b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.20b",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the `length` filter applied to the value `A{BC` must return 4.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 8b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20b.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.79,
+          "probabilities": {
+            "yes": 0.13,
+            "no": 0.86,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.79,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1891,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7136
+    },
+    {
+      "anchor_id": "FR-24.20c",
+      "source_type": "REQ",
+      "source_ref": "FR-24.20c",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), taking the first three characters of the value `A{BC` must return `A{B`.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 8c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20c.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.77,
+          "probabilities": {
+            "yes": 0.14,
+            "no": 0.85,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.77,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1892,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7146
+    },
+    {
+      "anchor_id": "FR-24.21a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.21a",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), a variable the caller does not supply must take the default declared in the included template's frontmatter.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 9a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.21a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.89,
+          "probabilities": {
+            "yes": 0.06,
+            "no": 0.93,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.89,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1894,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7182
+    },
+    {
+      "anchor_id": "FR-24.21b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.21b",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the text of a default declared in an included template's frontmatter must stay literal.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 9b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.21b.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.86,
+          "probabilities": {
+            "yes": 0.08,
+            "no": 0.91,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.86,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1891,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7161
+    },
+    {
+      "anchor_id": "FR-24.22a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.22a",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), preview-attach must write nothing to bd.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 11a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.76,
+          "probabilities": {
+            "yes": 0.15,
+            "no": 0.84,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.76,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1881,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7114
+    },
+    {
+      "anchor_id": "FR-24.22b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.22b",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), `sc-compose bead attach` must create all of its beads in bd or none of them.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 11b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22b.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.74,
+          "probabilities": {
+            "yes": 0.16,
+            "no": 0.83,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.74,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1891,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7150
+    },
+    {
+      "anchor_id": "FR-24.22c",
+      "source_type": "REQ",
+      "source_ref": "FR-24.22c",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), `sc-compose bead attach` must create no bead when its request does not set `pour_authorization` to `CreatePersistentBeads`.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 11c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22c.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.68,
+          "probabilities": {
+            "yes": 0.2,
+            "no": 0.79,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.97,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.98,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.68,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1904,
+        "output_tokens": 117
+      },
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7197
+    },
+    {
+      "anchor_id": "FR-24.22d",
+      "source_type": "REQ",
+      "source_ref": "FR-24.22d",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), running the same `sc-compose bead attach` request twice must leave the status and notes of the beads from the first run unchanged.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 11d); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22d.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.73,
+          "probabilities": {
+            "yes": 0.17,
+            "no": 0.82,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.73,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1898,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7204
+    },
+    {
+      "anchor_id": "FR-24.23a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.23a",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the beads created from the real `sprint-group` orchestration formula must match the expected output recorded in `crates/sc-compose/tests/fixtures/bead/sprint-group.expected.json`.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (12a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.23a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.88,
+          "probabilities": {
+            "yes": 0.07,
+            "no": 0.92,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.88,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1912,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7253
+    },
+    {
+      "anchor_id": "FR-24.23b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.23b",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), pouring `.claude/skills/atm-bd-orchestration/formulas/finding-group.formula.toml.j2` must create beads whose titles, descriptions, labels, ids and dependency edges equal those recorded in `crates/sc-compose/tests/fixtures/bead/finding-group.expected.json`.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (item 12b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.23b.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.03,
+            "no": 0.97,
+            "unclear": 0.0
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.96,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1937,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7330
+    },
+    {
+      "anchor_id": "FR-24.28a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.28a",
+      "statement": "The undeclared-variable check must run only when the caller passes `--strict` or the matching API option.",
+      "quote": "The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema. The recovered Beads code and tests are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (20a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.28a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.89,
+          "probabilities": {
+            "yes": 0.05,
+            "no": 0.93,
+            "unclear": 0.02
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.89,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1821,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6859
+    },
+    {
+      "anchor_id": "FR-24.28b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.28b",
+      "statement": "The undeclared-variable check must never run on a template that declares no schema.",
+      "quote": "The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 20b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.28b.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.91,
+          "probabilities": {
+            "yes": 0.05,
+            "no": 0.94,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.91,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1815,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6837
+    },
+    {
+      "anchor_id": "FR-24.29a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.29a",
+      "statement": "Phase U must port the recovered Beads code and tests from `crates/sc-composer-beads` on the `rebuild/from-main` branch instead of rewriting them.",
+      "quote": "The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/from-main` branch) are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (21a, clarity-edited 2026-11-04); testable under sealed rubric 28ce3aec, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v5/FR-24.29a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.92,
+          "probabilities": {
+            "yes": 0.04,
+            "no": 0.95,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.92,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1840,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6921
+    },
+    {
+      "anchor_id": "FR-24.31a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.31a",
+      "statement": "The closing fuzz sprint must rerun FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 on the final candidate.",
+      "quote": "The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 (recovered in `crates/sc-composer-beads/tests/single_pass_render.rs` and `crates/sc-compose/tests/cli/fuzz_regressions.rs`; FUZZ-171-10 is not yet recovered) as regression tests on the final candidate.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (23, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.31a.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.11,
+            "no": 0.88,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.26,
+          "probabilities": {
+            "yes": 0.48,
+            "no": 0.51,
+            "unclear": 0.01
+          }
+        }
+      },
+      "min_confidence": 0.26,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1836,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 6826
+    },
+    {
+      "anchor_id": "FR-24.7a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.7a",
+      "statement": "With `--render-by bd` (sc-compose leaves `{{ }}` expressions for bd to render from `--var` values), sc-compose must send the `{{ }}` expressions to bd unrendered.",
+      "quote": "bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 17a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.7a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.09,
+            "no": 0.88,
+            "unclear": 0.03
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.82,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1869,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7032
+    },
+    {
+      "anchor_id": "FR-24.7b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.7b",
+      "statement": "With `--render-by bd` (sc-compose leaves `{{ }}` expressions for bd to render from `--var` values), sc-compose must keep passing registry variables to bd as `--var` arguments, as sc-compose v1.7.0 does.",
+      "quote": "bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 17b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.7b.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.82,
+          "probabilities": {
+            "yes": 0.09,
+            "no": 0.88,
+            "unclear": 0.03
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 1.0,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 1.0,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.82,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1880,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7072
+    },
+    {
+      "anchor_id": "FR-24.8a",
+      "source_type": "REQ",
+      "source_ref": "FR-24.8a",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), graph pour by path must accept caller bead inputs.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 10a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.73,
+          "probabilities": {
+            "yes": 0.17,
+            "no": 0.82,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.97,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.73,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1881,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7123
+    },
+    {
+      "anchor_id": "FR-24.8b",
+      "source_type": "REQ",
+      "source_ref": "FR-24.8b",
+      "statement": "With `--render-by bd`, graph pour by path must reject caller bead inputs with `BEADS_GRAPH_FORMULA_UNSUPPORTED`.",
+      "quote": "bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does (graph pour by path: `BEADS_GRAPH_FORMULA_UNSUPPORTED` with reason `bead_variables_set`; attach: request error `attach forbids bead_variables`).",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (10b, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8b.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.72,
+          "probabilities": {
+            "yes": 0.18,
+            "no": 0.81,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.94,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.96,
+            "unclear": 0.03
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.72,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1881,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7092
+    },
+    {
+      "anchor_id": "FR-24.8c",
+      "source_type": "REQ",
+      "source_ref": "FR-24.8c",
+      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), attach must accept caller bead inputs.",
+      "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does.",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (approved list item 10c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8c.json; locked on user approval 2026-11-04 (\"1 - lock\")",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.79,
+          "probabilities": {
+            "yes": 0.13,
+            "no": 0.86,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.0,
+            "no": 0.99,
+            "unclear": 0.01
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.79,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1878,
+        "output_tokens": 117
+      },
+      "attempts": 1,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7111
+    },
+    {
+      "anchor_id": "FR-24.8d",
+      "source_type": "REQ",
+      "source_ref": "FR-24.8d",
+      "statement": "With `--render-by bd`, attach must reject caller bead inputs with the error `attach forbids bead_variables`.",
+      "quote": "bd-owned mode is the pour mode in which sc-compose leaves `{{ }}` expressions in the formula for bd to render from `--var` values, as sc-compose v1.7.0 does. With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does (graph pour by path: `BEADS_GRAPH_FORMULA_UNSUPPORTED` with reason `bead_variables_set`; attach: request error `attach forbids bead_variables`).",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-04",
+      "context": "User-approved Phase U Beads requirement (10d, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8d.json",
+      "anchor_version": 1,
+      "deterministic_check": "",
+      "kind": "directive",
+      "leaning": "not_applicable",
+      "question_set": {
+        "gate": "plan",
+        "version": 1,
+        "overridden": false
+      },
+      "questions_sha256": "45c142d4b4a63bd5c580d2407d06af54171ebec6302dd62d0ba982450416f8cd",
+      "near_threshold": true,
+      "confirmed": true,
+      "verdict": "not_applicable",
+      "answers": {
+        "relevant": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.67,
+          "probabilities": {
+            "yes": 0.21,
+            "no": 0.78,
+            "unclear": 0.01
+          }
+        },
+        "addressed": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.96,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.97,
+            "unclear": 0.02
+          }
+        },
+        "contradicted": {
+          "type": "choice",
+          "choice": "no",
+          "confidence": 0.98,
+          "probabilities": {
+            "yes": 0.01,
+            "no": 0.99,
+            "unclear": 0.0
+          }
+        }
+      },
+      "min_confidence": 0.67,
+      "explanation": "The anchor does not govern this bead.",
+      "usage": {
+        "input_tokens": 1875,
+        "output_tokens": 117
+      },
+      "attempts": 2,
+      "item_chars_sent": 3874,
+      "item_shortened": false,
+      "request_bytes": 7088
+    }
+  ],
+  "summary": {
+    "counts": {
+      "not_addressed": 2,
+      "underspecified": 18,
+      "satisfied": 2,
+      "not_applicable": 31
+    },
+    "failing": [
+      "FR-24.27",
+      "FR-24.2e",
+      "ANC-001",
+      "ANC-015",
+      "ANC-016",
+      "ANC-033",
+      "FR-24.24b",
+      "FR-24.24c",
+      "FR-24.25a",
+      "FR-24.26a",
+      "FR-24.26b",
+      "FR-24.29b",
+      "FR-24.2a",
+      "FR-24.2b",
+      "FR-24.2c",
+      "FR-24.2d",
+      "FR-24.2f",
+      "FR-24.30a",
+      "FR-24.32a",
+      "FR-25.1"
+    ],
+    "leaning_counts": {
+      "contradicted": 1,
+      "not_addressed": 9,
+      "not_applicable": 38,
+      "satisfied": 5
+    },
+    "unstable": [
+      "ANC-001",
+      "FR-24.26b",
+      "FR-24.2b",
+      "FR-24.30a"
+    ],
+    "errors": [],
+    "excluded": [],
+    "shortened": [],
+    "pass": false
+  }
+}
