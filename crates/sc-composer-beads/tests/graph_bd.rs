@@ -14,12 +14,9 @@ use std::sync::{
     Mutex,
     atomic::{AtomicU64, Ordering},
 };
-use std::time::{Duration, Instant};
 
 static SERIAL: Mutex<()> = Mutex::new(());
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
-const BD_COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
-const PIPE_DRAIN_TEST_TIMEOUT: Duration = Duration::from_secs(10);
 const PIPE_DRAIN_TEST_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_PIPE_DRAIN_CHILD";
 const PIPE_DRAIN_TEST_OUTPUT_BYTES: usize = 256 * 1024;
 const WORKSPACE_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_WORKSPACE_CHILD";
@@ -67,7 +64,7 @@ impl Workspace {
             .current_dir(&self.root)
             .env("BEADS_NO_DAEMON", "1")
             .env("BEADS_DIR", &self.beads_dir);
-        let out = run_command_with_timeout(&mut command, args, BD_COMMAND_TIMEOUT);
+        let out = run_command(&mut command);
         assert!(
             out.status.success(),
             "{args:?}: {}",
@@ -175,7 +172,18 @@ fn assert_persisted_graph(w: &Workspace, graph: &sc_composer_beads::BeadGraph) {
     assert_dependency(w, publish, verify, "blocks");
 }
 
-fn run_command_with_timeout(command: &mut Command, args: &[&str], timeout: Duration) -> Output {
+fn drain_then_wait<T>(
+    stdout: impl FnOnce() -> Vec<u8>,
+    stderr: impl FnOnce() -> Vec<u8>,
+    wait: impl FnOnce() -> T,
+) -> (Vec<u8>, Vec<u8>, T) {
+    let stdout = stdout();
+    let stderr = stderr();
+    let status = wait();
+    (stdout, stderr, status)
+}
+
+fn run_command(command: &mut Command) -> Output {
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = command.spawn().expect("bd spawn");
     let mut stdout = child.stdout.take().expect("piped bd stdout");
@@ -190,31 +198,11 @@ fn run_command_with_timeout(command: &mut Command, args: &[&str], timeout: Durat
         stderr.read_to_end(&mut bytes).expect("bd stderr");
         bytes
     });
-    let started = Instant::now();
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(status)) => break status,
-            Ok(None) if started.elapsed() <= timeout => {
-                std::thread::sleep(Duration::from_millis(10));
-            }
-            Ok(None) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                let _ = stdout_reader.join();
-                let _ = stderr_reader.join();
-                panic!("bd command timed out: {args:?}");
-            }
-            Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                let _ = stdout_reader.join();
-                let _ = stderr_reader.join();
-                panic!("bd status: {error}");
-            }
-        }
-    };
-    let stdout = stdout_reader.join().expect("bd stdout reader");
-    let stderr = stderr_reader.join().expect("bd stderr reader");
+    let (stdout, stderr, status) = drain_then_wait(
+        || stdout_reader.join().expect("bd stdout reader"),
+        || stderr_reader.join().expect("bd stderr reader"),
+        || child.wait().expect("bd status"),
+    );
 
     Output {
         status,
@@ -230,10 +218,10 @@ fn pipe_drain_child_emits_large_stdout_and_stderr() {
     }
     let stdout = vec![b'o'; PIPE_DRAIN_TEST_OUTPUT_BYTES];
     let stderr = vec![b'e'; PIPE_DRAIN_TEST_OUTPUT_BYTES];
-    std::io::stdout()
-        .lock()
-        .write_all(&stdout)
-        .expect("write test stdout");
+    let mut out = std::io::stdout().lock();
+    out.write_all(b"<stdout>").expect("write stdout marker");
+    out.write_all(&stdout).expect("write test stdout");
+    out.write_all(b"</stdout>").expect("write stdout marker");
     std::io::stderr()
         .lock()
         .write_all(&stderr)
@@ -252,15 +240,49 @@ fn bd_command_drains_both_pipes_before_waiting_for_exit() {
         ])
         .env(PIPE_DRAIN_TEST_CHILD_ENV, "1");
 
-    let output = run_command_with_timeout(
-        &mut command,
-        &["test child emitting large output"],
-        PIPE_DRAIN_TEST_TIMEOUT,
-    );
+    let output = run_command(&mut command);
 
     assert!(output.status.success(), "{output:?}");
-    assert!(output.stdout.len() >= PIPE_DRAIN_TEST_OUTPUT_BYTES);
-    assert!(output.stderr.len() >= PIPE_DRAIN_TEST_OUTPUT_BYTES);
+    let mut expected_stdout = b"<stdout>".to_vec();
+    expected_stdout.extend(vec![b'o'; PIPE_DRAIN_TEST_OUTPUT_BYTES]);
+    expected_stdout.extend(b"</stdout>");
+    assert_eq!(
+        output
+            .stdout
+            .windows(expected_stdout.len())
+            .filter(|window| *window == expected_stdout)
+            .count(),
+        1
+    );
+    assert_eq!(output.stderr, vec![b'e'; PIPE_DRAIN_TEST_OUTPUT_BYTES]);
+}
+
+#[test]
+fn both_drains_finish_before_wait() {
+    use std::cell::Cell;
+    let stdout_done = Cell::new(false);
+    let stderr_done = Cell::new(false);
+    let (stdout, stderr, status) = drain_then_wait(
+        || {
+            stdout_done.set(true);
+            b"out".to_vec()
+        },
+        || {
+            stderr_done.set(true);
+            b"err".to_vec()
+        },
+        || {
+            assert!(
+                stdout_done.get() && stderr_done.get(),
+                "wait before both drains completed"
+            );
+            7
+        },
+    );
+    assert_eq!(
+        (stdout, stderr, status),
+        (b"out".to_vec(), b"err".to_vec(), 7)
+    );
 }
 
 fn with_workspace(test: impl FnOnce(&Workspace)) {
@@ -304,7 +326,7 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
         )
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1");
-    let output = run_command_with_timeout(&mut child, &[name], BD_COMMAND_TIMEOUT);
+    let output = run_command(&mut child);
     assert!(
         output.status.success(),
         "isolated {name}: {}\n{}",
@@ -325,11 +347,7 @@ fn graph_integration_refuses_ambient_beads_dir_before_launching_bd() {
         .env_remove(WORKSPACE_CHILD_ENV)
         .env("BD_EXECUTABLE", "must-not-be-launched")
         .env("BEADS_DIR", "must-not-be-used");
-    let output = run_command_with_timeout(
-        &mut child,
-        &["ambient BEADS_DIR guard"],
-        PIPE_DRAIN_TEST_TIMEOUT,
-    );
+    let output = run_command(&mut child);
     assert!(!output.status.success());
     assert!(
         String::from_utf8_lossy(&output.stderr)
