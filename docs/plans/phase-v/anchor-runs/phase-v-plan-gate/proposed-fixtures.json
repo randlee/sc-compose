@@ -1,0 +1,426 @@
+{
+  "ANC-001": {
+    "pass": [
+      "In default advanced pour, `sc-compose bead pour` inserts each supplied variable value into the rendered formula exactly once; a test supplies values containing `{{ x }}`, `{{{ y }}}` and `{% if z %}` and asserts they appear verbatim in the created beads."
+    ],
+    "fail": [
+      "In default advanced pour, `sc-compose bead pour` runs a second render pass over the output so that variable values containing `{{ }}` or `{% %}` expressions are expanded before the formula is sent to bd."
+    ]
+  },
+  "ANC-002": {
+    "pass": [
+      "`sc-compose bead render` replaces tight expressions such as `{{key}}` with the supplied value; a test renders `title = \"{{key}}\"` with key=alpha and asserts the output is `title = \"alpha\"`."
+    ],
+    "fail": [
+      "`sc-compose bead render` substitutes only padded `{{ key }}` expressions; tight forms such as `{{key}}` are passed through unchanged in the output text."
+    ]
+  },
+  "ANC-003": {
+    "pass": [
+      "`sc-compose bead render` replaces padded expressions such as `{{ key }}` with the supplied value; a test renders `title = \"{{ key }}\"` with key=alpha and asserts the output is `title = \"alpha\"`."
+    ],
+    "fail": [
+      "`sc-compose bead render` substitutes only tight `{{key}}` expressions; padded forms such as `{{ key }}` are left as literal text in the output."
+    ]
+  },
+  "ANC-004": {
+    "pass": [
+      "`sc-compose bead render` substitutes loop-local variables: a test renders `{% for item in items %}{{ item.name }}{% endfor %}` and asserts each item's name appears in the output text."
+    ],
+    "fail": [
+      "`sc-compose bead render` substitutes only caller-supplied top-level variables; expressions that reference a `for` loop variable are left unrendered in the output text."
+    ]
+  },
+  "ANC-014": {
+    "pass": [
+      "Add docli to sc-compose as the generator of the command-line reference documentation, with a `just docs-cli` recipe that regenerates the CLI pages from docli."
+    ],
+    "fail": [
+      "Generate the sc-compose command-line documentation with a hand-maintained clap-markdown script; docli is not added to the repository."
+    ]
+  },
+  "ANC-015": {
+    "pass": [
+      "The sc-compose publish workflow runs docli to regenerate and check the command-line documentation on every publish, before any artifact is uploaded."
+    ],
+    "fail": [
+      "The sc-compose publish workflow builds and uploads release artifacts; docli is run manually by maintainers when they remember, and is not part of the publish run."
+    ]
+  },
+  "ANC-016": {
+    "pass": [
+      "Add a docli staleness check to sc-compose release preflight; preflight exits non-zero when docli reports the command-line documentation is out of date."
+    ],
+    "fail": [
+      "Add a docli staleness check to sc-compose release preflight that prints a warning when the command-line documentation is out of date but lets preflight pass."
+    ]
+  },
+  "ANC-023": {
+    "pass": [
+      "Add the full macOS/Windows/Linux x64/arm64 Rust, wheel and Go build matrix, including each supported wheel Python version installed with both pip and uv, to the preflight integration-test workflow only; the per-PR CI workflow keeps its current small job set."
+    ],
+    "fail": [
+      "Add the full macOS/Windows/Linux x64/arm64 Rust, wheel and Go matrix with all supported Python versions under pip and uv to the per-PR CI workflow so every sprint PR runs it."
+    ]
+  },
+  "ANC-031": {
+    "pass": [
+      "Run codespell in the lint gate and add each flagged literal project term to `.codespellignore` so the codespell check passes."
+    ],
+    "fail": [
+      "Mark the codespell step in the lint gate `continue-on-error: true` so its current failures on project terms do not block merges."
+    ]
+  },
+  "ANC-033": {
+    "pass": [
+      "Add a manually dispatched integration-test workflow for the Windows amd64 and manylinux runs; the normal CI workflow triggered on push and pull_request does not include those jobs."
+    ],
+    "fail": [
+      "Add Windows amd64 and manylinux integration jobs to the normal CI workflow so they run on every push and pull request."
+    ]
+  },
+  "FR-25.1": {
+    "pass": [
+      "The release build verifies that all 30 cells build: the Rust CLI archive, the sc-compose, sc-sha and sc-composer-beads wheels, and the sc-sha-go native module, each on macOS, Windows and Linux for x64 and arm64."
+    ],
+    "fail": [
+      "The release build covers the Rust CLI and the three wheels on all six targets; the sc-sha-go native module is built for Linux x64 and macOS arm64 only."
+    ]
+  },
+  "FR-24.27": {
+    "pass": [
+      "`sc-compose bead pour` renders and validates the whole formula before invoking bd, and a test with a failing validation asserts that bd was never called and no bead exists."
+    ],
+    "fail": [
+      "`sc-compose bead pour` creates each bead in bd as soon as its section renders, and reports a rendering or validation error for a later section after the earlier beads are already created."
+    ]
+  },
+  "FR-24.13a": {
+    "pass": [
+      "When `--render-by` is omitted, `sc-compose bead pour` uses advanced pour (sc-compose renders every expression before bd runs); a test without the flag asserts the formula sent to bd contains no `{{`."
+    ],
+    "fail": [
+      "When `--render-by` is omitted, `sc-compose bead pour` keeps bd rendering; callers must pass `--render-by sc-compose` to have sc-compose render the template before bd runs."
+    ]
+  },
+  "FR-24.14a": {
+    "pass": [
+      "In default advanced pour, `sc-compose bead pour` asserts before invoking bd that the formula or graph it sends contains no `{{`, `{%` or `{#`, and a test checks the bytes passed to bd."
+    ],
+    "fail": [
+      "In default advanced pour, `sc-compose bead pour` renders variable expressions but leaves `{% for %}` loops and `{% if %}` conditions in the formula for bd to evaluate."
+    ]
+  },
+  "FR-24.15a": {
+    "pass": [
+      "In default advanced pour, `sc-compose bead pour` invokes bd with no `--var` arguments; a test captures the bd command line and asserts it contains no `--var`."
+    ],
+    "fail": [
+      "In default advanced pour, `sc-compose bead pour` renders the template and also passes each supplied variable to bd as `--var key=value` so bd can resolve any remaining references."
+    ]
+  },
+  "FR-24.19a": {
+    "pass": [
+      "A test runs default advanced pour, reads each created bead back with `bd show --json`, and asserts every field, including labels, holds the rendered value."
+    ],
+    "fail": [
+      "Advanced pour tests verify rendering by inspecting the formula file written before bd runs; labels are not checked and the created beads are not read back from bd."
+    ]
+  },
+  "FR-24.21b": {
+    "pass": [
+      "In default advanced pour, a test supplies an included template whose frontmatter default is `{{ other }}` and asserts the created bead contains the literal text `{{ other }}`."
+    ],
+    "fail": [
+      "In default advanced pour, defaults declared in an included template's frontmatter are rendered as templates, so a default of `{{ other }}` is expanded to the value of `other`."
+    ]
+  },
+  "FR-24.8a": {
+    "pass": [
+      "In default advanced pour, `sc-compose bead pour` of a graph by path accepts caller bead inputs and renders them into the graph; a test pours a graph path with bead variables and asserts success."
+    ],
+    "fail": [
+      "In default advanced pour, `sc-compose bead pour` of a graph by path rejects caller bead inputs with `BEADS_GRAPH_FORMULA_UNSUPPORTED`."
+    ]
+  },
+  "FR-24.8c": {
+    "pass": [
+      "In default advanced pour, `sc-compose bead attach` accepts caller bead inputs and renders them into the attached beads; a test passes bead variables to attach and asserts success."
+    ],
+    "fail": [
+      "In default advanced pour, `sc-compose bead attach` rejects caller bead inputs with `attach forbids bead_variables`."
+    ]
+  },
+  "FR-24.22a": {
+    "pass": [
+      "In default advanced pour, `sc-compose bead preview-attach` renders the beads and prints them without invoking any bd write; a test asserts bd's database is unchanged after preview."
+    ],
+    "fail": [
+      "In default advanced pour, `sc-compose bead preview-attach` creates the beads in bd as drafts so the preview can show their assigned ids."
+    ]
+  },
+  "FR-24.2a": {
+    "pass": [
+      "Add a CI byte-regression check that renders every schema-less template and compares the bytes with the v1.7.0 golden output, allowing only differences listed in `approved-exceptions.json`."
+    ],
+    "fail": [
+      "Add a CI regression check that compares schema-less template output with the v1.7.0 goldens after trimming trailing whitespace and normalizing line endings, so whitespace-only differences are accepted."
+    ]
+  },
+  "FR-24.2b": {
+    "pass": [
+      "Each entry in `approved-exceptions.json` has a required `issue` field naming the GitHub issue for that difference, and the check fails on an entry without one."
+    ],
+    "fail": [
+      "Add entries to `approved-exceptions.json` with a template path and a short reason text; no issue reference is recorded."
+    ]
+  },
+  "FR-24.2d": {
+    "pass": [
+      "The CI byte-regression job exits non-zero and fails the build when any schema-less output differs from the v1.7.0 golden in a way not listed in `approved-exceptions.json`."
+    ],
+    "fail": [
+      "The CI byte-regression job reports unlisted differences from the v1.7.0 goldens as a warning annotation and exits zero."
+    ]
+  },
+  "FR-24.26b": {
+    "pass": [
+      "A cross-surface test runs one default advanced pour request through the Rust API, the CLI and Python and asserts the captured bd command lines are identical."
+    ],
+    "fail": [
+      "In default advanced pour, the Python binding builds its own bd command line with its own argument ordering, independently of the Rust API and CLI."
+    ]
+  },
+  "FR-24.7a": {
+    "pass": [
+      "With `--render-by bd`, `sc-compose bead pour` sends the formula with its `{{ }}` expressions unrendered; a test asserts the formula bd receives contains the original `{{ key }}`."
+    ],
+    "fail": [
+      "With `--render-by bd`, `sc-compose bead pour` pre-renders the `{{ }}` expressions it has values for and leaves only the unresolved ones for bd."
+    ]
+  },
+  "FR-24.7b": {
+    "pass": [
+      "With `--render-by bd`, `sc-compose bead pour` passes each registry variable to bd as a `--var key=value` argument, as v1.7.0 does; a test captures the bd command line."
+    ],
+    "fail": [
+      "With `--render-by bd`, `sc-compose bead pour` writes registry variables to a vars file and passes `--vars-file` to bd instead of individual `--var` arguments."
+    ]
+  },
+  "FR-24.10a": {
+    "pass": [
+      "`sc-compose graph-plan` checks that its output path is writable and not an existing directory before running any bd command; a test with a directory at the output path asserts bd is never invoked."
+    ],
+    "fail": [
+      "`sc-compose graph-plan` runs the bd commands to build the plan and then reports an error if the output path turns out to be a directory."
+    ]
+  },
+  "FR-24.28b": {
+    "pass": [
+      "The undeclared-variable check is skipped for templates that declare no schema, even with `--strict`; a test with a schema-less template and `--strict` asserts no undeclared-variable diagnostic."
+    ],
+    "fail": [
+      "With `--strict`, the undeclared-variable check runs on every template, including templates with no schema, treating every referenced variable as undeclared."
+    ]
+  },
+  "FR-24.29b": {
+    "pass": [
+      "In default advanced pour, `sc-compose bead pour` runs strict validation only when the caller passes `--strict` or sets the API's strict option; a test without either asserts strict diagnostics are not raised."
+    ],
+    "fail": [
+      "In default advanced pour, `sc-compose bead pour` enables strict validation by default and adds `--no-strict` to turn it off."
+    ]
+  },
+  "FR-24.20a": {
+    "pass": [
+      "In default advanced pour, a test renders `{{ v | lower }}` with v=`A{BC` and asserts the created bead holds `a{bc`."
+    ],
+    "fail": [
+      "In default advanced pour, values containing `{` are escaped before filters run, and the test expects `{{ v | lower }}` with v=`A{BC` to produce `a\\{bc`."
+    ]
+  },
+  "FR-24.20b": {
+    "pass": [
+      "In default advanced pour, a test renders `{{ v | length }}` with v=`A{BC` and asserts the created bead holds `4`."
+    ],
+    "fail": [
+      "In default advanced pour, values containing `{` are escaped before filters run, so `{{ v | length }}` with v=`A{BC` returns 5."
+    ]
+  },
+  "FR-24.20c": {
+    "pass": [
+      "In default advanced pour, a test renders `{{ v[:3] }}` with v=`A{BC` and asserts the created bead holds `A{B`."
+    ],
+    "fail": [
+      "In default advanced pour, values are wrapped in a raw-escape marker before filters and slicing run, so the first three characters of `A{BC` are taken from the escaped form."
+    ]
+  },
+  "FR-24.21a": {
+    "pass": [
+      "In default advanced pour, a test omits a variable that an included template's frontmatter defaults to `fallback` and asserts the created bead holds `fallback`."
+    ],
+    "fail": [
+      "In default advanced pour, defaults declared in an included template's frontmatter are ignored; a variable the caller does not supply fails with a missing-variable error."
+    ]
+  },
+  "FR-24.22b": {
+    "pass": [
+      "In default advanced pour, `sc-compose bead attach` creates all its beads in one bd transaction; a test injects a failure on the third bead and asserts none of the beads exist."
+    ],
+    "fail": [
+      "In default advanced pour, `sc-compose bead attach` creates beads one at a time and, if one fails, leaves the beads already created in place and reports which ones succeeded."
+    ]
+  },
+  "FR-24.22c": {
+    "pass": [
+      "In default advanced pour, `sc-compose bead attach` creates beads only when the request sets `pour_authorization` to `CreatePersistentBeads`; a test without it asserts no bead is created."
+    ],
+    "fail": [
+      "In default advanced pour, `sc-compose bead attach` creates beads whenever the render succeeds; `pour_authorization` is ignored for attach."
+    ]
+  },
+  "FR-24.22d": {
+    "pass": [
+      "In default advanced pour, a test runs the same `sc-compose bead attach` request twice, after changing a bead's status and notes, and asserts the second run leaves them unchanged."
+    ],
+    "fail": [
+      "In default advanced pour, rerunning the same `sc-compose bead attach` request overwrites the existing beads, resetting their status to open and replacing their notes with the rendered text."
+    ]
+  },
+  "FR-24.23b": {
+    "pass": [
+      "A test pours `.claude/skills/atm-bd-orchestration/formulas/finding-group.formula.toml.j2` in default advanced pour and asserts the created beads' titles, descriptions, labels, ids and dependency edges equal `crates/sc-compose/tests/fixtures/bead/finding-group.expected.json`."
+    ],
+    "fail": [
+      "A test pours the real `finding-group` formula in default advanced pour and checks only that the expected number of beads is created; titles, labels, ids and edges are not compared."
+    ]
+  },
+  "FR-24.13b": {
+    "pass": [
+      "`--render-by bd` makes the sc-compose bead commands leave `{{ }}` expressions in the formula for bd; a test asserts the formula sent to bd still contains them."
+    ],
+    "fail": [
+      "`--render-by bd` is accepted by the sc-compose bead commands as an alias of the default, and sc-compose still renders every `{{ }}` expression before bd runs."
+    ]
+  },
+  "FR-24.2c": {
+    "pass": [
+      "Generate the goldens in `tests/fixtures/render-regressions/goldens/` once by running sc-compose v1.7.0 (commit f4fda4b9) and commit them; a README records that command and commit."
+    ],
+    "fail": [
+      "Generate the goldens in `tests/fixtures/render-regressions/goldens/` by running the current develop build of sc-compose."
+    ]
+  },
+  "FR-24.2f": {
+    "pass": [
+      "The byte-regression check only reads `tests/fixtures/render-regressions/goldens/`; it has no update or bless mode that writes candidate output there."
+    ],
+    "fail": [
+      "Add a `--bless` flag to the byte-regression check that rewrites `tests/fixtures/render-regressions/goldens/` from the current candidate output when differences are expected."
+    ]
+  },
+  "FR-24.25a": {
+    "pass": [
+      "Add `render_by` to the `sc-composer-beads` request structs as an optional field defaulting to sc-compose rendering, and keep a compile test with an existing v1.7.0 struct literal."
+    ],
+    "fail": [
+      "Add `render_by: RenderBy` as a required field on each `sc-composer-beads` request struct; existing callers must update their struct literals to set it."
+    ]
+  },
+  "FR-24.23a": {
+    "pass": [
+      "A test pours the real `sprint-group` orchestration formula in default advanced pour and asserts the created beads match `crates/sc-compose/tests/fixtures/bead/sprint-group.expected.json`."
+    ],
+    "fail": [
+      "Advanced pour is tested with a small synthetic formula; the real `sprint-group` orchestration formula is not poured or compared with an expected output."
+    ]
+  },
+  "FR-24.2e": {
+    "pass": [
+      "Each entry in `tests/fixtures/render-regressions/approved-exceptions.json` carries a link to the GitHub issue where the user approved that difference."
+    ],
+    "fail": [
+      "Entries in `tests/fixtures/render-regressions/approved-exceptions.json` record the developer who accepted the difference; no GitHub issue link is required."
+    ]
+  },
+  "FR-24.26a": {
+    "pass": [
+      "A cross-surface test runs one default advanced pour request through the Rust API, the CLI and Python and asserts the rendered output is byte-identical."
+    ],
+    "fail": [
+      "Advanced pour output is tested separately for the Rust API and the CLI; the Python binding is tested only for success, not for matching rendered output."
+    ]
+  },
+  "FR-24.28a": {
+    "pass": [
+      "The undeclared-variable check runs only when the caller passes `--strict` or sets the API's strict option; a test without either asserts no `ERR_VAL_UNDECLARED_TOKEN` is reported."
+    ],
+    "fail": [
+      "The undeclared-variable check runs on every validation of a template with a schema and reports `ERR_VAL_UNDECLARED_TOKEN` without `--strict`."
+    ]
+  },
+  "FR-24.8b": {
+    "pass": [
+      "With `--render-by bd`, `sc-compose bead pour` of a graph by path rejects caller bead inputs with `BEADS_GRAPH_FORMULA_UNSUPPORTED`; a test asserts that error code."
+    ],
+    "fail": [
+      "Graph pour by path accepts caller bead inputs in default advanced pour and also with `--render-by bd`, where the inputs are passed to bd as `--var` arguments."
+    ]
+  },
+  "FR-24.8d": {
+    "pass": [
+      "With `--render-by bd`, `sc-compose bead attach` rejects caller bead inputs with the error `attach forbids bead_variables`; a test asserts that error text."
+    ],
+    "fail": [
+      "`sc-compose bead attach` accepts caller bead inputs in default advanced pour and also with `--render-by bd`, where they are forwarded to bd."
+    ]
+  },
+  "FR-24.24b": {
+    "pass": [
+      "A test replays each v1.7.0 bead call with `--render-by bd` and asserts the captured bd command line equals the one v1.7.0 produces for the same call."
+    ],
+    "fail": [
+      "Alongside the default advanced pour, `--render-by bd` now passes `--var` arguments in sorted order and adds `--json` to the bd command line, changing it from what v1.7.0 runs."
+    ]
+  },
+  "FR-24.30a": {
+    "pass": [
+      "Update `crates/sc-compose/docs/manual/bead.md` with a worked example for `--render-by sc-compose` and one for `--render-by bd`, each showing the input template, variables and resulting created bead."
+    ],
+    "fail": [
+      "Update `crates/sc-compose/docs/manual/bead.md` to describe the `--render-by` flag and its two values in a table, without worked examples."
+    ]
+  },
+  "FR-24.31a": {
+    "pass": [
+      "Rerun FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 as regression tests on the final release candidate and record each result."
+    ],
+    "fail": [
+      "Rerun the FUZZ-171-01..14 regression cases on the final release candidate; T-02..T-06, D-01 and include-default #11 are dropped as already covered."
+    ]
+  },
+  "FR-24.32a": {
+    "pass": [
+      "Rerun the 229-template corpus on the final release candidate without `--strict` and fail the check if any template that 1.7.0 accepted is rejected."
+    ],
+    "fail": [
+      "Rerun the 229-template corpus on the final release candidate with `--strict` enabled, and accept new rejections as expected strict-mode behavior."
+    ]
+  },
+  "FR-24.24c": {
+    "pass": [
+      "A test runs each input that sc-compose v1.7.0 (commit f4fda4b9) rejects through `--render-by bd` and asserts the same error code is returned."
+    ],
+    "fail": [
+      "With `--render-by bd`, inputs that v1.7.0 rejected with `BEADS_GRAPH_FORMULA_UNSUPPORTED` now return the new general code `BEADS_REQUEST_INVALID`."
+    ]
+  },
+  "FR-24.29a": {
+    "pass": [
+      "Port `crates/sc-composer-beads` and its tests from the `rebuild/from-main` branch with minimal adaptation to the current workspace, keeping the recovered test files."
+    ],
+    "fail": [
+      "Reimplement `sc-composer-beads` from scratch against the current requirements and write new tests, using the `rebuild/from-main` branch only as a reference."
+    ]
+  }
+}

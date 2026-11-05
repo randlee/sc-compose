@@ -1,0 +1,25 @@
+# v-5: stable-abi-bindings
+
+## Description
+
+Agent level: frontier.
+### Deliverables
+1. FR-25.2: implement abi3-py39 and requires-python >=3.9 for all three binding distributions, with Windows ARM64 runtime coverage starting at 3.11. Keep correct actual wheel/symbol tags, no upper bound, and explicit proof for any platform-specific build/tag exception. Consume the final V3 Beads API and V2 dependency baseline.
+2. Audit Python source/type stubs and native calls for 3.9 compatibility; preserve checked-JSON behavior and public request layouts. Normal Rust tests remain separate from extension-module linkage. No new crate dependency edges.
+3. Build real wheels; audit symbols/tags and execute installed imports plus binding regressions at the applicable floor and newer interpreters. V6 owns the complete six-platform/install composition.
+4. Assess abi3 performance on representative rendering/hash/Beads adapter workloads against an interpreter-specific build on the same interpreter/compiler/input. Record measurements and variation in the existing PR, not timing assertions in unit tests. Prefer one compatible family. Only a demonstrated material cost prompts owner review of extra optimized variants under the same package release; 3.9 support stays mandatory.
+V6 handoff: the actual three distributions’ wheel files in the declared absolute WHEEL_DIR (<worktree>/target/wheels), retained as the existing build-job wheel artifact/run, plus unchanged wheel metadata and ABI/build configuration in that job output. V6 hashes and consumes those same files; no extra certificate or ledger.
+
+## Acceptance criteria
+
+All three distributions build with the documented stable ABI, accurate metadata/tags and verified symbols; applicable-floor/current interpreter imports and behavior pass. No source/stub requires 3.10+ syntax on the 3.9 platforms. All adapter sides are functional. The performance assessment reports observations without assuming a penalty or creating variants prematurely. Full final platform/install evidence closes in V6/V7, not from filenames.
+
+### Required Validation
+cargo build --workspace; cargo test --workspace; cargo clippy --all-targets --all-features -- -D warnings; cargo fmt --all -- --check.
+- In isolated build environments: (cd bindings/python && maturin build --release --out "$WHEEL_DIR"); repeat for bindings/sc-sha-python and bindings/sc-composer-beads-python using their pyproject features.
+- abi3audit "$WHEEL" for every built wheel; inspect WHEEL/METADATA tags and Requires-Python. Pin the audit/build tools with the build inputs.
+- On each applicable interpreter, install the exact wheel with python -m pip install --no-index --find-links "$WHEEL_DIR" "sc-compose==$VERSION" "sc-sha==$VERSION" "sc-composer-beads==$VERSION"; run python -c 'import sc_compose, sc_sha, sc_composer_beads'.
+- python -m pytest bindings/python/tests bindings/sc-sha-python/tests bindings/sc-composer-beads-python/tests (pytest and build tools come from the pinned CI test environment).
+- Use timeit or the existing representative fixtures for the bounded comparison; preserve raw samples/median and environment in the PR. No sleeps/load/race-dependent pass condition.
+FR-25.2 runtime acceptance: test CPython 3.9, 3.10, 3.11, 3.12, 3.13 and 3.14 on applicable platforms; Windows ARM64 starts at 3.11 and marks only 3.9/3.10 inapplicable. Exercise both pip and uv installation paths against the exact retained wheels. The existing Python tests are pytest functions/fixtures; use pytest, not unittest discovery, and require nonzero executed tests.
+- uv venv --python "$PYTHON" "$UV_VENV"; uv pip install --python "$UV_PYTHON" --no-index --find-links "$WHEEL_DIR" "sc-compose==$VERSION" "sc-sha==$VERSION" "sc-composer-beads==$VERSION"; "$UV_PYTHON" -m pytest bindings/python/tests bindings/sc-sha-python/tests bindings/sc-composer-beads-python/tests. UV_PYTHON is that venv’s platform-specific Python executable. Repeat pip and uv paths across the declared applicable interpreter set; logs must identify executed test counts and the retained wheel/run handoff.

@@ -1,0 +1,23 @@
+# v-8: publish-tooling
+
+## Description
+
+Agent level: normal.
+### Deliverables
+1. FR-26: consume V4's working generic live-Clap model exporter. Adopt pinned external docli (crate sc-docli, executable docli) and implement scripts/generate_cli_reference.py as a thin generate/check wrapper. Reuse the neutral model from payload.model; no product crate dependency, second parser/renderer or handwritten option inventory.
+2. Adopt canonical publish-kit #847 through its supported immutable installer, configuring real consumer preflight_checks and tool inputs. The installed check calls the wrapper --check on every publish; stale references fail preflight. Test the real consumer-config path with controlled temporary outputs.
+3. Implement the complete reusable tooling side against the current CLI model; newly added V3 commands flow through the exporter automatically. Generated production artifacts and final-model preflight are owned by V6, which depends on V3 and V8. This sprint does not wait for final Beads commands or claim final-candidate documentation acceptance.
+4. Hand V6 the actual installed kit/consumer-check interface and working wrapper. Keep core schema/Go peer ownership under ADR-0022; V9 owns peer-specific installer inputs and outputs, not this sprint.
+
+## Acceptance criteria
+
+The real external tool produces HTML/Markdown from V4's actual model, controlled stale outputs fail wrapper/preflight, and canonical installation converges without local helper edits. Every planned consumer publish path has the declared check. The reusable side is complete and tested; final actual-command reference files and integrated passing preflight close in V6.
+
+### Required Validation
+- cargo install sc-docli --version 0.2.0 --locked; docli --version (or verify the same pinned canonical binary).
+- cargo run --quiet --bin sc-compose -- reference --json; extract payload.model to the temporary model input.
+- docli generate --input "$MODEL_JSON" --html "$DOC_OUTPUT/html" --markdown "$DOC_OUTPUT/cli-reference.md" (actual external CLI, not a library dependency).
+- python3 scripts/generate_cli_reference.py --output-dir "$DOC_OUTPUT" --write; then --check. Alter one generated fixture and require --check to refuse; regenerate and require success.
+- python3 plugins/sc-publish/install.py --dry-run --input release/sc-publish-install.json . (canonical installer convergence).
+- python3 -m unittest discover -s .github/scripts/tests -p test_install.py; python3 -m unittest discover -s .github/scripts/tests -p test_publish_kit_scripts.py; python3 -m unittest discover -s scripts/tests -p test_generate_cli_reference.py (V8 adds this wrapper test).
+- Final-model reference files are committed/checked by V6, not claimed complete from these temporary fixtures.

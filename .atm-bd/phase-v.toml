@@ -1,4 +1,4 @@
-plan = "docs/phase-v.jsonl"
+plan = "docs/plans/phase-v/phase-v.jsonl"
 root = "comp-phase-v"
 integration_branch = "integrate/phase-v"
 lead = "comps"
