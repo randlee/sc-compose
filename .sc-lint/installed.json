@@ -7,7 +7,7 @@
     ".claude/skills/sc-lint-adoption/evals/established-workspace.md": "00a9f17da0d4d33adbb410e7f4cef447a8404d289ffdfcbeb2cf1f515917acf5",
     ".github/workflows/sc-lint.yml": "4d2d2f7b98f5184724e3c163ceee6fe1dbd8e7f975829ab3e02094b71e42e0da",
     ".sc-lint/bootstrap.py": "33ef3fdd49d891bdf2636ebe6255bb8a4c637b1b65164c658053772c5fd6cd27",
-    ".sc-lint/install.json": "20c020b02da00c2531be91cd5ea685a544166c0bcd3d0f111085ded84d282e1f",
+    ".sc-lint/install.json": "c8608a81f94dd5019d4390c790a58cb3821393986cbce3e1a9e29f61f1ae5339",
     ".sc-lint/justfile": "278736352fe79ac0a5ac71e45b532ca89133d3fe818ddc5d520e7d91b82f8da5",
     "Justfile": "9a92a9c85bd6d84b52eb1f5cc9afd3706567c02d00d662a954f2af3bc226207a",
     "README.sc-lint.md": "b623d076a3e92306b1fb4a7f4cd2b1098e6f00a1658d696471ae6cdbaf6756c8",
