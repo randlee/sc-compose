@@ -51,10 +51,29 @@ def test_action_passes_release_wheel_constraints_to_bootstrap(tmp_path, monkeypa
     output = tmp_path / 'github-output-path'
     monkeypatch.setenv('RUNNER_TEMP', str(tmp_path))
     monkeypatch.setenv('GITHUB_PATH', str(output))
+    env_output = tmp_path / 'github-env'
+    monkeypatch.setenv('GITHUB_ENV', str(env_output))
+    existing = tmp_path / 'default-cargo' / 'bin' / ('cargo-deny.exe' if managed.os.name == 'nt' else 'cargo-deny')
+    existing.parent.mkdir(parents=True)
+    existing.write_text('unregistered')
+    monkeypatch.setenv('CARGO_HOME', str(existing.parent.parent))
     monkeypatch.setenv('SC_LINT_BIN', 'untrusted-override')
-    with mock.patch.object(managed, 'install') as install:
+    def simulated_bootstrap(command, env):
+        cargo_bin = Path(env['CARGO_HOME']) / 'bin'
+        cargo_bin.mkdir(parents=True)
+        binary = cargo_bin / existing.name
+        if binary.exists():
+            raise RuntimeError('unregistered cargo-deny collision')
+        binary.write_text('pinned cargo-deny 0.19.4')
+
+    with mock.patch.object(managed, 'install', side_effect=simulated_bootstrap) as install:
         managed.main()
     command, env = install.call_args.args
     assert command[1:] == ['scripts/sc_lint_python.py', '.sc-lint/bootstrap.py', 'setup', '--config', 'sc-lint.toml']
     assert 'SC_LINT_BIN' not in env
-    assert output.read_text().strip() == str(install_dir)
+    isolated = tmp_path / 'sc-lint' / 'cargo-home'
+    assert env['CARGO_HOME'] == str(isolated)
+    assert existing.read_text() == 'unregistered'
+    assert (isolated / 'bin' / existing.name).read_text() == 'pinned cargo-deny 0.19.4'
+    assert output.read_text().splitlines() == [str(install_dir), str(isolated / 'bin')]
+    assert env_output.read_text().strip() == f'CARGO_HOME={isolated}'

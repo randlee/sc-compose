@@ -25,7 +25,8 @@ def install(command, env, run=subprocess.run, sleep=time.sleep):
 
 def main():
     install_dir = Path(os.environ['RUNNER_TEMP']) / 'sc-lint' / 'bin'
-    env = dict(os.environ, SC_LINT_INSTALL_DIR=str(install_dir))
+    cargo_home = Path(os.environ['RUNNER_TEMP']) / 'sc-lint' / 'cargo-home'
+    env = dict(os.environ, SC_LINT_INSTALL_DIR=str(install_dir), CARGO_HOME=str(cargo_home))
     env.pop('SC_LINT_BIN', None)
     install([sys.executable, 'scripts/sc_lint_python.py', '.sc-lint/bootstrap.py', 'setup', '--config', 'sc-lint.toml'], env)
     binary = install_dir / ('sc-lint.exe' if os.name == 'nt' else 'sc-lint')
@@ -33,6 +34,9 @@ def main():
         raise SystemExit('setup succeeded but no sc-lint executable was found')
     with open(env['GITHUB_PATH'], 'a', encoding='utf-8') as path_file:
         path_file.write(str(install_dir) + '\n')
+        path_file.write(str(cargo_home / 'bin') + '\n')
+    with open(env['GITHUB_ENV'], 'a', encoding='utf-8') as env_file:
+        env_file.write(f'CARGO_HOME={cargo_home}\n')
 
 
 if __name__ == '__main__':
