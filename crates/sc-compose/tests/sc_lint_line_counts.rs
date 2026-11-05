@@ -1,30 +1,16 @@
 use std::fs;
 mod support;
 use support::{
-    CheckedInFixture, TempFixture, materialize_sc_lint_runtime, normalize_path_str, parse_stdout,
+    CheckedInFixture, TempFixture, installed_sc_lint_path, normalize_path_str, parse_stdout,
     sc_compose,
 };
 
 fn line_counts_fixture(name: &str) -> TempFixture {
-    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+    TempFixture::from_checked_in_fixture(CheckedInFixture {
         group: "line-counts",
         name,
         target: "line-counts",
-    });
-
-    // CI materializes the pinned sc-lint Python utilities in the consumer
-    // checkout. Copying them into the ephemeral fixture exercises that
-    // supported adapter contract without vendoring scripts in sc-compose.
-    materialize_sc_lint_runtime(
-        &fixture.path,
-        &[
-            "lint_line_counts.py",
-            "python_adapter.py",
-            "lint_common.py",
-            "view_common.py",
-        ],
-    );
-    fixture
+    })
 }
 
 fn run_line_counts(fixture: &TempFixture) -> std::process::Output {
@@ -37,6 +23,8 @@ fn run_line_counts(fixture: &TempFixture) -> std::process::Output {
             "line-counts",
             "--json",
         ])
+        .env("PATH", installed_sc_lint_path(None))
+        .env_remove("PYTHONPATH")
         .output()
         .expect("run sc-compose lint line-counts")
 }
@@ -88,7 +76,7 @@ fn line_counts_over_limit_remains_failed_with_structured_finding() {
     assert_eq!(
         output.status.code(),
         Some(0),
-        "sc-lint should preserve adapter findings in its successful JSON envelope; stderr: {}",
+        "sc-compose should preserve adapter findings in its JSON envelope; stderr: {}",
         String::from_utf8_lossy(&output.stderr),
     );
 
@@ -96,9 +84,9 @@ fn line_counts_over_limit_remains_failed_with_structured_finding() {
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.line-counts");
     assert_eq!(payload["outcome"], "findings");
-    assert_eq!(payload["exit_status"], 0);
+    assert_eq!(payload["exit_status"], 5);
     assert_eq!(payload["raw_payload"]["command"], "lint.line-counts");
-    assert_eq!(payload["raw_payload"]["data"]["status"], "fail");
+    assert_eq!(payload["raw_payload"]["error"]["details"]["status"], "fail");
     assert!(payload["raw_payload"]["diagnostics"].is_array());
     assert_eq!(payload["findings_count"], 1);
     let finding = payload["findings"][0].as_str().expect("line-count finding");

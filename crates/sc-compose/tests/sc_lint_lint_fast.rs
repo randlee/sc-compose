@@ -1,26 +1,14 @@
 use std::fs;
 mod support;
 
-use support::{
-    CheckedInFixture, TempFixture, materialize_sc_lint_runtime, parse_stdout, sc_compose,
-};
-
-const RUNTIME_FILES: &[&str] = &[
-    "check_version_sync.py",
-    "lint_manifests.py",
-    "lint_codespell.py",
-    "run_pytests.py",
-    "lint_common.py",
-];
+use support::{CheckedInFixture, TempFixture, installed_sc_lint_path, parse_stdout, sc_compose};
 
 fn lint_fast_fixture(name: &str) -> TempFixture {
-    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+    TempFixture::from_checked_in_fixture(CheckedInFixture {
         group: "lint-fast",
         name,
         target: "lint-fast",
-    });
-    materialize_sc_lint_runtime(&fixture.path, RUNTIME_FILES);
-    fixture
+    })
 }
 
 fn run_lint_fast(fixture: &TempFixture) -> std::process::Output {
@@ -33,6 +21,8 @@ fn run_lint_fast(fixture: &TempFixture) -> std::process::Output {
             "lint-fast",
             "--json",
         ])
+        .env("PATH", installed_sc_lint_path(None))
+        .env_remove("PYTHONPATH")
         .env("SC_LOG_ROOT", fixture.path.join("logs"))
         .output()
         .expect("run sc-compose lint fast")
@@ -76,12 +66,12 @@ fn lint_fast_pass_preserves_composite_profile_and_materializes_evidence() {
     assert!(
         steps[1]["command"]
             .as_str()
-            .is_some_and(|command| { command.contains("check_version_sync.py") })
+            .is_some_and(|command| { command.contains("-m sc_lint.check_version_sync") })
     );
     assert!(
         steps[2]["command"]
             .as_str()
-            .is_some_and(|command| { command.contains("lint_manifests.py") })
+            .is_some_and(|command| { command.contains("-m sc_lint.lint_manifests") })
     );
     assert!(steps.iter().all(|step| step["status"] == "pass"));
     assert!(payload["raw_payload"]["diagnostics"].is_array());
@@ -128,28 +118,21 @@ fn lint_fast_manifest_failure_remains_non_pass_with_structured_diagnostics() {
     assert_eq!(payload["raw_payload"]["command"], "lint.fast");
     assert_eq!(
         payload["raw_payload"]["error"]["code"],
-        "CLI.BACKEND_EXEC_FAILURE"
+        "profile.steps_failed"
     );
-    assert_eq!(
-        payload["raw_payload"]["error"]["details"]["step"],
-        "manifests"
-    );
-    assert!(
-        payload["raw_payload"]["error"]["details"]["command"]
-            .as_str()
-            .is_some_and(|command| command.contains("lint_manifests.py"))
-    );
-    let stdout = payload["raw_payload"]["error"]["details"]["stdout"]
-        .as_str()
-        .expect("manifest lint stdout");
-    assert!(stdout.contains("manifests failed"));
-    assert!(stdout.contains("homepage"));
+    let failures = payload["raw_payload"]["error"]["details"]["failed_steps"]
+        .as_array()
+        .expect("profile failures");
+    let manifest = failures
+        .iter()
+        .find(|step| step["name"] == "manifests")
+        .expect("manifest step must fail");
+    let message = manifest["message"].as_str().expect("manifest finding");
+    assert!(message.contains("manifests failed"));
+    assert!(message.contains("homepage"));
     assert!(payload["raw_payload"]["diagnostics"].is_array());
     assert_eq!(payload["findings_count"], 0);
-    assert_eq!(
-        payload["diagnostics"][0]["code"],
-        "CLI.BACKEND_EXEC_FAILURE"
-    );
+    assert_eq!(payload["diagnostics"][0]["code"], "profile.steps_failed");
 
     let report = fixture
         .path
@@ -161,6 +144,6 @@ fn lint_fast_manifest_failure_remains_non_pass_with_structured_diagnostics() {
     let report_text = fs::read_to_string(report).expect("failure report");
     assert!(report_text.contains("lint.fast"));
     assert!(report_text.contains("failed"));
-    assert!(report_text.contains("CLI.BACKEND_EXEC_FAILURE"));
+    assert!(report_text.contains("profile.steps_failed"));
     assert!(report_text.contains("homepage"));
 }
