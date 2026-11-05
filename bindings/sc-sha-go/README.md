@@ -100,7 +100,7 @@ ZIP layout, actual Go linker-directive selection, C preprocessor acceptance
 and rejection, and preparation argv/errors with controlled inputs. Its
 `tests/fixtures/release-targets.toml` is a boundary fixture; full external
 consumer builds/installs and the combined release manifest are validated by
-the Go native integration matrix in `.github/workflows/release-preflight.yml`,
+the Go native integration matrix in `.github/workflows/go-native-preflight.yml`,
 triggered through `workflow_dispatch`. Routine CI runs the adapter conformance
 tests and these controlled layout fixtures without building or installing the
 six-target matrix. Fixture archives are deliberately not executable native
