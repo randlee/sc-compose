@@ -19,6 +19,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_HTML = REPO_ROOT / "site" / "cli"
 DEFAULT_MARKDOWN = REPO_ROOT / "crates" / "sc-compose" / "docs" / "reference" / "cli-reference.md"
+DOCLI_VERSION = "0.2.0"
+INSTALL_COMMAND = ["cargo", "install", "sc-docli", "--version", DOCLI_VERSION, "--locked"]
 EXPORT_COMMAND = ["cargo", "run", "--quiet", "--bin", "sc-compose", "--", "reference", "--json"]
 
 
@@ -34,6 +36,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--model-json", type=Path, help="use this reference --json envelope instead of running the exporter")
     parser.add_argument("--docli", default="docli", help="docli executable (default: docli on PATH)")
+    parser.add_argument(
+        "--install-docli",
+        action="store_true",
+        help=f"run 'cargo install sc-docli --version {DOCLI_VERSION} --locked' when docli is missing or not {DOCLI_VERSION}",
+    )
     return parser.parse_args(argv)
 
 
@@ -49,6 +56,30 @@ def load_model(model_json: Path | None) -> dict:
         return json.loads(raw)["payload"]["model"]
     except (KeyError, TypeError, json.JSONDecodeError) as err:
         raise SystemExit(f"reference output has no payload.model: {err!r}")
+
+
+def docli_version(docli: str) -> str | None:
+    try:
+        run = subprocess.run([docli, "--version"], capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        return None
+    return run.stdout.strip() if run.returncode == 0 else None
+
+
+def ensure_docli(docli: str, install: bool) -> None:
+    """Fail closed unless the pinned docli is the executable that will run."""
+    expected = f"docli {DOCLI_VERSION}"
+    found = docli_version(docli)
+    if found != expected and install:
+        done = subprocess.run(INSTALL_COMMAND, check=False)
+        if done.returncode != 0:
+            raise SystemExit(f"{' '.join(INSTALL_COMMAND)} failed ({done.returncode})")
+        found = docli_version(docli)
+    if found != expected:
+        raise SystemExit(
+            f"docli {DOCLI_VERSION} required, found {found or 'none'} ({docli}); "
+            f"install with: {' '.join(INSTALL_COMMAND)}"
+        )
 
 
 def generate(model: dict, docli: str, scratch: Path) -> tuple[Path, Path]:
@@ -91,6 +122,7 @@ def main(argv: list[str]) -> int:
         html_target, md_target = args.output_dir / "html", args.output_dir / "cli-reference.md"
     else:
         html_target, md_target = DEFAULT_HTML, DEFAULT_MARKDOWN
+    ensure_docli(args.docli, args.install_docli)
     model = load_model(args.model_json)
     with tempfile.TemporaryDirectory() as tmp:
         html, markdown = generate(model, args.docli, Path(tmp))
