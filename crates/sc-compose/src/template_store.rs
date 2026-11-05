@@ -7,6 +7,9 @@ use anyhow::{Context, Result, anyhow};
 use sc_composer::{InputValue, VariableName, validate_input_value};
 use serde::Deserialize;
 
+pub(crate) const DATA_DIR_ENV: &str = "SC_COMPOSE_DATA_DIR";
+pub(crate) const TEMPLATE_DIR_ENV: &str = "SC_COMPOSE_TEMPLATE_DIR";
+
 const TEMPLATE_ROOT_README: &str = "# sc-compose templates\n\n\
 Add one directory per user template under this root.\n\
 \n\
@@ -340,7 +343,7 @@ fn load_template_pack(path: &Path) -> std::result::Result<TemplatePack, GetTempl
 }
 
 pub(crate) fn data_dir() -> Result<PathBuf> {
-    if let Some(path) = std::env::var_os("SC_COMPOSE_DATA_DIR") {
+    if let Some(path) = std::env::var_os(DATA_DIR_ENV) {
         return absolute_path(PathBuf::from(path));
     }
 
@@ -352,7 +355,7 @@ pub(crate) fn data_dir() -> Result<PathBuf> {
 }
 
 pub(crate) fn user_templates_dir() -> Result<PathBuf> {
-    if let Some(path) = std::env::var_os("SC_COMPOSE_TEMPLATE_DIR") {
+    if let Some(path) = std::env::var_os(TEMPLATE_DIR_ENV) {
         return absolute_path(PathBuf::from(path));
     }
 

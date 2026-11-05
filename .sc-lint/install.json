@@ -1,0 +1,241 @@
+{
+  "minimum_version": "0.8.5",
+  "ci": {
+    "enabled": true,
+    "os": [
+      "linux",
+      "macos",
+      "windows"
+    ]
+  },
+  "analyzers": {
+    "boundary": {
+      "enabled": true
+    },
+    "portability": {
+      "enabled": true
+    },
+    "runtime": {
+      "enabled": true
+    }
+  },
+  "line_counts": {
+    "max_production_lines": 1000
+  },
+  "version_sync": {
+    "python": {
+      "cargo_lock": true,
+      "python_manifests": [
+        "bindings/python/pyproject.toml",
+        "bindings/sc-sha-python/pyproject.toml",
+        "bindings/sc-composer-beads-python/pyproject.toml"
+      ]
+    }
+  },
+  "profiles": {
+    "fmt": [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    "clippy-native": [
+      "cargo",
+      "clippy",
+      "--workspace",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "sc-boundary": [
+      "sc-lint",
+      "lint",
+      "sc-boundary",
+      "--root",
+      ".",
+      "--json"
+    ],
+    "sc-portability": [
+      "sc-lint",
+      "lint",
+      "sc-portability",
+      "--root",
+      ".",
+      "--json"
+    ],
+    "sc-runtime": [
+      "sc-lint",
+      "lint",
+      "sc-runtime",
+      "--root",
+      ".",
+      "--json"
+    ],
+    "function-length": [
+      "sc-lint",
+      "lint",
+      "function-length",
+      "--root",
+      ".",
+      "--json"
+    ],
+    "line-counts": [
+      "sc-lint",
+      "lint",
+      "line-counts",
+      "--root",
+      ".",
+      "--json"
+    ],
+    "identity-literals": [
+      "sc-lint",
+      "lint",
+      "identity-literals",
+      "--root",
+      ".",
+      "--json"
+    ],
+    "version-sync": [
+      "python",
+      "-m",
+      "sc_lint.check_version_sync",
+      "--root",
+      ".",
+      "--json"
+    ],
+    "codespell": [
+      "codespell",
+      "--config",
+      ".codespellrc"
+    ],
+    "cargo-deny": [
+      "cargo",
+      "deny",
+      "check"
+    ],
+    "cargo-shear": [
+      "cargo",
+      "shear"
+    ],
+    "wheel-tests": [
+      "python",
+      "-m",
+      "sc_lint.run_pytests"
+    ],
+    "check-xwin": {
+      "command": [
+        "cargo",
+        "check",
+        "--workspace"
+      ],
+      "platform": "windows",
+      "target": "x86_64-pc-windows-msvc",
+      "env": {
+        "PYO3_CROSS_PYTHON_VERSION": "3.11"
+      }
+    },
+    "clippy-xwin": {
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "platform": "windows",
+      "target": "x86_64-pc-windows-msvc",
+      "env": {
+        "PYO3_CROSS_PYTHON_VERSION": "3.11"
+      }
+    }
+  },
+  "test": {
+    "workspace": [
+      "cargo",
+      "test",
+      "--workspace"
+    ]
+  },
+  "default_lint_profile": "full",
+  "lint_profiles": {
+    "full": [
+      "fmt",
+      "clippy-native",
+      "sc-boundary",
+      "sc-portability",
+      "sc-runtime",
+      "function-length",
+      "line-counts",
+      "identity-literals",
+      "version-sync",
+      "codespell",
+      "cargo-deny",
+      "cargo-shear",
+      "wheel-tests",
+      "check-xwin",
+      "clippy-xwin"
+    ],
+    "fast": [
+      "fmt",
+      "sc-boundary",
+      "sc-portability",
+      "sc-runtime"
+    ],
+    "ci": [
+      "fmt",
+      "clippy-native",
+      "sc-boundary",
+      "sc-portability",
+      "sc-runtime",
+      "function-length",
+      "line-counts",
+      "identity-literals",
+      "version-sync",
+      "codespell",
+      "cargo-deny",
+      "cargo-shear",
+      "wheel-tests",
+      "check-xwin",
+      "clippy-xwin"
+    ]
+  },
+  "identities": {
+    "forbidden_literals": [
+      "randlee",
+      "team-lead",
+      "arch-comp",
+      "arch-ccomp",
+      "comp",
+      "comps",
+      "team-lead@example.invalid",
+      "ATM_HOME"
+    ],
+    "production_canonical_literals": {
+      "SC_COMPOSE_DATA_DIR": [
+        "crates/sc-compose/src/template_store.rs"
+      ],
+      "SC_COMPOSE_TEMPLATE_DIR": [
+        "crates/sc-compose/src/template_store.rs"
+      ],
+      "SC_COMPOSE_TEMPLATE_CONTRACTS_SCOPE": [
+        "crates/sc-compose/src/commands/template_lint.rs"
+      ]
+    }
+  },
+  "tools": {
+    "cargo": {
+      "cargo-deny": "0.19.4",
+      "cargo-shear": "1.13.3",
+      "cargo-xwin": "0.18.4"
+    },
+    "rustup_targets": [
+      "x86_64-pc-windows-msvc"
+    ]
+  }
+}

@@ -150,25 +150,43 @@ pub(super) fn execute_custom_delimiter_render(
         rendered_bytes: Some(rendered_text.len()),
         code: None,
     });
-    let rendered_text = sc_composer::assemble_output(
+    finish_custom_render(
+        request,
+        &args.render,
+        &resolve_result.resolved_path,
+        &expanded,
         &rendered_text,
+        report.warnings,
+    )
+}
+
+fn finish_custom_render(
+    request: &ComposeRequest,
+    args: &RenderBehaviorArgs,
+    resolved_path: &Path,
+    expanded: &ExpandedTemplate,
+    rendered_text: &str,
+    warnings: Vec<Diagnostic>,
+) -> Result<i32, CommandError> {
+    let rendered_text = sc_composer::assemble_output(
+        rendered_text,
         request.guidance_block.as_deref(),
         request.user_prompt.as_deref(),
     );
     let (checked_output, render_check) = checked_render_output(
         request,
-        &resolve_result.resolved_path,
+        resolved_path,
         &rendered_text,
-        &args.render,
+        args,
         None,
-        &custom_variable_sources(request, &expanded, &resolve_result.resolved_path),
+        &custom_variable_sources(request, expanded, resolved_path),
     )?;
     emit_render_output(
         request,
-        &args.render,
-        &resolve_result.resolved_path,
+        args,
+        resolved_path,
         &checked_output,
-        report.warnings,
+        warnings,
         render_check,
     )?;
     Ok(exit_codes::SUCCESS)

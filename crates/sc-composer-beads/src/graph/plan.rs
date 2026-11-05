@@ -316,19 +316,7 @@ fn plan_edges(
             },
         });
         if matches!(from, Endpoint::Planned { .. }) || matches!(to, Endpoint::Planned { .. }) {
-            let mut edge = serde_json::Map::new();
-            for (prefix, ep) in [("from", from), ("to", to)] {
-                match ep {
-                    Endpoint::Planned { key, .. } => {
-                        edge.insert(format!("{prefix}_key"), json!(key.as_str()));
-                    }
-                    Endpoint::Existing { id, .. } => {
-                        edge.insert(format!("{prefix}_id"), json!(id));
-                    }
-                }
-            }
-            edge.insert("type".into(), json!(kind.to_string()));
-            edges.push(Value::Object(edge));
+            edges.push(planned_edge_json(from, to, &kind));
         }
     }
     // Parent edges are supplied by parent_id/parent_key, never duplicated in the plan.
@@ -375,10 +363,34 @@ fn plan_edges(
             },
         });
     }
-    if !absent.is_empty() {
-        return Err(BeadComposeError::GraphEdgeMissing { edges: absent });
+    finish_edges(absent, edges)
+}
+
+fn finish_edges(
+    absent: Vec<crate::contract::MissingEdge>,
+    edges: Vec<Value>,
+) -> Result<Vec<Value>, BeadComposeError> {
+    if absent.is_empty() {
+        Ok(edges)
+    } else {
+        Err(BeadComposeError::GraphEdgeMissing { edges: absent })
     }
-    Ok(edges)
+}
+
+fn planned_edge_json(from: Endpoint, to: Endpoint, kind: &GraphDependencyType) -> Value {
+    let mut edge = serde_json::Map::new();
+    for (prefix, ep) in [("from", from), ("to", to)] {
+        match ep {
+            Endpoint::Planned { key, .. } => {
+                edge.insert(format!("{prefix}_key"), json!(key.as_str()));
+            }
+            Endpoint::Existing { id, .. } => {
+                edge.insert(format!("{prefix}_id"), json!(id));
+            }
+        }
+    }
+    edge.insert("type".into(), json!(kind.to_string()));
+    Value::Object(edge)
 }
 
 type PlannedEdges = Vec<(BeadEndpoint, BeadEndpoint, GraphDependencyType)>;

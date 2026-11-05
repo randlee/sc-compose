@@ -243,39 +243,7 @@ fn validate_request(
     request: &BeadComposeRequest,
     validate_shape: fn(&BeadComposeRequest) -> Result<(), BeadComposeError>,
 ) -> Result<NormalizedRequest, BeadComposeError> {
-    if request.schema != BEADS_SCHEMA_V1 {
-        return Err(BeadComposeError::UnknownSchema {
-            actual: request.schema.clone(),
-        });
-    }
-    if matches!(
-        request.operation,
-        BeadOperation::PreviewPour | BeadOperation::Pour
-    ) && request.formula_name.is_none()
-    {
-        return Err(BeadComposeError::FormulaNameRequired);
-    }
-    if matches!(
-        request.operation,
-        BeadOperation::Pour | BeadOperation::Attach
-    ) && request.pour_authorization != Some(PourAuthorization::CreatePersistentBeads)
-    {
-        return Err(BeadComposeError::PourAuthorizationRequired);
-    }
-    validate_shape(request)?;
-    for key in request.bead_variables.keys() {
-        if !valid_bead_key(key) {
-            return Err(BeadComposeError::BeadVariableKeyInvalid { key: key.clone() });
-        }
-    }
-    for (key, value) in &request.bead_variables {
-        if value.contains('\0') {
-            return Err(BeadComposeError::BeadVariableValueInvalid {
-                key: key.clone(),
-                value: value.clone(),
-            });
-        }
-    }
+    validate_request_preamble(request, validate_shape)?;
     let working_directory = fs::canonicalize(&request.working_directory).map_err(|_error| {
         BeadComposeError::TemplatePathInvalid {
             path: request.working_directory.clone(),
@@ -335,6 +303,46 @@ fn validate_request(
         template,
         rendered_formula,
     })
+}
+
+fn validate_request_preamble(
+    request: &BeadComposeRequest,
+    validate_shape: fn(&BeadComposeRequest) -> Result<(), BeadComposeError>,
+) -> Result<(), BeadComposeError> {
+    if request.schema != BEADS_SCHEMA_V1 {
+        return Err(BeadComposeError::UnknownSchema {
+            actual: request.schema.clone(),
+        });
+    }
+    if matches!(
+        request.operation,
+        BeadOperation::PreviewPour | BeadOperation::Pour
+    ) && request.formula_name.is_none()
+    {
+        return Err(BeadComposeError::FormulaNameRequired);
+    }
+    if matches!(
+        request.operation,
+        BeadOperation::Pour | BeadOperation::Attach
+    ) && request.pour_authorization != Some(PourAuthorization::CreatePersistentBeads)
+    {
+        return Err(BeadComposeError::PourAuthorizationRequired);
+    }
+    validate_shape(request)?;
+    for key in request.bead_variables.keys() {
+        if !valid_bead_key(key) {
+            return Err(BeadComposeError::BeadVariableKeyInvalid { key: key.clone() });
+        }
+    }
+    for (key, value) in &request.bead_variables {
+        if value.contains('\0') {
+            return Err(BeadComposeError::BeadVariableValueInvalid {
+                key: key.clone(),
+                value: value.clone(),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn validate_attach_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {

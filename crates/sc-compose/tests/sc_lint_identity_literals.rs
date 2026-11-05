@@ -14,7 +14,7 @@ use support::{
 };
 
 const TARGET: &str = "identity-literals";
-const IDENTITY: &str = "team-lead@example.invalid";
+const IDENTITY: &str = include_str!("fixtures/identity-literal.txt");
 const RUNTIME_FILES: &[&str] = &[
     "lint_identity_literals.py",
     "lint_common.py",

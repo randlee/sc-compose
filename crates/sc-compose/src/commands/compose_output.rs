@@ -28,33 +28,7 @@ pub(super) fn emit_render_output(
     } else if let Some(output) = args.append.as_ref() {
         Some(append_json_record(output, resolved_path, rendered_text)?)
     } else if let Some(output) = output_path {
-        let mut file = std::fs::File::create(output).map_err(|error| {
-            CommandError::render_write(
-                anyhow!(error).context(format!("failed to write {}", output.display())),
-            )
-        })?;
-        checked_output.emit(&mut file).map_err(|error| {
-            CommandError::render_write(
-                anyhow!(error).context(format!("failed to write {}", output.display())),
-            )
-        })?;
-        Some(
-            usize::try_from(
-                std::fs::metadata(output)
-                    .map_err(|error| {
-                        CommandError::render_write(
-                            anyhow!(error).context(format!("failed to stat {}", output.display())),
-                        )
-                    })?
-                    .len(),
-            )
-            .map_err(|error| {
-                CommandError::render_write(
-                    anyhow!(error)
-                        .context(format!("output too large to report {}", output.display())),
-                )
-            })?,
-        )
+        Some(write_checked_output(checked_output, output)?)
     } else {
         // Plain stdout uses println!, so the logical render target includes
         // its trailing newline even though the JSON body does not.
@@ -115,43 +89,42 @@ pub(super) fn emit_render_output(
     Ok(())
 }
 
+fn write_checked_output(
+    checked_output: &sc_composer::CheckedOutput,
+    output: &Path,
+) -> Result<usize, CommandError> {
+    let mut file = std::fs::File::create(output).map_err(|error| {
+        CommandError::render_write(
+            anyhow!(error).context(format!("failed to write {}", output.display())),
+        )
+    })?;
+    checked_output.emit(&mut file).map_err(|error| {
+        CommandError::render_write(
+            anyhow!(error).context(format!("failed to write {}", output.display())),
+        )
+    })?;
+    usize::try_from(
+        std::fs::metadata(output)
+            .map_err(|error| {
+                CommandError::render_write(
+                    anyhow!(error).context(format!("failed to stat {}", output.display())),
+                )
+            })?
+            .len(),
+    )
+    .map_err(|error| {
+        CommandError::render_write(
+            anyhow!(error).context(format!("output too large to report {}", output.display())),
+        )
+    })
+}
+
 fn append_json_record(
     path: &Path,
     template_path: &Path,
     rendered: &str,
 ) -> Result<usize, CommandError> {
-    let checked = sc_composer::check_rendered_output(
-        sc_composer::OutputFormat::Json,
-        template_path,
-        rendered,
-    )
-    .map_err(CommandError::render_check)?;
-    // The body already passed JSON syntax validation. Inspect only its root
-    // token, avoiding a numeric conversion that would reject valid exponents.
-    if !checked.body().trim_start().starts_with('{') {
-        return Err(CommandError::render_append(
-            anyhow!("--append requires the rendered output to be a JSON object"),
-            DiagnosticCode::ErrRenderAppendNotObject,
-            vec![RecoveryHint::new(RecoveryHintKind::InspectInput {
-                description: "the rendered output; --append requires a JSON object".to_owned(),
-            })],
-        ));
-    }
-    let object: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
-        serde_json::from_str(checked.body()).map_err(|error| {
-            CommandError::render_append(
-                anyhow!(error).context(format!(
-                    "failed to parse checked JSON from template {}",
-                    template_path.display()
-                )),
-                DiagnosticCode::ErrRenderJsonMalformed,
-                Vec::new(),
-            )
-        })?;
-    let mut line = serde_json::to_string(&object)
-        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
-    compact_json_whitespace(&mut line);
-    line.push('\n');
+    let line = render_json_record(template_path, rendered)?;
     let mut file = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -198,6 +171,42 @@ fn append_json_record(
         return Err(append_failure(path, error, rollback));
     }
     Ok(line.len())
+}
+
+fn render_json_record(template_path: &Path, rendered: &str) -> Result<String, CommandError> {
+    let checked = sc_composer::check_rendered_output(
+        sc_composer::OutputFormat::Json,
+        template_path,
+        rendered,
+    )
+    .map_err(CommandError::render_check)?;
+    // The body already passed JSON syntax validation. Inspect only its root
+    // token, avoiding a numeric conversion that would reject valid exponents.
+    if !checked.body().trim_start().starts_with('{') {
+        return Err(CommandError::render_append(
+            anyhow!("--append requires the rendered output to be a JSON object"),
+            DiagnosticCode::ErrRenderAppendNotObject,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectInput {
+                description: "the rendered output; --append requires a JSON object".to_owned(),
+            })],
+        ));
+    }
+    let object: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
+        serde_json::from_str(checked.body()).map_err(|error| {
+            CommandError::render_append(
+                anyhow!(error).context(format!(
+                    "failed to parse checked JSON from template {}",
+                    template_path.display()
+                )),
+                DiagnosticCode::ErrRenderJsonMalformed,
+                Vec::new(),
+            )
+        })?;
+    let mut line = serde_json::to_string(&object)
+        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+    compact_json_whitespace(&mut line);
+    line.push('\n');
+    Ok(line)
 }
 
 /// Map a failed append write, and the result of rolling the file back, to the

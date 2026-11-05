@@ -31,39 +31,23 @@ ensure-lint-runtime:
 reports-init:
     {{sc-compose}} reports init --root .
 
-lint target="full": ensure-lint-runtime
-    target="{{target}}"; target="${target#target=}"; {{sc-compose}} lint --root . --target "$target" --json
-    target="{{target}}"; target="${target#target=}"; if [ "$target" = "full" ]; then {{sc-compose}} lint --root . --target template-contracts --json; fi
-
 template-contracts:
     {{sc-compose}} lint --root . --target template-contracts --json
-
-# Temporary consumer profile while sc-lint's released full/ci profile is broken
-# (sc-lint#84). Restore `lint full` after its profile fix; identity-literals is
-# also skipped because v0.4.0 crashes on valid Rust unicode escapes.
-lint-ci-consumer: ensure-lint-runtime
-    {{sc-compose}} lint --root . --target fast --json
-    python3 .just/lint_cargo_deny.py --root .
-    cargo shear
-    {{sc-compose}} lint --root . --target sc-boundary --json
-    {{sc-compose}} lint --root . --target sc-portability --json
-    {{sc-compose}} lint --root . --target line-counts --json
-    @set -euo pipefail; report="$$(mktemp)"; trap 'rm -f "$$report"' EXIT; SC_COMPOSE_TEMPLATE_CONTRACTS_SCOPE=production {{sc-compose}} lint --root . --target template-contracts --json >"$$report"; jq -e '.payload.command_id == "template-contracts" and .payload.outcome == "pass" and .payload.raw_payload.data.scope == "production" and (.payload.raw_payload.data.templates_scanned > 0) and (.payload.findings_count == 0)' "$$report" >/dev/null
-    @echo "sc-lint identity-literals skipped: v0.4.0 parser rejects Rust unicode escapes"
 
 view target="findings":
     {{sc-compose}} lint --root . --target view-{{target}} --json
 
 check target="native":
-    {{sc-compose}} lint --root . --target check-{{target}} --json
+    PYO3_CROSS_PYTHON_VERSION="${PYO3_CROSS_PYTHON_VERSION:-3.11}" {{sc-compose}} lint --root . --target check-{{target}} --json
 
 clippy target="native":
-    {{sc-compose}} lint --root . --target clippy-{{target}} --json
+    PYO3_CROSS_PYTHON_VERSION="${PYO3_CROSS_PYTHON_VERSION:-3.11}" {{sc-compose}} lint --root . --target clippy-{{target}} --json
 
 ci:
     {{sc-compose}} lint --root . --target ci-all --json
 
 test:
+    cargo test --workspace
     {{sc-compose}} report-render-many --root . --id test-evidence --glob 'reports/inputs/test/*.md' --template-family test --output-dir reports/latest/test-evidence/panels
     mkdir -p reports/latest/test-evidence
     {{sc-compose}} render --mode file --root . --file examples/report-evidence-summary.html.j2 --var-file reports/vars/test-evidence-summary.json --output reports/latest/test-evidence/index.html
@@ -94,3 +78,9 @@ reports:
 
 reports-verify:
     {{sc-compose}} reports verify --root .
+
+# >>> sc-lint managed integration >>>
+set windows-shell := ["cmd.exe", "/c"]
+python := if os_family() == "windows" { "python" } else { "python3" }
+import '.sc-lint/justfile'
+# <<< sc-lint managed integration <<<

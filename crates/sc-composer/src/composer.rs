@@ -121,14 +121,7 @@ fn compose_expanded(
     observer.on_validation_outcome(&validation_outcome);
     fail_if_invalid(validation_outcome.errors)?;
 
-    let root_passes = expanded
-        .frontmatters
-        .iter()
-        .find_map(|(path, passes)| {
-            (path == &validation_report.resolve_result.resolved_path).then(|| passes.clone())
-        })
-        .unwrap_or_default();
-    let parsed = ParsedTemplate::from_parts(root_passes, expanded.text.clone());
+    let parsed = parsed_root_template(&expanded, &validation_report.resolve_result.resolved_path);
     let template_name = resolved_template_name(&validation_report.resolve_result.resolved_path);
     let (rendered_text, failing_pass) = if parsed.passes().len() > 1 {
         let contexts = build_pass_contexts(
@@ -175,10 +168,7 @@ fn compose_expanded(
             None,
         )
     };
-    observer.on_render_outcome(&RenderOutcomeEvent {
-        rendered_bytes: Some(rendered_text.len()),
-        code: None,
-    });
+    report_rendered_bytes(observer, rendered_text.len());
     let rendered_text = assemble_output(
         &rendered_text,
         request.guidance_block.as_deref(),
@@ -194,6 +184,25 @@ fn compose_expanded(
         warnings: validation_outcome.warnings,
         composition_fingerprint: expanded.composition_fingerprint,
     })
+}
+
+fn report_rendered_bytes(observer: &mut dyn CompositionObserver, count: usize) {
+    observer.on_render_outcome(&RenderOutcomeEvent {
+        rendered_bytes: Some(count),
+        code: None,
+    });
+}
+
+fn parsed_root_template(
+    expanded: &crate::ExpandedTemplate,
+    resolved_path: &std::path::Path,
+) -> ParsedTemplate {
+    let root_passes = expanded
+        .frontmatters
+        .iter()
+        .find_map(|(path, passes)| (path == resolved_path).then(|| passes.clone()))
+        .unwrap_or_default();
+    ParsedTemplate::from_parts(root_passes, expanded.text.clone())
 }
 
 /// Render all passes in sequence for a parsed multi-pass template.

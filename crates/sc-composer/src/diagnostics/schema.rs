@@ -271,6 +271,12 @@ impl DiagnosticCode {
             Self::ErrExtractJsonValueUnsupported => "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED",
             Self::ErrExtractJsonAmbiguous => "ERR_EXTRACT_JSON_AMBIGUOUS",
             Self::ErrExtractTemplateUnsupported => "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
+            other => other.extract_format_code(),
+        }
+    }
+
+    const fn extract_format_code(self) -> &'static str {
+        match self {
             Self::ErrExtractXmlElementMismatch => "ERR_EXTRACT_XML_ELEMENT_MISMATCH",
             Self::ErrExtractXmlAttributeMismatch => "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH",
             Self::ErrExtractXmlChildStructureMismatch => "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH",
@@ -294,6 +300,7 @@ impl DiagnosticCode {
             Self::ErrExtractTomlShapeMismatch => "ERR_EXTRACT_TOML_SHAPE_MISMATCH",
             Self::ErrExtractTomlValueUnsupported => "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED",
             Self::ErrExtractTomlAmbiguous => "ERR_EXTRACT_TOML_AMBIGUOUS",
+            _ => unreachable!(),
         }
     }
 }

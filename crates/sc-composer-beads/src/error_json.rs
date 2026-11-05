@@ -34,6 +34,22 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             json!({ "field": "rendered_formula", "value": path.to_string_lossy(), "rule": rule }),
             "Choose a rendered_formula path whose parent directory exists inside working_directory.",
         )),
+        _ => graph_error_context(error),
+    };
+    let (details, recovery) = match context {
+        Some((details, recovery)) => (Some(details), Some(recovery)),
+        None => (None, None),
+    };
+    ErrorEnvelope {
+        code: error.code(),
+        message: error.to_string(),
+        details,
+        recovery,
+    }
+}
+
+fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)> {
+    match error {
         BeadComposeError::GraphParentNotFound { parent } => Some((
             json!({ "parent": parent }),
             "Create the parent or name an existing bead.",
@@ -93,16 +109,6 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             "bd exited 0, so beads may have been created. Reconcile before pouring again: run bd show on the listed ids (bd list when none are listed); a retry can create a second molecule.",
         )),
         _ => None,
-    };
-    let (details, recovery) = match context {
-        Some((details, recovery)) => (Some(details), Some(recovery)),
-        None => (None, None),
-    };
-    ErrorEnvelope {
-        code: error.code(),
-        message: error.to_string(),
-        details,
-        recovery,
     }
 }
 

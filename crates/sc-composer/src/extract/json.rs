@@ -155,12 +155,7 @@ fn match_json(
             }
         }
         (serde_json::Value::Array(template), serde_json::Value::Array(rendered)) => {
-            if template.len() != rendered.len() {
-                return Err(shape_error(
-                    path,
-                    "JSON array length does not match the known template",
-                ));
-            }
+            validate_array_length(template.len(), rendered.len(), path)?;
             for (index, (template_value, rendered_value)) in
                 template.iter().zip(rendered).enumerate()
             {
@@ -179,33 +174,7 @@ fn match_json(
             }
         }
         (serde_json::Value::String(template), serde_json::Value::String(rendered)) => {
-            let segments = raw_text::parse_raw_text_segments(template)
-                .map_err(|error| map_raw_text_error(error, path))?;
-            let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
-                segments: &segments,
-                rendered_candidate: rendered,
-            })
-            .map_err(|error| map_raw_text_error(error, path))?;
-            evidence.compared_values += 1;
-            if let Some(ambiguity) = matched.ambiguity {
-                return Err(ambiguity_error(raw_text::format_diagnostic_message(
-                    &ambiguity.message,
-                    ambiguity.span,
-                )));
-            }
-            for capture in matched.captures {
-                if captures.len() >= MAX_JSON_OCCURRENCES {
-                    return Err(input_limit_error(format!(
-                        "JSON extraction exceeded the maximum of {MAX_JSON_OCCURRENCES} occurrences"
-                    )));
-                }
-                debug_assert_eq!(&rendered[capture.span.clone()], capture.rendered_text);
-                captures.push(Capture {
-                    variable: capture.variable,
-                    path: path.to_owned(),
-                    rendered_text: capture.rendered_text,
-                });
-            }
+            match_json_string(template, rendered, path, captures, evidence)?;
         }
         (serde_json::Value::String(_), _) => {
             return Err(shape_error(path, "JSON string value changed type"));
@@ -225,6 +194,57 @@ fn match_json(
                 "JSON value does not match the known template",
             ));
         }
+    }
+    Ok(())
+}
+
+fn validate_array_length(
+    template: usize,
+    rendered: usize,
+    path: &[JsonPathSegment],
+) -> Result<(), ExtractError> {
+    if template != rendered {
+        return Err(shape_error(
+            path,
+            "JSON array length does not match the known template",
+        ));
+    }
+    Ok(())
+}
+
+fn match_json_string(
+    template: &str,
+    rendered: &str,
+    path: &[JsonPathSegment],
+    captures: &mut Vec<Capture>,
+    evidence: &mut Evidence,
+) -> Result<(), ExtractError> {
+    let segments = raw_text::parse_raw_text_segments(template)
+        .map_err(|error| map_raw_text_error(error, path))?;
+    let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
+        segments: &segments,
+        rendered_candidate: rendered,
+    })
+    .map_err(|error| map_raw_text_error(error, path))?;
+    evidence.compared_values += 1;
+    if let Some(ambiguity) = matched.ambiguity {
+        return Err(ambiguity_error(raw_text::format_diagnostic_message(
+            &ambiguity.message,
+            ambiguity.span,
+        )));
+    }
+    for capture in matched.captures {
+        if captures.len() >= MAX_JSON_OCCURRENCES {
+            return Err(input_limit_error(format!(
+                "JSON extraction exceeded the maximum of {MAX_JSON_OCCURRENCES} occurrences"
+            )));
+        }
+        debug_assert_eq!(&rendered[capture.span.clone()], capture.rendered_text);
+        captures.push(Capture {
+            variable: capture.variable,
+            path: path.to_owned(),
+            rendered_text: capture.rendered_text,
+        });
     }
     Ok(())
 }
@@ -477,116 +497,116 @@ impl<'de> DeserializeSeed<'de> for StrictJsonSeed {
     }
 }
 
+struct StrictVisitor {
+    depth: usize,
+}
+
+impl<'de> Visitor<'de> for StrictVisitor {
+    type Value = StrictJsonValue;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("one JSON value without duplicate object keys")
+    }
+
+    fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJsonValue(serde_json::Value::Bool(v)))
+    }
+
+    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJsonValue(serde_json::Value::Number(v.into())))
+    }
+
+    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJsonValue(serde_json::Value::Number(v.into())))
+    }
+
+    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        let number = serde_json::Number::from_f64(v)
+            .ok_or_else(|| E::custom("JSON number is not finite"))?;
+        Ok(StrictJsonValue(serde_json::Value::Number(number)))
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJsonValue(serde_json::Value::String(v.to_owned())))
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJsonValue(serde_json::Value::String(v)))
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(StrictJsonValue(serde_json::Value::Null))
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        if self.depth > MAX_JSON_NESTING_DEPTH {
+            return Err(de::Error::custom(format!(
+                "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
+            )));
+        }
+        let mut values = Vec::new();
+        while let Some(value) = seq.next_element_seed(StrictJsonSeed {
+            depth: self.depth + 1,
+        })? {
+            values.push(value.0);
+        }
+        Ok(StrictJsonValue(serde_json::Value::Array(values)))
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        if self.depth > MAX_JSON_NESTING_DEPTH {
+            return Err(de::Error::custom(format!(
+                "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
+            )));
+        }
+        let mut values = serde_json::Map::new();
+        while let Some(key) = map.next_key::<String>()? {
+            if values.contains_key(&key) {
+                return Err(de::Error::custom(format!(
+                    "duplicate JSON object key: {key}"
+                )));
+            }
+            let value = map.next_value_seed(StrictJsonSeed {
+                depth: self.depth + 1,
+            })?;
+            values.insert(key, value.0);
+        }
+        Ok(StrictJsonValue(serde_json::Value::Object(values)))
+    }
+}
+
 impl StrictJsonValue {
     fn deserialize_at<'de, D>(deserializer: D, depth: usize) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct StrictVisitor {
-            depth: usize,
-        }
-
-        impl<'de> Visitor<'de> for StrictVisitor {
-            type Value = StrictJsonValue;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("one JSON value without duplicate object keys")
-            }
-
-            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(StrictJsonValue(serde_json::Value::Bool(v)))
-            }
-
-            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(StrictJsonValue(serde_json::Value::Number(v.into())))
-            }
-
-            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(StrictJsonValue(serde_json::Value::Number(v.into())))
-            }
-
-            fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                let number = serde_json::Number::from_f64(v)
-                    .ok_or_else(|| E::custom("JSON number is not finite"))?;
-                Ok(StrictJsonValue(serde_json::Value::Number(number)))
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(StrictJsonValue(serde_json::Value::String(v.to_owned())))
-            }
-
-            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(StrictJsonValue(serde_json::Value::String(v)))
-            }
-
-            fn visit_unit<E>(self) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(StrictJsonValue(serde_json::Value::Null))
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-            where
-                A: SeqAccess<'de>,
-            {
-                if self.depth > MAX_JSON_NESTING_DEPTH {
-                    return Err(de::Error::custom(format!(
-                        "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
-                    )));
-                }
-                let mut values = Vec::new();
-                while let Some(value) = seq.next_element_seed(StrictJsonSeed {
-                    depth: self.depth + 1,
-                })? {
-                    values.push(value.0);
-                }
-                Ok(StrictJsonValue(serde_json::Value::Array(values)))
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: MapAccess<'de>,
-            {
-                if self.depth > MAX_JSON_NESTING_DEPTH {
-                    return Err(de::Error::custom(format!(
-                        "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
-                    )));
-                }
-                let mut values = serde_json::Map::new();
-                while let Some(key) = map.next_key::<String>()? {
-                    if values.contains_key(&key) {
-                        return Err(de::Error::custom(format!(
-                            "duplicate JSON object key: {key}"
-                        )));
-                    }
-                    let value = map.next_value_seed(StrictJsonSeed {
-                        depth: self.depth + 1,
-                    })?;
-                    values.insert(key, value.0);
-                }
-                Ok(StrictJsonValue(serde_json::Value::Object(values)))
-            }
-        }
-
         if depth > MAX_JSON_NESTING_DEPTH {
             return Err(D::Error::custom(format!(
                 "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"

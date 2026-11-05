@@ -122,117 +122,117 @@ impl<'de> DeserializeSeed<'de> for YamlNodeSeed {
     }
 }
 
+struct NodeVisitor {
+    depth: usize,
+}
+
+impl<'de> Visitor<'de> for NodeVisitor {
+    type Value = YamlNode;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a YAML document value")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        if self.depth > MAX_YAML_NESTING_DEPTH {
+            return Err(de::Error::custom(format!(
+                "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
+            )));
+        }
+        let mut entries = Vec::new();
+        let mut keys = HashSet::new();
+        while let Some(YamlKey(key)) = map.next_key::<YamlKey>()? {
+            if !keys.insert(key.clone()) {
+                return Err(de::Error::custom(format!(
+                    "duplicate YAML mapping key: {key}"
+                )));
+            }
+            entries.push((
+                key,
+                map.next_value_seed(YamlNodeSeed {
+                    depth: self.depth + 1,
+                })?,
+            ));
+        }
+        Ok(YamlNode::Mapping(entries))
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        if self.depth > MAX_YAML_NESTING_DEPTH {
+            return Err(de::Error::custom(format!(
+                "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
+            )));
+        }
+        let mut values = Vec::new();
+        while let Some(value) = seq.next_element_seed(YamlNodeSeed {
+            depth: self.depth + 1,
+        })? {
+            values.push(value);
+        }
+        Ok(YamlNode::Sequence(values))
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(YamlNode::String(v.to_owned()))
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(YamlNode::String(v))
+    }
+
+    fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(YamlNode::Other(YamlScalar::Bool(v)))
+    }
+
+    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(YamlNode::Other(YamlScalar::Number(v.to_string())))
+    }
+
+    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(YamlNode::Other(YamlScalar::Number(v.to_string())))
+    }
+
+    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(YamlNode::Other(YamlScalar::Number(v.to_string())))
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(YamlNode::Other(YamlScalar::Null))
+    }
+}
+
 impl YamlNode {
     fn deserialize_at<'de, D>(deserializer: D, depth: usize) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct NodeVisitor {
-            depth: usize,
-        }
-
-        impl<'de> Visitor<'de> for NodeVisitor {
-            type Value = YamlNode;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("a YAML document value")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: MapAccess<'de>,
-            {
-                if self.depth > MAX_YAML_NESTING_DEPTH {
-                    return Err(de::Error::custom(format!(
-                        "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
-                    )));
-                }
-                let mut entries = Vec::new();
-                let mut keys = HashSet::new();
-                while let Some(YamlKey(key)) = map.next_key::<YamlKey>()? {
-                    if !keys.insert(key.clone()) {
-                        return Err(de::Error::custom(format!(
-                            "duplicate YAML mapping key: {key}"
-                        )));
-                    }
-                    entries.push((
-                        key,
-                        map.next_value_seed(YamlNodeSeed {
-                            depth: self.depth + 1,
-                        })?,
-                    ));
-                }
-                Ok(YamlNode::Mapping(entries))
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-            where
-                A: SeqAccess<'de>,
-            {
-                if self.depth > MAX_YAML_NESTING_DEPTH {
-                    return Err(de::Error::custom(format!(
-                        "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
-                    )));
-                }
-                let mut values = Vec::new();
-                while let Some(value) = seq.next_element_seed(YamlNodeSeed {
-                    depth: self.depth + 1,
-                })? {
-                    values.push(value);
-                }
-                Ok(YamlNode::Sequence(values))
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(YamlNode::String(v.to_owned()))
-            }
-
-            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(YamlNode::String(v))
-            }
-
-            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(YamlNode::Other(YamlScalar::Bool(v)))
-            }
-
-            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(YamlNode::Other(YamlScalar::Number(v.to_string())))
-            }
-
-            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(YamlNode::Other(YamlScalar::Number(v.to_string())))
-            }
-
-            fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(YamlNode::Other(YamlScalar::Number(v.to_string())))
-            }
-
-            fn visit_unit<E>(self) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(YamlNode::Other(YamlScalar::Null))
-            }
-        }
-
         if depth > MAX_YAML_NESTING_DEPTH {
             return Err(D::Error::custom(format!(
                 "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
@@ -352,12 +352,7 @@ fn match_yaml(
             }
         }
         (YamlNode::Sequence(template), YamlNode::Sequence(rendered)) => {
-            if template.len() != rendered.len() {
-                return Err(shape_error(
-                    path,
-                    "YAML sequence length does not match the known template",
-                ));
-            }
+            validate_sequence_length(template.len(), rendered.len(), path)?;
             for (index, (template_value, rendered_value)) in
                 template.iter().zip(rendered).enumerate()
             {
@@ -370,31 +365,7 @@ fn match_yaml(
             }
         }
         (YamlNode::String(template), YamlNode::String(rendered)) => {
-            let segments = raw_text::parse_raw_text_segments(template)
-                .map_err(|error| map_raw_text_error(error, path))?;
-            let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
-                segments: &segments,
-                rendered_candidate: rendered,
-            })
-            .map_err(|error| map_raw_text_error(error, path))?;
-            if let Some(ambiguity) = matched.ambiguity {
-                return Err(ambiguity_error(raw_text::format_diagnostic_message(
-                    &ambiguity.message,
-                    ambiguity.span,
-                )));
-            }
-            for capture in matched.captures {
-                if captures.len() >= MAX_YAML_OCCURRENCES {
-                    return Err(input_limit_error(format!(
-                        "YAML extraction exceeded the maximum of {MAX_YAML_OCCURRENCES} occurrences"
-                    )));
-                }
-                captures.push(Capture {
-                    variable: capture.variable,
-                    path: path.to_owned(),
-                    rendered_text: capture.rendered_text,
-                });
-            }
+            match_yaml_string(template, rendered, path, captures)?;
         }
         (YamlNode::String(_), YamlNode::Other(_)) => {
             return Err(value_error(
@@ -417,6 +388,54 @@ fn match_yaml(
                 "YAML value does not match the known template",
             ));
         }
+    }
+    Ok(())
+}
+
+fn validate_sequence_length(
+    template: usize,
+    rendered: usize,
+    path: &[YamlPathSegment],
+) -> Result<(), ExtractError> {
+    if template != rendered {
+        return Err(shape_error(
+            path,
+            "YAML sequence length does not match the known template",
+        ));
+    }
+    Ok(())
+}
+
+fn match_yaml_string(
+    template: &str,
+    rendered: &str,
+    path: &[YamlPathSegment],
+    captures: &mut Vec<Capture>,
+) -> Result<(), ExtractError> {
+    let segments = raw_text::parse_raw_text_segments(template)
+        .map_err(|error| map_raw_text_error(error, path))?;
+    let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
+        segments: &segments,
+        rendered_candidate: rendered,
+    })
+    .map_err(|error| map_raw_text_error(error, path))?;
+    if let Some(ambiguity) = matched.ambiguity {
+        return Err(ambiguity_error(raw_text::format_diagnostic_message(
+            &ambiguity.message,
+            ambiguity.span,
+        )));
+    }
+    for capture in matched.captures {
+        if captures.len() >= MAX_YAML_OCCURRENCES {
+            return Err(input_limit_error(format!(
+                "YAML extraction exceeded the maximum of {MAX_YAML_OCCURRENCES} occurrences"
+            )));
+        }
+        captures.push(Capture {
+            variable: capture.variable,
+            path: path.to_owned(),
+            rendered_text: capture.rendered_text,
+        });
     }
     Ok(())
 }

@@ -124,26 +124,7 @@ pub(super) fn validate(
     rendered: &[u8],
     mode: BeadGraphMode,
 ) -> Result<ValidatedGraph, BeadComposeError> {
-    if !req.bead_variables.is_empty() {
-        return Err(unsupported(Unsupported::BeadVariablesSet));
-    }
-    if cooked.kind != "workflow" {
-        return Err(unsupported(Unsupported::Composition));
-    }
-    for (key, value) in &cooked.extra {
-        match key.as_str() {
-            "vars" if nonempty(value) => return Err(unsupported(Unsupported::VarsDeclared)),
-            "template" | "compose" | "advice" | "pointcuts" if nonempty(value) => {
-                return Err(unsupported(Unsupported::Composition));
-            }
-            "vars" | "template" | "compose" | "advice" | "pointcuts" | "version"
-            | "schema_version" | "source" | "phase" | "pour" | "intent" => {}
-            _ => return Err(unsupported(Unsupported::UnknownKey)),
-        }
-    }
-    if cooked.steps.is_empty() {
-        return Err(unsupported(Unsupported::StepGraph));
-    }
+    validate_formula_shape(req, &cooked)?;
     let mut steps = Vec::new();
     let mut ids = BTreeSet::new();
     for step in cooked.steps {
@@ -210,6 +191,33 @@ pub(super) fn validate(
         steps,
         relations: req.relations.clone(),
     })
+}
+
+fn validate_formula_shape(
+    req: &BeadComposeRequest,
+    cooked: &CookedFormula,
+) -> Result<(), BeadComposeError> {
+    if !req.bead_variables.is_empty() {
+        return Err(unsupported(Unsupported::BeadVariablesSet));
+    }
+    if cooked.kind != "workflow" {
+        return Err(unsupported(Unsupported::Composition));
+    }
+    for (key, value) in &cooked.extra {
+        match key.as_str() {
+            "vars" if nonempty(value) => return Err(unsupported(Unsupported::VarsDeclared)),
+            "template" | "compose" | "advice" | "pointcuts" if nonempty(value) => {
+                return Err(unsupported(Unsupported::Composition));
+            }
+            "vars" | "template" | "compose" | "advice" | "pointcuts" | "version"
+            | "schema_version" | "source" | "phase" | "pour" | "intent" => {}
+            _ => return Err(unsupported(Unsupported::UnknownKey)),
+        }
+    }
+    if cooked.steps.is_empty() {
+        return Err(unsupported(Unsupported::StepGraph));
+    }
+    Ok(())
 }
 
 fn validate_relations(
