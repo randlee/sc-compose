@@ -170,7 +170,7 @@ pub fn sc_compose() -> ScComposeCommand {
     ScComposeCommand { command, log_root }
 }
 
-/// Put the consumer's installed wheel interpreter on PATH for isolated roots.
+/// Put the verified release binary and installed wheel interpreter on PATH.
 pub fn installed_sc_lint_path(prefix: Option<&Path>) -> std::ffi::OsString {
     let scripts =
         repo_root()
@@ -196,6 +196,7 @@ pub fn installed_sc_lint_path(prefix: Option<&Path>) -> std::ffi::OsString {
     let result = Command::new(&python)
         .env_remove("PYTHONPATH")
         .args([
+            "-I",
             "-c",
             "import importlib.metadata, sys; assert importlib.metadata.version('sc-lint') == sys.argv[1]",
             version,
@@ -207,10 +208,47 @@ pub fn installed_sc_lint_path(prefix: Option<&Path>) -> std::ffi::OsString {
         "the managed interpreter must contain sc-lint {version}: {}",
         String::from_utf8_lossy(&result.stderr)
     );
+    let binary_name = if cfg!(windows) {
+        "sc-lint.exe"
+    } else {
+        "sc-lint"
+    };
+    let binary = std::env::var_os("SC_LINT_BIN")
+        .map(PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("PATH").and_then(|path| {
+                std::env::split_paths(&path)
+                    .map(|directory| directory.join(binary_name))
+                    .find(|candidate| candidate.is_file())
+            })
+        })
+        .expect("set SC_LINT_BIN or put the pinned sc-lint executable on PATH");
+    let result = Command::new(&binary)
+        .arg("--version")
+        .output()
+        .unwrap_or_else(|error| {
+            panic!(
+                "cannot run sc-lint executable {}: {error}",
+                binary.display()
+            )
+        });
+    assert!(
+        result.status.success()
+            && String::from_utf8_lossy(&result.stdout).trim() == format!("sc-lint {version}"),
+        "the selected sc-lint executable {} must be version {version}; got {}",
+        binary.display(),
+        String::from_utf8_lossy(&result.stdout).trim()
+    );
     let mut paths = Vec::new();
     if let Some(prefix) = prefix {
         paths.push(prefix.to_path_buf());
     }
+    paths.push(
+        binary
+            .parent()
+            .expect("sc-lint binary directory")
+            .to_path_buf(),
+    );
     paths.push(scripts);
     if let Some(existing) = std::env::var_os("PATH") {
         paths.extend(std::env::split_paths(&existing));
