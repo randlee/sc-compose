@@ -231,7 +231,7 @@
   "tools": {
     "cargo": {
       "cargo-deny": "0.19.4",
-      "cargo-shear": "1.13.3",
+      "cargo-shear": "1.12.0",
       "cargo-xwin": "0.18.4"
     },
     "rustup_targets": [

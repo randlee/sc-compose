@@ -8,7 +8,7 @@ inputs:
   cargo-shear-version:
     description: Pinned cargo-shear version
     required: false
-    default: "1.13.3"
+    default: "1.12.0"
   codespell-version:
     description: Pinned codespell version
     required: false
