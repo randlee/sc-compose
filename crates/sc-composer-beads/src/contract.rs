@@ -510,6 +510,17 @@ pub enum BeadPourMode {
     Graph,
 }
 
+impl BeadPourMode {
+    /// Return the mode's stable serde wire name.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Registry => "registry",
+            Self::Graph => "graph",
+        }
+    }
+}
+
 /// Graph construction mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]

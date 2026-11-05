@@ -22,7 +22,11 @@ pub(super) fn emit_render_output(
     let rendered_text = checked_output.body();
     let output_path: Option<&Path> = args.output.as_deref().or(args.append.as_deref());
     let derived_path = derived_output_path(request, output_path);
-    let would_change = render_would_change(&derived_path, rendered_text);
+    let would_change = if args.dry_run {
+        render_would_change(&derived_path, rendered_text)?
+    } else {
+        false
+    };
     let bytes_written = if args.dry_run {
         None
     } else if let Some(output) = args.append.as_ref() {
@@ -43,7 +47,7 @@ pub(super) fn emit_render_output(
                 "template": to_forward_slash(resolved_path),
                 "rendered_preview": rendered_text,
             });
-            add_render_check(&mut payload, render_check);
+            add_render_check(&mut payload, render_check)?;
             payload
         } else if output_path.is_none() {
             let mut payload = serde_json::json!({
@@ -52,7 +56,7 @@ pub(super) fn emit_render_output(
                 "template": to_forward_slash(resolved_path),
                 "body": rendered_text,
             });
-            add_render_check(&mut payload, render_check);
+            add_render_check(&mut payload, render_check)?;
             payload
         } else {
             let mut payload = serde_json::json!({
@@ -64,7 +68,7 @@ pub(super) fn emit_render_output(
             if args.append.is_some() {
                 payload["appended"] = serde_json::Value::Bool(true);
             }
-            add_render_check(&mut payload, render_check);
+            add_render_check(&mut payload, render_check)?;
             payload
         };
         print_json(payload, warnings).map_err(CommandError::usage)?;
@@ -260,15 +264,13 @@ fn compact_json_whitespace(json: &mut String) {
 fn add_render_check(
     payload: &mut serde_json::Value,
     report: Option<sc_composer::RenderCheckReport>,
-) {
+) -> Result<(), CommandError> {
     if let Some(report) = report {
-        payload["render_check"] = serde_json::to_value(report).unwrap_or_else(|_| {
-            serde_json::json!({
-                "state": "contract_invalid",
-                "diagnostics": []
-            })
-        });
+        payload["render_check"] = serde_json::to_value(report).map_err(|error| {
+            CommandError::usage(anyhow!(error).context("failed to serialize render_check"))
+        })?;
     }
+    Ok(())
 }
 
 pub(super) fn emit_single_pass_all_warning(observer: &mut dyn CompositionObserver) {
@@ -324,10 +326,13 @@ fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> Pat
     }
 }
 
-fn render_would_change(output_path: &Path, rendered_text: &str) -> bool {
+fn render_would_change(output_path: &Path, rendered_text: &str) -> Result<bool, CommandError> {
     match std::fs::read(output_path) {
-        Ok(existing) => existing != rendered_text.as_bytes(),
-        Err(_) => true,
+        Ok(existing) => Ok(existing != rendered_text.as_bytes()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Err(error) => Err(CommandError::render_write(
+            anyhow!(error).context(format!("failed to read {}", output_path.display())),
+        )),
     }
 }
 
@@ -346,7 +351,7 @@ fn strip_j2_suffix(path: &Path) -> PathBuf {
 
 #[cfg(test)]
 mod append_failure_tests {
-    use super::append_failure;
+    use super::{append_failure, render_would_change};
     use sc_composer::{DiagnosticCode, RecoveryHint, RecoveryHintKind};
     use std::io::{Error, ErrorKind};
     use std::path::Path;
@@ -412,5 +417,33 @@ mod append_failure_tests {
         );
         assert!(error.recovery_hints.is_empty());
         assert!(format!("{:#}", error.error).contains("restored append target"));
+    }
+
+    #[test]
+    fn render_would_change_reports_missing_same_and_different_files() {
+        let dir = std::env::temp_dir().join(format!(
+            "sc-compose-would-change-{}",
+            ulid::Ulid::generate()
+        ));
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        let file = dir.join("out.md");
+        assert!(render_would_change(&file, "body").expect("missing file is a change"));
+        std::fs::write(&file, "body").expect("write file");
+        assert!(!render_would_change(&file, "body").expect("same content"));
+        assert!(render_would_change(&file, "other").expect("different content"));
+        std::fs::remove_dir_all(&dir).expect("cleanup");
+    }
+
+    #[test]
+    fn render_would_change_surfaces_read_errors_instead_of_assuming_a_change() {
+        let dir = std::env::temp_dir().join(format!(
+            "sc-compose-would-change-{}",
+            ulid::Ulid::generate()
+        ));
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        // Reading a directory fails with an error that is not NotFound.
+        let error = render_would_change(&dir, "body").expect_err("unreadable target must fail");
+        assert!(format!("{error:?}").contains("failed to read"));
+        std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 }
