@@ -7,4 +7,4 @@ schema_version = 1
 [[checks]]
 id = "cli-reference-fresh"
 description = "Generated CLI reference matches the live sc-compose model (docli)"
-run = "python3 scripts/generate_cli_reference.py --check"
+run = "python3 scripts/generate_cli_reference.py --check --install-docli"

@@ -82,32 +82,110 @@ class GenerateCliReferenceTests(unittest.TestCase):
         self.assertIn("sc-docli --version 0.2.0", done.stderr)
 
 
+def fake_tool(directory: Path, name: str, body: str) -> Path:
+    path = directory / name
+    path.write_text("#!/bin/sh\n" + body, encoding="utf-8")
+    path.chmod(0o755)
+    return path
+
+
+class DocliProvisioningTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.bin = Path(self._tmp.name) / "bin"
+        self.bin.mkdir()
+        self.out = Path(self._tmp.name) / "out"
+
+    def invoke(self, *extra, path=None):
+        env = {"PATH": path if path is not None else f"{self.bin}:/usr/bin:/bin"}
+        return subprocess.run(
+            [sys.executable, str(SCRIPT), "--check", "--output-dir", str(self.out), "--model-json", str(MODEL), *extra],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+
+    def test_wrong_docli_version_fails_closed_before_generating(self):
+        fake_tool(self.bin, "docli", 'echo "docli 0.1.9"\n')
+        done = self.invoke()
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn("docli 0.2.0 required, found docli 0.1.9", done.stderr)
+
+    def test_missing_docli_fails_closed_without_install_flag(self):
+        done = self.invoke()
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn("found none", done.stderr)
+
+    def test_install_flag_runs_pinned_locked_install_then_checks_version(self):
+        log = Path(self._tmp.name) / "cargo.log"
+        real = shutil.which("docli")
+        self.assertIsNotNone(real, "real docli 0.2.0 must be installed for this test")
+        # Fake cargo "installs" by exposing the real pinned docli on the fake bin dir.
+        fake_tool(self.bin, "cargo", f'echo "$@" > {log}\nln -s {real} {self.bin}/docli\n')
+        done = self.invoke("--install-docli")
+        self.assertEqual(log.read_text(encoding="utf-8").strip(), "install sc-docli --version 0.2.0 --locked")
+        self.assertEqual(done.returncode, 1, done.stderr)  # provisioned; outputs absent -> stale, not a docli error
+        self.assertIn("out of date", done.stderr)
+
+    def test_failed_install_fails_closed(self):
+        fake_tool(self.bin, "cargo", "exit 7\n")
+        done = self.invoke("--install-docli")
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn("failed (7)", done.stderr)
+
+
 class ConsumerPreflightTests(unittest.TestCase):
     """The installed kit's consumer preflight runs the wrapper check."""
 
     RUNNER = ROOT / ".github" / "scripts" / "run-consumer-preflight.sh"
     MANIFEST = ROOT / "release" / "publish-preflight.toml"
-    WRAPPER_CHECK = "python3 scripts/generate_cli_reference.py --check"
+    WRAPPER_CHECK = "python3 scripts/generate_cli_reference.py --check --install-docli"
 
     def test_every_publish_path_declares_docli_check(self):
-        install = json.loads((ROOT / "release" / "sc-publish-install.json").read_text(encoding="utf-8"))
-        manifest = tomllib.loads(self.MANIFEST.read_text(encoding="utf-8"))
-        declared = {c["id"]: c["run"] for c in manifest["checks"]}
-        self.assertEqual(declared.get("cli-reference-fresh"), self.WRAPPER_CHECK)
-        # The consumer input is the single source for the rendered manifest.
-        self.assertEqual([c["run"] for c in install["preflight_checks"]], [self.WRAPPER_CHECK])
-        # Every configured publish channel is published only after the one
-        # preflight workflow, which runs the installed consumer runner as a
-        # recorded step that gates the deny summary.
+        scripts = ROOT / ".github" / "scripts"
+        manifest_path = ROOT / "release" / "publish-artifacts.toml"
+        plan = json.loads(
+            subprocess.run(
+                [sys.executable, str(scripts / "release_artifacts.py"), "preflight-secret-plan", "--manifest", str(manifest_path)],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+        )
+        # Publish paths as the kit's own preflight plan sees them (root + post-release).
+        paths = {c["name"] for c in plan["root_channels"] + plan["post_release_channels"]}
+        contracts = tomllib.loads((ROOT / "release" / "publish-channel-contracts.toml").read_text(encoding="utf-8"))["channels"]
+        active = {n for n in contracts if n != "npm"}  # npm: no npm_packages in this manifest
+        self.assertEqual(paths, {"crates_io", "github_release", "pypi", "homebrew", "winget", "scoop"})
+        self.assertEqual(paths, active)
+        publish_yml = {
+            "crates_io": "release.yml",
+            "github_release": "release.yml",
+            **{n: f"{n}-publish.yml" for n in ("pypi", "homebrew", "winget", "scoop")},
+        }
+        for name in sorted(paths):
+            with self.subTest(publish_path=name):
+                self.assertTrue((ROOT / ".github" / "workflows" / publish_yml[name]).is_file())
+        # The kit gates every path with the one Release Preflight workflow (a
+        # dispatched gate that runs before the root release workflow, not a `needs`
+        # edge). It must run the installed consumer runner and record its outcome
+        # in the final deny summary, so a failing check blocks the whole gate.
         preflight = (ROOT / ".github" / "workflows" / "release-preflight.yml").read_text(encoding="utf-8")
         self.assertIn("id: consumer_preflight", preflight)
-        self.assertIn("bash .github/scripts/run-consumer-preflight.sh", preflight)
+        self.assertIn("run: bash .github/scripts/run-consumer-preflight.sh", preflight)
+        self.assertIn('record consumer-preflight "${CONSUMER_PREFLIGHT}"', preflight)
         self.assertIn("CONSUMER_PREFLIGHT: ${{ steps.consumer_preflight.outcome }}", preflight)
-        channels = install["channels"]
-        self.assertTrue(channels)
-        for name, channel in channels.items():
-            with self.subTest(channel=name):
-                self.assertTrue((ROOT / ".github" / "workflows" / channel["workflow"]).is_file())
+        # The check itself is declared once, through preflight_checks.
+        manifest = tomllib.loads(self.MANIFEST.read_text(encoding="utf-8"))
+        self.assertEqual({c["id"]: c["run"] for c in manifest["checks"]}, {"cli-reference-fresh": self.WRAPPER_CHECK})
+        install = json.loads((ROOT / "release" / "sc-publish-install.json").read_text(encoding="utf-8"))
+        self.assertEqual([c["run"] for c in install["preflight_checks"]], [self.WRAPPER_CHECK])
+        # The kit's optional docli object is intentionally unused: docli runs
+        # through preflight_checks so the wrapper owns pin enforcement.
+        self.assertNotIn("docli", manifest)
+        self.assertNotIn("docli", install)
 
     def test_installer_package_is_pinned_by_immutable_revision(self):
         install = json.loads((ROOT / "release" / "sc-publish-install.json").read_text(encoding="utf-8"))

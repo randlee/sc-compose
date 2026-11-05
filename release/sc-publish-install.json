@@ -48,6 +48,6 @@
   },
   "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "209681d096bd8bbfbddef51339b9323e0be5681a"},
   "preflight_checks": [
-    {"id": "cli-reference-fresh", "description": "Generated CLI reference matches the live sc-compose model (docli)", "run": "python3 scripts/generate_cli_reference.py --check"}
+    {"id": "cli-reference-fresh", "description": "Generated CLI reference matches the live sc-compose model (docli)", "run": "python3 scripts/generate_cli_reference.py --check --install-docli"}
   ]
 }
