@@ -750,13 +750,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sc-compose-test-support"
-version = "1.7.0"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
 name = "sc-composer"
 version = "1.7.0"
 dependencies = [
