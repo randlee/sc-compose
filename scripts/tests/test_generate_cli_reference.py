@@ -1,8 +1,11 @@
 """Wrapper tests for scripts/generate_cli_reference.py (real docli, fixture model)."""
 
+import json
+import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -77,6 +80,71 @@ class GenerateCliReferenceTests(unittest.TestCase):
         done = run(self.out, "--write", docli="docli-does-not-exist")
         self.assertNotEqual(done.returncode, 0)
         self.assertIn("sc-docli --version 0.2.0", done.stderr)
+
+
+class ConsumerPreflightTests(unittest.TestCase):
+    """The installed kit's consumer preflight runs the wrapper check."""
+
+    RUNNER = ROOT / ".github" / "scripts" / "run-consumer-preflight.sh"
+    MANIFEST = ROOT / "release" / "publish-preflight.toml"
+    WRAPPER_CHECK = "python3 scripts/generate_cli_reference.py --check"
+
+    def test_every_publish_path_declares_docli_check(self):
+        install = json.loads((ROOT / "release" / "sc-publish-install.json").read_text(encoding="utf-8"))
+        manifest = tomllib.loads(self.MANIFEST.read_text(encoding="utf-8"))
+        declared = {c["id"]: c["run"] for c in manifest["checks"]}
+        self.assertEqual(declared.get("cli-reference-fresh"), self.WRAPPER_CHECK)
+        # The consumer input is the single source for the rendered manifest.
+        self.assertEqual([c["run"] for c in install["preflight_checks"]], [self.WRAPPER_CHECK])
+        # Every configured publish channel is published only after the one
+        # preflight workflow, which runs the installed consumer runner as a
+        # recorded step that gates the deny summary.
+        preflight = (ROOT / ".github" / "workflows" / "release-preflight.yml").read_text(encoding="utf-8")
+        self.assertIn("id: consumer_preflight", preflight)
+        self.assertIn("bash .github/scripts/run-consumer-preflight.sh", preflight)
+        self.assertIn("CONSUMER_PREFLIGHT: ${{ steps.consumer_preflight.outcome }}", preflight)
+        channels = install["channels"]
+        self.assertTrue(channels)
+        for name, channel in channels.items():
+            with self.subTest(channel=name):
+                self.assertTrue((ROOT / ".github" / "workflows" / channel["workflow"]).is_file())
+
+    def test_consumer_preflight_rejects_stale_reference(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            stage = Path(tmp)
+            out = stage / "out"
+            (stage / ".github" / "scripts").mkdir(parents=True)
+            (stage / "release").mkdir()
+            shutil.copy(self.RUNNER, stage / ".github" / "scripts" / "run-consumer-preflight.sh")
+            declared = tomllib.loads(self.MANIFEST.read_text(encoding="utf-8"))["checks"]
+            self.assertEqual([c["run"] for c in declared], [self.WRAPPER_CHECK])
+            # Same declared check, pointed at controlled model and outputs.
+            command = (
+                f"{sys.executable} {SCRIPT} --check --output-dir {out} --model-json {MODEL}"
+            )
+            (stage / "release" / "publish-preflight.toml").write_text(
+                'schema_version = 1\n\n[[checks]]\nid = "cli-reference-fresh"\n'
+                f'description = "controlled"\nrun = {json.dumps(command)}\n',
+                encoding="utf-8",
+            )
+
+            def preflight():
+                return subprocess.run(
+                    ["bash", str(stage / ".github" / "scripts" / "run-consumer-preflight.sh")],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+
+            self.assertEqual(run(out, "--write").returncode, 0)
+            self.assertEqual(preflight().returncode, 0)
+            md = out / "cli-reference.md"
+            md.write_text(md.read_text(encoding="utf-8") + "stale\n", encoding="utf-8")
+            stale_text = md.read_text(encoding="utf-8")
+            failed = preflight()
+            self.assertEqual(failed.returncode, 1, failed.stdout + failed.stderr)
+            self.assertIn("FAIL cli-reference-fresh", failed.stderr)
+            self.assertEqual(md.read_text(encoding="utf-8"), stale_text)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,35 @@
+---
+name: publish-preflight
+version: 0.1.0
+description: Render repository-specific release publish preflight checks.
+format: toml
+required_variables:
+  - schema_version
+  - preflight_checks
+  - has_docli
+  - docli.generate_script
+  - docli.drift_paths
+  - docli.description
+---
+# Consumer publish preflight checks. Executed from release-preflight.yml via
+# .github/scripts/run-consumer-preflight.sh (fail-closed before release dispatch).
+
+schema_version = {{ schema_version }}
+
+{% if has_docli %}
+[docli]
+generate_script = {{ docli.generate_script }}
+drift_paths = {{ docli.drift_paths }}
+
+[[checks]]
+id = "docli-cli-html"
+description = {{ docli.description }}
+run = "bash .github/scripts/release-preflight-docli.sh"
+{% endif %}
+
+{% for check in preflight_checks %}
+[[checks]]
+id = {{ check.id }}
+description = {{ check.description }}
+run = {{ check.run }}
+{% endfor %}
