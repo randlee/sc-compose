@@ -27,6 +27,8 @@ def main():
     install_dir = Path(os.environ['RUNNER_TEMP']) / 'sc-lint' / 'bin'
     env = dict(os.environ, SC_LINT_INSTALL_DIR=str(install_dir))
     env.pop('SC_LINT_BIN', None)
+    env['PIP_FIND_LINKS'] = 'https://github.com/randlee/sc-lint/releases/expanded_assets/v0.8.6'
+    env['PIP_CONSTRAINT'] = str(Path('scripts/sc_lint_constraints.txt').resolve())
     install([sys.executable, '.sc-lint/bootstrap.py', 'setup', '--config', 'sc-lint.toml'], env)
     binary = install_dir / ('sc-lint.exe' if os.name == 'nt' else 'sc-lint')
     if not binary.is_file():

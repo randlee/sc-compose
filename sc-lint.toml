@@ -9,7 +9,7 @@ production_canonical_literals = { "SC_COMPOSE_DATA_DIR" = ["crates/sc-compose/sr
 python = { "cargo_lock" = true, "python_manifests" = ["bindings/python/pyproject.toml", "bindings/sc-sha-python/pyproject.toml", "bindings/sc-composer-beads-python/pyproject.toml"] }
 
 [tool.sc-lint]
-minimum_version = "0.8.5"
+minimum_version = "0.8.6"
 default_lint_profile = "full"
 
 [tool.sc-lint.analyzers.boundary]

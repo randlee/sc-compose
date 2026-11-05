@@ -1,5 +1,9 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
+# Final 0.8.6 wheels are served by the release; constraints verify every platform asset.
+export PIP_FIND_LINKS := "https://github.com/randlee/sc-lint/releases/expanded_assets/v0.8.6"
+export PIP_CONSTRAINT := justfile_directory() / "scripts/sc_lint_constraints.txt"
+
 sc-compose := "cargo run --quiet --bin sc-compose --"
 
 # Regenerate committed UniFFI Go output. Use `just generate-sc-sha-go check`

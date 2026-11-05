@@ -1836,7 +1836,7 @@ invocation verify the integration; installer capability alone is insufficient.
 
 ### FR-27: Released Analyzer Migration and Existing Violations
 
-Phase V starts from current develop and migrates to released sc-lint 0.8.5.
+Phase V starts from current develop and migrates to released sc-lint 0.8.6.
 Verify the installed version and retain the real boundary owners, including
 sc_compose_native. Run the migrated analyzer on the unchanged product baseline,
 then fix the existing violations it reports without suppressing rules or
@@ -2557,3 +2557,7 @@ review round or duplicate implementation obligation.
 | ANC-048 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
 | FR-24.24 | FR-24.13, FR-24.24 | V3 | Superseded default wording: exact v1.7.0 compatibility is selected with --render-by bd. |
 | FR-24.32 | FR-24.32 | V7 | Carried: V1 qualifies inputs, V3 recovers/maps cases and fixtures; V7 owns final reruns. |
+
+Phase V update (2026-11-05): the owner selected the final v0.8.6 release
+(tag commit `6142682313171a7a714edee99942146415329f11`), superseding
+the earlier 0.8.5 migration pin. Analyzer and reporting obligations remain.

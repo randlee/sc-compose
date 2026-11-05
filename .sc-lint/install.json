@@ -1,5 +1,5 @@
 {
-  "minimum_version": "0.8.5",
+  "minimum_version": "0.8.6",
   "ci": {
     "enabled": false,
     "os": [
