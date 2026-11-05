@@ -1,7 +1,7 @@
 {"sprint": "v-1"}
 {"sprint": "v-4"}
-{"sprint": "v-2", "depends_on": ["v-4"]}
-{"sprint": "v-8", "depends_on": ["v-4"]}
+{"sprint": "v-2"}
+{"sprint": "v-8"}
 {"sprint": "v-3", "depends_on": ["v-1", "v-2"]}
 {"sprint": "v-9", "depends_on": ["v-2"]}
 {"sprint": "v-5", "depends_on": ["v-3"]}
