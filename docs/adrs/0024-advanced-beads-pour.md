@@ -2,9 +2,10 @@
 
 ## Status
 
-Approved requirements in FR-24; API and routing details remain proposed until
-the unresolved choices below are recorded. Updated for the user's consolidated
-requirements of 2026-11-04. No implementation or test completion is implied.
+User-approved requirements in FR-24 and the concrete Phase V design contract
+below are recorded for plan review (2026-11-04). Implementation is pending.
+No remaining product-policy choice is inferred from an unspecified API;
+the bd transaction capability is an explicit implementation prerequisite.
 
 ## Decision
 
@@ -52,15 +53,90 @@ recovered source; only missing behavior and necessary corrections are work.
 The earlier opt-in-only recommendation is superseded by the approved default.
 No ATM runtime dependency or duplicate parser/framework is introduced.
 
-## Open decisions and evidence
+## Phase V design contract
 
-FR-24's open-decision section governs unresolved selector API, collision and
-default rules, literal-safe evaluation/transport, validation interface, corpus
-identity and regression recovery. These are prerequisites of affected changes,
-not permission to pick a changed public default or required request field.
-Historical bd 1.3.2-dev probes are qualified observations, not universal
-substitution guarantees. The named FUZZ-171/T/D cases must be recovered and
-mapped to real tests; a missing historical test cannot count as PASS.
+The request layout stays unchanged. Rendering owner and strictness are
+additive execution options; the existing functions delegate to the same
+engine with the advanced default. Explicit Bd options select the preserved
+v1.7.0 path. There is no second renderer, parser or process engine.
+
+```rust
+pub enum BeadRenderBy { ScCompose, Bd }
+pub struct BeadExecutionOptions {
+    pub render_by: BeadRenderBy, // Default: ScCompose
+    pub strict: bool,           // Default: false; only schema-declaring templates
+}
+pub fn execute_bead_request_with_options(
+    request: &BeadComposeRequest,
+    options: &BeadExecutionOptions,
+) -> Result<BeadComposeReceipt, BeadComposeError>;
+pub fn execute_bead_request_with_options_and_runner(
+    request: &BeadComposeRequest,
+    options: &BeadExecutionOptions,
+    runner: &dyn ProcessRunner,
+) -> Result<BeadComposeReceipt, BeadComposeError>;
+```
+
+Existing public entrypoints and struct literals remain available. V3 adds the
+new facade/composition roots to the Beads and Python boundary manifests;
+allowed crate dependency edges are unchanged. The runner option provides
+controlled inputs in tests, not another execution path.
+
+Python retains the positional request, adding keyword-only options to its
+existing execute/render/validate/preview/pour/attach functions:
+
+```python
+execute(request, *, render_by="sc-compose", strict=False)
+pour(request, *, render_by="sc-compose", strict=False)
+```
+
+CLI and JSON requests map to these options. `--request` is mutually exclusive
+with a positional formula and direct --var inputs; it is not silently merged.
+Repeated distinct --var entries map to string-valued bead_variables. Duplicate
+keys are request errors before mutation, as duplicate JSON bead variables
+already are. Reuse cli::parse_var, not a second key=value parser. Compose/bead
+name collisions are refused rather than silently overwritten; explicit caller
+values win over root defaults and scoped included defaults. An include default
+fills an absent caller/root value and remains literal.
+
+```text
+sc-compose bead pour plan-fix --var plan=phase-v --var finding=EDGE-1
+    -> BeadOperation::Pour, bead_variables={plan:"phase-v",finding:"EDGE-1"}
+    -> BeadExecutionOptions { render_by: ScCompose, strict: false }
+sc-compose bead pour --request request.json --render-by bd
+    -> existing request layout, explicit preserved bd-owned execution
+```
+
+The formula operand accepts an explicit confined path or a registry name.
+Named resolution follows bd's documented active/repo/user/shared search
+order; bd formula list --json exposes name/source for native-listed files.
+Raw .j2 sources are resolved without parsing them as native TOML before
+sc-compose expands them. Reuse existing path/source confinement and snapshot
+helpers; do not implement another TOML engine. The direct adapter allocates
+its rendered_formula inside a private workspace staging directory and maps
+that path into the same request used by the JSON API.
+
+V3 adds a versioned worked example at
+examples/beads/plan-fix.formula.toml.j2 and pins that exact file in its tests.
+It includes caller variables, a review/fix dependency, labels and literal
+brace data. The registry-name test registers that same source in an isolated
+bd registry; the path test uses the explicit source. Neither claims a missing
+historical production formula was recovered. Unresolved formula, duplicate
+var, mixed request/direct inputs and missing required input all create none.
+
+## Remaining decisions and evidence limits
+
+The owner selected additive edges between existing beads, including new
+relations after formula changes, plus optional beads/edges controlled by
+Jinja. FR-24.34–35 and the ADR-0023 Phase V amendment govern provenance v2,
+state preservation, conditional selection and one atomic apply. V1 must
+verify/pin the bd transaction capability before V3's affected apply work;
+that is an implementation dependency, not an unresolved product decision.
+
+The bytes compared under FR-24.24, corpus identity and FUZZ-171 case-to-test
+mapping must be pinned from the preserved sources. Missing evidence remains
+a narrow unresolved acceptance input; it is never treated as a passing test.
+Historical bd probes stay version-qualified.
 
 ## Consequences
 

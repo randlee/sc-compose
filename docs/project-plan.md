@@ -2197,3 +2197,10 @@ runs concurrently only with disjoint owned paths and satisfied contracts.
 Quality-mgr reviews all 17 dependency-stack contributions, including code
 already in develop. Each original PR closes when review and any retained
 integration are complete, with its disposition recorded in the existing PR.
+
+Phase V now has nine real sprints. V1 contract verification and V4 migrated/
+lint-fixed baseline start independently. V2 dependencies and V8 tooling use
+the V4 baseline; V3 Beads and V9 Go adapter use V2. V5 ABI adapters use V3;
+V6 composes V5/V8/V9; V7 validates the exact final candidate. Maximum usable
+width is three and critical path six. The Beads/index remain authoritative;
+this pointer is not a second sprint checklist.

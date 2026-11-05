@@ -1485,7 +1485,7 @@ see ADR-0023 Errata).
 - **FR-23.11 bd support.** Production `bd` v1.3.1 is supported; every command
   used exists there. No Beads fork, version probe or persisted proto is used.
 
-### FR-25: Complete Platform Delivery and Python Stable ABI (Phase U)
+### FR-25: Complete Platform Delivery and Python Stable ABI
 
 FR-25.1: Deliver all six macOS/Windows/Linux × x64/arm64 targets for each
 of five artifact families: Rust CLI, sc-compose wheel, sc-sha wheel,
@@ -1497,24 +1497,36 @@ All 30 artifact/platform cells must build successfully: the Rust CLI, the
 sc-compose, sc-sha and sc-composer-beads wheels, and the sc-sha-go native module,
 each for macOS, Windows and Linux on x64 and arm64.
 
-FR-25.2: All three Python distributions use PyO3 abi3-py311, matching
-cp311-abi3 tags and requires-python >=3.11, without an artificial upper bound.
-Test 3.11/3.12/3.13/3.14 on all six platforms with pip and uv; this coverage
-list is not a maximum supported Python version. Inspect actual limited-API
-symbols/tags and execute installed imports and behavior, not filenames alone.
+FR-25.2: All three Python distributions support CPython 3.9 and newer,
+with Windows ARM64 starting at CPython 3.11 (user ruling, 2026-11-04).
+Prefer one abi3-py39 wheel per supported platform, correct cp39-abi3 tags and
+requires-python >=3.9, without an artificial upper bound. Windows ARM64's
+runtime matrix starts at 3.11; 3.9/3.10 there are explicitly inapplicable,
+not silently skipped failures. If a target toolchain requires a stricter
+wheel tag, record and verify that platform-specific exception without
+raising the other platforms' minimum.
+Test 3.9/3.10/3.11/3.12/3.13/3.14 where applicable, with pip and uv, and
+inspect actual stable-ABI symbols, tags, installed imports and behavior.
+Prefer the single compatible family. Measure representative rendering,
+hashing and Beads adapter workloads before claiming a performance penalty.
+If a material penalty is demonstrated, present the measurements and proposed
+optimized wheel variants for owner review; variants should share the same
+package release where supported. Do not drop 3.9 support or multiply package
+versions without that decision. Benchmarks report measurements, not flaky
+wall-clock assertions in unit tests.
 
 FR-25.3: Preserve applicable delivery channels: Rust GitHub/Homebrew/winget/
 Scoop, wheels PyPI and isolated TestPyPI rehearsal, Go target ZIP modules/
 GitHub assets, and crates.io source packages. Go package/schema/helper
 ownership remains ADR-0018/0020/0022; use supported canonical installers,
-not a local vendored fork. No public publication occurs during Phase U.
+not a local vendored fork. No public publication occurs during recovery.
 
 FR-25.4: Run the full integration install matrix only via workflow_dispatch,
 with real Windows x64/arm64 execution on GitHub. Normal sprint CI uses the
 small cached-wheel install path and current-only byte regression command.
 Before publication, require a successful matrix on the final publication
-candidate/version and the exact retained artifact bytes; U8's earlier upgrade
-run cannot cover later U10-U13 code changes. Check every selected release
+candidate/version and the exact retained artifact bytes; an earlier upgrade
+run cannot cover later code changes. Check every selected release
 artifact's SHA-256 against trusted successful run outputs, reject missing/
 wrong/stale evidence and same-candidate changed bytes, and publish those same
 files without rebuilding after gate/tag. Candidate/version/bytes changes
@@ -1522,7 +1534,7 @@ require a new qualifying run. Evidence survives through its publication
 consumer; expired/missing evidence fails closed.
 
 Governing decision: [ADR-0025](adrs/0025-platform-delivery-and-python-abi.md).
-These requirements record the user's Phase U platform, Python-floor and
+These requirements record the user's platform, Python-floor and
 integration-only matrix rulings; they do not assert implementation completion.
 
 ### FR-24: Advanced Beads Pour
@@ -1654,19 +1666,31 @@ formula source/registry identity before claiming that example passes.
 
 #### FR-24.34 — Automatic declared edges during pour
 
-Pouring a formula must create its declared dependency and relationship edges
-along with the beads, including the plan-fix workflow in FR-24.33. Callers
-must not need follow-up bd dep add commands to finish those declared edges.
-Render edge references with the same caller inputs as bead fields, preserve
-the declared endpoint direction and edge type, and verify the actual stored
-nodes and edges by reading bd. Do not invent dependencies from step order or
-from unrelated scheduling conventions.
-Preview creates no persistent nodes or edges. Invalid references or failed
-rendering/validation create none; authorization and graph atomicity remain
-FR-23/ADR-0023 obligations. A repeated supported pour/attach must preserve the
-existing operation's documented id/retry behavior and must not add duplicate
-edges or reset existing status/notes. Reuse correct existing edge creation
-where present and implement only the demonstrated missing behavior.
+Advanced pour creates declared dependency/relationship edges without manual
+bd dep add follow-up, including missing edges and newly declared edges
+between existing beads (user decision, 2026-11-04). Existing operation-owned
+beads retain their state. Conflicting edge types and foreign-owned planned
+ids are refused. Explicit external relation endpoints remain governed by
+ADR-0023; they are not adopted as operation-owned beads.
+The operation validates rendered references and applies its allowed node/edge
+additions atomically. Added relations alone must not invalidate ownership of
+unchanged nodes. Changed node definitions are a conflict, not implicit field
+updates. Preview and failed validation write nothing. Replays do not duplicate
+edges, reset status/notes/assignee, or remove prior graph state.
+
+#### FR-24.35 — Conditional beads and edges
+
+Jinja conditionals may include or omit entire beads and edges. sc-compose
+renders conditions, loops and includes before validating the resulting graph.
+Both enabled and disabled branches must work. A remaining relation to an
+omitted step is a dangling reference and fails before mutation. Enabling an
+optional bead or edge on a later advanced pour adds the requested elements
+under FR-24.34; disabling one later does not delete existing beads or edges.
+Deletion/pruning is a separate operation and is not inferred from omission.
+Use typed booleans from structured request inputs, or explicit comparisons
+for string-valued CLI --var inputs; do not treat the nonempty string "false"
+as a boolean false. Test typed true/false and documented string flag forms,
+including literal brace data, real stored nodes/edges and idempotent replays.
 
 #### Existing FR-24 cross-references
 
@@ -1679,24 +1703,20 @@ FR-24.11 (source-compatible APIs) to FR-24.25–26;
 FR-24.12 (documentation/regressions) to FR-24.30–32. They do not retain the
 superseded legacy-default assumption.
 
-#### Open design decisions and evidence limits
+#### Design contract and unresolved evidence
 
-Retain the approved wording until the user resolves a genuine requirement
-ambiguity. In particular, the bytes compared under FR-24.24 and the exact
-229-template corpus revision must be identified before final acceptance.
-Rust/Python selector spelling, compose/bead name collisions, root/include
-default precedence, advanced registry routing/literal-safe transport, the
-explicit validation interface and literal-safe evaluation strategy require
-recorded decisions before their affected implementation is dispatched.
-Existing bd probe evidence is version-qualified; do not extrapolate it to
-all native features or platforms. The original FUZZ-171/T/D reports and
-case-to-test mappings are still inputs to recover, not evidence of a passing
-final regression exercise.
+ADR-0024 records the additive Rust options/runner signatures, Python keyword
+mapping, direct-CLI request mapping, duplicate/conflict policy and scoped
+default precedence. These are the V1 contract consumed by V3, not choices
+silently deferred to implementation. Public request layouts remain unchanged.
+FR-24.34–35 fix additive existing-node edges and conditional elements;
+ADR-0023 records the atomic-write and provenance contract. The FR-24.24 byte comparison, exact 229-template
+corpus revision and FUZZ-171 case-to-test mapping remain evidence inputs to
+pin. Missing evidence never counts as a final regression PASS.
 
-The anchor inventory is in unmerged PR #848. Some locked statements and
-scopes still say opt-in, and neither missing fixture approval nor unsaved
-rubric runs are passing evidence. Reconcile those records with this default
-without introducing an anchor-tuning project into the product recovery work.
+The unmerged PR #848 anchor records contain stale opt-in wording and
+incomplete testability evidence. Reconcile those records with the approved
+default as requirements maintenance; do not start an anchor-tuning project.
 
 #### bd variable semantics — observed evidence and limits
 

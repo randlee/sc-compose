@@ -2238,3 +2238,26 @@ The include walker hashes both branch
 candidates and preserves the condition in the expanded template so rendering
 still selects one branch. Other dynamic targets remain
 `ERR_INCLUDE_DYNAMIC_UNRESOLVED` and cannot produce a cacheable fingerprint.
+
+## Phase V external documentation adapter contract
+
+FR-26 uses the external `docli` binary from pinned `sc-docli` 0.2.0; the
+workspace takes no docli crate dependency. V4 folds the shared command
+registration and thin live-Clap serializer into its existing CLI repair:
+`sc-compose reference --json` emits the normal diagnostic envelope with
+`payload.model` carrying docli's neutral command tree. Walk the actual
+CommandFactory model, including usage, options/arguments, defaults, choices
+and recursive subcommands; do not maintain a command inventory.
+
+V8's thin `scripts/generate_cli_reference.py` extracts that model, invokes
+`docli generate --input MODEL --html HTML_DIR --markdown MARKDOWN_FILE`, and
+provides `--output-dir PATH --write|--check`. Without the output override,
+the production outputs are `site/cli/index.html` and
+`crates/sc-compose/docs/reference/cli-reference.md`. Check mode generates in
+a temporary directory, compares bytes and refuses drift. It never rewrites
+the expected files on a failed check. V8 tests with temporary consumer outputs;
+V6 alone commits final production references after the final CLI model exists.
+The supported consumer preflight_checks entry runs the same --check command
+on every publish. No separate documentation engine or competing generator.
+
+Model/CLI reference: [official docli usage](https://github.com/randlee/docli).

@@ -243,3 +243,11 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 | `BEADS_GRAPH_APPLY_FAILED` | execution | `bd create --graph` failed; nothing was written | graph apply |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | execution | `bd create --graph` exited 0 but its response cannot be consumed, so beads may exist; reconcile with `bd show` before pouring again | graph apply |
 | `BEADS_RECEIPT_DESERIALIZATION_FAILED` | adapter | a receipt document cannot be parsed back; an adapter-level code (`BeadComposeError::RECEIPT_DESERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
+
+### Phase V planned graph capability refusal
+
+`BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` is planned for FR-24.34–35 under the
+ADR-0023 advanced-mode amendment. It is an execution refusal (CLI exit 2)
+before any write when the selected bd binary cannot provide the required
+atomic graph-addition capability. V3 implements and tests the code; this
+entry is a contract, not a claim that the current binary emits it.

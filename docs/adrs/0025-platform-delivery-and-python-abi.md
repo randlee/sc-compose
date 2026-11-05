@@ -2,39 +2,42 @@
 
 ## Status
 
-Accepted user decisions, recorded 2026-11-04; implementation is pending.
-This records existing Phase U rulings, not a new implementation approval.
-
-## Context
-
-Interpreter-specific fixed-version wheels prevent consumers from using newer
-Python runtimes. The user selected CPython 3.11 as the stable ABI floor for
-all three packages and requires complete platform/artifact delivery. The
-lead relayed the floor in ATM message 01M6JAJWE373EJC3EV62AZHE14; the live
-Phase U root records the platform/channel and integration-only matrix rulings.
+Accepted user requirements; amended 2026-11-04 by the Phase V owner's direct
+ruling: CPython 3.9+, Windows ARM64 3.11+. Implementation is pending.
 
 ## Decision
 
-FR-25 governs the six OS/architecture targets, five artifact families,
-channels, all-three abi3-py311 build/metadata contract and runtime matrix.
-Do not impose a Python upper bound or silently drop a Go target. macOS CLT
-Python 3.9 users need a newer interpreter. Binding adapters stay thin under
-ADR-0018/0020/0021; Go-native ownership/installation stays ADR-0022.
+FR-25 governs all six OS/architecture targets and five artifact families.
+The preferred packaging is one abi3-py39 family with requires-python >=3.9
+and accurate tags. Windows ARM64 runtime support begins at 3.11; its lower
+versions are explicitly inapplicable. Prove compatibility using real symbol
+audits and installed behavior. Any platform-specific build/tag exception
+must be explicit and must not raise the other platforms' floor.
 
-Build a candidate's intended release-version files once, test those bytes,
-retain them with their successful workflow identity and verify all SHA-256
-values at preflight and immediately before publication. The canonical kit
-must support selecting/staging the tested files; no post-gate rebuild may
-inherit old evidence. Route missing capability to the sc-publish owner and
-adopt its supported immutable release, never patch consumer copies. U5 owns
-that dependency coordination/adoption, U8 the producer, U9 the real rehearsal.
-A full workflow_dispatch matrix for the final publication candidate is
-mandatory after later code changes, even if U8's upgrade run passed.
+Stable ABI constraints can prevent version-specific optimizations; do not
+claim that this application has a penalty without measurements. V5 compares
+representative binding workloads on the same interpreter/build baseline.
+Prefer one family. A demonstrated material cost prompts owner review of
+optimized wheel variants under the same package release where possible;
+3.9 support stays mandatory. No flaky timing-based unit-test gate is added.
 
-## Consequences
+V6 rehearses all 30 artifact/platform builds and declared install channels.
+V7 dispatches the qualifying matrix and supported preflight on the exact
+final candidate after its last changes, binds run identity/version/SHA-256
+to retained files and verifies those files again at publisher staging.
+A V6 rehearsal never substitutes for the final-candidate run. Any later
+candidate/version/byte change requires another qualifying run. No rebuild
+after the gate inherits old evidence. Evidence remains available through the
+publication preflight that consumes it; missing/expired evidence fails closed.
 
-The 30 artifact/platform cells and declared runtime/install cells require
-actual outcomes. Unsupported targets and missing upstream capabilities are
-visible blockers. Normal CI remains small. Phase U performs private/dry-run
-publication-path rehearsal and does not publish. Planning/QA approval does
-not turn pending runtime or packaging work into delivered capability.
+The canonical publish kit and optional Go peer remain upstream-owned under
+ADR-0022; use their supported installer inputs and immutable releases. V4 owns the generic command-model exporter; V8 owns reusable external
+docli/kit consumer adapters, V9 the Go-native adapter,
+and V6 final command-reference refresh and artifact composition. FR-26
+requires docli on every publish and stale-reference refusal. Recovery does
+not perform public publication.
+
+## References
+
+- [PyO3 0.30.1: building and distribution](https://pyo3.rs/v0.30.1/building-and-distribution)
+- [CPython: limited API scope and performance](https://docs.python.org/3/c-api/stable.html)
