@@ -149,3 +149,7 @@ Historical bd probes stay version-qualified.
 Quality-mgr reviews existing and retained implementation as well as new code.
 Documentation covers both rendering modes through created-bead examples.
 This ADR is a product contract, not a new publishing or process gate.
+
+FR-24.36 and ADR-0023 govern identifier/argv safety, graph-plan diagnostics,
+missing non-UTF8 request-path handling and request/authorization error precedence.
+V3 tests paired permitted/refused cases; no generic template-input ban is added.

@@ -229,7 +229,7 @@ planner can validate and dispatch the created work without re-querying bd.
 pub const PROVENANCE_KEY: &str = "sc_compose_graph";
 
 // validating newtypes; each is #[serde(try_from = "String", into = "String")], so the JSON is a plain string
-pub struct BeadId(String);        // an existing or planned bead id (non-empty, no whitespace)
+pub struct BeadId(String);        // an existing or planned bead id (non-empty, no whitespace or control characters; option-like ids remain identifier arguments)
 pub struct GraphRef(String);      // ^[A-Za-z0-9_-]{1,32}$  (may contain '-')
 pub struct StepId(String);        // ^[A-Za-z0-9_]{1,64}$   (never '-')
 pub struct Sha256Digest(String);  // "sha256:" + 64 lowercase hex
@@ -710,7 +710,7 @@ it cannot be reported as automatic-edge completion.
 
 A capability refusal is the planned typed code
 BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE, exit 2, before any mutation. V1 records
-the exact supported command/schema/version in this section once verified;
+the exact supported command/schema/version in the existing implementation PR once verified;
 V3 cannot dispatch this apply path against an unspecified protocol.
 
 ### Conditional graph and required cases
@@ -733,3 +733,9 @@ V1 reproduces the original BEADS_GRAPH_EDGE_MISSING behavior using
 edge_conflict_missing_edge_and_noop_preserve_the_prior_plan and an isolated
 real-bd equivalent, recording formula, mode, binary and readback in the
 existing PR discussion. Fresh graph success alone is not the defect repro.
+
+FR-24.36 governs typed identifier/path constraints, safe argv and recovery rendering,
+non-UTF8 path diagnostics and error precedence. It does not authorize extra
+restrictions on valid bd-compatible inputs. Transaction qualification runs
+and exact binary/schema evidence are recorded in the existing implementation PR;
+this ADR specifies the required atomic capability rather than becoming a run log.

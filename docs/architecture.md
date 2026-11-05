@@ -2257,7 +2257,9 @@ the production outputs are `site/cli/index.html` and
 a temporary directory, compares bytes and refuses drift. It never rewrites
 the expected files on a failed check. V8 tests with temporary consumer outputs;
 V6 alone commits final production references after the final CLI model exists.
-The supported consumer preflight_checks entry runs the same --check command
+V8 owns registration and current/stale production-path tests of the supported
+consumer preflight_checks entry; V6 consumes it after V8 on final references.
+The supported entry runs the same --check command
 on every publish. No separate documentation engine or competing generator.
 
 Model/CLI reference: [official docli usage](https://github.com/randlee/docli).

@@ -42,3 +42,11 @@ not perform public publication.
 
 - [PyO3 0.30.1: building and distribution](https://pyo3.rs/v0.30.1/building-and-distribution)
 - [CPython: limited API scope and performance](https://docs.python.org/3/c-api/stable.html)
+
+V8 alone owns per-publish docli/preflight_checks registration and its real
+current/stale consumer-preflight tests; V6 consumes the interface on final
+references. Full integration runs, including Windows amd64 and manylinux,
+are manual-only; routine native Windows unit checks remain normal CI.
+FR-28 names V7 as owner of 1.8.0 version preparation, including manifests
+and lockstep checks before the qualifying run. Production publishing is after
+Phase V. FR-29/30 govern deterministic fixtures and cargo-xwin cross-checks.

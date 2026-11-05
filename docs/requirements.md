@@ -1546,7 +1546,7 @@ integration-only matrix rulings; they do not assert implementation completion.
 
 ### FR-24: Advanced Beads Pour
 
-The 24 requirements below are the user-approved target behavior, consolidated
+The 24 approved items plus Phase V extensions below are the user-approved target behavior, consolidated
 by the user and team-lead on 2026-11-04. They describe what must work,
 including behavior that may already be implemented in develop. Review the
 current implementation and tests against each requirement before adding code;
@@ -1714,7 +1714,8 @@ input template, fail before invoking bd. A blocked graph-plan output names
 the failing path in human output and `graph_plan` in JSON `details.field`.
 A missing non-UTF8 request path returns `BEADS_REQUEST_READ_FAILED` without
 breaking diagnostic formatting. Request-shape and pour-authorization errors
-precede graph-identifier errors. Pair each refusal with a permitted input;
+precede graph-identifier errors. Governing contract: [ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md)
+and [ADR-0024](adrs/0024-advanced-beads-pour.md). Pair each refusal with a permitted input;
 do not extend these graph constraints into a generic template-input ban.
 Existing valid bd-compatible inputs remain accepted.
 
@@ -1833,6 +1834,23 @@ then fix the existing violations it reports without suppressing rules or
 weakening boundary constraints. Dependency integration follows the validated
 lint fixes; advanced Beads changes follow dependency integration. Governing
 boundaries remain ADR-0016 and ADR-0017.
+
+### FR-28: Phase V Release Preparation
+
+Prepare version 1.8.0 across package/distribution manifests and lockstep inputs
+before the final qualifying candidate run. V7 owns the version preparation.
+Production publishing occurs after Phase V, never as sprint work.
+
+### FR-29: Deterministic Tests
+
+Tests use controlled inputs, never race, timing, sleep, event-loop ordering
+or load assumptions. Identified flaky tests are redesigned deterministically.
+
+### FR-30: Windows Cross-Build and Cross-Check
+
+Every Windows-target cross-build/check uses the cargo xwin command prefix,
+with the required x64 or ARM64 target explicit. Native Windows runtime tests
+remain required where the platform-delivery contract calls for them.
 
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
@@ -2447,9 +2465,9 @@ review round or duplicate implementation obligation.
 | ANC-002 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
 | ANC-003 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
 | ANC-004 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
-| ANC-014 | FR-26 | V8 | Carried: external docli adapter in V8; publish/preflight wiring in V6. |
-| ANC-015 | FR-26 | V6 | Carried: external docli adapter in V8; publish/preflight wiring in V6. |
-| ANC-016 | FR-26 | V6 | Carried: external docli adapter in V8; publish/preflight wiring in V6. |
+| ANC-014 | FR-26 | V8 | Carried: V4 supplies the live model exporter; V8 supplies the external docli generator. |
+| ANC-015 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. |
+| ANC-016 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. |
 | ANC-023 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
 | ANC-031 | FR-27 | V4 | Carried: codespell passes; legitimate project terms attributed/allowlisted. |
 | ANC-033 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
@@ -2492,8 +2510,8 @@ review round or duplicate implementation obligation.
 | FR-24.8d | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
 | FR-24.24b | FR-24.24 | V3 | Carried; V7 reruns the applicable final regressions. |
 | FR-24.30a | FR-24.30 | V3 | Carried; V7 reruns the applicable final regressions. |
-| FR-24.31a | FR-24.31 | V7 | Carried; V7 reruns the applicable final regressions. |
-| FR-24.32a | FR-24.32 | V7 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.31a | FR-24.31 | V7 | Carried: V1 qualifies inputs, V3 recovers/maps cases and fixtures; V7 owns final reruns. |
+| FR-24.32a | FR-24.32 | V7 | Carried: V1 qualifies inputs, V3 recovers/maps cases and fixtures; V7 owns final reruns. |
 | FR-24.24c | FR-24.24 | V3 | Carried; V7 reruns the applicable final regressions. |
 | FR-24.29a | FR-24.29 | V3 | Carried; V7 reruns the applicable final regressions. |
 | ANC-005 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
@@ -2508,12 +2526,12 @@ review round or duplicate implementation obligation.
 | ANC-021 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
 | ANC-022 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
 | ANC-024 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
-| ANC-025 | FR-24.31–32 | V7 | Carried: final historical fuzz and corpus regression checks. |
+| ANC-025 | FR-24.31–32 | V7 | Carried: V1 qualifies inputs, V3 recovers/maps cases; V7 owns final fuzz/corpus reruns. |
 | ANC-026 | FR-24.30 | V3 | Carried: canonical requirements/ADR plus worked bead manual examples. |
-| ANC-027 | Phase V release boundary | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
-| ANC-028 | Phase V release boundary | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
-| ANC-029 | Phase V standing constraints | All sprints | Carried: deterministic controlled tests; every Windows cross-build/check uses cargo xwin. |
-| ANC-030 | Phase V standing constraints | All sprints | Carried: deterministic controlled tests; every Windows cross-build/check uses cargo xwin. |
+| ANC-027 | FR-28 | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
+| ANC-028 | FR-28 | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
+| ANC-029 | FR-29 | All sprints | Carried: controlled deterministic tests in every test-writing or verification sprint. |
+| ANC-030 | FR-30 | All sprints | Carried: cargo xwin for every Windows-target cross-build/check. |
 | ANC-034 | FR-25.2 | V5 | Superseded: Python 3.9+, Windows ARM64 3.11+ (user correction). |
 | ANC-036 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
 | ANC-037 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
@@ -2529,4 +2547,4 @@ review round or duplicate implementation obligation.
 | ANC-047 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
 | ANC-048 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
 | FR-24.24 | FR-24.13, FR-24.24 | V3 | Superseded default wording: exact v1.7.0 compatibility is selected with --render-by bd. |
-| FR-24.32 | FR-24.32 | V7 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.32 | FR-24.32 | V7 | Carried: V1 qualifies inputs, V3 recovers/maps cases and fixtures; V7 owns final reruns. |

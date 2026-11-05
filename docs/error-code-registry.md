@@ -203,7 +203,7 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 
 | Code | Class | Trigger condition | Expected primary emitter |
 | --- | --- | --- | --- |
-| `BEADS_REQUEST_READ_FAILED` | request | the request file cannot be read as UTF-8 | request loader, CLI `bead` |
+| `BEADS_REQUEST_READ_FAILED` | request | the request file cannot be opened/read as UTF-8, including a missing non-UTF8 path whose diagnostic must remain representable (FR-24.36) | request loader, CLI `bead` |
 | `BEADS_REQUEST_DESERIALIZATION_FAILED` | request | the request JSON is malformed or has the wrong shape (line and column refer to the request file) | request parser |
 | `BEADS_RELATION_ENDPOINT_INVALID` | request | a relation endpoint lacks the `step:` or `bead:` prefix (a prefixed id that fails its grammar is `BEADS_GRAPH_ID_INVALID`) | request parser |
 | `BEADS_UNKNOWN_SCHEMA` | request | the request `schema` is not `sc-compose/beads/v1` | request parser |
