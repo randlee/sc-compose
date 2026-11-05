@@ -60,29 +60,29 @@ ci:
 
 test:
     cargo test --workspace
-    {{sc-compose}} report-render-many --root . --id test-evidence --glob 'reports/inputs/test/*.md' --template-family test --output-dir reports/latest/test-evidence/panels
-    mkdir -p reports/latest/test-evidence
+    {{sc-compose}} report-render-many --root . --id test-evidence --glob "reports/inputs/test/*.md" --template-family test --output-dir reports/latest/test-evidence/panels
+    {{python}} -c "from pathlib import Path; Path('reports/latest/test-evidence').mkdir(parents=True, exist_ok=True)"
     {{sc-compose}} render --mode file --root . --file examples/report-evidence-summary.html.j2 --var-file reports/vars/test-evidence-summary.json --output reports/latest/test-evidence/index.html
     {{sc-compose}} reports finalize --root . --report-id test-evidence --kind test --entrypoint reports/latest/test-evidence/index.html --artifact reports/latest/test-evidence/index.html --artifact reports/latest/test-evidence/panels/manifest.json --artifact reports/latest/test-evidence/panels/reports/inputs/test/results.html --artifact reports/latest/test-evidence/panels/reports/inputs/test/matrix.html --archive
 
 smoke:
-    mkdir -p reports/latest/smoke
+    {{python}} -c "from pathlib import Path; Path('reports/latest/smoke').mkdir(parents=True, exist_ok=True)"
     {{sc-compose}} reports smoke --root . --fixture reports/smoke/reference-template.html.j2 --vars reports/smoke/sample-vars.json
 
 state-diagrams:
-    {{sc-compose}} report-render-many --root . --id state-diagrams --glob 'reports/specs/state-diagrams/*.toml' --template-family diagram --output-dir reports/latest/state-diagrams/panels
-    mkdir -p reports/latest/state-diagrams
+    {{sc-compose}} report-render-many --root . --id state-diagrams --glob "reports/specs/state-diagrams/*.toml" --template-family diagram --output-dir reports/latest/state-diagrams/panels
+    {{python}} -c "from pathlib import Path; Path('reports/latest/state-diagrams').mkdir(parents=True, exist_ok=True)"
     {{sc-compose}} render --mode file --root . --file examples/report-evidence-summary.html.j2 --var-file reports/vars/state-diagrams-summary.json --output reports/latest/state-diagrams/index.html
     {{sc-compose}} reports finalize --root . --report-id state-diagrams --kind state_machine --entrypoint reports/latest/state-diagrams/index.html --artifact reports/latest/state-diagrams/index.html --artifact reports/latest/state-diagrams/panels/manifest.json --artifact reports/latest/state-diagrams/panels/reports/specs/state-diagrams/approval-flow.html --artifact reports/latest/state-diagrams/panels/reports/specs/state-diagrams/retry-loop.html --archive
 
 sql-diagrams:
-    {{sc-compose}} report-render-many --root . --id sql-diagrams --glob 'reports/specs/sql-diagrams/*.toml' --template-family diagram --output-dir reports/latest/sql-diagrams/panels
-    mkdir -p reports/latest/sql-diagrams
+    {{sc-compose}} report-render-many --root . --id sql-diagrams --glob "reports/specs/sql-diagrams/*.toml" --template-family diagram --output-dir reports/latest/sql-diagrams/panels
+    {{python}} -c "from pathlib import Path; Path('reports/latest/sql-diagrams').mkdir(parents=True, exist_ok=True)"
     {{sc-compose}} render --mode file --root . --file examples/report-evidence-summary.html.j2 --var-file reports/vars/sql-diagrams-summary.json --output reports/latest/sql-diagrams/index.html
     {{sc-compose}} reports finalize --root . --report-id sql-diagrams --kind sql_query --entrypoint reports/latest/sql-diagrams/index.html --artifact reports/latest/sql-diagrams/index.html --artifact reports/latest/sql-diagrams/panels/manifest.json --artifact reports/latest/sql-diagrams/panels/reports/specs/sql-diagrams/publish-manifest.html --artifact reports/latest/sql-diagrams/panels/reports/specs/sql-diagrams/release-summary.html --archive
 
 reports:
-    mkdir -p reports/latest/report-evidence-summary
+    {{python}} -c "from pathlib import Path; Path('reports/latest/report-evidence-summary').mkdir(parents=True, exist_ok=True)"
     {{sc-compose}} render --mode file --root . --file examples/report-evidence-summary.html.j2 --var-file examples/report-evidence-summary.sample-vars.json --output reports/latest/report-evidence-summary/index.html
     {{sc-compose}} reports finalize --root . --report-id report-evidence-summary --kind custom --entrypoint reports/latest/report-evidence-summary/index.html --artifact reports/latest/report-evidence-summary/index.html --archive
     {{sc-compose}} reports index --root .
