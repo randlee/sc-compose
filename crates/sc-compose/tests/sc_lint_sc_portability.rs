@@ -67,7 +67,7 @@ fn portability_path_violation_stays_non_pass_with_structured_finding() {
     assert_eq!(
         output.status.code(),
         Some(0),
-        "sc-lint findings should remain a successful subprocess with a fail payload; stderr: {}",
+        "sc-compose preserves its findings outcome; stderr: {}",
         String::from_utf8_lossy(&output.stderr),
     );
 
@@ -75,7 +75,7 @@ fn portability_path_violation_stays_non_pass_with_structured_finding() {
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.sc-portability");
     assert_eq!(payload["outcome"], "findings");
-    assert_eq!(payload["exit_status"], 0);
+    assert_eq!(payload["exit_status"], 10);
     assert_eq!(payload["raw_payload"]["command"], "lint.sc-portability");
     assert_eq!(payload["raw_payload"]["data"]["status"], "fail");
     assert!(payload["raw_payload"]["diagnostics"].is_array());

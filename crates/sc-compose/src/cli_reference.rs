@@ -48,59 +48,7 @@ pub(crate) fn model() -> Value {
 }
 
 fn command_model(command: &Command, path: &str) -> CommandModel {
-    let mut options = Vec::new();
-    let mut arguments = Vec::new();
-    for arg in command.get_arguments().filter(|arg| !arg.is_hide_set()) {
-        let name = arg.get_id().as_str();
-        if name == "help" || name == "version" {
-            continue;
-        }
-        let long = arg.get_long().map(|value| format!("--{value}"));
-        let short = arg.get_short().map(|value| format!("-{value}"));
-        let help = arg.get_help().map(ToString::to_string).unwrap_or_default();
-        let default_value = arg
-            .get_default_values()
-            .first()
-            .map(|v| v.to_string_lossy().into_owned());
-        let choices: Vec<_> = arg
-            .get_possible_values()
-            .iter()
-            .filter(|v| !v.is_hide_set())
-            .map(|v| v.get_name().to_owned())
-            .collect();
-        if long.is_none() && short.is_none() {
-            arguments.push(ArgumentModel {
-                name: name.to_owned(),
-                help,
-                required: arg.is_required_set(),
-                default_value,
-                choices,
-            });
-        } else {
-            let range = arg.get_num_args();
-            options.push(OptionModel {
-                name: name.to_owned(),
-                long,
-                short,
-                help,
-                long_help: arg
-                    .get_long_help()
-                    .map(ToString::to_string)
-                    .unwrap_or_default(),
-                value_name: arg
-                    .get_value_names()
-                    .and_then(|names| names.first())
-                    .map(ToString::to_string),
-                required: arg.is_required_set(),
-                default_value,
-                choices,
-                min_values: range.map(|v| v.min_values()),
-                max_values: range.map(|v| v.max_values()),
-            });
-        }
-    }
-    options.sort_by(|a, b| a.name.cmp(&b.name));
-    arguments.sort_by(|a, b| a.name.cmp(&b.name));
+    let (options, arguments) = command_arguments(command);
     let mut subcommands: Vec<_> = command
         .get_subcommands()
         .filter(|c| !c.is_hide_set())
@@ -130,6 +78,74 @@ fn command_model(command: &Command, path: &str) -> CommandModel {
         options,
         arguments,
         subcommands,
+    }
+}
+
+fn command_arguments(command: &Command) -> (Vec<OptionModel>, Vec<ArgumentModel>) {
+    let mut options = Vec::new();
+    let mut arguments = Vec::new();
+    for arg in command.get_arguments().filter(|arg| !arg.is_hide_set()) {
+        let name = arg.get_id().as_str();
+        if name == "help" || name == "version" {
+            continue;
+        }
+        let long = arg.get_long().map(|value| format!("--{value}"));
+        let short = arg.get_short().map(|value| format!("-{value}"));
+        let help = arg.get_help().map(ToString::to_string).unwrap_or_default();
+        let default_value = arg
+            .get_default_values()
+            .first()
+            .map(|v| v.to_string_lossy().into_owned());
+        let choices = arg
+            .get_possible_values()
+            .iter()
+            .filter(|v| !v.is_hide_set())
+            .map(|v| v.get_name().to_owned())
+            .collect();
+        if long.is_none() && short.is_none() {
+            arguments.push(ArgumentModel {
+                name: name.to_owned(),
+                help,
+                required: arg.is_required_set(),
+                default_value,
+                choices,
+            });
+        } else {
+            options.push(option_model(arg, long, short, help, default_value, choices));
+        }
+    }
+    options.sort_by(|a, b| a.name.cmp(&b.name));
+    arguments.sort_by(|a, b| a.name.cmp(&b.name));
+    (options, arguments)
+}
+
+fn option_model(
+    arg: &clap::Arg,
+    long: Option<String>,
+    short: Option<String>,
+    help: String,
+    default_value: Option<String>,
+    choices: Vec<String>,
+) -> OptionModel {
+    let range = arg.get_num_args();
+    OptionModel {
+        name: arg.get_id().as_str().to_owned(),
+        long,
+        short,
+        help,
+        long_help: arg
+            .get_long_help()
+            .map(ToString::to_string)
+            .unwrap_or_default(),
+        value_name: arg
+            .get_value_names()
+            .and_then(|names| names.first())
+            .map(ToString::to_string),
+        required: arg.is_required_set(),
+        default_value,
+        choices,
+        min_values: range.map(|v| v.min_values()),
+        max_values: range.map(|v| v.max_values()),
     }
 }
 

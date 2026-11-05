@@ -76,10 +76,8 @@ fn boundary_dependency_violation_stays_non_pass_with_structured_finding() {
         String::from_utf8_lossy(&output.stderr),
         String::from_utf8_lossy(&output.stdout)
     );
-    assert_eq!(
-        payload["exit_status"].as_i64(),
-        output.status.code().map(i64::from)
-    );
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(payload["exit_status"], 10);
     assert_eq!(payload["raw_payload"]["command"], "lint.sc-boundary");
     assert_eq!(payload["raw_payload"]["data"]["status"], "fail");
     assert_eq!(payload["findings_count"], 1);
@@ -103,6 +101,33 @@ fn boundary_dependency_violation_stays_non_pass_with_structured_finding() {
     assert!(report_text.contains("findings"));
     assert!(report_text.contains("SCB-DEPENDENCY-001"));
     assert!(report_text.contains("boundary-api"));
+}
+
+#[test]
+fn boundary_invalid_configuration_is_distinct_from_native_findings() {
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-boundary",
+        name: "sc-sha-dependency-violation",
+        target: "sc-boundary",
+    });
+    let boundary = fixture.path.join("boundaries/sc-sha/boundary.toml");
+    let config = fs::read_to_string(&boundary).unwrap().replace(
+        "allowed_dependencies = []",
+        "allowed_dependencies = [\"missing-workspace-package\"]",
+    );
+    fs::write(boundary, config).unwrap();
+    let output = run_sc_boundary(&fixture);
+    let envelope = parse_stdout(&output);
+    let payload = &envelope["payload"];
+    assert_eq!(output.status.code(), Some(3));
+    assert_eq!(payload["outcome"], "config_error");
+    assert_eq!(payload["raw_payload"]["error"]["code"], "CLI.CONFIG_ERROR");
+    assert!(
+        payload["raw_payload"]["error"]["cause"]
+            .as_str()
+            .unwrap()
+            .contains("missing-workspace-package")
+    );
 }
 
 #[test]
