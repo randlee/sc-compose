@@ -46,6 +46,7 @@
     "scoop": {"workflow": "scoop-publish.yml", "dispatch_inputs": {}, "bucket_repository": "randlee/scoop-bucket", "manifest_path": "sc-compose.json", "manifest_template": "release/scoop/manifest.json.j2", "installer_target": "x86_64-pc-windows-msvc", "binary": "bin/sc-compose.exe", "renderer_target": "x86_64-unknown-linux-gnu"},
     "winget": {"workflow": "winget-publish.yml", "dispatch_inputs": {}, "identifier": "randlee.sc-compose", "installer_target": "x86_64-pc-windows-msvc"}
   },
+  "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "209681d096bd8bbfbddef51339b9323e0be5681a"},
   "preflight_checks": [
     {"id": "cli-reference-fresh", "description": "Generated CLI reference matches the live sc-compose model (docli)", "run": "python3 scripts/generate_cli_reference.py --check"}
   ]

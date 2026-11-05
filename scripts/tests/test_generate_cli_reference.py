@@ -109,6 +109,14 @@ class ConsumerPreflightTests(unittest.TestCase):
             with self.subTest(channel=name):
                 self.assertTrue((ROOT / ".github" / "workflows" / channel["workflow"]).is_file())
 
+    def test_installer_package_is_pinned_by_immutable_revision(self):
+        install = json.loads((ROOT / "release" / "sc-publish-install.json").read_text(encoding="utf-8"))
+        pin = install["sc_publish_pin"]
+        self.assertRegex(pin["revision"], r"^[0-9a-f]{40}$")
+        self.assertEqual(pin["repository"], "https://github.com/randlee/sc-publish")
+        recorded = tomllib.loads((ROOT / "release" / "sc-publish-pin.toml").read_text(encoding="utf-8"))
+        self.assertEqual(recorded["sc-publish"], pin)
+
     def test_consumer_preflight_rejects_stale_reference(self):
         with tempfile.TemporaryDirectory() as tmp:
             stage = Path(tmp)
