@@ -218,6 +218,12 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
+      - name: Set up Go for release-layout fixtures
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: bindings/sc-sha-go/go.mod
+          cache: false
+
       - name: Run controlled Go release-layout fixtures
         run: python3 bindings/sc-sha-go/tests/test_release_layout.py
 
