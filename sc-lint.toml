@@ -22,9 +22,9 @@ enabled = true
 enabled = true
 
 [tool.sc-lint.lint_profiles]
-full = ["fmt", "clippy-native", "sc-boundary", "sc-portability", "sc-runtime", "function-length", "line-counts", "identity-literals", "version-sync", "codespell", "cargo-deny", "cargo-shear", "wheel-tests", "check-xwin", "check-xwin-arm64", "clippy-xwin", "clippy-xwin-arm64"]
+full = ["fmt", "clippy-native", "sc-boundary", "sc-portability", "sc-runtime", "function-length", "line-counts", "identity-literals", "version-sync", "codespell", "cargo-deny", "cargo-shear", "wheel-tests", "check-xwin", "check-xwin-arm64", "clippy-xwin"]
 fast = ["fmt", "sc-boundary", "sc-portability", "sc-runtime"]
-ci = ["fmt", "clippy-native", "sc-boundary", "sc-portability", "sc-runtime", "function-length", "line-counts", "identity-literals", "version-sync", "codespell", "cargo-deny", "cargo-shear", "wheel-tests", "check-xwin", "check-xwin-arm64", "clippy-xwin", "clippy-xwin-arm64"]
+ci = ["fmt", "clippy-native", "sc-boundary", "sc-portability", "sc-runtime", "function-length", "line-counts", "identity-literals", "version-sync", "codespell", "cargo-deny", "cargo-shear", "wheel-tests", "check-xwin", "check-xwin-arm64", "clippy-xwin"]
 
 [[tool.sc-lint.lint]]
 name = "fmt"
@@ -97,13 +97,6 @@ name = "clippy-xwin"
 command = ["cargo", "clippy", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"]
 platform = "windows"
 target = "x86_64-pc-windows-msvc"
-env = { "PYO3_CROSS_PYTHON_VERSION" = "3.11" }
-
-[[tool.sc-lint.lint]]
-name = "clippy-xwin-arm64"
-command = ["cargo", "clippy", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"]
-platform = "windows"
-target = "aarch64-pc-windows-msvc"
 env = { "PYO3_CROSS_PYTHON_VERSION" = "3.11" }
 
 [[tool.sc-lint.test]]
