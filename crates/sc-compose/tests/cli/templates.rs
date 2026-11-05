@@ -735,6 +735,71 @@ fn templates_named_render_uses_array_of_objects_input_defaults_from_template_jso
 }
 
 #[test]
+fn templates_reject_names_that_escape_the_store() {
+    let root = temp_root("template-pack-name-containment");
+    let store = root.join("store");
+    let source = root.join("source.j2");
+    let source_dir = root.join("source-dir");
+    let outside = root.join("outside");
+    write_file(&source, "source content\n");
+    write_file(&source_dir.join("dir.j2"), "directory content\n");
+    write_file(&outside.join("secret.j2"), "outside secret marker\n");
+    let absolute = root.join("absolute-escape").to_string_lossy().into_owned();
+    let names = [
+        "",
+        ".",
+        "..",
+        "../escape",
+        "nested/name",
+        "nested\\name",
+        "C:escape",
+        absolute.as_str(),
+    ];
+
+    for name in names {
+        for input in [&source, &source_dir] {
+            let output = sc_compose()
+                .args(["templates", "add"])
+                .arg(input)
+                .arg(name)
+                .env("SC_COMPOSE_TEMPLATE_DIR", &store)
+                .output()
+                .unwrap();
+            assert_eq!(output.status.code(), Some(3), "name={name:?} {output:?}");
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            assert!(stderr.contains("ERR_CONFIG_PARSE"), "{stderr}");
+            assert!(stderr.contains("use a single name"), "{stderr}");
+        }
+        let output = sc_compose()
+            .arg("templates")
+            .arg(name)
+            .env("SC_COMPOSE_TEMPLATE_DIR", &store)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(3), "name={name:?} {output:?}");
+        assert!(String::from_utf8_lossy(&output.stderr).contains("use a single name"));
+        assert!(!String::from_utf8_lossy(&output.stdout).contains("outside secret marker"));
+    }
+    let escaped_read = sc_compose()
+        .args(["templates", "../outside"])
+        .env("SC_COMPOSE_TEMPLATE_DIR", &store)
+        .output()
+        .unwrap();
+    assert_eq!(escaped_read.status.code(), Some(3));
+    assert!(!String::from_utf8_lossy(&escaped_read.stdout).contains("outside secret marker"));
+    let absolute_read = sc_compose()
+        .arg("templates")
+        .arg(&outside)
+        .env("SC_COMPOSE_TEMPLATE_DIR", &store)
+        .output()
+        .unwrap();
+    assert_eq!(absolute_read.status.code(), Some(3));
+    assert!(!String::from_utf8_lossy(&absolute_read.stdout).contains("outside secret marker"));
+    assert!(!root.join("escape").exists());
+    assert!(!root.join("absolute-escape").exists());
+}
+
+#[test]
 fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_defaults() {
     let root = temp_root("templates-add-dir");
     let templates_root = root.join("user-templates");

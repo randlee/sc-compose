@@ -193,6 +193,7 @@ impl TemplateStore {
             self.kind == StoreKind::Templates,
             "TemplateStore::get_template requires StoreKind::Templates"
         );
+        validate_pack_name(name).map_err(GetTemplateError::Parse)?;
         self.find_template_dir(name)
             .map(|path| load_template_pack(&path))
             .transpose()
@@ -216,6 +217,7 @@ impl TemplateStore {
             || default_pack_name(&source),
             std::borrow::ToOwned::to_owned,
         );
+        validate_pack_name(&pack_name).map_err(AddError::Other)?;
         let destination = self.source_dir.join(&pack_name);
         if destination.exists() {
             return Err(AddError::AlreadyExists { destination });
@@ -325,6 +327,22 @@ impl TemplateStore {
         let candidate = self.source_dir.join(name);
         candidate.is_dir().then_some(candidate)
     }
+}
+
+fn validate_pack_name(name: &str) -> Result<()> {
+    let bytes = name.as_bytes();
+    let drive_prefix = bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':';
+    if name.is_empty()
+        || name == "."
+        || name == ".."
+        || name.contains(['/', '\\', '\0'])
+        || drive_prefix
+    {
+        return Err(anyhow!(
+            "invalid template pack name {name:?}; use a single name without path separators or a drive prefix"
+        ));
+    }
+    Ok(())
 }
 
 fn load_template_pack(path: &Path) -> std::result::Result<TemplatePack, GetTemplateError> {
