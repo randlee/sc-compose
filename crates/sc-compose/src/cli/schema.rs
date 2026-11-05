@@ -21,6 +21,8 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    #[command(about = "Export the CLI reference model")]
+    Reference(ReferenceArgs),
     #[command(about = "Run an allowlisted sc-lint target and write its report")]
     Lint(ScLintArgs),
     #[command(about = "Show a feature manual, or list available manual topics")]
@@ -58,6 +60,15 @@ pub(crate) enum Command {
     ReportRenderMany(ReportRenderManyArgs),
     #[command(hide = true, name = "report-catalog")]
     ReportCatalog(ReportCatalogArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct ReferenceArgs {
+    #[arg(
+        long,
+        help = "Emit the reference model in the diagnostic JSON envelope"
+    )]
+    pub(crate) json: bool,
 }
 
 #[derive(Debug, Clone, Args)]

@@ -1,4 +1,5 @@
 mod cli;
+mod cli_reference;
 mod command_error;
 mod commands;
 mod exit_codes;

@@ -5,6 +5,7 @@ use super::{
 
 pub(crate) fn command_wants_json(command: &Command) -> bool {
     match command {
+        Command::Reference(args) => args.json,
         Command::Lint(args) => args.json,
         Command::Help(args) => args.json,
         Command::Render(args) => args.render.json,
