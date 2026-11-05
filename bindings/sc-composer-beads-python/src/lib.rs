@@ -8,13 +8,14 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
-    BeadComposeRequest, BeadOperation, BeadOutcome, BeadPourMode, BeadStage, BeadStageOutcome,
-    BeadStageReceipt, PourAuthorization, execute_bead_request,
+    BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome, BeadStageReceipt,
+    PourAuthorization, execute_bead_request,
 };
 use serde_json::Value;
 
 const REQUEST_STAGE: &str = "request";
 const RECEIPT_STAGE: &str = "receipt";
+const OUTPUT_STAGE: &str = "output";
 
 #[pyclass(extends = PyException, name = "BeadComposeError")]
 #[derive(Debug)]
@@ -69,6 +70,15 @@ fn request_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
         py,
         RustBeadComposeError::REQUEST_DESERIALIZATION_FAILED_CODE,
         Some(REQUEST_STAGE),
+        message,
+    )
+}
+
+fn output_serialization_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
+    error(
+        py,
+        RustBeadComposeError::OUTPUT_SERIALIZATION_FAILED_CODE,
+        Some(OUTPUT_STAGE),
         message,
     )
 }
@@ -177,14 +187,14 @@ fn py_to_json(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<Value> {
 }
 
 fn json_to_py(py: Python<'_>, value: &Value) -> PyResult<Py<PyAny>> {
-    let serialized =
-        serde_json::to_string(value).map_err(|error| request_error(py, error.to_string()))?;
+    let serialized = serde_json::to_string(value)
+        .map_err(|error| output_serialization_error(py, error.to_string()))?;
     let json_module = py
         .import("json")
-        .map_err(|error| request_error(py, error.to_string()))?;
+        .map_err(|error| output_serialization_error(py, error.to_string()))?;
     let json = json_module
         .call_method1("loads", (serialized,))
-        .map_err(|error| request_error(py, error.to_string()))?
+        .map_err(|error| output_serialization_error(py, error.to_string()))?
         .unbind();
     Ok(json)
 }
@@ -398,19 +408,19 @@ fn outcome(inner: &BeadOutcome) -> PyBeadOutcome {
 
 impl PyBeadComposeReceipt {
     fn from_rust(py: Python<'_>, inner: BeadComposeReceipt) -> PyResult<Self> {
-        let wire =
-            serde_json::to_string(&inner).map_err(|error| request_error(py, error.to_string()))?;
+        let wire = serde_json::to_string(&inner)
+            .map_err(|error| output_serialization_error(py, error.to_string()))?;
         let graph = inner
             .graph
             .as_ref()
             .map(|graph| {
                 let value = serde_json::to_value(graph)
-                    .map_err(|error| request_error(py, error.to_string()))?;
+                    .map_err(|error| output_serialization_error(py, error.to_string()))?;
                 json_to_py(py, &value)
             })
             .transpose()?;
         let missing_edges = serde_json::to_value(&inner.missing_edges)
-            .map_err(|error| request_error(py, error.to_string()))?;
+            .map_err(|error| output_serialization_error(py, error.to_string()))?;
         let missing_edges = json_to_py(py, &missing_edges)?;
         Ok(Self {
             wire,
@@ -419,19 +429,11 @@ impl PyBeadComposeReceipt {
             rendered_formula: inner.rendered_formula.display().to_string(),
             stages: inner.stages.iter().map(stage_receipt).collect(),
             outcome: outcome(&inner.outcome),
-            pour_mode: inner.pour_mode.map(serde_variant_name),
+            pour_mode: inner.pour_mode.map(|mode| mode.as_str().to_owned()),
             graph,
             missing_edges,
         })
     }
-}
-
-fn serde_variant_name(mode: BeadPourMode) -> String {
-    serde_json::to_value(mode)
-        .expect("serializing a serde enum to a JSON value must succeed")
-        .as_str()
-        .expect("serde enum representation must be a string")
-        .to_owned()
 }
 
 #[pyclass(name = "BeadComposeRequest")]
@@ -580,7 +582,7 @@ impl PyBeadComposeRequest {
     #[getter]
     fn relations(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let relations = serde_json::to_value(&self.inner.relations)
-            .map_err(|error| request_error(py, error.to_string()))?;
+            .map_err(|error| output_serialization_error(py, error.to_string()))?;
         json_to_py(py, &relations)
     }
 }
@@ -715,17 +717,27 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::*;
+    use sc_composer_beads::BeadPourMode;
     use serde_json::json;
 
     #[test]
-    fn serde_variant_name_matches_contract_wire_values() {
+    fn output_serialization_code_is_registered() {
+        assert!(
+            include_str!("../../../docs/error-code-registry.md")
+                .contains(RustBeadComposeError::OUTPUT_SERIALIZATION_FAILED_CODE)
+        );
+        assert_eq!(OUTPUT_STAGE, "output");
+    }
+
+    #[test]
+    fn pour_mode_as_str_matches_contract_wire_values() {
         for (mode, expected) in [
             (BeadPourMode::Registry, "registry"),
             (BeadPourMode::Graph, "graph"),
         ] {
             let serde_value = serde_json::to_value(mode).expect("pour mode serializes");
             assert_eq!(
-                serde_variant_name(mode),
+                mode.as_str(),
                 serde_value
                     .as_str()
                     .expect("pour mode serializes as a string")
