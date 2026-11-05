@@ -55,6 +55,12 @@ No ATM runtime dependency or duplicate parser/framework is introduced.
 
 ## Phase V design contract
 
+The public sc-composer ComposeRequest in crates/sc-composer/src/types.rs
+gets no new public field; its existing layout is unchanged. The additive
+BeadRenderBy and BeadExecutionOptions types are defined in
+crates/sc-composer-beads/src/contract.rs and re-exported from lib.rs;
+options/runner entrypoints are in execute.rs. BeadComposeRequest is unchanged.
+
 The request layout stays unchanged. Rendering owner and strictness are
 additive execution options; the existing functions delegate to the same
 engine with the advanced default. Explicit Bd options select the preserved

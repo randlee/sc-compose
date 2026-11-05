@@ -2204,3 +2204,8 @@ the V4 baseline; V3 Beads uses V1/V2 and V9 Go adapter uses V2. V5 ABI adapters 
 V6 composes V5/V8/V9; V7 validates the exact final candidate. Maximum usable
 width is three and critical path six. The Beads/index remain authoritative;
 this pointer is not a second sprint checklist.
+
+Planning documents and atm-bd configuration land through plan/phase-v ->
+develop. Implementation sprint/fix PRs stack on integrate/phase-v under
+sc-gh-stack/atm-bd-orchestration; the integration branch returns to develop
+only after Phase V implementation and phase-ending review are complete.

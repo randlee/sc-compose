@@ -524,6 +524,10 @@ Each block may be empty. Ordering is never caller-defined.
 
 ### FR-7: CLI Surface
 
+The Phase V `reference --json` command exposes the actual live command model
+for FR-26 through the normal envelope; its payload.model contract is in
+[architecture.md](architecture.md#phase-v-external-documentation-adapter-contract).
+
 `sc-compose` must provide these commands:
 
 - `render`
@@ -1524,6 +1528,9 @@ not a local vendored fork. No public publication occurs during recovery.
 FR-25.4: Run the full integration install matrix only via workflow_dispatch,
 with real Windows x64/arm64 execution on GitHub. Normal sprint CI uses the
 small cached-wheel install path and current-only byte regression command.
+Windows amd64 and manylinux integration runs belong only to the manual
+integration/preflight workflow; ordinary native Windows unit checks do not
+constitute those integration runs.
 Before publication, require a successful matrix on the final publication
 candidate/version and the exact retained artifact bytes; an earlier upgrade
 run cannot cover later code changes. Check every selected release
@@ -1692,6 +1699,25 @@ for string-valued CLI --var inputs; do not treat the nonempty string "false"
 as a boolean false. Test typed true/false and documented string flag forms,
 including literal brace data, real stored nodes/edges and idempotent replays.
 
+#### FR-24.36 — Beads identifiers, paths and diagnostics
+
+Carry the Phase U ANC-012/013 and ANC-036–048 behaviors into Phase V.
+Option-like bead identifiers reach bd as identifier arguments, never options.
+Recovery commands shell-quote literal arguments and escape control, zero-width
+and bidi characters; human attach refusals escape identifier controls.
+Attach graph references match `[A-Za-z0-9_-]{1,32}`, relation step identifiers
+match `[A-Za-z0-9_]{1,64}`, and bd dependency types match
+`[A-Za-z][A-Za-z0-9_-]*` before graph mutation planning. Empty parent/relation
+bead identifiers, or ones containing whitespace/control characters, are refused.
+Rendered-formula destinations with a missing/file parent, or equal to the
+input template, fail before invoking bd. A blocked graph-plan output names
+the failing path in human output and `graph_plan` in JSON `details.field`.
+A missing non-UTF8 request path returns `BEADS_REQUEST_READ_FAILED` without
+breaking diagnostic formatting. Request-shape and pour-authorization errors
+precede graph-identifier errors. Pair each refusal with a permitted input;
+do not extend these graph constraints into a generic template-input ban.
+Existing valid bd-compatible inputs remain accepted.
+
 #### Existing FR-24 cross-references
 
 The former background ids remain references to the approved behavior above:
@@ -1789,6 +1815,7 @@ in comp's report; none is presented as an implemented advanced-mode test.
 ### FR-26: External CLI Documentation in Publish Preflight
 
 User-directed docli behavior is also recorded in anchors ANC-014–016.
+The producer is sc-compose reference --json; consumers extract payload.model.
 Use sc-docli as an external CLI-documentation tool, never a workspace crate
 dependency or a competing in-process documentation engine. Generate and check
 references from the actual Clap model. Every publish path invokes the tool
@@ -2392,3 +2419,114 @@ Required integration coverage includes:
 - Multi-panel HTML/XHTML report expansion and wrapper-level output viewing
   behavior remain deferred to the follow-on design track in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)
+
+#### Phase U requirement carry-forward into Phase V
+
+Phase V replaces Phase U. The complete handoff is team-lead ATM
+01M6MK6NABQXTQE42BA3JB6JB7, `phase-u-all-requirements.md` (2026-11-04),
+covering 53 locked and 34 proposed entries plus the 24 approved Beads items.
+All 87 entries are accounted for below. “Proposed” anchor status does not
+remove its underlying requirement. Anchor judge confidence is review evidence,
+not proof of implementation or a reason to discard a requirement.
+The user corrections override stale source copies: advanced rendering is the
+default, Python starts at 3.9 (Windows ARM64 3.11), and historical recovery
+paths/cases require verification. Literal delimiter-bearing values remain
+literal data; “no template expression” means no executable expression delegated
+to bd, not a ban on those data bytes. The old Phase U sprint order is replaced
+by the Phase V Beads graph; its product obligations are retained.
+
+The intended post-phase release is **1.8.0**. Phase V prepares and rehearses
+its delivery, without production publishing. Every sprint uses controlled,
+deterministic tests; every Windows-target cross-build/check uses `cargo xwin`.
+This table locates requirement ownership; it adds no extra CI gate, ledger,
+review round or duplicate implementation obligation.
+
+| Source entry | Canonical contract | Owning sprint | Disposition |
+| --- | --- | --- | --- |
+| ANC-001 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-002 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-003 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-004 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-014 | FR-26 | V8 | Carried: external docli adapter in V8; publish/preflight wiring in V6. |
+| ANC-015 | FR-26 | V6 | Carried: external docli adapter in V8; publish/preflight wiring in V6. |
+| ANC-016 | FR-26 | V6 | Carried: external docli adapter in V8; publish/preflight wiring in V6. |
+| ANC-023 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
+| ANC-031 | FR-27 | V4 | Carried: codespell passes; legitimate project terms attributed/allowlisted. |
+| ANC-033 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
+| FR-25.1 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| FR-24.27 | FR-24.27 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.13a | FR-24.13 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.14a | FR-24.14 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.15a | FR-24.15 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.19a | FR-24.19 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.21b | FR-24.21 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.8a | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.8c | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.22a | FR-24.22 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2a | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2b | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2d | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.26b | FR-24.26 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.7a | FR-24.7 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.7b | FR-24.7 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.10a | FR-24.10 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.28b | FR-24.28 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.29b | FR-24.29 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.20a | FR-24.20 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.20b | FR-24.20 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.20c | FR-24.20 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.21a | FR-24.21 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.22b | FR-24.22 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.22c | FR-24.22 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.22d | FR-24.22 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.23b | FR-24.23 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.13b | FR-24.13 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2c | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2f | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.25a | FR-24.25 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.23a | FR-24.23 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2e | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.26a | FR-24.26 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.28a | FR-24.28 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.8b | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.8d | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.24b | FR-24.24 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.30a | FR-24.30 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.31a | FR-24.31 | V7 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.32a | FR-24.32 | V7 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.24c | FR-24.24 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.29a | FR-24.29 | V3 | Carried; V7 reruns the applicable final regressions. |
+| ANC-005 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-006 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-007 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-012 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-013 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-017 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-018 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-019 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-020 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-021 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-022 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-024 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
+| ANC-025 | FR-24.31–32 | V7 | Carried: final historical fuzz and corpus regression checks. |
+| ANC-026 | FR-24.30 | V3 | Carried: canonical requirements/ADR plus worked bead manual examples. |
+| ANC-027 | Phase V release boundary | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
+| ANC-028 | Phase V release boundary | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
+| ANC-029 | Phase V standing constraints | All sprints | Carried: deterministic controlled tests; every Windows cross-build/check uses cargo xwin. |
+| ANC-030 | Phase V standing constraints | All sprints | Carried: deterministic controlled tests; every Windows cross-build/check uses cargo xwin. |
+| ANC-034 | FR-25.2 | V5 | Superseded: Python 3.9+, Windows ARM64 3.11+ (user correction). |
+| ANC-036 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-037 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-038 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-039 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-040 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-041 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-042 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-043 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-044 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-045 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-046 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-047 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-048 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| FR-24.24 | FR-24.13, FR-24.24 | V3 | Superseded default wording: exact v1.7.0 compatibility is selected with --render-by bd. |
+| FR-24.32 | FR-24.32 | V7 | Carried; V7 reruns the applicable final regressions. |
