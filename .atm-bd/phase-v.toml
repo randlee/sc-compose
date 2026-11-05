@@ -1,6 +1,6 @@
-# V2/V8 implementation is independent of whole-V4 completion.
-# Their live sanity beads retain the V4 sanity prerequisite; all validation
-# and green landing checks remain required. Use the pushed V4 artifact baseline.
+# V2/V8 implementation and scoped validation are independent of V4 completion.
+# Use the pushed V4 artifact baseline; retain required feature tests.
+# sc-lint validation belongs to V4 and phase acceptance; green landing checks remain.
 plan = "docs/plans/phase-v/phase-v.jsonl"
 root = "comp-phase-v"
 integration_branch = "integrate/phase-v"
