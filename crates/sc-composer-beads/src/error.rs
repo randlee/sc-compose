@@ -555,6 +555,10 @@ impl BeadComposeError {
     pub const RECEIPT_DESERIALIZATION_FAILED_CODE: &'static str =
         "BEADS_RECEIPT_DESERIALIZATION_FAILED";
 
+    /// Stable code an adapter reports when it cannot serialize a value it is
+    /// returning to its caller (a receipt, graph or request field).
+    pub const OUTPUT_SERIALIZATION_FAILED_CODE: &'static str = "BEADS_OUTPUT_SERIALIZATION_FAILED";
+
     /// Every `BEADS_GRAPH_*` code, in ADR-0023 table order.
     pub const GRAPH_CODES: &'static [&'static str] = &[
         Self::GRAPH_PARENT_NOT_FOUND_CODE,
