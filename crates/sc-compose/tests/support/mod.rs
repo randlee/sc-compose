@@ -139,6 +139,11 @@ impl ScComposeCommand {
         self
     }
 
+    pub fn env_remove<K: AsRef<OsStr>>(&mut self, key: K) -> &mut Self {
+        self.command.env_remove(key);
+        self
+    }
+
     pub fn stdin(&mut self, cfg: Stdio) -> &mut Self {
         self.command.stdin(cfg);
         self
@@ -163,6 +168,54 @@ pub fn sc_compose() -> ScComposeCommand {
     let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
     command.env("SC_LOG_ROOT", &log_root.path);
     ScComposeCommand { command, log_root }
+}
+
+/// Put the consumer's installed wheel interpreter on PATH for isolated roots.
+pub fn installed_sc_lint_path(prefix: Option<&Path>) -> std::ffi::OsString {
+    let scripts =
+        repo_root()
+            .join(".sc-lint/venv")
+            .join(if cfg!(windows) { "Scripts" } else { "bin" });
+    let python = scripts.join(if cfg!(windows) {
+        "python.exe"
+    } else {
+        "python3"
+    });
+    assert!(
+        python.is_file(),
+        "run just setup to install the pinned sc-lint wheel: {}",
+        python.display()
+    );
+    let install: Value = serde_json::from_slice(
+        &fs::read(repo_root().join(".sc-lint/install.json")).expect("sc-lint install input"),
+    )
+    .expect("sc-lint install input JSON");
+    let version = install["minimum_version"]
+        .as_str()
+        .expect("configured sc-lint version");
+    let result = Command::new(&python)
+        .env_remove("PYTHONPATH")
+        .args([
+            "-c",
+            "import importlib.metadata, sys; assert importlib.metadata.version('sc-lint') == sys.argv[1]",
+            version,
+        ])
+        .output()
+        .expect("run the managed sc-lint interpreter");
+    assert!(
+        result.status.success(),
+        "the managed interpreter must contain sc-lint {version}: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let mut paths = Vec::new();
+    if let Some(prefix) = prefix {
+        paths.push(prefix.to_path_buf());
+    }
+    paths.push(scripts);
+    if let Some(existing) = std::env::var_os("PATH") {
+        paths.extend(std::env::split_paths(&existing));
+    }
+    std::env::join_paths(paths).expect("managed sc-lint PATH")
 }
 
 pub fn sc_lint_just_root(required_files: &[&str]) -> PathBuf {

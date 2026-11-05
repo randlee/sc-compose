@@ -134,9 +134,7 @@ pub(crate) fn run_sc_lint(
         run_external_sc_lint(root, &id, &args)?
     };
     let outcome = classify_outcome(&raw_payload, exit_status);
-    let findings = raw_payload
-        .get("data")
-        .and_then(|data| data.get("findings"))
+    let findings = payload_findings(&raw_payload)
         .cloned()
         .unwrap_or_else(|| Value::Array(Vec::new()));
     let findings_count = findings.as_array().map_or(0, Vec::len);
@@ -395,11 +393,20 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
     if code.contains("CAPABILITY") {
         return ScLintOutcome::CapabilityError;
     }
-    let findings = payload
-        .get("data")
-        .and_then(|data| data.get("findings"))
+    let findings = payload_findings(payload)
         .and_then(Value::as_array)
         .map_or(0, Vec::len);
+    let reported_finding_failure = findings > 0
+        && ((payload.get("ok").and_then(Value::as_bool) == Some(true) && exit_status == Some(10))
+            || (exit_status == Some(5)
+                && code == "CLI.BACKEND_EXEC_FAILURE"
+                && payload
+                    .pointer("/error/details/status")
+                    .and_then(Value::as_str)
+                    == Some("fail")));
+    if reported_finding_failure {
+        return ScLintOutcome::Findings;
+    }
     if payload.get("ok").and_then(Value::as_bool) == Some(true) && exit_status == Some(0) {
         if findings == 0 {
             ScLintOutcome::Pass
@@ -409,6 +416,18 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
     } else {
         ScLintOutcome::Failed
     }
+}
+
+fn payload_findings(payload: &Value) -> Option<&Value> {
+    payload.pointer("/data/findings").or_else(|| {
+        (payload.pointer("/error/code").and_then(Value::as_str) == Some("CLI.BACKEND_EXEC_FAILURE")
+            && payload
+                .pointer("/error/details/status")
+                .and_then(Value::as_str)
+                == Some("fail"))
+        .then(|| payload.pointer("/error/details/findings"))
+        .flatten()
+    })
 }
 
 fn normalize_diagnostics(mut diagnostics: Value, outcome: ScLintOutcome) -> Value {
@@ -475,7 +494,10 @@ fn html_escape(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{ScLintOutcome, classify_outcome, command_args, descriptor_target, lint_exit_code};
+    use super::{
+        ScLintOutcome, classify_outcome, command_args, descriptor_target, lint_exit_code,
+        payload_findings,
+    };
     use serde_json::json;
 
     #[test]
@@ -492,6 +514,32 @@ mod tests {
 
     #[test]
     fn outcome_distinguishes_pass_findings_and_error_classes() {
+        let error_findings = json!({"ok": false, "error": {"code": "CLI.BACKEND_EXEC_FAILURE", "details": {"status": "fail", "findings": [{"rule_id": "RULE-1", "path": "src/lib.rs"}]}}});
+        assert_eq!(
+            payload_findings(&error_findings).unwrap()[0]["rule_id"],
+            "RULE-1"
+        );
+        assert_eq!(
+            classify_outcome(
+                &json!({"ok": false, "error": {"code": "CLI.BACKEND_EXEC_FAILURE", "details": {"status": "fail", "findings": [{"rule_id": "RULE-1"}]}}}),
+                Some(5)
+            ),
+            ScLintOutcome::Findings
+        );
+        assert_eq!(
+            classify_outcome(
+                &json!({"ok": false, "error": {"code": "CLI.BACKEND_EXEC_FAILURE", "details": {"status": "fail", "findings": []}}}),
+                Some(5)
+            ),
+            ScLintOutcome::Failed
+        );
+        assert_eq!(
+            classify_outcome(
+                &json!({"ok": false, "error": {"code": "CLI.CONFIG_ERROR", "details": {"status": "fail", "findings": ["bad"]}}}),
+                Some(3)
+            ),
+            ScLintOutcome::ConfigError
+        );
         assert_eq!(
             classify_outcome(&json!({"ok": true, "data": {"findings": []}}), Some(0)),
             ScLintOutcome::Pass
