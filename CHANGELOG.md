@@ -33,7 +33,7 @@ All notable changes to this project will be documented in this file.
   compatibility vectors are unchanged.
 - Upgraded the Python bindings from PyO3 0.29 to 0.30 without an API change.
 - Upgraded UniFFI scaffolding to 0.31.2 while retaining
-  `uniffi-bindgen-go v0.7.1+v0.31.0` (ADR-0020 Amendment 1).
+  `uniffi-bindgen-go v0.7.1+v0.31.0` (ADR-0020).
 - Pinned MiniJinja to 2.18.0 to preserve template boolean rendering; upgraded
   `process-wrap` to 10.0.1.
 - Updated CI Actions and semver-compatible dependencies in the lockfile.
