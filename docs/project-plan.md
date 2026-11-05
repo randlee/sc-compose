@@ -2185,3 +2185,27 @@ The current follow-on implementation track is:
 - `docs/sprints/b15-reporting-runtime-cleanup.md`
   - follow-on cleanup sprint for dead reporting seams, duplicated helper
     removal, and report-runtime scope tightening
+
+## Phase V — recovery
+
+The live Beads epic `comp-phase-v` and its sprint containers are authoritative.
+Tracked configuration: `.atm-bd/phase-v.toml`; dependency index:
+`docs/phase-v.jsonl`; diagram: `docs/phase-v/phase-v-dag.html`.
+Base: current develop. Runtime order: sc-lint 0.8.5 migration, existing lint
+fixes, net dependency integration, advanced Beads behavior. Independent work
+runs concurrently only with disjoint owned paths and satisfied contracts.
+Quality-mgr reviews all 17 dependency-stack contributions, including code
+already in develop. Each original PR closes when review and any retained
+integration are complete, with its disposition recorded in the existing PR.
+
+Phase V now has nine real sprints. V1 contract verification and V4 migrated/
+lint-fixed baseline start independently. V2 dependencies and V8 tooling use
+the V4 baseline; V3 Beads uses V1/V2 and V9 Go adapter uses V2. V5 ABI adapters use V3;
+V6 composes V5/V8/V9; V7 validates the exact final candidate. Maximum usable
+width is three and critical path six. The Beads/index remain authoritative;
+this pointer is not a second sprint checklist.
+
+Planning documents and atm-bd configuration land through plan/phase-v ->
+develop. Implementation sprint/fix PRs stack on integrate/phase-v under
+sc-gh-stack/atm-bd-orchestration; the integration branch returns to develop
+only after Phase V implementation and phase-ending review are complete.

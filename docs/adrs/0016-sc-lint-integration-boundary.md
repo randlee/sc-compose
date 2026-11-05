@@ -15,7 +15,7 @@ sc-lint's analyzer or Python runner logic.
 
 ## Decision
 
-- Pin the supported external tool to sc-lint `0.4.0` and verify it through
+- Pin the supported external tool to sc-lint `0.8.5` and verify it through
   `sc-lint version --json`.
 - Keep sc-lint responsible for analyzer rules, dispatch, findings, and its
   machine-readable envelope. Keep sc-compose responsible for invocation,
@@ -49,3 +49,11 @@ rather than silently using a copied implementation.
 - [Phase L plan](../phase-L/phase-L-plan.md)
 - [sc-lint bootstrap contract](../phase-L/sc-lint-bootstrap-contract.md)
 - [sc-lint issue #83](https://github.com/randlee/sc-lint/issues/83)
+
+## Phase V amendment — 2026-11-04
+
+The user selected released sc-lint 0.8.5 and requires migration followed by
+fixing existing violations before dependency integration. FR-27 governs this
+upgrade. The historical 0.4.0 context above is not the current pin. Verify the
+actual installed version and preserve correct ownership records and failures;
+do not patch the upstream analyzer or relax enforcement to obtain a pass.
