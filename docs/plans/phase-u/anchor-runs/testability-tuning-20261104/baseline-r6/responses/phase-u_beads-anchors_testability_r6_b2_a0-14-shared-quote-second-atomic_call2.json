@@ -1,0 +1,64 @@
+{
+ "attempts": 1,
+ "request_sha256": "03bbf548e2b070c60272a5d162c097ad94bbe0ee13feb90c5f8e7f3f2b1b0aac",
+ "response": {
+  "answers": {
+   "faithful": {
+    "choice": "yes",
+    "confidence": 0.38,
+    "probabilities": {
+     "no": 0.41,
+     "unclear": 0.0,
+     "yes": 0.59
+    },
+    "type": "choice"
+   },
+   "observable": {
+    "choice": "yes",
+    "confidence": 0.68,
+    "probabilities": {
+     "no": 0.18,
+     "unclear": 0.03,
+     "yes": 0.79
+    },
+    "type": "choice"
+   },
+   "scoped": {
+    "choice": "yes",
+    "confidence": 1.0,
+    "probabilities": {
+     "no": 0.0,
+     "unclear": 0.0,
+     "yes": 1.0
+    },
+    "type": "choice"
+   },
+   "self_contained": {
+    "choice": "yes",
+    "confidence": 0.46,
+    "probabilities": {
+     "no": 0.35,
+     "unclear": 0.01,
+     "yes": 0.64
+    },
+    "type": "choice"
+   },
+   "single_constraint": {
+    "choice": "yes",
+    "confidence": 0.6,
+    "probabilities": {
+     "no": 0.27,
+     "unclear": 0.0,
+     "yes": 0.73
+    },
+    "type": "choice"
+   }
+  },
+  "model": "jev-1.14.0",
+  "usage": {
+   "input_tokens": 1191,
+   "output_tokens": 189
+  }
+ },
+ "run_id": "phase-u:beads-anchors:testability:r6:b2:a0-14-shared-quote-second-atomic:call2"
+}

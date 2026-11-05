@@ -1,0 +1,9639 @@
+{
+ "rounds": [
+  "6"
+ ],
+ "candidates": {
+  "r6:b0:single_constraint": {
+   "exact": 36,
+   "confident": 36,
+   "stable": 36,
+   "total": 36,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 0.79,
+   "mean_conf": 0.9575,
+   "below_ref_0_8": 1,
+   "accepted": true,
+   "complexity_chars": 1047
+  },
+  "r6:b0:observable": {
+   "exact": 36,
+   "confident": 35,
+   "stable": 36,
+   "total": 36,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a5-03-identified-corpus-inline-exceptions",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.52
+      ],
+      [
+       "yes",
+       0.48
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.48,
+   "mean_conf": 0.9203,
+   "below_ref_0_8": 12,
+   "accepted": false,
+   "complexity_chars": 1121
+  },
+  "r6:b0:faithful": {
+   "exact": 36,
+   "confident": 34,
+   "stable": 36,
+   "total": 36,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a0-14-shared-quote-second-atomic",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.66
+      ],
+      [
+       "yes",
+       0.58
+      ]
+     ]
+    },
+    {
+     "case": "a5-01-tagged-release-baseline",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.4
+      ],
+      [
+       "yes",
+       0.28
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.28,
+   "mean_conf": 0.8642,
+   "below_ref_0_8": 14,
+   "accepted": false,
+   "complexity_chars": 1230
+  },
+  "r6:b0:scoped": {
+   "exact": 36,
+   "confident": 36,
+   "stable": 36,
+   "total": 36,
+   "third": 0,
+   "mismatches": [],
+   "min_conf": 1.0,
+   "mean_conf": 1.0,
+   "below_ref_0_8": 0,
+   "accepted": true,
+   "complexity_chars": 560
+  },
+  "r6:b0:self_contained": {
+   "exact": 35,
+   "confident": 35,
+   "stable": 36,
+   "total": 36,
+   "third": 0,
+   "mismatches": [
+    {
+     "case": "a5-03-identified-corpus-inline-exceptions",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.28
+      ],
+      [
+       "no",
+       0.3
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.28,
+   "mean_conf": 0.8814,
+   "below_ref_0_8": 15,
+   "accepted": false,
+   "complexity_chars": 1292
+  },
+  "r6:b1:single_constraint": {
+   "exact": 36,
+   "confident": 35,
+   "stable": 36,
+   "total": 36,
+   "third": 1,
+   "mismatches": [
+    {
+     "case": "a0-10-api-key-redaction",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.5
+      ],
+      [
+       "yes",
+       0.56
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.5,
+   "mean_conf": 0.9646,
+   "below_ref_0_8": 3,
+   "accepted": false,
+   "complexity_chars": 798
+  },
+  "r6:b1:observable": {
+   "exact": 36,
+   "confident": 34,
+   "stable": 36,
+   "total": 36,
+   "third": 1,
+   "mismatches": [
+    {
+     "case": "a3-08-unrecorded-signoff",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.49
+      ],
+      [
+       "no",
+       0.55
+      ]
+     ]
+    },
+    {
+     "case": "a4-05-buried-undefined-label",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.49
+      ],
+      [
+       "no",
+       0.58
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.49,
+   "mean_conf": 0.9244,
+   "below_ref_0_8": 8,
+   "accepted": false,
+   "complexity_chars": 1098
+  },
+  "r6:b1:faithful": {
+   "exact": 35,
+   "confident": 30,
+   "stable": 35,
+   "total": 36,
+   "third": 1,
+   "mismatches": [
+    {
+     "case": "a0-02-valid-prohibition",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.52
+      ],
+      [
+       "yes",
+       0.46
+      ]
+     ]
+    },
+    {
+     "case": "a0-04-global-scope",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.5
+      ],
+      [
+       "yes",
+       0.44
+      ]
+     ]
+    },
+    {
+     "case": "a0-16-duplicate-second",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.35
+      ],
+      [
+       "yes",
+       0.33
+      ]
+     ]
+    },
+    {
+     "case": "a4-02-multi-commit-hashes",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.61
+      ],
+      [
+       "yes",
+       0.52
+      ]
+     ]
+    },
+    {
+     "case": "a5-01-tagged-release-baseline",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.53
+      ],
+      [
+       "yes",
+       0.34
+      ],
+      [
+       "no",
+       0.46
+      ]
+     ]
+    },
+    {
+     "case": "a5-04-unidentified-corpus-and-approvals",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.6
+      ],
+      [
+       "yes",
+       0.55
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.33,
+   "mean_conf": 0.8279,
+   "below_ref_0_8": 22,
+   "accepted": false,
+   "complexity_chars": 916
+  },
+  "r6:b1:scoped": {
+   "exact": 36,
+   "confident": 36,
+   "stable": 36,
+   "total": 36,
+   "third": 1,
+   "mismatches": [],
+   "min_conf": 0.89,
+   "mean_conf": 0.9936,
+   "below_ref_0_8": 0,
+   "accepted": true,
+   "complexity_chars": 476
+  },
+  "r6:b1:self_contained": {
+   "exact": 35,
+   "confident": 31,
+   "stable": 36,
+   "total": 36,
+   "third": 1,
+   "mismatches": [
+    {
+     "case": "a0-04-global-scope",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.62
+      ],
+      [
+       "yes",
+       0.58
+      ]
+     ]
+    },
+    {
+     "case": "a3-05-identified-expected-output",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.35
+      ],
+      [
+       "yes",
+       0.43
+      ]
+     ]
+    },
+    {
+     "case": "a3-08-unrecorded-signoff",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.61
+      ],
+      [
+       "no",
+       0.5
+      ]
+     ]
+    },
+    {
+     "case": "a3-09-recorded-approval",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.62
+      ],
+      [
+       "yes",
+       0.58
+      ]
+     ]
+    },
+    {
+     "case": "a4-05-buried-undefined-label",
+     "expected": "no",
+     "calls": [
+      [
+       "yes",
+       0.73
+      ],
+      [
+       "yes",
+       0.67
+      ]
+     ]
+    },
+    {
+     "case": "a5-03-identified-corpus-inline-exceptions",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.48
+      ],
+      [
+       "yes",
+       0.28
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.28,
+   "mean_conf": 0.8218,
+   "below_ref_0_8": 22,
+   "accepted": false,
+   "complexity_chars": 1050
+  },
+  "r6:b2:single_constraint": {
+   "exact": 36,
+   "confident": 33,
+   "stable": 36,
+   "total": 36,
+   "third": 1,
+   "mismatches": [
+    {
+     "case": "a0-10-api-key-redaction",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.62
+      ],
+      [
+       "yes",
+       0.52
+      ]
+     ]
+    },
+    {
+     "case": "a0-14-shared-quote-second-atomic",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.52
+      ],
+      [
+       "yes",
+       0.6
+      ],
+      [
+       "yes",
+       0.76
+      ]
+     ]
+    },
+    {
+     "case": "a5-02-unidentified-baseline",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.37
+      ],
+      [
+       "yes",
+       0.42
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.37,
+   "mean_conf": 0.8864,
+   "below_ref_0_8": 10,
+   "accepted": false,
+   "complexity_chars": 592
+  },
+  "r6:b2:observable": {
+   "exact": 35,
+   "confident": 33,
+   "stable": 36,
+   "total": 36,
+   "third": 1,
+   "mismatches": [
+    {
+     "case": "a0-06-genuinely-bundled",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.34
+      ],
+      [
+       "no",
+       0.26
+      ]
+     ]
+    },
+    {
+     "case": "a0-12-unrecorded-approval",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.33
+      ],
+      [
+       "no",
+       0.38
+      ]
+     ]
+    },
+    {
+     "case": "a4-05-buried-undefined-label",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.52
+      ],
+      [
+       "no",
+       0.43
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.26,
+   "mean_conf": 0.8507,
+   "below_ref_0_8": 14,
+   "accepted": false,
+   "complexity_chars": 863
+  },
+  "r6:b2:faithful": {
+   "exact": 32,
+   "confident": 27,
+   "stable": 35,
+   "total": 36,
+   "third": 1,
+   "mismatches": [
+    {
+     "case": "a0-04-global-scope",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.44
+      ],
+      [
+       "yes",
+       0.48
+      ]
+     ]
+    },
+    {
+     "case": "a0-13-shared-quote-first-atomic",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.38
+      ],
+      [
+       "no",
+       0.33
+      ]
+     ]
+    },
+    {
+     "case": "a0-14-shared-quote-second-atomic",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.28
+      ],
+      [
+       "yes",
+       0.38
+      ],
+      [
+       "yes",
+       0.3
+      ]
+     ]
+    },
+    {
+     "case": "a0-16-duplicate-second",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.3
+      ],
+      [
+       "no",
+       0.48
+      ]
+     ]
+    },
+    {
+     "case": "a3-04-caller-role-flag",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.52
+      ],
+      [
+       "yes",
+       0.49
+      ]
+     ]
+    },
+    {
+     "case": "a3-08-unrecorded-signoff",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.55
+      ],
+      [
+       "yes",
+       0.79
+      ]
+     ]
+    },
+    {
+     "case": "a3-09-recorded-approval",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.61
+      ],
+      [
+       "yes",
+       0.56
+      ]
+     ]
+    },
+    {
+     "case": "a4-06-buried-subjective-quality",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.7
+      ],
+      [
+       "yes",
+       0.52
+      ]
+     ]
+    },
+    {
+     "case": "a5-01-tagged-release-baseline",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.55
+      ],
+      [
+       "no",
+       0.56
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.28,
+   "mean_conf": 0.7821,
+   "below_ref_0_8": 28,
+   "accepted": false,
+   "complexity_chars": 701
+  },
+  "r6:b2:scoped": {
+   "exact": 36,
+   "confident": 36,
+   "stable": 36,
+   "total": 36,
+   "third": 1,
+   "mismatches": [],
+   "min_conf": 0.91,
+   "mean_conf": 0.9907,
+   "below_ref_0_8": 0,
+   "accepted": true,
+   "complexity_chars": 417
+  },
+  "r6:b2:self_contained": {
+   "exact": 32,
+   "confident": 18,
+   "stable": 36,
+   "total": 36,
+   "third": 1,
+   "mismatches": [
+    {
+     "case": "a0-02-valid-prohibition",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.43
+      ],
+      [
+       "yes",
+       0.28
+      ]
+     ]
+    },
+    {
+     "case": "a0-04-global-scope",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.55
+      ],
+      [
+       "yes",
+       0.52
+      ]
+     ]
+    },
+    {
+     "case": "a0-05-atomic-from-multi-directive",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.62
+      ],
+      [
+       "yes",
+       0.5
+      ]
+     ]
+    },
+    {
+     "case": "a0-06-genuinely-bundled",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.33
+      ],
+      [
+       "no",
+       0.25
+      ]
+     ]
+    },
+    {
+     "case": "a0-09-explicit-testable-condition",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.25
+      ],
+      [
+       "yes",
+       0.3
+      ]
+     ]
+    },
+    {
+     "case": "a0-10-api-key-redaction",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.31
+      ],
+      [
+       "yes",
+       0.42
+      ]
+     ]
+    },
+    {
+     "case": "a0-14-shared-quote-second-atomic",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.49
+      ],
+      [
+       "yes",
+       0.46
+      ],
+      [
+       "yes",
+       0.52
+      ]
+     ]
+    },
+    {
+     "case": "a0-16-duplicate-second",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.58
+      ],
+      [
+       "yes",
+       0.56
+      ]
+     ]
+    },
+    {
+     "case": "a0-17-nondeclarative-form",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.56
+      ],
+      [
+       "no",
+       0.58
+      ]
+     ]
+    },
+    {
+     "case": "a3-01-inline-defined-mode",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.46
+      ],
+      [
+       "yes",
+       0.52
+      ]
+     ]
+    },
+    {
+     "case": "a3-02-inline-defined-meaning",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.44
+      ],
+      [
+       "yes",
+       0.52
+      ]
+     ]
+    },
+    {
+     "case": "a3-03-product-command-name",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.5
+      ],
+      [
+       "yes",
+       0.55
+      ]
+     ]
+    },
+    {
+     "case": "a3-05-identified-expected-output",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.55
+      ],
+      [
+       "yes",
+       0.52
+      ]
+     ]
+    },
+    {
+     "case": "a3-09-recorded-approval",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.33
+      ],
+      [
+       "yes",
+       0.35
+      ]
+     ]
+    },
+    {
+     "case": "a4-01-multi-diagnostic-codes",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.37
+      ],
+      [
+       "no",
+       0.42
+      ]
+     ]
+    },
+    {
+     "case": "a4-03-report-id-record",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.48
+      ],
+      [
+       "yes",
+       0.48
+      ]
+     ]
+    },
+    {
+     "case": "a5-01-tagged-release-baseline",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.46
+      ],
+      [
+       "yes",
+       0.37
+      ]
+     ]
+    },
+    {
+     "case": "a5-03-identified-corpus-inline-exceptions",
+     "expected": "yes",
+     "calls": [
+      [
+       "no",
+       0.56
+      ],
+      [
+       "no",
+       0.74
+      ]
+     ]
+    }
+   ],
+   "min_conf": 0.25,
+   "mean_conf": 0.6449,
+   "below_ref_0_8": 52,
+   "accepted": false,
+   "complexity_chars": 814
+  }
+ },
+ "cells": [
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:single_constraint",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.76
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.97
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.96
+    ],
+    [
+     "no",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.67
+    ],
+    [
+     "no",
+     0.7
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.76
+    ],
+    [
+     "no",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.76
+    ],
+    [
+     "no",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.52
+    ],
+    [
+     "yes",
+     0.48
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b0:observable",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.88
+    ],
+    [
+     "no",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.66
+    ],
+    [
+     "yes",
+     0.58
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.76
+    ],
+    [
+     "yes",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.73
+    ],
+    [
+     "yes",
+     0.68
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.76
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.4
+    ],
+    [
+     "yes",
+     0.28
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:faithful",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:scoped",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.76
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.74
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.91
+    ],
+    [
+     "no",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.82
+    ],
+    [
+     "no",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.74
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.89
+    ],
+    [
+     "no",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.96
+    ],
+    [
+     "no",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.66
+    ],
+    [
+     "yes",
+     0.64
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.89
+    ],
+    [
+     "no",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.28
+    ],
+    [
+     "no",
+     0.3
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b0:self_contained",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.97
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.5
+    ],
+    [
+     "yes",
+     0.56
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:single_constraint",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.76
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.72
+    ],
+    [
+     "no",
+     0.68
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.49
+    ],
+    [
+     "no",
+     0.55
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.49
+    ],
+    [
+     "no",
+     0.58
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.97
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:observable",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.52
+    ],
+    [
+     "yes",
+     0.46
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.5
+    ],
+    [
+     "yes",
+     0.44
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.73
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.35
+    ],
+    [
+     "yes",
+     0.33
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.61
+    ],
+    [
+     "yes",
+     0.52
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.73
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.53
+    ],
+    [
+     "yes",
+     0.34
+    ],
+    [
+     "no",
+     0.46
+    ]
+   ],
+   "cell": "unstable"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.68
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:faithful",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.6
+    ],
+    [
+     "yes",
+     0.55
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:scoped",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.62
+    ],
+    [
+     "yes",
+     0.58
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.64
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.6
+    ],
+    [
+     "no",
+     0.62
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.73
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.35
+    ],
+    [
+     "yes",
+     0.43
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.61
+    ],
+    [
+     "no",
+     0.5
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.62
+    ],
+    [
+     "yes",
+     0.58
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "no",
+   "calls": [
+    [
+     "yes",
+     0.73
+    ],
+    [
+     "yes",
+     0.67
+    ]
+   ],
+   "cell": "needs_work"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.94
+    ],
+    [
+     "no",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.62
+    ],
+    [
+     "yes",
+     0.61
+    ],
+    [
+     "yes",
+     0.66
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.48
+    ],
+    [
+     "yes",
+     0.28
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b1:self_contained",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.97
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.62
+    ],
+    [
+     "yes",
+     0.52
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.52
+    ],
+    [
+     "yes",
+     0.6
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.79
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.7
+    ],
+    [
+     "yes",
+     0.7
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.37
+    ],
+    [
+     "yes",
+     0.42
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:single_constraint",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.34
+    ],
+    [
+     "no",
+     0.26
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.7
+    ],
+    [
+     "yes",
+     0.64
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.94
+    ],
+    [
+     "no",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.33
+    ],
+    [
+     "no",
+     0.38
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.68
+    ],
+    [
+     "yes",
+     0.77
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.85
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.76
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.82
+    ],
+    [
+     "no",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.96
+    ],
+    [
+     "no",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.64
+    ],
+    [
+     "no",
+     0.7
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.52
+    ],
+    [
+     "no",
+     0.43
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.97
+    ],
+    [
+     "no",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:observable",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.85
+    ],
+    [
+     "no",
+     0.82
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.92
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.44
+    ],
+    [
+     "yes",
+     0.48
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.82
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.96
+    ],
+    [
+     "no",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.85
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.38
+    ],
+    [
+     "no",
+     0.33
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.28
+    ],
+    [
+     "yes",
+     0.38
+    ],
+    [
+     "yes",
+     0.3
+    ]
+   ],
+   "cell": "unstable"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.3
+    ],
+    [
+     "no",
+     0.48
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.74
+    ],
+    [
+     "yes",
+     0.72
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.52
+    ],
+    [
+     "yes",
+     0.49
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.83
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.86
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.55
+    ],
+    [
+     "yes",
+     0.79
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.61
+    ],
+    [
+     "yes",
+     0.56
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.91
+    ],
+    [
+     "yes",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.88
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.76
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.73
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.7
+    ],
+    [
+     "yes",
+     0.52
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.55
+    ],
+    [
+     "no",
+     0.56
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.8
+    ],
+    [
+     "yes",
+     0.76
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:faithful",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.92
+    ],
+    [
+     "yes",
+     0.88
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-08-vague-outcome",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.94
+    ],
+    [
+     "yes",
+     0.91
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-11-private-shorthand",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.96
+    ],
+    [
+     "yes",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.97
+    ],
+    [
+     "yes",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     1.0
+    ],
+    [
+     "yes",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:scoped",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.98
+    ],
+    [
+     "yes",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-01-valid-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.68
+    ],
+    [
+     "yes",
+     0.8
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-02-valid-prohibition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.43
+    ],
+    [
+     "yes",
+     0.28
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-03-structural-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.67
+    ],
+    [
+     "yes",
+     0.62
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-04-global-scope",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.55
+    ],
+    [
+     "yes",
+     0.52
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-05-atomic-from-multi-directive",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.62
+    ],
+    [
+     "yes",
+     0.5
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-06-genuinely-bundled",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.33
+    ],
+    [
+     "no",
+     0.25
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-07-unsupported-elaboration",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.73
+    ],
+    [
+     "yes",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-08-vague-outcome",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-09-explicit-testable-condition",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.25
+    ],
+    [
+     "yes",
+     0.3
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-10-api-key-redaction",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.31
+    ],
+    [
+     "yes",
+     0.42
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-11-private-shorthand",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-12-unrecorded-approval",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.74
+    ],
+    [
+     "no",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-13-shared-quote-first-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.7
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-14-shared-quote-second-atomic",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.49
+    ],
+    [
+     "yes",
+     0.46
+    ],
+    [
+     "yes",
+     0.52
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-15-duplicate-first",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.61
+    ],
+    [
+     "yes",
+     0.6
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-16-duplicate-second",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.58
+    ],
+    [
+     "yes",
+     0.56
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a0-17-nondeclarative-form",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.56
+    ],
+    [
+     "no",
+     0.58
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a3-01-inline-defined-mode",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.46
+    ],
+    [
+     "yes",
+     0.52
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a3-02-inline-defined-meaning",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.44
+    ],
+    [
+     "yes",
+     0.52
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a3-03-product-command-name",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.5
+    ],
+    [
+     "yes",
+     0.55
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a3-04-caller-role-flag",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.77
+    ],
+    [
+     "yes",
+     0.83
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a3-05-identified-expected-output",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.55
+    ],
+    [
+     "yes",
+     0.52
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a3-06-undefined-mode-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.98
+    ],
+    [
+     "no",
+     0.96
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a3-07-unidentified-expected-output",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     1.0
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a3-08-unrecorded-signoff",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.83
+    ],
+    [
+     "no",
+     0.86
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a3-09-recorded-approval",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.33
+    ],
+    [
+     "yes",
+     0.35
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a4-01-multi-diagnostic-codes",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.37
+    ],
+    [
+     "no",
+     0.42
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a4-02-multi-commit-hashes",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.72
+    ],
+    [
+     "yes",
+     0.74
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a4-03-report-id-record",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.48
+    ],
+    [
+     "yes",
+     0.48
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a4-04-exact-file-list",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.89
+    ],
+    [
+     "yes",
+     0.89
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a4-05-buried-undefined-label",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.62
+    ],
+    [
+     "no",
+     0.64
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a4-06-buried-subjective-quality",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.94
+    ],
+    [
+     "no",
+     0.94
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a5-01-tagged-release-baseline",
+   "expected": "yes",
+   "calls": [
+    [
+     "yes",
+     0.46
+    ],
+    [
+     "yes",
+     0.37
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a5-02-unidentified-baseline",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     0.97
+    ],
+    [
+     "no",
+     0.97
+    ]
+   ],
+   "cell": "accepted"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a5-03-identified-corpus-inline-exceptions",
+   "expected": "yes",
+   "calls": [
+    [
+     "no",
+     0.56
+    ],
+    [
+     "no",
+     0.74
+    ]
+   ],
+   "cell": "inconclusive"
+  },
+  {
+   "candidate": "r6:b2:self_contained",
+   "case": "a5-04-unidentified-corpus-and-approvals",
+   "expected": "no",
+   "calls": [
+    [
+     "no",
+     1.0
+    ],
+    [
+     "no",
+     0.98
+    ]
+   ],
+   "cell": "accepted"
+  }
+ ]
+}

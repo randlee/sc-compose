@@ -68,6 +68,41 @@
             "plan_questions": "comp-jvn.1",
             "dev_questions": "comp-jvn.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:40+00:00",
+          "event": "excluded",
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:42+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:44+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -154,6 +189,52 @@
             "plan_questions": "comp-w29.1",
             "dev_questions": "comp-w29.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:20+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:40+00:00",
+          "event": "excluded",
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:45+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:33+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it."
         }
       ]
     },
@@ -240,6 +321,52 @@
             "plan_questions": "comp-i2f.1",
             "dev_questions": "comp-i2f.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:21+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:40+00:00",
+          "event": "excluded",
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:45+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:33+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it."
         }
       ]
     },
@@ -326,6 +453,52 @@
             "plan_questions": "comp-54p.1",
             "dev_questions": "comp-54p.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:21+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:40+00:00",
+          "event": "excluded",
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:45+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:34+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it."
         }
       ]
     },
@@ -743,6 +916,52 @@
             "plan_questions": "comp-bw1.1",
             "dev_questions": "comp-bw1.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:21+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-4 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:49+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:37+00:00",
+          "event": "excluded",
+          "item": "comp-v-3",
+          "reason": "Phase V assigns adding docli to comp-v-8 (comp-v-8 satisfies ANC-014 at 0.96); comp-v-3 does not touch command-line documentation generation.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:37+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns adding docli to comp-v-8 (comp-v-8 satisfies ANC-014 at 0.96); comp-v-4 only exports the command model that docli consumes.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-4 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-3",
+          "reason": "Phase V assigns adding docli to comp-v-8 (comp-v-8 satisfies ANC-014 at 0.96); comp-v-3 does not touch command-line documentation generation."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns adding docli to comp-v-8 (comp-v-8 satisfies ANC-014 at 0.96); comp-v-4 only exports the command model that docli consumes."
         }
       ]
     },
@@ -830,6 +1049,41 @@
             "plan_questions": "comp-le9.1",
             "dev_questions": "comp-le9.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:22+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:35+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:45+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -844,7 +1098,7 @@
       "stated_at": "2026-11-03",
       "context": "Proposed from524772f4:ANC-004; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
       "summary": "stale CLI docs block preflight",
-      "scope": "u-6/u-9 preflight configuration",
+      "scope": "An item that adds or changes sc-compose release preflight configuration or the checks release preflight runs.",
       "deterministic_check": "stale generated reference negative preflight test",
       "fixtures": {
         "pass": [
@@ -869,7 +1123,7 @@
           }
         }
       },
-      "version": 4,
+      "version": 5,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -916,6 +1170,48 @@
             "plan_questions": "comp-0qp.1",
             "dev_questions": "comp-0qp.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:06+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:33+00:00",
+          "event": "excluded",
+          "item": "comp-v-3",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-3 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:36+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:49+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-3",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-3 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-8 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -1144,14 +1440,14 @@
       "id": "ANC-023",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "The macOS/Windows/Linux x64/arm64 Rust/wheel/Go matrix, including supported wheel Python versions with pip and uv, must run only in preflight integration tests, excluded from routine sprint continuous integration.",
+      "statement": "The full build-and-install matrix (every supported artifact on every supported OS and architecture, plus each supported wheel Python version installed with pip and with uv) must run only in the integration tests release preflight requires, not in the CI workflow that runs on every push or pull request.",
       "quote": "I want ci running full matrix ONLY for integration test (required for preflight) NOT every sprint",
       "kind": "prohibition",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
       "context": "Proposed from524772f4:ANC-002; exact user quote, not locked; reviewed source definitions are evidence, not approval.",
       "summary": "full matrix only in integration test",
-      "scope": "sc-compose integration tests and preflight; Rand approved clarification YES via relay ATM01M6JJ70WRQYV1KCEDZZK6WGJW: full matrix includes all supported artifact/platform cells plus wheel Python-version and pip/uv install combinations; restricted to integration tests required by preflight, excluded from normal sprint continuous integration.",
+      "scope": "An item that adds or changes CI workflows, integration tests or release preflight runs that build or install sc-compose artifacts. The full matrix (Rand approved, relay ATM01M6JJ70WRQYV1KCEDZZK6WGJW) is every supported artifact/platform cell (macOS, Windows and Linux on x64 and arm64; Rust CLI archive, Python wheels, Go module) plus wheel Python-version and pip/uv install combinations.",
       "deterministic_check": "inspect triggers and preflight dependency; full install matrix is platform/Python/installer coverage",
       "fixtures": {
         "pass": [
@@ -1176,7 +1472,7 @@
           }
         }
       },
-      "version": 4,
+      "version": 7,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -1224,6 +1520,55 @@
             "plan_questions": "comp-81v.1",
             "dev_questions": "comp-81v.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:53+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "The macOS/Windows/Linux x64/arm64 Rust/wheel/Go matrix, including supported wheel Python versions with pip and uv, must run only in preflight integration tests, excluded from routine sprint continuous integration."
+        },
+        {
+          "at": "2026-11-05T01:20:06+00:00",
+          "event": "updated",
+          "fields": [
+            "statement",
+            "scope"
+          ],
+          "previous_statement": "The full build-and-install matrix (macOS, Windows and Linux on x64 and arm64; Rust CLI archive, Python wheels and Go module; supported wheel Python versions with pip and uv) must run only in the integration tests that release preflight requires, never in the CI workflow that runs on every push or pull request."
+        },
+        {
+          "at": "2026-11-05T01:21:01+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "The full build-and-install matrix must run only in the integration tests that release preflight requires, never in the CI workflow that runs on every push or pull request."
+        },
+        {
+          "at": "2026-11-05T01:25:34+00:00",
+          "event": "excluded",
+          "item": "comp-v-3",
+          "reason": "No Phase V sprint claims this for comp-v-3; Jev leans not relevant and the sprint does not change CI pipeline jobs.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:28:16+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "comp-v-4 changes the analyzer's unit CI, not the build-and-install matrix; it already keeps Windows amd64 and manylinux integration runs out of normal CI and in manual preflight.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-3",
+          "reason": "No Phase V sprint claims this for comp-v-3; Jev leans not relevant and the sprint does not change CI pipeline jobs."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "comp-v-4 changes the analyzer's unit CI, not the build-and-install matrix; it already keeps Windows amd64 and manylinux integration runs out of normal CI and in manual preflight."
         }
       ]
     },
@@ -1566,6 +1911,52 @@
             "plan_questions": "comp-hfk.1",
             "dev_questions": "comp-hfk.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:34+00:00",
+          "event": "excluded",
+          "item": "comp-v-3",
+          "reason": "Phase V assigns this requirement to comp-v-4 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-3 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:49+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-4 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:54+00:00",
+          "event": "excluded",
+          "item": "comp-v-8",
+          "reason": "Phase V assigns this requirement to comp-v-4 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-8 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:37+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns the codespell check to comp-v-4 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 does not change the spelling lint.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-3",
+          "reason": "Phase V assigns this requirement to comp-v-4 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-3 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-4 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-8",
+          "reason": "Phase V assigns this requirement to comp-v-4 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-8 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns the codespell check to comp-v-4 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 does not change the spelling lint."
         }
       ]
     },
@@ -1613,14 +2004,14 @@
       "id": "ANC-033",
       "source_type": "ANC",
       "source_ref": null,
-      "statement": "Normal CI pipeline runs must exclude the Windows amd64 and manylinux integration runs.",
+      "statement": "Windows amd64 and manylinux integration jobs must not be part of the CI workflow that runs on every push or pull request.",
       "quote": "you can run win amd64 and manylinux on github, but do not add them to the normal ci pipeline runs.",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-03",
       "context": "Proposed; source user transcript5764",
       "summary": "integration runs outside normal CI",
-      "scope": "u-8/u-9 full integration workflow",
+      "scope": "An item that adds or changes sc-compose CI workflows or the integration-test workflow, including which jobs run on Windows amd64 or manylinux.",
       "deterministic_check": "inspect CI invocation paths; does not ban ordinary Windows unit CI",
       "fixtures": {
         "pass": [
@@ -1645,7 +2036,7 @@
           }
         }
       },
-      "version": 3,
+      "version": 5,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -1684,6 +2075,45 @@
             "plan_questions": "comp-eh6.1",
             "dev_questions": "comp-eh6.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:54+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "Normal CI pipeline runs must exclude the Windows amd64 and manylinux integration runs."
+        },
+        {
+          "at": "2026-11-05T01:20:06+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:34+00:00",
+          "event": "excluded",
+          "item": "comp-v-3",
+          "reason": "No Phase V sprint claims this for comp-v-3; Jev leans not relevant and the sprint does not change CI pipeline jobs.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:55+00:00",
+          "event": "excluded",
+          "item": "comp-v-9",
+          "reason": "No Phase V sprint claims this for comp-v-9; Jev leans not relevant and the sprint does not change CI pipeline jobs.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-3",
+          "reason": "No Phase V sprint claims this for comp-v-3; Jev leans not relevant and the sprint does not change CI pipeline jobs."
+        },
+        {
+          "item": "comp-v-9",
+          "reason": "No Phase V sprint claims this for comp-v-9; Jev leans not relevant and the sprint does not change CI pipeline jobs."
         }
       ]
     },
@@ -2500,6 +2930,63 @@
             "plan_questions": "comp-69i.1",
             "dev_questions": "comp-69i.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:33+00:00",
+          "event": "excluded",
+          "item": "comp-v-2",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-2 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:35+00:00",
+          "event": "excluded",
+          "item": "comp-v-3",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-3 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:39+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:42+00:00",
+          "event": "excluded",
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:55+00:00",
+          "event": "excluded",
+          "item": "comp-v-9",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-9 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-2",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-2 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-3",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-3 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-9",
+          "reason": "Phase V assigns this requirement to comp-v-6 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-9 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -2948,14 +3435,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirements",
       "summary": "Approved Beads requirement 19",
-      "scope": "Phase U Beads rendering, graph and compatibility work",
+      "scope": "An item that implements, changes, tests or verifies how the sc-compose bead commands or sc-composer-beads create beads, including what happens when rendering or validation fails.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -2982,6 +3469,70 @@
             "plan_questions": "comp-80m.1",
             "dev_questions": "comp-80m.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:09+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:29+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:38+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:41+00:00",
+          "event": "excluded",
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:43+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:48+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3190,14 +3741,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (approved list item 1); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.13a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
       "summary": "Approved Beads requirement 1",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3219,6 +3770,48 @@
             "plan_questions": "comp-d63.1",
             "dev_questions": "comp-d63.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:06+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:23+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:50+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:35+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it."
         }
       ]
     },
@@ -3226,7 +3819,7 @@
       "id": "FR-24.14a",
       "source_type": "REQ",
       "source_ref": "FR-24.14a",
-      "statement": "The formula or graph that sc-compose sends to bd in advanced pour (the explicit opt-in mode in which sc-compose renders the template before bd runs) must contain no `{{`, `{%` or `{#` template expression.",
+      "statement": "In advanced pour (the default mode: `--render-by sc-compose`, or no `--render-by`), the formula or graph that sc-compose sends to bd must contain no `{{`, `{%` or `{#` template expression.",
       "quote": "In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.",
       "kind": "directive",
       "stated_by": "randlee",
@@ -3240,7 +3833,7 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3262,6 +3855,38 @@
             "plan_questions": "comp-ce8.1",
             "dev_questions": "comp-ce8.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:52+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "The formula or graph that sc-compose sends to bd in advanced pour (the explicit opt-in mode in which sc-compose renders the template before bd runs) must contain no `{{`, `{%` or `{#` template expression."
+        },
+        {
+          "at": "2026-11-05T01:25:24+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3269,7 +3894,7 @@
       "id": "FR-24.15a",
       "source_type": "REQ",
       "source_ref": "FR-24.15a",
-      "statement": "The bd command line that sc-compose runs in advanced pour (the explicit opt-in mode in which sc-compose renders the template before bd runs) must contain no `--var` argument.",
+      "statement": "In advanced pour, the default mode in which sc-compose renders the template before bd runs (`--render-by sc-compose`, or no `--render-by`), sc-compose must never pass a value to bd as a `--var` argument.",
       "quote": "In advanced pour, sc-compose never passes a value to bd as `--var`.",
       "kind": "directive",
       "stated_by": "randlee",
@@ -3283,7 +3908,7 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 3,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3305,6 +3930,46 @@
             "plan_questions": "comp-o72.1",
             "dev_questions": "comp-o72.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:52+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "The bd command line that sc-compose runs in advanced pour (the explicit opt-in mode in which sc-compose renders the template before bd runs) must contain no `--var` argument."
+        },
+        {
+          "at": "2026-11-05T01:20:58+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "In advanced pour (the default mode: `--render-by sc-compose`, or no `--render-by`), the bd command line that sc-compose runs must contain no `--var` argument."
+        },
+        {
+          "at": "2026-11-05T01:25:24+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3312,7 +3977,7 @@
       "id": "FR-24.19a",
       "source_type": "REQ",
       "source_ref": "FR-24.19a",
-      "statement": "When the caller asks sc-compose to render the template itself before bd runs, every field of each created bead, including its labels, must hold the rendered value when that bead is read back from bd.",
+      "statement": "In advanced pour, the default mode in which sc-compose renders the template before bd runs (`--render-by sc-compose`, or no `--render-by`), every field of each bead that sc-compose creates, including its labels, must hold the rendered value when that bead is read back from bd.",
       "quote": "Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.",
       "kind": "directive",
       "stated_by": "randlee",
@@ -3326,7 +3991,7 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 3,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3348,6 +4013,46 @@
             "plan_questions": "comp-bat.1",
             "dev_questions": "comp-bat.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:52+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "When the caller asks sc-compose to render the template itself before bd runs, every field of each created bead, including its labels, must hold the rendered value when that bead is read back from bd."
+        },
+        {
+          "at": "2026-11-05T01:20:59+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "In advanced pour (the default mode: `--render-by sc-compose`, or no `--render-by`), every field of each bead that sc-compose creates, including its labels, must hold the rendered value when that bead is read back from bd."
+        },
+        {
+          "at": "2026-11-05T01:25:25+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:50+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3355,21 +4060,21 @@
       "id": "FR-24.21b",
       "source_type": "REQ",
       "source_ref": "FR-24.21b",
-      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the text of a default declared in an included template's frontmatter must stay literal.",
+      "statement": "With `--render-by sc-compose`, a default declared in an included template's frontmatter must be inserted as literal text: any `{{ }}` or `{% %}` in the default's text appears in the output unchanged.",
       "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (approved list item 9b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.21b.json; locked on user approval 2026-11-04 (\"1 - lock\")",
       "summary": "Approved Beads requirement 9b",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3391,6 +4096,42 @@
             "plan_questions": "comp-3vj.1",
             "dev_questions": "comp-3vj.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:52+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), the text of a default declared in an included template's frontmatter must stay literal."
+        },
+        {
+          "at": "2026-11-05T01:20:07+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:21:00+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "With `--render-by sc-compose`, when a default declared in an included template's frontmatter supplies a variable's value, the default's text must reach the output unchanged, with no template expression in it rendered."
+        },
+        {
+          "at": "2026-11-05T01:25:47+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3405,14 +4146,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (approved list item 10a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
       "summary": "Approved Beads requirement 10a",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3434,6 +4175,48 @@
             "plan_questions": "comp-oni.1",
             "dev_questions": "comp-oni.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:10+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:30+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:54+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:50:47+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 integrates delivery and the release matrix and does not implement bead-command behavior.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 integrates delivery and the release matrix and does not implement bead-command behavior."
         }
       ]
     },
@@ -3448,14 +4231,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (approved list item 10c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8c.json; locked on user approval 2026-11-04 (\"1 - lock\")",
       "summary": "Approved Beads requirement 10c",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3477,6 +4260,37 @@
             "plan_questions": "comp-2gc.1",
             "dev_questions": "comp-2gc.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:10+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:31+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:54+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3491,14 +4305,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (approved list item 11a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22a.json; locked on user approval 2026-11-04 (\"1 - lock\")",
       "summary": "Approved Beads requirement 11a",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3520,6 +4334,59 @@
             "plan_questions": "comp-de6.1",
             "dev_questions": "comp-de6.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:07+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:26+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:36+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:51+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:50:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 integrates delivery and the release matrix and does not implement bead-command behavior.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 integrates delivery and the release matrix and does not implement bead-command behavior."
         }
       ]
     },
@@ -3563,6 +4430,30 @@
             "plan_questions": "comp-4go.1",
             "dev_questions": "comp-4go.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:43+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:50:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-8",
+          "reason": "Phase V assigns the byte-regression check to comp-v-3, with CI wiring in comp-v-6 (comps reset dispositions); comp-v-8 builds publish tooling and does not touch it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-8",
+          "reason": "Phase V assigns the byte-regression check to comp-v-3, with CI wiring in comp-v-6 (comps reset dispositions); comp-v-8 builds publish tooling and does not touch it."
         }
       ]
     },
@@ -3584,8 +4475,8 @@
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
-      "status": "locked",
+      "version": 2,
+      "status": "retired",
       "promoted_to": null,
       "beads": {
         "anchor": "comp-q4m",
@@ -3606,6 +4497,12 @@
             "plan_questions": "comp-q4m.1",
             "dev_questions": "comp-q4m.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:54+00:00",
+          "event": "retired",
+          "replaced_by": "FR-24.2e",
+          "reason": "Duplicate of FR-24.2e: both require each approved-exceptions.json entry to link the issue recording the user's approval (same quote)."
         }
       ]
     },
@@ -3649,6 +4546,41 @@
             "plan_questions": "comp-kh7.1",
             "dev_questions": "comp-kh7.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:32+00:00",
+          "event": "excluded",
+          "item": "comp-v-2",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-2 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:44+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:53+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-2",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-2 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3663,14 +4595,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (approved list item 16b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.26b.json; locked on user approval 2026-11-04 (\"1 - lock\")",
       "summary": "Approved Beads requirement 16b",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3692,6 +4624,48 @@
             "plan_questions": "comp-xxx.1",
             "dev_questions": "comp-xxx.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:09+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:29+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:47+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:36+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it."
         }
       ]
     },
@@ -3735,6 +4709,30 @@
             "plan_questions": "comp-nss.1",
             "dev_questions": "comp-nss.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:30+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:48+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3778,6 +4776,30 @@
             "plan_questions": "comp-2zh.1",
             "dev_questions": "comp-2zh.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:30+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:54+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3821,6 +4843,41 @@
             "plan_questions": "comp-z81.1",
             "dev_questions": "comp-z81.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:23+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:50+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:55+00:00",
+          "event": "excluded",
+          "item": "comp-v-8",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-8 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-8",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-8 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3864,6 +4921,30 @@
             "plan_questions": "comp-0ka.1",
             "dev_questions": "comp-0ka.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:38+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:52+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3907,6 +4988,52 @@
             "plan_questions": "comp-mbj.1",
             "dev_questions": "comp-mbj.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:30+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:39+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:43+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:52+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3921,14 +5048,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (item 8); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20a.json",
       "summary": "Approved Beads requirement 8",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3950,6 +5077,37 @@
             "plan_questions": "comp-rcz.1",
             "dev_questions": "comp-rcz.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:07+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:25+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -3964,14 +5122,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (item 8b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20b.json",
       "summary": "Approved Beads requirement 8b",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -3993,6 +5151,37 @@
             "plan_questions": "comp-87z.1",
             "dev_questions": "comp-87z.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:07+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:25+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4000,21 +5189,21 @@
       "id": "FR-24.20c",
       "source_type": "REQ",
       "source_ref": "FR-24.20c",
-      "statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), taking the first three characters of the value `A{BC` must return `A{B`.",
+      "statement": "With `--render-by sc-compose`, slicing the value `A{BC` to its first three characters (for example `{{ v[:3] }}`) must return `A{B`.",
       "quote": "Advanced pour is the opt-in pour mode in which sc-compose renders every template expression in the formula or graph before bd runs, so bd receives only finished text. Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (item 8c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.20c.json",
       "summary": "Approved Beads requirement 8c",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 3,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4036,6 +5225,56 @@
             "plan_questions": "comp-b82.1",
             "dev_questions": "comp-b82.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:53+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "With `--render-by sc-compose` (sc-compose renders every template expression before bd runs), taking the first three characters of the value `A{BC` must return `A{B`."
+        },
+        {
+          "at": "2026-11-05T01:20:07+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:50:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-1 records the recovery contract and does not implement bead rendering.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:50:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 integrates delivery and the release matrix and does not implement bead-command behavior.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-1 records the recovery contract and does not implement bead rendering."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 integrates delivery and the release matrix and does not implement bead-command behavior."
         }
       ]
     },
@@ -4050,14 +5289,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (item 9a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.21a.json",
       "summary": "Approved Beads requirement 9a",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4079,6 +5318,26 @@
             "plan_questions": "comp-96c.1",
             "dev_questions": "comp-96c.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:07+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:50+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4093,14 +5352,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (item 11b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22b.json",
       "summary": "Approved Beads requirement 11b",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4122,6 +5381,37 @@
             "plan_questions": "comp-gga.1",
             "dev_questions": "comp-gga.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:08+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:26+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:51+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4136,14 +5426,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (item 11c); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22c.json",
       "summary": "Approved Beads requirement 11c",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4165,6 +5455,48 @@
             "plan_questions": "comp-6bo.1",
             "dev_questions": "comp-6bo.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:08+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:26+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:36+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:51+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4179,14 +5511,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (item 11d); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.22d.json",
       "summary": "Approved Beads requirement 11d",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4208,6 +5540,37 @@
             "plan_questions": "comp-id7.1",
             "dev_questions": "comp-id7.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:08+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:27+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:51+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4222,14 +5585,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (item 12b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.23b.json",
       "summary": "Approved Beads requirement 12b",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4251,6 +5614,37 @@
             "plan_questions": "comp-kme.1",
             "dev_questions": "comp-kme.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:08+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:27+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:47+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4265,14 +5659,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (1b); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.13b.json",
       "summary": "Approved Beads requirement 1b",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4294,6 +5688,37 @@
             "plan_questions": "comp-1sh.1",
             "dev_questions": "comp-1sh.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:07+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:24+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:50+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4337,6 +5762,30 @@
             "plan_questions": "comp-69a.1",
             "dev_questions": "comp-69a.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:44+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:53+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4380,6 +5829,41 @@
             "plan_questions": "comp-3nv.1",
             "dev_questions": "comp-3nv.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:44+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:53+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:38+00:00",
+          "event": "excluded",
+          "item": "comp-v-9",
+          "reason": "Phase V assigns the byte-regression check to comp-v-3, with CI wiring in comp-v-6 (comps reset dispositions); comp-v-9 builds the Go native adapter and does not touch it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-9",
+          "reason": "Phase V assigns the byte-regression check to comp-v-3, with CI wiring in comp-v-6 (comps reset dispositions); comp-v-9 builds the Go native adapter and does not touch it."
         }
       ]
     },
@@ -4423,6 +5907,63 @@
             "plan_questions": "comp-3h1.1",
             "dev_questions": "comp-3h1.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:28+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:37+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:41+00:00",
+          "event": "excluded",
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:52+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:50:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 integrates delivery and the release matrix and does not implement bead-command behavior.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 integrates delivery and the release matrix and does not implement bead-command behavior."
         }
       ]
     },
@@ -4437,14 +5978,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (12a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.23a.json",
       "summary": "Approved Beads requirement 12a",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4466,6 +6007,37 @@
             "plan_questions": "comp-bwd.1",
             "dev_questions": "comp-bwd.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:08+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:27+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:51+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4509,6 +6081,30 @@
             "plan_questions": "comp-5j0.1",
             "dev_questions": "comp-5j0.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:42+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:48+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4523,14 +6119,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (16a); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.26a.json",
       "summary": "Approved Beads requirement 16a",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4552,6 +6148,70 @@
             "plan_questions": "comp-36e.1",
             "dev_questions": "comp-36e.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:09+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:28+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:37+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:47+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:35+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:50:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-5 builds stable-ABI wheels and does not implement bead-command behavior.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it."
+        },
+        {
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-5 builds stable-ABI wheels and does not implement bead-command behavior."
         }
       ]
     },
@@ -4595,6 +6255,41 @@
             "plan_questions": "comp-0lh.1",
             "dev_questions": "comp-0lh.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:29+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:38+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:52+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4609,14 +6304,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (10b, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8b.json",
       "summary": "Approved Beads requirement 10b",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4638,6 +6333,37 @@
             "plan_questions": "comp-d5o.1",
             "dev_questions": "comp-d5o.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:10+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:31+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:49+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4652,14 +6378,14 @@
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (10d, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.8d.json",
       "summary": "Approved Beads requirement 10d",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 2,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4681,6 +6407,48 @@
             "plan_questions": "comp-h1c.1",
             "dev_questions": "comp-h1c.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:20:10+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:25:32+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:39+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:54+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4688,21 +6456,21 @@
       "id": "FR-24.24b",
       "source_type": "REQ",
       "source_ref": "FR-24.24b",
-      "statement": "With `--render-by bd`, sc-compose must run the same bd command line as v1.7.0 for every v1.7.0 call.",
+      "statement": "With `--render-by bd`, each call to a Rust API function, CLI command or Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) must make sc-compose run exactly the bd command line, with the same arguments in the same order, that v1.7.0 runs for the same call and inputs.",
       "quote": "With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (13b, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.24b.json",
       "summary": "Approved Beads requirement 13b",
-      "scope": "advanced pour of the sc-compose bead commands (pour, preview-pour, attach, preview-attach) and sc-composer-beads: the opt-in mode, turned on by an explicit new option, in which sc-compose renders every loop, condition, include and variable expression before bd runs (approved Phase U requirements 1 and 2)",
+      "scope": "An item that implements, changes, documents, tests or verifies the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach) or the sc-composer-beads library in advanced pour, the default mode (`--render-by sc-compose`) in which sc-compose renders every loop, condition, include and variable expression before bd runs.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4724,6 +6492,75 @@
             "plan_questions": "comp-301.1",
             "dev_questions": "comp-301.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:53+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "With `--render-by bd`, sc-compose must run the same bd command line as v1.7.0 for every v1.7.0 call."
+        },
+        {
+          "at": "2026-11-05T01:20:09+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:20:59+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) must run the same bd command line as v1.7.0 runs for the same input."
+        },
+        {
+          "at": "2026-11-05T01:25:27+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:37+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:43+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:51+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4767,6 +6604,30 @@
             "plan_questions": "comp-5e9.1",
             "dev_questions": "comp-5e9.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:44+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:53+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4774,21 +6635,21 @@
       "id": "FR-24.31a",
       "source_type": "REQ",
       "source_ref": "FR-24.31a",
-      "statement": "The closing fuzz sprint must rerun FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 on the final candidate.",
+      "statement": "Before release, the fuzz regression cases FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 must be rerun as regression tests on the release candidate.",
       "quote": "The closing fuzz sprint reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 (recovered in `crates/sc-composer-beads/tests/single_pass_render.rs` and `crates/sc-compose/tests/cli/fuzz_regressions.rs`; FUZZ-171-10 is not yet recovered) as regression tests on the final candidate.",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (23, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.31a.json",
       "summary": "Approved Beads requirement 23",
-      "scope": "the closing fuzz sprint of Phase U",
+      "scope": "An item that maps, reruns or verifies the earlier fuzz regression cases (FUZZ-171-01..14, T-02..T-06, D-01, include-default #11) against a release candidate.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 3,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4810,6 +6671,21 @@
             "plan_questions": "comp-dkf.1",
             "dev_questions": "comp-dkf.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:53+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "The closing fuzz sprint must rerun FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 on the final candidate."
+        },
+        {
+          "at": "2026-11-05T01:20:09+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
         }
       ]
     },
@@ -4817,21 +6693,21 @@
       "id": "FR-24.32a",
       "source_type": "REQ",
       "source_ref": "FR-24.32a",
-      "statement": "Without `--strict`, the final candidate must accept every corpus template that 1.7.0 accepted.",
+      "statement": "Run without `--strict`, the release candidate must accept every template in the 229-template corpus (150 atm-core and 79 sc-compose `.j2` templates) that sc-compose v1.7.0 accepts, where accepting means validate, render and render with variables all succeed.",
       "quote": "The 229-template corpus that passed the v1.7.0 comparison (QA report 01M6HZR22HZXX4HDW1CMFHHA86: 150 atm-core and 79 sc-compose `.j2` templates) is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7 (`ERR_VAL_UNDECLARED_TOKEN` no longer reported for True/False/None literals, filter and call targets, Jinja test and block-tag names, and comment and raw bodies).",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (24a, clarity-edited 2026-11-04); testable under sealed rubric 3f1c0f65, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v4/FR-24.32a.json",
       "summary": "Approved Beads requirement 24a",
-      "scope": "the closing corpus check of Phase U",
+      "scope": "An item that runs or verifies the 229-template corpus check against a release candidate.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4853,6 +6729,53 @@
             "plan_questions": "comp-a2y.1",
             "dev_questions": "comp-a2y.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:53+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "Without `--strict`, the final candidate must accept every corpus template that 1.7.0 accepted."
+        },
+        {
+          "at": "2026-11-05T01:20:09+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:21:01+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "Run without `--strict` through validate, render and render with variables, the release candidate must accept every template in the 229-template corpus (150 atm-core and 79 sc-compose `.j2` templates) that sc-compose v1.7.0 accepted."
+        },
+        {
+          "at": "2026-11-05T01:25:35+00:00",
+          "event": "excluded",
+          "item": "comp-v-3",
+          "reason": "Phase V assigns this requirement to comp-v-7 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-3 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:50:46+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns the 229-template corpus check to comp-v-7 (comps reset dispositions); comp-v-1 records the recovery contract and does not run it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-3",
+          "reason": "Phase V assigns this requirement to comp-v-7 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-3 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns the 229-template corpus check to comp-v-7 (comps reset dispositions); comp-v-1 records the recovery contract and does not run it."
         }
       ]
     },
@@ -4896,6 +6819,41 @@
             "plan_questions": "comp-ipw.1",
             "dev_questions": "comp-ipw.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:25:28+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:43+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:52+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-6 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
         }
       ]
     },
@@ -4903,21 +6861,21 @@
       "id": "FR-24.29a",
       "source_type": "REQ",
       "source_ref": "FR-24.29a",
-      "statement": "Phase U must port the recovered Beads code and tests from `crates/sc-composer-beads` on the `rebuild/from-main` branch instead of rewriting them.",
+      "statement": "The release's sc-composer-beads code and tests must be carried over from `crates/sc-composer-beads` on the `rebuild/from-main` branch, not rewritten.",
       "quote": "The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/from-main` branch) are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).",
       "kind": "directive",
       "stated_by": "randlee",
       "stated_at": "2026-11-04",
       "context": "User-approved Phase U Beads requirement (21a, clarity-edited 2026-11-04); testable under sealed rubric 28ce3aec, evidence docs/plans/phase-u/anchor-runs/approved-beads-20261104/rubric-v5/FR-24.29a.json",
       "summary": "Approved Beads requirement 21a",
-      "scope": "the Phase U port of the recovered sc-composer-beads code and tests from the rebuild/from-main branch",
+      "scope": "An item that ports, recovers, reuses or reimplements sc-composer-beads code or its tests, including from the rebuild/from-main branch.",
       "deterministic_check": "",
       "fixtures": {
         "pass": [],
         "fail": []
       },
       "question_overrides": {},
-      "version": 1,
+      "version": 4,
       "status": "locked",
       "promoted_to": null,
       "beads": {
@@ -4939,6 +6897,97 @@
             "plan_questions": "comp-sb0.1",
             "dev_questions": "comp-sb0.2"
           }
+        },
+        {
+          "at": "2026-11-05T01:19:53+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "Phase U must port the recovered Beads code and tests from `crates/sc-composer-beads` on the `rebuild/from-main` branch instead of rewriting them."
+        },
+        {
+          "at": "2026-11-05T01:20:09+00:00",
+          "event": "updated",
+          "fields": [
+            "scope"
+          ]
+        },
+        {
+          "at": "2026-11-05T01:21:00+00:00",
+          "event": "updated",
+          "fields": [
+            "statement"
+          ],
+          "previous_statement": "The sc-composer-beads code and tests in the release must be ported from `crates/sc-composer-beads` on the `rebuild/from-main` branch, keeping its existing functions and tests rather than rewriting them."
+        },
+        {
+          "at": "2026-11-05T01:25:20+00:00",
+          "event": "excluded",
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:32+00:00",
+          "event": "excluded",
+          "item": "comp-v-2",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-2 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:38+00:00",
+          "event": "excluded",
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:39+00:00",
+          "event": "excluded",
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:25:48+00:00",
+          "event": "excluded",
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it.",
+          "replaced": false
+        },
+        {
+          "at": "2026-11-05T01:35:36+00:00",
+          "event": "excluded",
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it.",
+          "replaced": false
+        }
+      ],
+      "exclude": [
+        {
+          "item": "comp-v-1",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-1 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-2",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-2 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-4",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-4 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-5",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-5 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-7",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 583a6c40); comp-v-7 only defers to, consumes or re-validates it."
+        },
+        {
+          "item": "comp-v-6",
+          "reason": "Phase V assigns this requirement to comp-v-3 (comps reset dispositions, plan QA PASS at 5981c08f); comp-v-6 builds and releases artifacts and does not implement it."
         }
       ]
     }

@@ -1,0 +1,7813 @@
+{
+ "success": true,
+ "canceled": false,
+ "aborted_by": null,
+ "data": {
+  "operation": "testability",
+  "gate": "testability",
+  "accepted": false,
+  "rubric_version": 2,
+  "tournament_protocol_version": "plan-anchor/question-tournament/2.0.0",
+  "production_confidence_threshold": 0.6,
+  "confidence_reference_threshold": 0.8,
+  "corpus_sha256": "648254ca3ca7772cea006293486e7a9812f1b911c2bbc7260e3bfd4309357826",
+  "corpus_case_count": 36,
+  "rubric_question_set": null,
+  "candidate_rankings": [
+   {
+    "role": "faithful",
+    "candidate_id": "r6b:c1:faithful",
+    "question_sha256": "6112aedc4075a44dc9f88bb981bf61bf0a8f213442441cf188f10102e866a073",
+    "accepted": false,
+    "exact_cells": 36,
+    "confident_cells": 35,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.43,
+    "mean_confidence": 0.8721,
+    "calls_below_0_8_reference": 12,
+    "complexity_chars": 1388,
+    "mismatches": [
+     [
+      "a5-01-tagged-release-baseline",
+      "yes",
+      [
+       [
+        "yes",
+        0.43
+       ],
+       [
+        "yes",
+        0.43
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [
+     {
+      "round": "r6c",
+      "bundle": "d1",
+      "accepted": false,
+      "exact": 36,
+      "confident": 35,
+      "stable": 36,
+      "min_confidence": 0.34,
+      "mismatches": [
+       [
+        "a5-01-tagged-release-baseline",
+        "yes",
+        [
+         [
+          "yes",
+          0.37
+         ],
+         [
+          "yes",
+          0.34
+         ]
+        ]
+       ]
+      ]
+     },
+     {
+      "round": "r6c",
+      "bundle": "d2",
+      "accepted": false,
+      "exact": 36,
+      "confident": 35,
+      "stable": 36,
+      "min_confidence": 0.37,
+      "mismatches": [
+       [
+        "a5-01-tagged-release-baseline",
+        "yes",
+        [
+         [
+          "yes",
+          0.37
+         ],
+         [
+          "yes",
+          0.4
+         ]
+        ]
+       ]
+      ]
+     }
+    ],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 1,
+    "selected": false,
+    "reason": "rejected: a5-01-tagged-release-baseline expected yes got [['yes', 0.43], ['yes', 0.43]]; a5-01-tagged-release-baseline expected yes got [['yes', 0.37], ['yes', 0.34]]; a5-01-tagged-release-baseline expected yes got [['yes', 0.37], ['yes', 0.4]]"
+   },
+   {
+    "role": "faithful",
+    "candidate_id": "r6b:c2:faithful",
+    "question_sha256": "a768bb2001e97e647290bd2389da7271f97ab837490949a70c92a9a099190e54",
+    "accepted": false,
+    "exact_cells": 36,
+    "confident_cells": 35,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.3,
+    "mean_confidence": 0.855,
+    "calls_below_0_8_reference": 14,
+    "complexity_chars": 1533,
+    "mismatches": [
+     [
+      "a5-01-tagged-release-baseline",
+      "yes",
+      [
+       [
+        "yes",
+        0.3
+       ],
+       [
+        "yes",
+        0.38
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 2,
+    "selected": false,
+    "reason": "rejected: a5-01-tagged-release-baseline expected yes got [['yes', 0.3], ['yes', 0.38]]"
+   },
+   {
+    "role": "faithful",
+    "candidate_id": "r6:b0:faithful",
+    "question_sha256": "ba6d32bc6cbd2983a3d2001271920ff2be6250aa1e70f3c1855e2357bc0a6a6a",
+    "accepted": false,
+    "exact_cells": 36,
+    "confident_cells": 34,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.28,
+    "mean_confidence": 0.8642,
+    "calls_below_0_8_reference": 14,
+    "complexity_chars": 1230,
+    "mismatches": [
+     [
+      "a0-14-shared-quote-second-atomic",
+      "yes",
+      [
+       [
+        "yes",
+        0.66
+       ],
+       [
+        "yes",
+        0.58
+       ]
+      ]
+     ],
+     [
+      "a5-01-tagged-release-baseline",
+      "yes",
+      [
+       [
+        "yes",
+        0.4
+       ],
+       [
+        "yes",
+        0.28
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "installed seal 28ce3aec v5 (current_questions)",
+    "accepted_every_evaluation": false,
+    "rank": 3,
+    "selected": false,
+    "reason": "rejected: a0-14-shared-quote-second-atomic expected yes got [['yes', 0.66], ['yes', 0.58]]; a5-01-tagged-release-baseline expected yes got [['yes', 0.4], ['yes', 0.28]]"
+   },
+   {
+    "role": "faithful",
+    "candidate_id": "r6:b1:faithful",
+    "question_sha256": "59394fce2746af2384a9081c559683494bb103156f592fadb71feba4a6ec8ad0",
+    "accepted": false,
+    "exact_cells": 35,
+    "confident_cells": 30,
+    "stable_cells": 35,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.33,
+    "mean_confidence": 0.8279,
+    "calls_below_0_8_reference": 22,
+    "complexity_chars": 916,
+    "mismatches": [
+     [
+      "a0-02-valid-prohibition",
+      "yes",
+      [
+       [
+        "yes",
+        0.52
+       ],
+       [
+        "yes",
+        0.46
+       ]
+      ]
+     ],
+     [
+      "a0-04-global-scope",
+      "yes",
+      [
+       [
+        "yes",
+        0.5
+       ],
+       [
+        "yes",
+        0.44
+       ]
+      ]
+     ],
+     [
+      "a0-16-duplicate-second",
+      "yes",
+      [
+       [
+        "yes",
+        0.35
+       ],
+       [
+        "yes",
+        0.33
+       ]
+      ]
+     ],
+     [
+      "a4-02-multi-commit-hashes",
+      "yes",
+      [
+       [
+        "yes",
+        0.61
+       ],
+       [
+        "yes",
+        0.52
+       ]
+      ]
+     ],
+     [
+      "a5-01-tagged-release-baseline",
+      "yes",
+      [
+       [
+        "no",
+        0.53
+       ],
+       [
+        "yes",
+        0.34
+       ],
+       [
+        "no",
+        0.46
+       ]
+      ]
+     ],
+     [
+      "a5-04-unidentified-corpus-and-approvals",
+      "yes",
+      [
+       [
+        "yes",
+        0.6
+       ],
+       [
+        "yes",
+        0.55
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 4,
+    "selected": false,
+    "reason": "rejected: a0-02-valid-prohibition expected yes got [['yes', 0.52], ['yes', 0.46]]; a0-04-global-scope expected yes got [['yes', 0.5], ['yes', 0.44]]; a0-16-duplicate-second expected yes got [['yes', 0.35], ['yes', 0.33]]; a4-02-multi-commit-hashes expected yes got [['yes', 0.61], ['yes', 0.52]]; a5-01-tagged-release-baseline expected yes got [['no', 0.53], ['yes', 0.34], ['no', 0.46]]; a5-04-unidentified-corpus-and-approvals expected yes got [['yes', 0.6], ['yes', 0.55]]"
+   },
+   {
+    "role": "faithful",
+    "candidate_id": "r6:b2:faithful",
+    "question_sha256": "9cbca335e8309fb776bd3b891814f09e14227dc35a8d494841f04b880c3fce33",
+    "accepted": false,
+    "exact_cells": 32,
+    "confident_cells": 27,
+    "stable_cells": 35,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.28,
+    "mean_confidence": 0.7821,
+    "calls_below_0_8_reference": 28,
+    "complexity_chars": 701,
+    "mismatches": [
+     [
+      "a0-04-global-scope",
+      "yes",
+      [
+       [
+        "yes",
+        0.44
+       ],
+       [
+        "yes",
+        0.48
+       ]
+      ]
+     ],
+     [
+      "a0-13-shared-quote-first-atomic",
+      "yes",
+      [
+       [
+        "no",
+        0.38
+       ],
+       [
+        "no",
+        0.33
+       ]
+      ]
+     ],
+     [
+      "a0-14-shared-quote-second-atomic",
+      "yes",
+      [
+       [
+        "no",
+        0.28
+       ],
+       [
+        "yes",
+        0.38
+       ],
+       [
+        "yes",
+        0.3
+       ]
+      ]
+     ],
+     [
+      "a0-16-duplicate-second",
+      "yes",
+      [
+       [
+        "no",
+        0.3
+       ],
+       [
+        "no",
+        0.48
+       ]
+      ]
+     ],
+     [
+      "a3-04-caller-role-flag",
+      "yes",
+      [
+       [
+        "yes",
+        0.52
+       ],
+       [
+        "yes",
+        0.49
+       ]
+      ]
+     ],
+     [
+      "a3-08-unrecorded-signoff",
+      "yes",
+      [
+       [
+        "yes",
+        0.55
+       ],
+       [
+        "yes",
+        0.79
+       ]
+      ]
+     ],
+     [
+      "a3-09-recorded-approval",
+      "yes",
+      [
+       [
+        "yes",
+        0.61
+       ],
+       [
+        "yes",
+        0.56
+       ]
+      ]
+     ],
+     [
+      "a4-06-buried-subjective-quality",
+      "yes",
+      [
+       [
+        "yes",
+        0.7
+       ],
+       [
+        "yes",
+        0.52
+       ]
+      ]
+     ],
+     [
+      "a5-01-tagged-release-baseline",
+      "yes",
+      [
+       [
+        "no",
+        0.55
+       ],
+       [
+        "no",
+        0.56
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 5,
+    "selected": false,
+    "reason": "rejected: a0-04-global-scope expected yes got [['yes', 0.44], ['yes', 0.48]]; a0-13-shared-quote-first-atomic expected yes got [['no', 0.38], ['no', 0.33]]; a0-14-shared-quote-second-atomic expected yes got [['no', 0.28], ['yes', 0.38], ['yes', 0.3]]; a0-16-duplicate-second expected yes got [['no', 0.3], ['no', 0.48]]; a3-04-caller-role-flag expected yes got [['yes', 0.52], ['yes', 0.49]]; a3-08-unrecorded-signoff expected yes got [['yes', 0.55], ['yes', 0.79]]; a3-09-recorded-approval expected yes got [['yes', 0.61], ['yes', 0.56]]; a4-06-buried-subjective-quality expected yes got [['yes', 0.7], ['yes', 0.52]]; a5-01-tagged-release-baseline expected yes got [['no', 0.55], ['no', 0.56]]"
+   },
+   {
+    "role": "observable",
+    "candidate_id": "r6b:c1:observable",
+    "question_sha256": "07ec6cbc4bc67586e9faccfa60c442357b73961e92cab614d21cc636709ee8fe",
+    "accepted": true,
+    "exact_cells": 36,
+    "confident_cells": 36,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.73,
+    "mean_confidence": 0.9356,
+    "calls_below_0_8_reference": 7,
+    "complexity_chars": 1306,
+    "mismatches": [],
+    "repeat_evaluations": [
+     {
+      "round": "r6c",
+      "bundle": "d1",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 0.72,
+      "mismatches": []
+     },
+     {
+      "round": "r6c",
+      "bundle": "d2",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 0.66,
+      "mismatches": []
+     }
+    ],
+    "origin": "new wording",
+    "accepted_every_evaluation": true,
+    "rank": 6,
+    "selected": false,
+    "reason": "best-ranked accepted wording for its role; not sealed because the rubric as a whole is not accepted (faithful has no accepted candidate)"
+   },
+   {
+    "role": "observable",
+    "candidate_id": "r6b:c2:observable",
+    "question_sha256": "d61cf025613906201171ade17df6d992572dfb54449b41d5c5e9efd6ffd24673",
+    "accepted": true,
+    "exact_cells": 36,
+    "confident_cells": 36,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.68,
+    "mean_confidence": 0.9294,
+    "calls_below_0_8_reference": 7,
+    "complexity_chars": 1268,
+    "mismatches": [],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": true,
+    "rank": 7,
+    "selected": false,
+    "reason": "accepted but outranked"
+   },
+   {
+    "role": "observable",
+    "candidate_id": "r6:b0:observable",
+    "question_sha256": "bdfca9d6334cd3975180d51258ff2a2949881bffbe065c4d05bda3731fcbc07a",
+    "accepted": false,
+    "exact_cells": 36,
+    "confident_cells": 35,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.48,
+    "mean_confidence": 0.9203,
+    "calls_below_0_8_reference": 12,
+    "complexity_chars": 1121,
+    "mismatches": [
+     [
+      "a5-03-identified-corpus-inline-exceptions",
+      "yes",
+      [
+       [
+        "yes",
+        0.52
+       ],
+       [
+        "yes",
+        0.48
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "installed seal 28ce3aec v5 (current_questions)",
+    "accepted_every_evaluation": false,
+    "rank": 8,
+    "selected": false,
+    "reason": "rejected: a5-03-identified-corpus-inline-exceptions expected yes got [['yes', 0.52], ['yes', 0.48]]"
+   },
+   {
+    "role": "observable",
+    "candidate_id": "r6:b1:observable",
+    "question_sha256": "af1af46da7e4b6b8d675bf34d3902542226e5fe85b72aea84aee8249d515ecf0",
+    "accepted": false,
+    "exact_cells": 36,
+    "confident_cells": 34,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.49,
+    "mean_confidence": 0.9244,
+    "calls_below_0_8_reference": 8,
+    "complexity_chars": 1098,
+    "mismatches": [
+     [
+      "a3-08-unrecorded-signoff",
+      "no",
+      [
+       [
+        "no",
+        0.49
+       ],
+       [
+        "no",
+        0.55
+       ]
+      ]
+     ],
+     [
+      "a4-05-buried-undefined-label",
+      "no",
+      [
+       [
+        "no",
+        0.49
+       ],
+       [
+        "no",
+        0.58
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 9,
+    "selected": false,
+    "reason": "rejected: a3-08-unrecorded-signoff expected no got [['no', 0.49], ['no', 0.55]]; a4-05-buried-undefined-label expected no got [['no', 0.49], ['no', 0.58]]"
+   },
+   {
+    "role": "observable",
+    "candidate_id": "r6:b2:observable",
+    "question_sha256": "70e13693026148874668f06aa2d9e2e7d8b6af3b741372725ce904db52ef0712",
+    "accepted": false,
+    "exact_cells": 35,
+    "confident_cells": 33,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.26,
+    "mean_confidence": 0.8507,
+    "calls_below_0_8_reference": 14,
+    "complexity_chars": 863,
+    "mismatches": [
+     [
+      "a0-06-genuinely-bundled",
+      "yes",
+      [
+       [
+        "no",
+        0.34
+       ],
+       [
+        "no",
+        0.26
+       ]
+      ]
+     ],
+     [
+      "a0-12-unrecorded-approval",
+      "no",
+      [
+       [
+        "no",
+        0.33
+       ],
+       [
+        "no",
+        0.38
+       ]
+      ]
+     ],
+     [
+      "a4-05-buried-undefined-label",
+      "no",
+      [
+       [
+        "no",
+        0.52
+       ],
+       [
+        "no",
+        0.43
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 10,
+    "selected": false,
+    "reason": "rejected: a0-06-genuinely-bundled expected yes got [['no', 0.34], ['no', 0.26]]; a0-12-unrecorded-approval expected no got [['no', 0.33], ['no', 0.38]]; a4-05-buried-undefined-label expected no got [['no', 0.52], ['no', 0.43]]"
+   },
+   {
+    "role": "scoped",
+    "candidate_id": "r6:b0:scoped",
+    "question_sha256": "42998b5d75a6e4aa2e70bb625f2a65bff6cf0616a43fb699a669c882609d9e7b",
+    "accepted": true,
+    "exact_cells": 36,
+    "confident_cells": 36,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 1.0,
+    "mean_confidence": 1.0,
+    "calls_below_0_8_reference": 0,
+    "complexity_chars": 560,
+    "mismatches": [],
+    "repeat_evaluations": [
+     {
+      "round": "r6b",
+      "bundle": "c1",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 1.0,
+      "mismatches": []
+     },
+     {
+      "round": "r6b",
+      "bundle": "c2",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 0.98,
+      "mismatches": []
+     },
+     {
+      "round": "r6c",
+      "bundle": "d1",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 0.98,
+      "mismatches": []
+     },
+     {
+      "round": "r6c",
+      "bundle": "d2",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 0.97,
+      "mismatches": []
+     }
+    ],
+    "origin": "installed seal 28ce3aec v5 (current_questions)",
+    "accepted_every_evaluation": true,
+    "rank": 11,
+    "selected": false,
+    "reason": "best-ranked accepted wording for its role; not sealed because the rubric as a whole is not accepted (faithful has no accepted candidate)"
+   },
+   {
+    "role": "scoped",
+    "candidate_id": "r6:b2:scoped",
+    "question_sha256": "178ddf823f044c813d0af91d6f4ab90f06bd6aba6b070d0d0d1a3e41c91155cf",
+    "accepted": true,
+    "exact_cells": 36,
+    "confident_cells": 36,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.91,
+    "mean_confidence": 0.9907,
+    "calls_below_0_8_reference": 0,
+    "complexity_chars": 417,
+    "mismatches": [],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": true,
+    "rank": 12,
+    "selected": false,
+    "reason": "accepted but outranked"
+   },
+   {
+    "role": "scoped",
+    "candidate_id": "r6:b1:scoped",
+    "question_sha256": "3a7195dbbebd9c05d03cc9e0676251653084e369b7d1e9e069ff50fb91594705",
+    "accepted": true,
+    "exact_cells": 36,
+    "confident_cells": 36,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.89,
+    "mean_confidence": 0.9936,
+    "calls_below_0_8_reference": 0,
+    "complexity_chars": 476,
+    "mismatches": [],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": true,
+    "rank": 13,
+    "selected": false,
+    "reason": "accepted but outranked"
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "r6c:d1:self_contained",
+    "question_sha256": "3d26fc80158e35a3c82a843d22051f9b2dd1a0de8d1ccc0df3fea136ca72888c",
+    "accepted": true,
+    "exact_cells": 36,
+    "confident_cells": 36,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.6,
+    "mean_confidence": 0.884,
+    "calls_below_0_8_reference": 14,
+    "complexity_chars": 1543,
+    "mismatches": [],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": true,
+    "rank": 14,
+    "selected": false,
+    "reason": "best-ranked accepted wording for its role; not sealed because the rubric as a whole is not accepted (faithful has no accepted candidate)"
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "r6b:c1:self_contained",
+    "question_sha256": "c6aa9783dd7703f0ad25587394aa622ab910135e8b01798d83a437f1b09ac4ba",
+    "accepted": false,
+    "exact_cells": 36,
+    "confident_cells": 35,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.58,
+    "mean_confidence": 0.8889,
+    "calls_below_0_8_reference": 13,
+    "complexity_chars": 1477,
+    "mismatches": [
+     [
+      "a5-03-identified-corpus-inline-exceptions",
+      "yes",
+      [
+       [
+        "yes",
+        0.58
+       ],
+       [
+        "yes",
+        0.62
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 15,
+    "selected": false,
+    "reason": "rejected: a5-03-identified-corpus-inline-exceptions expected yes got [['yes', 0.58], ['yes', 0.62]]"
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "r6c:d2:self_contained",
+    "question_sha256": "6b5b39314ffb7ceacce7066aaa1931ae819a357b5445c48ed45a3639e1294a84",
+    "accepted": false,
+    "exact_cells": 36,
+    "confident_cells": 33,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.37,
+    "mean_confidence": 0.8674,
+    "calls_below_0_8_reference": 12,
+    "complexity_chars": 1473,
+    "mismatches": [
+     [
+      "a0-12-unrecorded-approval",
+      "no",
+      [
+       [
+        "no",
+        0.53
+       ],
+       [
+        "no",
+        0.46
+       ]
+      ]
+     ],
+     [
+      "a3-08-unrecorded-signoff",
+      "no",
+      [
+       [
+        "no",
+        0.43
+       ],
+       [
+        "no",
+        0.55
+       ]
+      ]
+     ],
+     [
+      "a5-03-identified-corpus-inline-exceptions",
+      "yes",
+      [
+       [
+        "yes",
+        0.37
+       ],
+       [
+        "yes",
+        0.46
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 16,
+    "selected": false,
+    "reason": "rejected: a0-12-unrecorded-approval expected no got [['no', 0.53], ['no', 0.46]]; a3-08-unrecorded-signoff expected no got [['no', 0.43], ['no', 0.55]]; a5-03-identified-corpus-inline-exceptions expected yes got [['yes', 0.37], ['yes', 0.46]]"
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "r6:b0:self_contained",
+    "question_sha256": "2e278740d58c4bc0b74e2febd044939823f79593a517f561f041ad33be8925db",
+    "accepted": false,
+    "exact_cells": 35,
+    "confident_cells": 35,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.28,
+    "mean_confidence": 0.8814,
+    "calls_below_0_8_reference": 15,
+    "complexity_chars": 1292,
+    "mismatches": [
+     [
+      "a5-03-identified-corpus-inline-exceptions",
+      "yes",
+      [
+       [
+        "no",
+        0.28
+       ],
+       [
+        "no",
+        0.3
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "installed seal 28ce3aec v5 (current_questions)",
+    "accepted_every_evaluation": false,
+    "rank": 17,
+    "selected": false,
+    "reason": "rejected: a5-03-identified-corpus-inline-exceptions expected yes got [['no', 0.28], ['no', 0.3]]"
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "r6b:c2:self_contained",
+    "question_sha256": "6fdac5bd885786917c0e063c12c4daa8ecd85b31aac97531834bce137badf90a",
+    "accepted": false,
+    "exact_cells": 35,
+    "confident_cells": 34,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.28,
+    "mean_confidence": 0.8712,
+    "calls_below_0_8_reference": 16,
+    "complexity_chars": 1457,
+    "mismatches": [
+     [
+      "a0-12-unrecorded-approval",
+      "no",
+      [
+       [
+        "no",
+        0.44
+       ],
+       [
+        "no",
+        0.49
+       ]
+      ]
+     ],
+     [
+      "a3-08-unrecorded-signoff",
+      "no",
+      [
+       [
+        "yes",
+        0.38
+       ],
+       [
+        "yes",
+        0.28
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 18,
+    "selected": false,
+    "reason": "rejected: a0-12-unrecorded-approval expected no got [['no', 0.44], ['no', 0.49]]; a3-08-unrecorded-signoff expected no got [['yes', 0.38], ['yes', 0.28]]"
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "r6:b1:self_contained",
+    "question_sha256": "6c68353c7d6c90c9933b2600f645be6f896981719ba69dfe2c198c9094bc1f81",
+    "accepted": false,
+    "exact_cells": 35,
+    "confident_cells": 31,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.28,
+    "mean_confidence": 0.8218,
+    "calls_below_0_8_reference": 22,
+    "complexity_chars": 1050,
+    "mismatches": [
+     [
+      "a0-04-global-scope",
+      "yes",
+      [
+       [
+        "yes",
+        0.62
+       ],
+       [
+        "yes",
+        0.58
+       ]
+      ]
+     ],
+     [
+      "a3-05-identified-expected-output",
+      "yes",
+      [
+       [
+        "yes",
+        0.35
+       ],
+       [
+        "yes",
+        0.43
+       ]
+      ]
+     ],
+     [
+      "a3-08-unrecorded-signoff",
+      "no",
+      [
+       [
+        "no",
+        0.61
+       ],
+       [
+        "no",
+        0.5
+       ]
+      ]
+     ],
+     [
+      "a3-09-recorded-approval",
+      "yes",
+      [
+       [
+        "yes",
+        0.62
+       ],
+       [
+        "yes",
+        0.58
+       ]
+      ]
+     ],
+     [
+      "a4-05-buried-undefined-label",
+      "no",
+      [
+       [
+        "yes",
+        0.73
+       ],
+       [
+        "yes",
+        0.67
+       ]
+      ]
+     ],
+     [
+      "a5-03-identified-corpus-inline-exceptions",
+      "yes",
+      [
+       [
+        "yes",
+        0.48
+       ],
+       [
+        "yes",
+        0.28
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 19,
+    "selected": false,
+    "reason": "rejected: a0-04-global-scope expected yes got [['yes', 0.62], ['yes', 0.58]]; a3-05-identified-expected-output expected yes got [['yes', 0.35], ['yes', 0.43]]; a3-08-unrecorded-signoff expected no got [['no', 0.61], ['no', 0.5]]; a3-09-recorded-approval expected yes got [['yes', 0.62], ['yes', 0.58]]; a4-05-buried-undefined-label expected no got [['yes', 0.73], ['yes', 0.67]]; a5-03-identified-corpus-inline-exceptions expected yes got [['yes', 0.48], ['yes', 0.28]]"
+   },
+   {
+    "role": "self_contained",
+    "candidate_id": "r6:b2:self_contained",
+    "question_sha256": "091d3bf71a0cf2ffe787232622ec877542cee1db1413a995a950824172b8d3b0",
+    "accepted": false,
+    "exact_cells": 32,
+    "confident_cells": 18,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.25,
+    "mean_confidence": 0.6449,
+    "calls_below_0_8_reference": 52,
+    "complexity_chars": 814,
+    "mismatches": [
+     [
+      "a0-02-valid-prohibition",
+      "yes",
+      [
+       [
+        "yes",
+        0.43
+       ],
+       [
+        "yes",
+        0.28
+       ]
+      ]
+     ],
+     [
+      "a0-04-global-scope",
+      "yes",
+      [
+       [
+        "yes",
+        0.55
+       ],
+       [
+        "yes",
+        0.52
+       ]
+      ]
+     ],
+     [
+      "a0-05-atomic-from-multi-directive",
+      "yes",
+      [
+       [
+        "yes",
+        0.62
+       ],
+       [
+        "yes",
+        0.5
+       ]
+      ]
+     ],
+     [
+      "a0-06-genuinely-bundled",
+      "yes",
+      [
+       [
+        "no",
+        0.33
+       ],
+       [
+        "no",
+        0.25
+       ]
+      ]
+     ],
+     [
+      "a0-09-explicit-testable-condition",
+      "yes",
+      [
+       [
+        "yes",
+        0.25
+       ],
+       [
+        "yes",
+        0.3
+       ]
+      ]
+     ],
+     [
+      "a0-10-api-key-redaction",
+      "yes",
+      [
+       [
+        "yes",
+        0.31
+       ],
+       [
+        "yes",
+        0.42
+       ]
+      ]
+     ],
+     [
+      "a0-14-shared-quote-second-atomic",
+      "yes",
+      [
+       [
+        "yes",
+        0.49
+       ],
+       [
+        "yes",
+        0.46
+       ],
+       [
+        "yes",
+        0.52
+       ]
+      ]
+     ],
+     [
+      "a0-16-duplicate-second",
+      "yes",
+      [
+       [
+        "yes",
+        0.58
+       ],
+       [
+        "yes",
+        0.56
+       ]
+      ]
+     ],
+     [
+      "a0-17-nondeclarative-form",
+      "yes",
+      [
+       [
+        "no",
+        0.56
+       ],
+       [
+        "no",
+        0.58
+       ]
+      ]
+     ],
+     [
+      "a3-01-inline-defined-mode",
+      "yes",
+      [
+       [
+        "yes",
+        0.46
+       ],
+       [
+        "yes",
+        0.52
+       ]
+      ]
+     ],
+     [
+      "a3-02-inline-defined-meaning",
+      "yes",
+      [
+       [
+        "yes",
+        0.44
+       ],
+       [
+        "yes",
+        0.52
+       ]
+      ]
+     ],
+     [
+      "a3-03-product-command-name",
+      "yes",
+      [
+       [
+        "yes",
+        0.5
+       ],
+       [
+        "yes",
+        0.55
+       ]
+      ]
+     ],
+     [
+      "a3-05-identified-expected-output",
+      "yes",
+      [
+       [
+        "yes",
+        0.55
+       ],
+       [
+        "yes",
+        0.52
+       ]
+      ]
+     ],
+     [
+      "a3-09-recorded-approval",
+      "yes",
+      [
+       [
+        "yes",
+        0.33
+       ],
+       [
+        "yes",
+        0.35
+       ]
+      ]
+     ],
+     [
+      "a4-01-multi-diagnostic-codes",
+      "yes",
+      [
+       [
+        "no",
+        0.37
+       ],
+       [
+        "no",
+        0.42
+       ]
+      ]
+     ],
+     [
+      "a4-03-report-id-record",
+      "yes",
+      [
+       [
+        "yes",
+        0.48
+       ],
+       [
+        "yes",
+        0.48
+       ]
+      ]
+     ],
+     [
+      "a5-01-tagged-release-baseline",
+      "yes",
+      [
+       [
+        "yes",
+        0.46
+       ],
+       [
+        "yes",
+        0.37
+       ]
+      ]
+     ],
+     [
+      "a5-03-identified-corpus-inline-exceptions",
+      "yes",
+      [
+       [
+        "no",
+        0.56
+       ],
+       [
+        "no",
+        0.74
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 20,
+    "selected": false,
+    "reason": "rejected: a0-02-valid-prohibition expected yes got [['yes', 0.43], ['yes', 0.28]]; a0-04-global-scope expected yes got [['yes', 0.55], ['yes', 0.52]]; a0-05-atomic-from-multi-directive expected yes got [['yes', 0.62], ['yes', 0.5]]; a0-06-genuinely-bundled expected yes got [['no', 0.33], ['no', 0.25]]; a0-09-explicit-testable-condition expected yes got [['yes', 0.25], ['yes', 0.3]]; a0-10-api-key-redaction expected yes got [['yes', 0.31], ['yes', 0.42]]; a0-14-shared-quote-second-atomic expected yes got [['yes', 0.49], ['yes', 0.46], ['yes', 0.52]]; a0-16-duplicate-second expected yes got [['yes', 0.58], ['yes', 0.56]]; a0-17-nondeclarative-form expected yes got [['no', 0.56], ['no', 0.58]]; a3-01-inline-defined-mode expected yes got [['yes', 0.46], ['yes', 0.52]]; a3-02-inline-defined-meaning expected yes got [['yes', 0.44], ['yes', 0.52]]; a3-03-product-command-name expected yes got [['yes', 0.5], ['yes', 0.55]]; a3-05-identified-expected-output expected yes got [['yes', 0.55], ['yes', 0.52]]; a3-09-recorded-approval expected yes got [['yes', 0.33], ['yes', 0.35]]; a4-01-multi-diagnostic-codes expected yes got [['no', 0.37], ['no', 0.42]]; a4-03-report-id-record expected yes got [['yes', 0.48], ['yes', 0.48]]; a5-01-tagged-release-baseline expected yes got [['yes', 0.46], ['yes', 0.37]]; a5-03-identified-corpus-inline-exceptions expected yes got [['no', 0.56], ['no', 0.74]]"
+   },
+   {
+    "role": "single_constraint",
+    "candidate_id": "r6:b0:single_constraint",
+    "question_sha256": "dfa77ab9570e5eec115ed42a97f78dfce9eabf38ffde3636dae42697fa9923bc",
+    "accepted": true,
+    "exact_cells": 36,
+    "confident_cells": 36,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 0,
+    "min_confidence": 0.79,
+    "mean_confidence": 0.9575,
+    "calls_below_0_8_reference": 1,
+    "complexity_chars": 1047,
+    "mismatches": [],
+    "repeat_evaluations": [
+     {
+      "round": "r6b",
+      "bundle": "c1",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 0.79,
+      "mismatches": []
+     },
+     {
+      "round": "r6b",
+      "bundle": "c2",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 0.8,
+      "mismatches": []
+     },
+     {
+      "round": "r6c",
+      "bundle": "d1",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 0.8,
+      "mismatches": []
+     },
+     {
+      "round": "r6c",
+      "bundle": "d2",
+      "accepted": true,
+      "exact": 36,
+      "confident": 36,
+      "stable": 36,
+      "min_confidence": 0.83,
+      "mismatches": []
+     }
+    ],
+    "origin": "installed seal 28ce3aec v5 (current_questions)",
+    "accepted_every_evaluation": true,
+    "rank": 21,
+    "selected": false,
+    "reason": "best-ranked accepted wording for its role; not sealed because the rubric as a whole is not accepted (faithful has no accepted candidate)"
+   },
+   {
+    "role": "single_constraint",
+    "candidate_id": "r6:b1:single_constraint",
+    "question_sha256": "d9a1161d724a54fa2067a5ed09fc3c5ac572b27bb4f1ab2a2ace0e9b8192b82d",
+    "accepted": false,
+    "exact_cells": 36,
+    "confident_cells": 35,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.5,
+    "mean_confidence": 0.9646,
+    "calls_below_0_8_reference": 3,
+    "complexity_chars": 798,
+    "mismatches": [
+     [
+      "a0-10-api-key-redaction",
+      "yes",
+      [
+       [
+        "yes",
+        0.5
+       ],
+       [
+        "yes",
+        0.56
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 22,
+    "selected": false,
+    "reason": "rejected: a0-10-api-key-redaction expected yes got [['yes', 0.5], ['yes', 0.56]]"
+   },
+   {
+    "role": "single_constraint",
+    "candidate_id": "r6:b2:single_constraint",
+    "question_sha256": "49bbc406b4f40baa8ba8671474064653cee35d25391a13340a5489879282ae2a",
+    "accepted": false,
+    "exact_cells": 36,
+    "confident_cells": 33,
+    "stable_cells": 36,
+    "total_cells": 36,
+    "third_calls": 1,
+    "min_confidence": 0.37,
+    "mean_confidence": 0.8864,
+    "calls_below_0_8_reference": 10,
+    "complexity_chars": 592,
+    "mismatches": [
+     [
+      "a0-10-api-key-redaction",
+      "yes",
+      [
+       [
+        "yes",
+        0.62
+       ],
+       [
+        "yes",
+        0.52
+       ]
+      ]
+     ],
+     [
+      "a0-14-shared-quote-second-atomic",
+      "yes",
+      [
+       [
+        "yes",
+        0.52
+       ],
+       [
+        "yes",
+        0.6
+       ],
+       [
+        "yes",
+        0.76
+       ]
+      ]
+     ],
+     [
+      "a5-02-unidentified-baseline",
+      "yes",
+      [
+       [
+        "yes",
+        0.37
+       ],
+       [
+        "yes",
+        0.42
+       ]
+      ]
+     ]
+    ],
+    "repeat_evaluations": [],
+    "origin": "new wording",
+    "accepted_every_evaluation": false,
+    "rank": 23,
+    "selected": false,
+    "reason": "rejected: a0-10-api-key-redaction expected yes got [['yes', 0.62], ['yes', 0.52]]; a0-14-shared-quote-second-atomic expected yes got [['yes', 0.52], ['yes', 0.6], ['yes', 0.76]]; a5-02-unidentified-baseline expected yes got [['yes', 0.37], ['yes', 0.42]]"
+   }
+  ],
+  "acceptance_table": [
+   {
+    "case_id": "a0-01-valid-directive",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-02-valid-prohibition",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.91
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-03-structural-scope",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.91
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-04-global-scope",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.86
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-05-atomic-from-multi-directive",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.8
+      ],
+      [
+       "yes",
+       0.8
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-06-genuinely-bundled",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.72
+      ],
+      [
+       "yes",
+       0.82
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.68
+      ],
+      [
+       "yes",
+       0.6
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-07-unsupported-elaboration",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.91
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.98
+      ],
+      [
+       "no",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-08-vague-outcome",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.98
+      ],
+      [
+       "no",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-09-explicit-testable-condition",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.82
+      ],
+      [
+       "yes",
+       0.85
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.68
+      ],
+      [
+       "yes",
+       0.68
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-10-api-key-redaction",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.82
+      ],
+      [
+       "yes",
+       0.77
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.73
+      ],
+      [
+       "yes",
+       0.76
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-11-private-shorthand",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.97
+      ],
+      [
+       "no",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-12-unrecorded-approval",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.97
+      ],
+      [
+       "no",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.89
+      ],
+      [
+       "no",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-13-shared-quote-first-atomic",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.8
+      ],
+      [
+       "yes",
+       0.83
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-14-shared-quote-second-atomic",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.88
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.79
+      ],
+      [
+       "yes",
+       0.79
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-15-duplicate-first",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.91
+      ],
+      [
+       "yes",
+       0.88
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-16-duplicate-second",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.73
+      ],
+      [
+       "yes",
+       0.8
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.85
+      ],
+      [
+       "yes",
+       0.89
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a0-17-nondeclarative-form",
+    "origin": "base-v2",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.89
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-01-inline-defined-mode",
+    "origin": "a3-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.89
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-02-inline-defined-meaning",
+    "origin": "a3-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.91
+      ],
+      [
+       "yes",
+       0.89
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-03-product-command-name",
+    "origin": "a3-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.83
+      ],
+      [
+       "yes",
+       0.82
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-04-caller-role-flag",
+    "origin": "a3-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.82
+      ],
+      [
+       "yes",
+       0.8
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-05-identified-expected-output",
+    "origin": "a3-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.8
+      ],
+      [
+       "yes",
+       0.79
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.89
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-06-undefined-mode-label",
+    "origin": "a3-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-07-unidentified-expected-output",
+    "origin": "a3-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.98
+      ],
+      [
+       "no",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-08-unrecorded-signoff",
+    "origin": "a3-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.96
+      ],
+      [
+       "no",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.86
+      ],
+      [
+       "yes",
+       0.79
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.73
+      ],
+      [
+       "no",
+       0.73
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a3-09-recorded-approval",
+    "origin": "a3-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.85
+      ],
+      [
+       "yes",
+       0.8
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.86
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a4-01-multi-diagnostic-codes",
+    "origin": "a4-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.89
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.8
+      ],
+      [
+       "yes",
+       0.79
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a4-02-multi-commit-hashes",
+    "origin": "a4-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.68
+      ],
+      [
+       "yes",
+       0.67
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a4-03-report-id-record",
+    "origin": "a4-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.73
+      ],
+      [
+       "yes",
+       0.76
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.88
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a4-04-exact-file-list",
+    "origin": "a4-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a4-05-buried-undefined-label",
+    "origin": "a4-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.97
+      ],
+      [
+       "yes",
+       0.97
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.82
+      ],
+      [
+       "no",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.74
+      ],
+      [
+       "yes",
+       0.73
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.7
+      ],
+      [
+       "no",
+       0.74
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a4-06-buried-subjective-quality",
+    "origin": "a4-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.88
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.74
+      ],
+      [
+       "no",
+       0.73
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.8
+      ],
+      [
+       "yes",
+       0.85
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.96
+      ],
+      [
+       "no",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a5-01-tagged-release-baseline",
+    "origin": "a5-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.91
+      ],
+      [
+       "yes",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.8
+      ],
+      [
+       "yes",
+       0.86
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.37
+      ],
+      [
+       "yes",
+       0.34
+      ]
+     ],
+     "cell": "inconclusive"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.8
+      ],
+      [
+       "yes",
+       0.79
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a5-02-unidentified-baseline",
+    "origin": "a5-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.77
+      ],
+      [
+       "no",
+       0.76
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.83
+      ],
+      [
+       "yes",
+       0.82
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.92
+      ],
+      [
+       "no",
+       0.89
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a5-03-identified-corpus-inline-exceptions",
+    "origin": "a5-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.92
+      ],
+      [
+       "yes",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.96
+      ],
+      [
+       "yes",
+       0.96
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.88
+      ],
+      [
+       "yes",
+       0.91
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.66
+      ],
+      [
+       "yes",
+       0.6
+      ]
+     ],
+     "cell": "accepted"
+    }
+   },
+   {
+    "case_id": "a5-04-unidentified-corpus-and-approvals",
+    "origin": "a5-extension",
+    "single_constraint": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.98
+      ],
+      [
+       "yes",
+       0.98
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "observable": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.88
+      ],
+      [
+       "no",
+       0.83
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "faithful": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.94
+      ],
+      [
+       "yes",
+       0.94
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "scoped": {
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "cell": "accepted"
+    },
+    "self_contained": {
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       0.94
+      ],
+      [
+       "no",
+       0.92
+      ]
+     ],
+     "cell": "accepted"
+    }
+   }
+  ],
+  "confirmation_summary": {
+   "two_call_cells": 180,
+   "third_call_cells": 0,
+   "inconclusive_cells": 1,
+   "unstable_cells": 0
+  },
+  "deterministic_lint": {
+   "requirement_form_all_match": true,
+   "extension_lint": [
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-01-inline-defined-mode",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-02-inline-defined-meaning",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-03-product-command-name",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-04-caller-role-flag",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-05-identified-expected-output",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-06-undefined-mode-label",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-07-unidentified-expected-output",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-08-unrecorded-signoff",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a3-09-recorded-approval",
+     "verbatim_quote_error": false,
+     "warnings": []
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a4-01-multi-diagnostic-codes",
+     "verbatim_quote_error": false
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a4-02-multi-commit-hashes",
+     "verbatim_quote_error": false
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a4-03-report-id-record",
+     "verbatim_quote_error": false
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a4-04-exact-file-list",
+     "verbatim_quote_error": false
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a4-05-buried-undefined-label",
+     "verbatim_quote_error": false
+    },
+    {
+     "errors": [],
+     "expected": "pass",
+     "got": "pass",
+     "id": "a4-06-buried-subjective-quality",
+     "verbatim_quote_error": false
+    }
+   ],
+   "base_evidence": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/deterministic-lint.json"
+  },
+  "dedupe": {
+   "note": "dedupe question and pairs unchanged; prior byte-identical paired result reused",
+   "rows": [
+    {
+     "pair_id": "dup-01-shared-quote-distinct",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "stable": true,
+     "exact": true,
+     "confident": true,
+     "byte_identical": true
+    },
+    {
+     "pair_id": "dup-02-same-statement-different-quotes",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       1.0
+      ],
+      [
+       "yes",
+       1.0
+      ]
+     ],
+     "stable": true,
+     "exact": true,
+     "confident": true,
+     "byte_identical": true
+    },
+    {
+     "pair_id": "dup-03-paraphrased-duplicate",
+     "expected": "yes",
+     "calls": [
+      [
+       "yes",
+       0.83
+      ],
+      [
+       "yes",
+       0.77
+      ]
+     ],
+     "stable": true,
+     "exact": true,
+     "confident": true,
+     "byte_identical": true
+    },
+    {
+     "pair_id": "dup-04-related-distinct",
+     "expected": "no",
+     "calls": [
+      [
+       "no",
+       1.0
+      ],
+      [
+       "no",
+       1.0
+      ]
+     ],
+     "stable": true,
+     "exact": true,
+     "confident": true,
+     "byte_identical": true
+    }
+   ],
+   "evidence": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/dedupe-score.json"
+  },
+  "evidence": {
+   "directory": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6",
+   "corpus": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/oracle.json",
+   "corpus_sha256": "648254ca3ca7772cea006293486e7a9812f1b911c2bbc7260e3bfd4309357826",
+   "oracle_frozen_before_first_jev_call": true,
+   "request": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/request.json",
+   "request_canonical_sha256": "e8cfa350169038277f361a91d084957fde82605b8fab966b32412d43397affae",
+   "installed_seal_current_questions_canonical_sha256": "3e7355eade12c39b87e4953b08127fa89116017249c8c4dbe3797649747e9987",
+   "installed_seal_reported_by_planner": "28ce3aec (version 5)",
+   "acceptance_table_source": "r6c:d1 composite bundle (best wording per role evaluated together)",
+   "baseline_installed_seal": {
+    "bundle": "r6:b0",
+    "semantic_score": {
+     "exact_cells": 179,
+     "confident_cells": 176,
+     "stable_cells": 180,
+     "total_cells": 180
+    },
+    "acceptance_table": [
+     {
+      "case_id": "a0-01-valid-directive",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.91
+        ],
+        [
+         "yes",
+         0.85
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.94
+        ],
+        [
+         "yes",
+         0.94
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-02-valid-prohibition",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.92
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-03-structural-scope",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.92
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-04-global-scope",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.82
+        ],
+        [
+         "yes",
+         0.86
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.91
+        ],
+        [
+         "yes",
+         0.89
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-05-atomic-from-multi-directive",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.82
+        ],
+        [
+         "yes",
+         0.8
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-06-genuinely-bundled",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         1.0
+        ],
+        [
+         "no",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.76
+        ],
+        [
+         "yes",
+         0.79
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.72
+        ],
+        [
+         "yes",
+         0.72
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-07-unsupported-elaboration",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.92
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.98
+        ],
+        [
+         "no",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.91
+        ],
+        [
+         "yes",
+         0.89
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-08-vague-outcome",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         1.0
+        ],
+        [
+         "no",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.88
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.98
+        ],
+        [
+         "no",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-09-explicit-testable-condition",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.94
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.86
+        ],
+        [
+         "yes",
+         0.86
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.76
+        ],
+        [
+         "yes",
+         0.72
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-10-api-key-redaction",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.89
+        ],
+        [
+         "yes",
+         0.85
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.89
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.74
+        ],
+        [
+         "yes",
+         0.77
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-11-private-shorthand",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.97
+        ],
+        [
+         "no",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.94
+        ],
+        [
+         "yes",
+         0.88
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         1.0
+        ],
+        [
+         "no",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-12-unrecorded-approval",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.98
+        ],
+        [
+         "no",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.91
+        ],
+        [
+         "no",
+         0.91
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-13-shared-quote-first-atomic",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.88
+        ],
+        [
+         "yes",
+         0.85
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.91
+        ],
+        [
+         "yes",
+         0.91
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-14-shared-quote-second-atomic",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.85
+        ],
+        [
+         "yes",
+         0.91
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.94
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.66
+        ],
+        [
+         "yes",
+         0.58
+        ]
+       ],
+       "cell": "inconclusive"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-15-duplicate-first",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.92
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.92
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.88
+        ],
+        [
+         "yes",
+         0.89
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-16-duplicate-second",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.85
+        ],
+        [
+         "yes",
+         0.83
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.76
+        ],
+        [
+         "yes",
+         0.74
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.86
+        ],
+        [
+         "yes",
+         0.88
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a0-17-nondeclarative-form",
+      "origin": "base-v2",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.91
+        ],
+        [
+         "yes",
+         0.89
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a3-01-inline-defined-mode",
+      "origin": "a3-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.91
+        ],
+        [
+         "yes",
+         0.91
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.91
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a3-02-inline-defined-meaning",
+      "origin": "a3-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.91
+        ],
+        [
+         "yes",
+         0.92
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.88
+        ],
+        [
+         "yes",
+         0.85
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a3-03-product-command-name",
+      "origin": "a3-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.79
+        ],
+        [
+         "yes",
+         0.82
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.94
+        ],
+        [
+         "yes",
+         0.91
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.94
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a3-04-caller-role-flag",
+      "origin": "a3-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.79
+        ],
+        [
+         "yes",
+         0.85
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a3-05-identified-expected-output",
+      "origin": "a3-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.79
+        ],
+        [
+         "yes",
+         0.79
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.91
+        ],
+        [
+         "yes",
+         0.91
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a3-06-undefined-mode-label",
+      "origin": "a3-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         1.0
+        ],
+        [
+         "no",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.94
+        ],
+        [
+         "yes",
+         0.94
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         1.0
+        ],
+        [
+         "no",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a3-07-unidentified-expected-output",
+      "origin": "a3-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.98
+        ],
+        [
+         "no",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.94
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         1.0
+        ],
+        [
+         "no",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a3-08-unrecorded-signoff",
+      "origin": "a3-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.94
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.96
+        ],
+        [
+         "no",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.85
+        ],
+        [
+         "yes",
+         0.88
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.82
+        ],
+        [
+         "no",
+         0.79
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a3-09-recorded-approval",
+      "origin": "a3-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.88
+        ],
+        [
+         "yes",
+         0.86
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.85
+        ],
+        [
+         "yes",
+         0.85
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a4-01-multi-diagnostic-codes",
+      "origin": "a4-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.92
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.89
+        ],
+        [
+         "yes",
+         0.88
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.74
+        ],
+        [
+         "yes",
+         0.76
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a4-02-multi-commit-hashes",
+      "origin": "a4-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.73
+        ],
+        [
+         "yes",
+         0.68
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a4-03-report-id-record",
+      "origin": "a4-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.82
+        ],
+        [
+         "yes",
+         0.72
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.77
+        ],
+        [
+         "yes",
+         0.79
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a4-04-exact-file-list",
+      "origin": "a4-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.96
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.94
+        ],
+        [
+         "yes",
+         0.92
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a4-05-buried-undefined-label",
+      "origin": "a4-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.97
+        ],
+        [
+         "yes",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.67
+        ],
+        [
+         "no",
+         0.7
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.76
+        ],
+        [
+         "yes",
+         0.77
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.89
+        ],
+        [
+         "no",
+         0.88
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a4-06-buried-subjective-quality",
+      "origin": "a4-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.86
+        ],
+        [
+         "yes",
+         0.94
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.76
+        ],
+        [
+         "no",
+         0.76
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.85
+        ],
+        [
+         "yes",
+         0.82
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.96
+        ],
+        [
+         "no",
+         0.97
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a5-01-tagged-release-baseline",
+      "origin": "a5-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.91
+        ],
+        [
+         "yes",
+         0.89
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.72
+        ],
+        [
+         "yes",
+         0.77
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.4
+        ],
+        [
+         "yes",
+         0.28
+        ]
+       ],
+       "cell": "inconclusive"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.66
+        ],
+        [
+         "yes",
+         0.64
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a5-02-unidentified-baseline",
+      "origin": "a5-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.94
+        ],
+        [
+         "yes",
+         0.96
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.76
+        ],
+        [
+         "no",
+         0.74
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.82
+        ],
+        [
+         "yes",
+         0.86
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.89
+        ],
+        [
+         "no",
+         0.92
+        ]
+       ],
+       "cell": "accepted"
+      }
+     },
+     {
+      "case_id": "a5-03-identified-corpus-inline-exceptions",
+      "origin": "a5-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.94
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.52
+        ],
+        [
+         "yes",
+         0.48
+        ]
+       ],
+       "cell": "inconclusive"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.86
+        ],
+        [
+         "yes",
+         0.85
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "yes",
+       "calls": [
+        [
+         "no",
+         0.28
+        ],
+        [
+         "no",
+         0.3
+        ]
+       ],
+       "cell": "inconclusive"
+      }
+     },
+     {
+      "case_id": "a5-04-unidentified-corpus-and-approvals",
+      "origin": "a5-extension",
+      "single_constraint": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.98
+        ],
+        [
+         "yes",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "observable": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.88
+        ],
+        [
+         "no",
+         0.91
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "faithful": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.92
+        ],
+        [
+         "yes",
+         0.94
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "scoped": {
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         1.0
+        ],
+        [
+         "yes",
+         1.0
+        ]
+       ],
+       "cell": "accepted"
+      },
+      "self_contained": {
+       "expected": "no",
+       "calls": [
+        [
+         "no",
+         0.97
+        ],
+        [
+         "no",
+         0.98
+        ]
+       ],
+       "cell": "accepted"
+      }
+     }
+    ],
+    "failing_cells": [
+     [
+      "r6:b0:observable",
+      {
+       "case": "a5-03-identified-corpus-inline-exceptions",
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.52
+        ],
+        [
+         "yes",
+         0.48
+        ]
+       ]
+      }
+     ],
+     [
+      "r6:b0:faithful",
+      {
+       "case": "a0-14-shared-quote-second-atomic",
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.66
+        ],
+        [
+         "yes",
+         0.58
+        ]
+       ]
+      }
+     ],
+     [
+      "r6:b0:faithful",
+      {
+       "case": "a5-01-tagged-release-baseline",
+       "expected": "yes",
+       "calls": [
+        [
+         "yes",
+         0.4
+        ],
+        [
+         "yes",
+         0.28
+        ]
+       ]
+      }
+     ],
+     [
+      "r6:b0:self_contained",
+      {
+       "case": "a5-03-identified-corpus-inline-exceptions",
+       "expected": "yes",
+       "calls": [
+        [
+         "no",
+         0.28
+        ],
+        [
+         "no",
+         0.3
+        ]
+       ]
+      }
+     ]
+    ]
+   },
+   "best_composite_questions": {
+    "digest_if_sealed": "abcb458592d543005e58c0e44f2cf027e512aa3ec0103624bc6f7f2030449822",
+    "questions": {
+     "faithful": {
+      "criteria": {
+       "no": "The statement adds a new decision the quote leaves open, or asks for something different from the quote.",
+       "unclear": "It cannot be told whether an extra detail is the obvious reading or a new decision.",
+       "yes": "The statement asks for what the quote asks for; any extra detail is only the obvious precise reading of the quote."
+      },
+      "instructions": "First identify what `anchor.quote` asks for. Then decide whether `anchor.statement` asks for that same thing, possibly worded more precisely, or adds a new decision. Making the quote precise in the obvious way is not a new decision: the stream a CLI prints to is stdout; logs and error messages go to stdout or stderr; JSON output is a JSON object; a CLI's commands are its subcommands; must replaces should or needs to; concrete values may illustrate a described test; and one directive may be taken from several. A new decision is a choice the quote leaves open, such as a specific algorithm or key strength where the quote only says encrypt, a count, a tool, or a trigger. Naming the same records the quote names, such as paths, commit hashes, codes, or ids, is faithful however many there are. A statement may require only part of what the quote asks, such as one clause, one surface, or one of several directives; covering less is not a new decision. Do not judge vagueness, bundling, or scope.",
+      "type": "choice"
+     },
+     "observable": {
+      "criteria": {
+       "no": "A required outcome rests on a subjective quality, an undefined label or mode, or an expected output, approval, or standard with no identified record.",
+       "unclear": "An outcome is partly concrete, but what to inspect cannot be determined even though nothing is undefined or unrecorded.",
+       "yes": "Every required outcome is a concrete behavior, output, file, path, value, tool use, or identified record that can be inspected."
+      },
+      "instructions": "Can each outcome that `anchor.statement` requires be checked by inspecting something concrete: a behavior, output, exit status, file, path, value, tool used, or an identified record? Bundled duties, added details, and informal wording do not matter here. Nothing can be inspected for a subjective quality (robust), a label, tier, or mode the statement never defines (R7, Mode K, 'the gold-tier store'), including one that names where results must go, an expected output, approval, or standard whose record the statement does not identify, or a person's say-so with no identified record. A mode the statement defines inline is inspectable. Named records such as a release with its tag, a report id, or a commit are identified records, and an approval or exception set whose contents the statement lists inline is identified.",
+      "type": "choice"
+     },
+     "scoped": {
+      "criteria": {
+       "no": "No subject is named; the requirement applies to nothing identifiable.",
+       "unclear": "A subject is hinted at but cannot be identified.",
+       "yes": "A subject (component, artifact, process, path, or explicit set) is named."
+      },
+      "instructions": "Does `anchor.statement` or `anchor.scope` name the subject the requirement applies to, such as a command, module, service, pipeline, artifact, process, path, or an explicit 'all' or 'every' set? A named subject is enough even when the requirement about it is vague or poorly worded.",
+      "type": "choice"
+     },
+     "self_contained": {
+      "criteria": {
+       "no": "A decisive term is a subjective quality, an undefined label or mode, an unidentified expected output or standard, or an approval with no identified record.",
+       "unclear": "A term may not be understood, but it cannot be told whether it is decisive.",
+       "yes": "Every decisive term can be understood from the statement or common technical knowledge."
+      },
+      "instructions": "Can each decisive term in `anchor.statement` be understood from the statement itself or from common technical knowledge? Understood terms include commands, subcommands, flags, files, paths, values, environment variables, formats, streams, roles such as 'the caller', and terms the statement defines inline. Bundled duties, added details, sentence form, and who is told to act (a named component, 'you', or nobody) do not matter here. A term cannot be understood when it is a subjective quality (robust), a label or mode the statement never defines (R7, Mode K), an expected output or standard whose record the statement does not identify, or a person's approval with no identified record. Named records such as a release with its tag, a report id, or a commit are identified records, and an approval or exception set whose contents the statement lists inline is identified. A label followed by its meaning in parentheses is defined inline. Judge each decisive term separately: one undefined label, tier, or mode, or one subjective quality, makes the answer no even when the statement also names many concrete paths, hashes, codes, or ids.",
+      "type": "choice"
+     },
+     "single_constraint": {
+      "criteria": {
+       "no": "The statement joins two or more required actions, or two subjects each with its own action, so one part could be met while another is not.",
+       "unclear": "The parts could equally be read as one action with several targets or as separate actions.",
+       "yes": "One subject has one required action or one prohibition; any list only enumerates the targets, surfaces, values, or conditions of that same action."
+      },
+      "instructions": "Does `anchor.statement` impose one requirement rather than several separate ones? It is one requirement when every listed target, output stream, file, value, or condition qualifies the same required action or prohibition of the same subject; for example, 'must omit X from stdout, stderr and saved files' is one requirement. It is several requirements when it joins separate required actions that could each be met while the other is not; for example, 'the CLI must emit JSON and the daemon must write an audit log'. Judge only this; ignore vagueness, fidelity to the quote, and scope.",
+      "type": "choice"
+     }
+    },
+    "status": "not sealed; faithful a5-01 inconclusive"
+   },
+   "bundles": [
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/bundles-r6.json",
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/bundles-r6b.json",
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/bundles-r6c.json"
+   ],
+   "scores": [
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/score-6.json",
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/score-6b.json",
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/score-6c.json"
+   ],
+   "scripts": [
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/harness.py",
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/score.py",
+    "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/assemble6.py"
+   ],
+   "raw_requests_dir": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/requests",
+   "raw_responses_dir": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/responses",
+   "rounds": {
+    "6": {
+     "round": "6",
+     "requests": 218,
+     "third_calls": 2,
+     "failed": [],
+     "byte_identical_pairs": true
+    },
+    "6b": {
+     "round": "6b",
+     "requests": 144,
+     "third_calls": 0,
+     "failed": [],
+     "byte_identical_pairs": true
+    },
+    "6c": {
+     "round": "6c",
+     "requests": 144,
+     "third_calls": 0,
+     "failed": [],
+     "byte_identical_pairs": true
+    }
+   },
+   "planner_observation": "none supplied"
+  },
+  "explanation": "Not accepted. The installed seal (b0) scored 179/180 exact, 176/180 confident, all stable. It went inconclusive on observable a5-03 (yes 0.52/0.48), faithful a5-01 (yes 0.40/0.28) and a0-14 (yes 0.66/0.58). Self_contained missed a5-03 (no 0.28/0.30, low confidence). Over three rounds (r6, r6b, r6c) I tested 23 distinct wordings for the five roles. Single_constraint and scoped b0 were accepted every time. Observable r6b:c1:observable was accepted in all three evaluations (min 0.66); it adds that named records and inline-listed approved or exception sets are identified. Self_contained r6c:d1:self_contained was accepted at min 0.60, exactly the threshold, so its margin is thin. Faithful has no accepted wording: a5-01 stayed at 0.28-0.43 in all seven faithful evaluations, b1 split, and b2 answered no twice. The a5-01 statement adds a parenthetical that is not in the quote ('keeps the 2.4.0 line-wrapping rules'). I recommend a corpus revision, not further faithful tuning. The frozen labels were not changed. Composite d1 scored 180/180 exact, 179/180 confident, all stable. No rubric is sealed.",
+  "authority_recommendations": [
+   {
+    "kind": "corpus_case_review",
+    "applies_to": "a5-01-tagged-release-baseline",
+    "authority_version": "docs/plans/phase-u/anchor-runs/testability-tuning-20261104/baseline-r6/oracle.json sha256 648254ca3ca7772cea006293486e7a9812f1b911c2bbc7260e3bfd4309357826 (calibration corpus v2, a5 extension frozen 2026-11-04)",
+    "ambiguity": "Expected faithful=yes, but the statement adds '(the formatter keeps the 2.4.0 line-wrapping rules)', which the quote never mentions, and narrows 'every library function and CLI command ... same output bytes, same exit codes' to formatted output only. Five distinct faithful wordings over seven evaluations failed this cell: the installed seal, c1 and c2 answered yes at 0.28-0.43; b1 split no/yes/no; b2 answered no twice (0.55/0.56). The case pairs an unsupported elaboration with the label it is meant to calibrate.",
+    "proposed_text": "In a new corpus version, either drop the parenthetical from the a5-01 statement (keeping faithful=yes), or keep it and relabel faithful=no with a matching rationale. Do not relabel the frozen v2 case.",
+    "meaning_unchanged_because": "The case targets self_contained/observable for a tagged-release baseline; removing the unsupported parenthetical leaves that intent unchanged.",
+    "requires_user_approval": true
+   }
+  ],
+  "candidate_count": 23,
+  "semantic_score": {
+   "exact_cells": 180,
+   "confident_cells": 179,
+   "stable_cells": 180,
+   "total_cells": 180
+  },
+  "dedupe_case_count": 4,
+  "dedupe_score": {
+   "exact_cells": 4,
+   "confident_cells": 4,
+   "stable_cells": 4,
+   "total_cells": 4
+  },
+  "repeat_requests_byte_identical": true
+ },
+ "error": null,
+ "metadata": {
+  "duration_ms": 1500000,
+  "tool_calls": 32,
+  "retry_count": 0,
+  "correlation_id": "phase-u:beads-anchors:testability-r6",
+  "jev_run_ids": [
+   "phase-u:beads-anchors:testability:r6:b0:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a4-01-multi-diagnostic-codes:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a4-01-multi-diagnostic-codes:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a4-02-multi-commit-hashes:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a4-02-multi-commit-hashes:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a4-03-report-id-record:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a4-03-report-id-record:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a4-04-exact-file-list:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a4-04-exact-file-list:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a4-05-buried-undefined-label:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a4-05-buried-undefined-label:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a4-06-buried-subjective-quality:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a4-06-buried-subjective-quality:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a5-01-tagged-release-baseline:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a5-01-tagged-release-baseline:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a5-02-unidentified-baseline:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a5-02-unidentified-baseline:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a5-03-identified-corpus-inline-exceptions:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a5-03-identified-corpus-inline-exceptions:call2",
+   "phase-u:beads-anchors:testability:r6:b0:a5-04-unidentified-corpus-and-approvals:call1",
+   "phase-u:beads-anchors:testability:r6:b0:a5-04-unidentified-corpus-and-approvals:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a4-01-multi-diagnostic-codes:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a4-01-multi-diagnostic-codes:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a4-02-multi-commit-hashes:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a4-02-multi-commit-hashes:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a4-03-report-id-record:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a4-03-report-id-record:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a4-04-exact-file-list:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a4-04-exact-file-list:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a4-05-buried-undefined-label:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a4-05-buried-undefined-label:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a4-06-buried-subjective-quality:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a4-06-buried-subjective-quality:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a5-01-tagged-release-baseline:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a5-01-tagged-release-baseline:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a5-01-tagged-release-baseline:call3",
+   "phase-u:beads-anchors:testability:r6:b1:a5-02-unidentified-baseline:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a5-02-unidentified-baseline:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a5-03-identified-corpus-inline-exceptions:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a5-03-identified-corpus-inline-exceptions:call2",
+   "phase-u:beads-anchors:testability:r6:b1:a5-04-unidentified-corpus-and-approvals:call1",
+   "phase-u:beads-anchors:testability:r6:b1:a5-04-unidentified-corpus-and-approvals:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-14-shared-quote-second-atomic:call3",
+   "phase-u:beads-anchors:testability:r6:b2:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a4-01-multi-diagnostic-codes:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a4-01-multi-diagnostic-codes:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a4-02-multi-commit-hashes:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a4-02-multi-commit-hashes:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a4-03-report-id-record:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a4-03-report-id-record:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a4-04-exact-file-list:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a4-04-exact-file-list:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a4-05-buried-undefined-label:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a4-05-buried-undefined-label:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a4-06-buried-subjective-quality:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a4-06-buried-subjective-quality:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a5-01-tagged-release-baseline:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a5-01-tagged-release-baseline:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a5-02-unidentified-baseline:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a5-02-unidentified-baseline:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a5-03-identified-corpus-inline-exceptions:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a5-03-identified-corpus-inline-exceptions:call2",
+   "phase-u:beads-anchors:testability:r6:b2:a5-04-unidentified-corpus-and-approvals:call1",
+   "phase-u:beads-anchors:testability:r6:b2:a5-04-unidentified-corpus-and-approvals:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-01-multi-diagnostic-codes:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-01-multi-diagnostic-codes:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-02-multi-commit-hashes:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-02-multi-commit-hashes:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-03-report-id-record:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-03-report-id-record:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-04-exact-file-list:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-04-exact-file-list:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-05-buried-undefined-label:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-05-buried-undefined-label:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-06-buried-subjective-quality:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a4-06-buried-subjective-quality:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a5-01-tagged-release-baseline:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a5-01-tagged-release-baseline:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a5-02-unidentified-baseline:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a5-02-unidentified-baseline:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a5-03-identified-corpus-inline-exceptions:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a5-03-identified-corpus-inline-exceptions:call2",
+   "phase-u:beads-anchors:testability:r6b:c1:a5-04-unidentified-corpus-and-approvals:call1",
+   "phase-u:beads-anchors:testability:r6b:c1:a5-04-unidentified-corpus-and-approvals:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-01-multi-diagnostic-codes:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-01-multi-diagnostic-codes:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-02-multi-commit-hashes:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-02-multi-commit-hashes:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-03-report-id-record:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-03-report-id-record:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-04-exact-file-list:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-04-exact-file-list:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-05-buried-undefined-label:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-05-buried-undefined-label:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-06-buried-subjective-quality:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a4-06-buried-subjective-quality:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a5-01-tagged-release-baseline:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a5-01-tagged-release-baseline:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a5-02-unidentified-baseline:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a5-02-unidentified-baseline:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a5-03-identified-corpus-inline-exceptions:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a5-03-identified-corpus-inline-exceptions:call2",
+   "phase-u:beads-anchors:testability:r6b:c2:a5-04-unidentified-corpus-and-approvals:call1",
+   "phase-u:beads-anchors:testability:r6b:c2:a5-04-unidentified-corpus-and-approvals:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-01-multi-diagnostic-codes:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-01-multi-diagnostic-codes:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-02-multi-commit-hashes:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-02-multi-commit-hashes:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-03-report-id-record:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-03-report-id-record:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-04-exact-file-list:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-04-exact-file-list:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-05-buried-undefined-label:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-05-buried-undefined-label:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-06-buried-subjective-quality:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a4-06-buried-subjective-quality:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a5-01-tagged-release-baseline:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a5-01-tagged-release-baseline:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a5-02-unidentified-baseline:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a5-02-unidentified-baseline:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a5-03-identified-corpus-inline-exceptions:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a5-03-identified-corpus-inline-exceptions:call2",
+   "phase-u:beads-anchors:testability:r6c:d1:a5-04-unidentified-corpus-and-approvals:call1",
+   "phase-u:beads-anchors:testability:r6c:d1:a5-04-unidentified-corpus-and-approvals:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-01-valid-directive:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-01-valid-directive:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-02-valid-prohibition:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-02-valid-prohibition:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-03-structural-scope:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-03-structural-scope:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-04-global-scope:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-04-global-scope:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-05-atomic-from-multi-directive:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-05-atomic-from-multi-directive:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-06-genuinely-bundled:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-06-genuinely-bundled:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-07-unsupported-elaboration:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-07-unsupported-elaboration:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-08-vague-outcome:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-08-vague-outcome:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-09-explicit-testable-condition:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-09-explicit-testable-condition:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-10-api-key-redaction:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-10-api-key-redaction:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-11-private-shorthand:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-11-private-shorthand:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-12-unrecorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-12-unrecorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-13-shared-quote-first-atomic:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-13-shared-quote-first-atomic:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-14-shared-quote-second-atomic:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-14-shared-quote-second-atomic:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-15-duplicate-first:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-15-duplicate-first:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-16-duplicate-second:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-16-duplicate-second:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-17-nondeclarative-form:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a0-17-nondeclarative-form:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-01-inline-defined-mode:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-01-inline-defined-mode:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-02-inline-defined-meaning:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-02-inline-defined-meaning:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-03-product-command-name:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-03-product-command-name:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-04-caller-role-flag:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-04-caller-role-flag:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-05-identified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-05-identified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-06-undefined-mode-label:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-06-undefined-mode-label:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-07-unidentified-expected-output:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-07-unidentified-expected-output:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-08-unrecorded-signoff:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-08-unrecorded-signoff:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-09-recorded-approval:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a3-09-recorded-approval:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-01-multi-diagnostic-codes:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-01-multi-diagnostic-codes:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-02-multi-commit-hashes:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-02-multi-commit-hashes:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-03-report-id-record:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-03-report-id-record:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-04-exact-file-list:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-04-exact-file-list:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-05-buried-undefined-label:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-05-buried-undefined-label:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-06-buried-subjective-quality:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a4-06-buried-subjective-quality:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a5-01-tagged-release-baseline:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a5-01-tagged-release-baseline:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a5-02-unidentified-baseline:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a5-02-unidentified-baseline:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a5-03-identified-corpus-inline-exceptions:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a5-03-identified-corpus-inline-exceptions:call2",
+   "phase-u:beads-anchors:testability:r6c:d2:a5-04-unidentified-corpus-and-approvals:call1",
+   "phase-u:beads-anchors:testability:r6c:d2:a5-04-unidentified-corpus-and-approvals:call2"
+  ],
+  "planner_observation_trust": null,
+  "authoritative_sources_unchanged": true
+ }
+}
