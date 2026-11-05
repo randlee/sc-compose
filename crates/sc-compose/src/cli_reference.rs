@@ -1,15 +1,53 @@
 //! Convert the live clap command tree into docli's language-neutral model.
 use clap::{Command, CommandFactory};
+use serde::Serialize;
 use serde_json::{Value, json};
 
 use crate::cli::Cli;
 
-pub(crate) fn model() -> Value {
-    let command = Cli::command();
-    command_model(&command, command.get_name())
+#[derive(Serialize)]
+struct CommandModel {
+    name: String,
+    version: Option<String>,
+    description: String,
+    long_description: String,
+    epilogue: String,
+    usage: String,
+    options: Vec<OptionModel>,
+    arguments: Vec<ArgumentModel>,
+    subcommands: Vec<CommandModel>,
 }
 
-fn command_model(command: &Command, path: &str) -> Value {
+#[derive(Serialize)]
+struct OptionModel {
+    name: String,
+    long: Option<String>,
+    short: Option<String>,
+    help: String,
+    long_help: String,
+    value_name: Option<String>,
+    required: bool,
+    default_value: Option<String>,
+    choices: Vec<String>,
+    min_values: Option<usize>,
+    max_values: Option<usize>,
+}
+
+#[derive(Serialize)]
+struct ArgumentModel {
+    name: String,
+    help: String,
+    required: bool,
+    default_value: Option<String>,
+    choices: Vec<String>,
+}
+
+pub(crate) fn model() -> Value {
+    let command = Cli::command();
+    json!(command_model(&command, command.get_name()))
+}
+
+fn command_model(command: &Command, path: &str) -> CommandModel {
     let mut options = Vec::new();
     let mut arguments = Vec::new();
     for arg in command.get_arguments().filter(|arg| !arg.is_hide_set()) {
@@ -31,34 +69,68 @@ fn command_model(command: &Command, path: &str) -> Value {
             .map(|v| v.get_name().to_owned())
             .collect();
         if long.is_none() && short.is_none() {
-            arguments.push(json!({"name": name, "help": help, "required": arg.is_required_set(), "default_value": default_value, "choices": choices}));
+            arguments.push(ArgumentModel {
+                name: name.to_owned(),
+                help,
+                required: arg.is_required_set(),
+                default_value,
+                choices,
+            });
         } else {
             let range = arg.get_num_args();
-            options.push(json!({
-                "name": name, "long": long, "short": short, "help": help,
-                "long_help": arg.get_long_help().map(ToString::to_string).unwrap_or_default(),
-                "value_name": arg.get_value_names().and_then(|names| names.first()).map(ToString::to_string),
-                "required": arg.is_required_set(), "default_value": default_value, "choices": choices,
-                "min_values": range.map(|v| v.min_values()), "max_values": range.map(|v| v.max_values())
-            }));
+            options.push(OptionModel {
+                name: name.to_owned(),
+                long,
+                short,
+                help,
+                long_help: arg
+                    .get_long_help()
+                    .map(ToString::to_string)
+                    .unwrap_or_default(),
+                value_name: arg
+                    .get_value_names()
+                    .and_then(|names| names.first())
+                    .map(ToString::to_string),
+                required: arg.is_required_set(),
+                default_value,
+                choices,
+                min_values: range.map(|v| v.min_values()),
+                max_values: range.map(|v| v.max_values()),
+            });
         }
     }
-    options.sort_by(|a, b| a["name"].as_str().cmp(&b["name"].as_str()));
-    arguments.sort_by(|a, b| a["name"].as_str().cmp(&b["name"].as_str()));
+    options.sort_by(|a, b| a.name.cmp(&b.name));
+    arguments.sort_by(|a, b| a.name.cmp(&b.name));
     let mut subcommands: Vec<_> = command
         .get_subcommands()
         .filter(|c| !c.is_hide_set())
         .map(|c| command_model(c, &format!("{path} {}", c.get_name())))
         .collect();
-    subcommands.sort_by(|a, b| a["name"].as_str().cmp(&b["name"].as_str()));
-    json!({
-        "name": command.get_name(), "version": command.get_version(),
-        "description": command.get_about().map(ToString::to_string).unwrap_or_default(),
-        "long_description": command.get_long_about().map(ToString::to_string).unwrap_or_default(),
-        "epilogue": command.get_after_help().map(ToString::to_string).unwrap_or_default(),
-        "usage": command.clone().bin_name(path.to_owned()).render_usage().to_string(),
-        "options": options, "arguments": arguments, "subcommands": subcommands
-    })
+    subcommands.sort_by(|a, b| a.name.cmp(&b.name));
+    CommandModel {
+        name: command.get_name().to_owned(),
+        version: command.get_version().map(str::to_owned),
+        description: command
+            .get_about()
+            .map(ToString::to_string)
+            .unwrap_or_default(),
+        long_description: command
+            .get_long_about()
+            .map(ToString::to_string)
+            .unwrap_or_default(),
+        epilogue: command
+            .get_after_help()
+            .map(ToString::to_string)
+            .unwrap_or_default(),
+        usage: command
+            .clone()
+            .bin_name(path.to_owned())
+            .render_usage()
+            .to_string(),
+        options,
+        arguments,
+        subcommands,
+    }
 }
 
 #[cfg(test)]
@@ -76,7 +148,7 @@ mod tests {
                     .default_value("json"),
             ),
         );
-        let model = command_model(&command, "demo");
+        let model = serde_json::to_value(command_model(&command, "demo")).unwrap();
         let child = &model["subcommands"][0];
         assert_eq!(child["name"], "future");
         assert_eq!(
