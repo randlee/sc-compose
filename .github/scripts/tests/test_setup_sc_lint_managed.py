@@ -42,3 +42,21 @@ def test_exhaustion_is_loud_and_nontransient_error_is_not_retried(capsys):
         managed.install(['bootstrap'], {}, run=runner, sleep=sleeper)
     runner.assert_called_once()
     sleeper.assert_not_called()
+
+
+def test_action_passes_release_wheel_constraints_to_bootstrap(tmp_path, monkeypatch):
+    install_dir = tmp_path / 'sc-lint' / 'bin'
+    install_dir.mkdir(parents=True)
+    (install_dir / ('sc-lint.exe' if managed.os.name == 'nt' else 'sc-lint')).touch()
+    output = tmp_path / 'github-output-path'
+    monkeypatch.setenv('RUNNER_TEMP', str(tmp_path))
+    monkeypatch.setenv('GITHUB_PATH', str(output))
+    monkeypatch.setenv('SC_LINT_BIN', 'untrusted-override')
+    with mock.patch.object(managed, 'install') as install:
+        managed.main()
+    command, env = install.call_args.args
+    assert command[1:] == ['.sc-lint/bootstrap.py', 'setup', '--config', 'sc-lint.toml']
+    assert 'SC_LINT_BIN' not in env
+    assert env['PIP_FIND_LINKS'].endswith('/releases/expanded_assets/v0.8.6')
+    assert env['PIP_CONSTRAINT'] == str(Path('scripts/sc_lint_constraints.txt').resolve())
+    assert output.read_text().strip() == str(install_dir)

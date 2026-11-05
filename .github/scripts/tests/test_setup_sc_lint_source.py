@@ -149,7 +149,7 @@ class SourceSetupTests(unittest.TestCase):
         self.assertIn("'.sc-lint/bootstrap.py', 'setup'", managed)
         self.assertIn("'--config', 'sc-lint.toml'", managed)
         self.assertIn("GITHUB_PATH", managed)
-        self.assertIn('minimum_version = "0.8.5"', (root / 'sc-lint.toml').read_text())
+        self.assertIn('minimum_version = "0.8.6"', (root / 'sc-lint.toml').read_text())
 
     def test_existing_python_environment_rejected_before_fetch(self):
         with tempfile.TemporaryDirectory() as directory:
