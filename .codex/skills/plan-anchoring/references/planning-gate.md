@@ -1,6 +1,6 @@
 ---
 name: planning-gate
-version: 0.8.7
+version: 0.9.0
 description: Running the planning gate end to end - what to pass, what Jev sees, the command and exit codes, and how to read results for one sprint item and a whole phase.
 ---
 
@@ -47,7 +47,7 @@ python3 "$S" judge --anchors "$A" --gate plan --all --item-id <sprint-id> --item
 Then, across all sprint items:
 
 ```bash
-python3 "$S" coverage --runs "$P/anchor-runs" --gate plan --format md
+python3 "$S" coverage --runs "$P/anchor-runs" --gate plan --anchors "$A" --format md
 ```
 
 ## Reading results
