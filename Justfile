@@ -18,6 +18,17 @@ generate-sc-sha-rust mode="write":
 prepare-sc-sha-go-native:
     python3 bindings/sc-sha-go/prepare_native.py
 
+# Cross-target verification of the shipped Go native contract. REQUIRED for the
+# Go contract: the gnu/gnullvm triples below, because native_loader.go ships
+# windows/amd64 as x86_64-pc-windows-gnu and windows/arm64 as
+# aarch64-pc-windows-gnullvm. The msvc cargo-xwin checks (sc-lint check.xwin /
+# clippy.xwin) verify the Windows CLI contract only and do NOT stand in for
+# these. Both are compile-time `cargo check`s; neither links or runs Go (see
+# docs/architecture.md section 3.5, "Cross-target verification").
+check-sc-sha-go-cross:
+    cargo check -p sc-sha-go --target x86_64-pc-windows-gnu
+    cargo check -p sc-sha-go --target aarch64-pc-windows-gnullvm
+
 ensure-lint-runtime:
     python3 scripts/materialize_sc_lint_runtime.py --root .
 
