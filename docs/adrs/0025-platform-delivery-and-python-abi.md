@@ -21,14 +21,15 @@ Prefer one family. A demonstrated material cost prompts owner review of
 optimized wheel variants under the same package release where possible;
 3.9 support stays mandatory. No flaky timing-based unit-test gate is added.
 
-V6 rehearses all 30 artifact/platform builds and declared install channels.
-V7 dispatches the qualifying matrix and supported preflight on the exact
-final candidate after its last changes, binds run identity/version/SHA-256
-to retained files and verifies those files again at publisher staging.
-A V6 rehearsal never substitutes for the final-candidate run. Any later
-candidate/version/byte change requires another qualifying run. No rebuild
-after the gate inherits old evidence. Evidence remains available through the
-publication preflight that consumes it; missing/expired evidence fails closed.
+V6 implements the full matrix and validates the real pipeline with targeted
+producer/install/staging checks. V7 runs the qualifying full matrix and
+supported preflight after the last final-candidate change. No extra full
+rehearsal is mandatory solely because work passes from V6 to V7. A valid run
+may be reused when candidate SHA, version and retained bytes are identical;
+a change requires a new qualifying run. Bind trusted run identity/version
+and artifact SHA-256 to unchanged publisher-staged files. No post-gate rebuild
+inherits old evidence; retain evidence through its publication consumer,
+and fail closed if it is missing or expired.
 
 The canonical publish kit and optional Go peer remain upstream-owned under
 ADR-0022; use their supported installer inputs and immutable releases. V4 owns the generic command-model exporter; V8 owns reusable external
