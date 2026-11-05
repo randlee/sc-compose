@@ -409,8 +409,7 @@ pub fn write_fake_windows_python(root: &Path, stdout: &str, stderr: &str, exit_c
     let source = bin.join("fake-python.rs");
     let executable = bin.join("python.exe");
     let program = format!(
-        "fn main() {{ print!(\"{{}}\", {:?}); eprint!(\"{{}}\", {:?}); std::process::exit({}); }}",
-        stdout, stderr, exit_code
+        "fn main() {{ print!(\"{{}}\", {stdout:?}); eprint!(\"{{}}\", {stderr:?}); std::process::exit({exit_code}); }}"
     );
     fs::write(&source, program).unwrap();
     let status = Command::new("rustc")
