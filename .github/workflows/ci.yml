@@ -215,6 +215,9 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
+      - name: Run controlled Go release-layout fixtures
+        run: python3 bindings/sc-sha-go/tests/test_release_layout.py
+
       - name: Run real Beads CLI integration
         run: cargo test -p sc-compose --test cli bead
         env:
@@ -442,22 +445,6 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
-  sc-sha-go-plan:
-    name: sc-sha Go native target plan
-    needs: [test]
-    runs-on: ubuntu-latest
-    outputs:
-      target_matrix: ${{ steps.matrix.outputs.target_matrix }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - id: matrix
-        name: Read Go native target matrix
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "target_matrix=$(python3 .github/scripts/go_native_module.py target-matrix --manifest release/publish-artifacts.toml --config release/go-native-module.toml)" >> "$GITHUB_OUTPUT"
-
   sc-sha-go-generated:
     name: Generate shared sc-sha Go bindings
     needs: [test]
@@ -494,106 +481,3 @@ jobs:
         run: cd .github/scripts && python3 -m unittest test_install_uniffi_bindgen_go -v
       - name: Verify generated bindings
         run: git diff --exit-code -- bindings/sc-sha-go/go
-      - name: Upload generated Go bindings
-        uses: actions/upload-artifact@v4
-        with:
-          name: sc-sha-go-generated
-          path: bindings/sc-sha-go/go
-
-  sc-sha-go:
-    name: sc-sha Go bundle (${{ matrix.goos }}/${{ matrix.goarch }})
-    needs: [sc-sha-go-plan, sc-sha-go-generated]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.sc-sha-go-plan.outputs.target_matrix) }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download generated Go bindings
-        uses: actions/download-artifact@v4
-        with:
-          name: sc-sha-go-generated
-          path: bindings/sc-sha-go/go
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.26.x"
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
-          targets: ${{ matrix.target }}
-
-      - name: Build the target-native static adapter
-        run: cargo build --release -p ${{ matrix.cargo_package }} --target ${{ matrix.target }}
-
-      - name: Stage the self-contained Go module bundle
-        id: bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="$(python3 -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
-          library="target/${{ matrix.target }}/release/${{ matrix.library }}"
-          bundle="$RUNNER_TEMP/${{ matrix.artifact_prefix }}-${{ matrix.target }}"
-          python3 .github/scripts/go_native_module.py stage \
-            --config release/go-native-module.toml \
-            --target '${{ matrix.target }}' \
-            --native-library "$library" \
-            --output "$bundle" \
-            --version "$version"
-          echo "path=$bundle" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Run bundled Go conformance tests
-        working-directory: ${{ steps.bundle.outputs.path }}
-        env:
-          CGO_ENABLED: "1"
-        run: go test ./...
-
-      - name: Run an independent Go consumer module
-        shell: bash
-        run: |
-          set -euo pipefail
-          consumer="$RUNNER_TEMP/sc-sha-go-consumer"
-          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
-          cd "$consumer"
-          module='${{ matrix.module }}'
-          go mod edit -replace "$module=${{ steps.bundle.outputs.path }}"
-          go get "$module/go/sc_sha_go@v${{ steps.bundle.outputs.version }}"
-          CGO_ENABLED=1 go run .
-
-      - name: Verify downloaded release bundle contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          bundle="${{ steps.bundle.outputs.path }}"
-          archive="$RUNNER_TEMP/${{ matrix.artifact_prefix }}-${{ matrix.target }}.zip"
-          downloaded="$RUNNER_TEMP/${{ matrix.artifact_prefix }}-downloaded-${{ matrix.target }}"
-          python3 - "$bundle" "$archive" "$downloaded/module" <<'PY'
-          import sys
-          import zipfile
-          from pathlib import Path
-
-          source, archive, destination = map(Path, sys.argv[1:])
-          with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
-              for path in source.rglob("*"):
-                  if path.is_file():
-                      output.write(path, path.relative_to(source))
-          destination.mkdir(parents=True)
-          with zipfile.ZipFile(archive) as payload:
-              payload.extractall(destination)
-          PY
-          (cd "$downloaded/module" && CGO_ENABLED=1 go test ./...)
-          consumer="$RUNNER_TEMP/${{ matrix.artifact_prefix }}-downloaded-consumer-${{ matrix.target }}"
-          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
-          cd "$consumer"
-          module='${{ matrix.module }}'
-          go mod edit -replace "$module=$downloaded/module"
-          go get "$module/go/sc_sha_go@v${{ steps.bundle.outputs.version }}"
-          CGO_ENABLED=1 go run .
-
-      - name: Verify release-layout contract
-        run: python3 bindings/sc-sha-go/tests/test_release_layout.py
