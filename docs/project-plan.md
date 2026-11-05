@@ -2191,9 +2191,11 @@ The current follow-on implementation track is:
 The live Beads epic `comp-phase-v` and its sprint containers are authoritative.
 Tracked configuration: `.atm-bd/phase-v.toml`; dependency index:
 `docs/plans/phase-v/phase-v.jsonl`; diagram: `docs/plans/phase-v/phase-v-dag.html`.
-Base: current develop. Runtime order: sc-lint 0.8.5 migration, existing lint
-fixes, net dependency integration, advanced Beads behavior. Independent work
-runs concurrently only with disjoint owned paths and satisfied contracts.
+Base: current develop. V2 dependency work and V8 publish tooling may implement
+from the pushed V4 baseline while V4 migration fixes continue. Their sanity
+checks still require V4 sanity; required validation and green landing checks
+remain. Other dependencies retain the order in the index. Concurrent writers
+use disjoint owned paths.
 Quality-mgr reviews all 17 dependency-stack contributions, including code
 already in develop. Each original PR closes when review and any retained
 integration are complete, with its disposition recorded in the existing PR.
