@@ -32,8 +32,6 @@ All notable changes to this project will be documented in this file.
 - Upgraded `sha2` from 0.10 to 0.11; hashes remain byte-identical and the
   compatibility vectors are unchanged.
 - Upgraded the Python bindings from PyO3 0.29 to 0.30 without an API change.
-  Upstream dropped Python 3.8 support; this project already requires 3.11 or
-  later.
 - Upgraded UniFFI scaffolding to 0.31.2 while retaining
   `uniffi-bindgen-go v0.7.1+v0.31.0` (ADR-0020 Amendment 1).
 - Pinned MiniJinja to 2.18.0 to preserve template boolean rendering; upgraded
