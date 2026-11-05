@@ -181,7 +181,7 @@ worktree_base: ../sc-compose-worktrees
 test_command: just test
 lint_command: just lint
 integration_branch_pattern: integrate/phase-{phase}
-plans_dir: docs
+plans_dir: docs/plans
 requirements_globs: [docs/requirements.md]
 adr_globs: [docs/architecture.md, docs/adrs/*.md]
 policy_path: .claude/project/quality-policy.md

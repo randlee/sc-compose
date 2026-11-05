@@ -36,7 +36,7 @@ as `policy_path`.
 | Thing | Form | Example |
 |---|---|---|
 | Phase id | next unused letter, lower case in branches | `t` |
-| Plan directory | `docs/phase-<PHASE>/` | `docs/phase-S/` |
+| Plan directory | `docs/plans/phase-<PHASE>/` | `docs/plans/phase-s/` |
 | Phase branch | `integrate/phase-<phase>`, cut from `develop` | `integrate/phase-s` |
 | Sprint branch | `sprint/<phase>-<n>-<slug>` | `sprint/s-2-slug` |
 | Fix layer | `fix/<phase>-<n>-<slug>` | `fix/s-2-qa1` |
