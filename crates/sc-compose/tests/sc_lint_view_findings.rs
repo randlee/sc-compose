@@ -1,6 +1,9 @@
 use std::fs;
 mod support;
-use support::{CheckedInFixture, TempFixture, normalize_path_str, parse_stdout, sc_compose};
+use support::{
+    CheckedInFixture, TempFixture, installed_sc_lint_path, normalize_path_str, parse_stdout,
+    sc_compose,
+};
 
 fn run_view_findings(fixture: &TempFixture) -> std::process::Output {
     sc_compose()
@@ -12,6 +15,8 @@ fn run_view_findings(fixture: &TempFixture) -> std::process::Output {
             "view-findings",
             "--json",
         ])
+        .env("PATH", installed_sc_lint_path(None))
+        .env_remove("PYTHONPATH")
         .output()
         .expect("run sc-compose view findings")
 }

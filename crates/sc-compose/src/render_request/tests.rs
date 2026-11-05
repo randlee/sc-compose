@@ -1,15 +1,15 @@
 use super::blocks::{read_block_pair_with_extra_stdin_reads, read_optional_block_with};
 use super::mode::{build_mode, build_root};
 use super::request::{build_multi_pass_request, build_named_request, build_request};
-use super::vars::{collect_pass_union, load_cli_and_file_vars, load_prefixed_env_vars};
+use super::vars::{collect_pass_union, load_cli_and_file_vars, load_prefixed_env_vars_from};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use sc_composer::{
-    BUILTIN_VARIABLE_NAMES, ComposeMode, InputValue, PassConfig, ProfileKind, RuntimeKind,
-    UnknownVariablePolicy, VariableName,
+    ComposeMode, InputValue, PassConfig, ProfileKind, RuntimeKind, UnknownVariablePolicy,
+    VariableName,
 };
 
 use crate::cli::{
@@ -190,33 +190,25 @@ fn load_vars_merges_inline_and_var_file_inputs() {
 
 #[test]
 fn load_env_uses_prefix_and_preserves_builtin_casing() {
-    let (source_key, source_value) = std::env::vars()
-        .find(|(key, _)| key == "PATH")
-        .or_else(|| std::env::vars().next())
-        .expect("process environment must contain at least one variable");
-    let prefix = source_key
-        .chars()
-        .next()
-        .map(|ch| ch.to_string())
-        .unwrap_or_default();
-    let trimmed = source_key.strip_prefix(&prefix).unwrap_or(&source_key);
-    let expected_name = if BUILTIN_VARIABLE_NAMES.contains(&trimmed) {
-        trimmed.to_owned()
-    } else {
-        trimmed.to_ascii_lowercase()
-    };
-
     let args = InputArgs {
-        env_prefix: Some(prefix),
+        env_prefix: Some("SC_".to_owned()),
         ..input_args()
     };
-
-    let vars = load_prefixed_env_vars(&args).unwrap();
-
+    let environment = [
+        ("SC_TEMPLATE_NAME".to_owned(), "example".to_owned()),
+        ("SC_CUSTOM".to_owned(), "value".to_owned()),
+        ("=D:".to_owned(), "drive".to_owned()),
+    ];
+    let vars = load_prefixed_env_vars_from(&args, environment).unwrap();
     assert_eq!(
-        vars.get(&VariableName::new(expected_name).unwrap()),
-        Some(&InputValue::String(source_value))
+        vars.get(&VariableName::new("TEMPLATE_NAME".to_owned()).unwrap()),
+        Some(&InputValue::String("example".to_owned()))
     );
+    assert_eq!(
+        vars.get(&VariableName::new("custom".to_owned()).unwrap()),
+        Some(&InputValue::String("value".to_owned()))
+    );
+    assert_eq!(vars.len(), 2);
 }
 
 #[test]

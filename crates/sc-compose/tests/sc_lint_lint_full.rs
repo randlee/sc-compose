@@ -227,10 +227,10 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
             fail_closed: false,
         },
     );
-    let bin = root.join("fake-bin");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
+        let bin = root.join("fake-bin");
 
         let python = bin.join("python3");
         let (body, exit_code) = match mode {
@@ -257,25 +257,19 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
 
     #[cfg(windows)]
     {
-        let python = bin.join("python.cmd");
-        let (body, exit_code) = match mode {
+        let (stdout, stderr, exit_code) = match mode {
             ToolMode::Pass => (
-                r#"echo {"adapter_schema":"sc-lint-python-v1","ok":true,"summary":"fixture utility passed","data":{"findings":[]},"diagnostics":[]}"#,
-                "0",
+                "{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":true,\"summary\":\"fixture utility passed\",\"data\":{\"findings\":[]},\"diagnostics\":[]}\n",
+                "",
+                0,
             ),
             ToolMode::Finding => (
-                r#"echo {"adapter_schema":"sc-lint-python-v1","ok":false,"summary":"fixture utility found a problem","data":{"findings":[{"rule_id":"LINT-FULL-FINDING-001","path":"src/lib.rs","message":"fixture full-profile finding"}]},"diagnostics":["fixture finding is intentionally non-pass"]}"#,
-                "1",
+                "{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":false,\"summary\":\"fixture utility found a problem\",\"data\":{\"findings\":[{\"rule_id\":\"LINT-FULL-FINDING-001\",\"path\":\"src/lib.rs\",\"message\":\"fixture full-profile finding\"}]},\"diagnostics\":[\"fixture finding is intentionally non-pass\"]}\n",
+                "",
+                1,
             ),
-            ToolMode::MissingUtilities => (
-                "echo ModuleNotFoundError: No module named sc_lint 1>&2",
-                "1",
-            ),
+            ToolMode::MissingUtilities => ("", "ModuleNotFoundError: No module named sc_lint\n", 1),
         };
-        fs::write(
-            &python,
-            format!("@echo off\r\n{body}\r\nexit /b {exit_code}\r\n"),
-        )
-        .expect("fake python");
+        support::write_fake_windows_python(root, stdout, stderr, exit_code);
     }
 }

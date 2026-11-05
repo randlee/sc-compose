@@ -402,6 +402,29 @@ pub fn write_fake_cargo(root: &Path, options: FakeCargoOptions) {
     }
 }
 
+#[cfg(windows)]
+pub fn write_fake_windows_python(root: &Path, stdout: &str, stderr: &str, exit_code: i32) {
+    let bin = root.join("fake-bin");
+    fs::create_dir_all(&bin).unwrap();
+    let source = bin.join("fake-python.rs");
+    let executable = bin.join("python.exe");
+    let program = format!(
+        "fn main() {{ print!(\"{{}}\", {:?}); eprint!(\"{{}}\", {:?}); std::process::exit({}); }}",
+        stdout, stderr, exit_code
+    );
+    fs::write(&source, program).unwrap();
+    let status = Command::new("rustc")
+        .args(["--edition", "2021"])
+        .arg(&source)
+        .arg("-o")
+        .arg(&executable)
+        .status()
+        .unwrap();
+    assert!(status.success(), "fake Python compilation failed: {status}");
+    fs::copy(&executable, bin.join("python3.exe")).unwrap();
+    fs::remove_file(source).unwrap();
+}
+
 pub fn write_fake_cargo_deny(root: &Path) {
     let bin = root.join("fake-bin");
     fs::create_dir_all(&bin).expect("fake tools directory");

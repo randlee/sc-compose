@@ -199,10 +199,10 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
             fail_closed: false,
         },
     );
-    let bin = root.join("fake-bin");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
+        let bin = root.join("fake-bin");
 
         let python = bin.join("python3");
         let script = if matches!(mode, ToolMode::MissingUtilities) {
@@ -220,11 +220,15 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
 
     #[cfg(windows)]
     {
-        let script = if matches!(mode, ToolMode::MissingUtilities) {
-            "@echo off\r\necho ModuleNotFoundError: No module named sc_lint 1>&2\r\nexit /b 1\r\n"
+        let (stdout, stderr, exit_code) = if matches!(mode, ToolMode::MissingUtilities) {
+            ("", "ModuleNotFoundError: No module named sc_lint\n", 1)
         } else {
-            "@echo off\r\necho {\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":true,\"summary\":\"fixture utility passed\",\"data\":{\"findings\":[]},\"diagnostics\":[]}\r\nexit /b 0\r\n"
+            (
+                "{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":true,\"summary\":\"fixture utility passed\",\"data\":{\"findings\":[]},\"diagnostics\":[]}\n",
+                "",
+                0,
+            )
         };
-        fs::write(bin.join("python.cmd"), script).expect("fake python");
+        support::write_fake_windows_python(root, stdout, stderr, exit_code);
     }
 }
