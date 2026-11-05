@@ -268,7 +268,7 @@ class SourcePreparationTests(unittest.TestCase):
                 "GOHOSTOS": target["goos"],
                 "GOHOSTARCH": target["goarch"],
             }
-            self.assertEqual(self.prepare.select_target(self.contract, go), target)
+            self.assertEqual(vars(self.prepare.select_target(self.contract, go)), target)
         with self.assertRaisesRegex(ValueError, "match the Go host"):
             self.prepare.select_target(
                 self.contract,
@@ -289,6 +289,23 @@ class SourcePreparationTests(unittest.TestCase):
                     "GOHOSTARCH": "amd64",
                 },
             )
+
+    def test_missing_target_fields_are_reported_as_contract_errors(self) -> None:
+        target = self.contract["targets"][0]
+        go = {
+            "GOOS": target["goos"],
+            "GOARCH": target["goarch"],
+            "GOHOSTOS": target["goos"],
+            "GOHOSTARCH": target["goarch"],
+        }
+        for key in ("rust_target", "goos", "goarch", "library"):
+            with self.subTest(key=key):
+                incomplete = dict(target)
+                del incomplete[key]
+                with self.assertRaisesRegex(
+                    ValueError, f"native target 0 missing required key: {key}"
+                ):
+                    self.prepare.select_target({"targets": [incomplete]}, go)
 
     def test_preparation_uses_cargo_metadata_and_canonical_stage(self) -> None:
         for target in self.contract["targets"]:
