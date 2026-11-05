@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - uses: ./.github/actions/setup-sc-lint
+      - uses: ./.github/actions/setup-sc-lint-managed
       - run: just setup
       - name: Install LLVM for Windows cross compilation
         if: runner.os == 'Linux'
