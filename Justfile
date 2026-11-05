@@ -1,8 +1,7 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-# Final 0.8.6 wheels are served by the release; constraints verify every platform asset.
-export PIP_FIND_LINKS := "https://github.com/randlee/sc-lint/releases/expanded_assets/v0.8.6"
-export PIP_CONSTRAINT := justfile_directory() / "scripts/sc_lint_constraints.txt"
+# Prepare the verified release wheel before delegating to managed recipes.
+python := if os_family() == "windows" { "python scripts/sc_lint_python.py" } else { "python3 scripts/sc_lint_python.py" }
 
 sc-compose := "cargo run --quiet --bin sc-compose --"
 
@@ -94,6 +93,5 @@ reports-verify:
 
 # >>> sc-lint managed integration >>>
 set windows-shell := ["cmd.exe", "/c"]
-python := if os_family() == "windows" { "python" } else { "python3" }
 import '.sc-lint/justfile'
 # <<< sc-lint managed integration <<<

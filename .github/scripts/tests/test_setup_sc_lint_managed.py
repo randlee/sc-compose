@@ -55,8 +55,6 @@ def test_action_passes_release_wheel_constraints_to_bootstrap(tmp_path, monkeypa
     with mock.patch.object(managed, 'install') as install:
         managed.main()
     command, env = install.call_args.args
-    assert command[1:] == ['.sc-lint/bootstrap.py', 'setup', '--config', 'sc-lint.toml']
+    assert command[1:] == ['scripts/sc_lint_python.py', '.sc-lint/bootstrap.py', 'setup', '--config', 'sc-lint.toml']
     assert 'SC_LINT_BIN' not in env
-    assert env['PIP_FIND_LINKS'].endswith('/releases/expanded_assets/v0.8.6')
-    assert env['PIP_CONSTRAINT'] == str(Path('scripts/sc_lint_constraints.txt').resolve())
     assert output.read_text().strip() == str(install_dir)

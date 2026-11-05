@@ -42,3 +42,31 @@ class MaterializeRuntimeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LockedWheelSetupTests(unittest.TestCase):
+    def test_clean_environment_installs_hashed_requirements_before_bootstrap(self) -> None:
+        import importlib.util
+        from unittest import mock
+
+        script = SCRIPT.parent / "sc_lint_python.py"
+        spec = importlib.util.spec_from_file_location("sc_lint_python", script)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        prepare = module.prepare
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with mock.patch.object(module, "ROOT", root), \
+                 mock.patch.object(module, "REQUIREMENTS", root / "requirements.txt"), \
+                 mock.patch.object(module.os, "environ", {"PIP_CONSTRAINT": "old"}), \
+                 mock.patch.object(module.sys, "argv", [str(script), ".sc-lint/bootstrap.py", "setup", "--config", "sc-lint.toml"]), \
+                 mock.patch.object(module.venv, "create") as create, \
+                 mock.patch.object(module.subprocess, "run") as run, \
+                 mock.patch.object(module.subprocess, "call", return_value=0) as call, \
+                 mock.patch.object(module, "prepare", side_effect=lambda: prepare(run, create)):
+                self.assertEqual(module.main(), 0)
+            create.assert_called_once_with(root / ".sc-lint" / "venv", with_pip=True)
+            args = run.call_args.args[0]
+            self.assertEqual(args[1:], ["-m", "pip", "install", "--disable-pip-version-check", "--force-reinstall", "--require-hashes", "-r", str(root / "requirements.txt")])
+            self.assertNotIn("PIP_CONSTRAINT", run.call_args.kwargs["env"])
+            self.assertEqual(call.call_args.args[0][1:], [".sc-lint/bootstrap.py", "setup", "--config", "sc-lint.toml"])

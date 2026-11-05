@@ -146,7 +146,7 @@ class SourceSetupTests(unittest.TestCase):
         self.assertEqual(install['shell'], 'python')
         self.assertIn('.github/scripts/setup_sc_lint_managed.py', install['run'])
         managed = (root / '.github/scripts/setup_sc_lint_managed.py').read_text()
-        self.assertIn("'.sc-lint/bootstrap.py', 'setup'", managed)
+        self.assertIn("'scripts/sc_lint_python.py', '.sc-lint/bootstrap.py', 'setup'", managed)
         self.assertIn("'--config', 'sc-lint.toml'", managed)
         self.assertIn("GITHUB_PATH", managed)
         self.assertIn('minimum_version = "0.8.6"', (root / 'sc-lint.toml').read_text())
