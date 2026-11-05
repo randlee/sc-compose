@@ -8,7 +8,7 @@
     ".claude/agents/sanity-stack.md": "e0d883d5ab6a04e5f24ffc78d5679a1675ce4c2ec63e5db23fa78fafda843e28",
     ".claude/agents/sc-sanity-jev.md": "fff8dd1298fde6e1982b5b65fc4f00fabe218abf0b1fe4df21175d8e616da54a",
     ".claude/agents/sc-sanity-llm.md": "4fd04d0e573746c10636f69edb4c82dada1989b489e7e0368de0a20e94c47f0b",
-    ".claude/project/atm-bd-orchestration.yaml": "12d16d1c59bc33c492ff321d3606a4cdc0272ab789b15d887ebdbc990152836a",
+    ".claude/project/atm-bd-orchestration.yaml": "5d90823f17684ecd28e03eeb31a334100fa8227e7a66cdbffb5bb0f5e7a194fe",
     ".claude/skills/atm-bd-orchestration/SKILL.md": "9ae4d76f75802ed6aa12b17c6588e07fe018879fa0e90f37f45992bfe3522957",
     ".claude/skills/atm-bd-orchestration/blocking-findings-guidelines.md": "9aef815d7ff9d30893d8857e1a48f7dfc0bff20be6d1ed3fbf1d631ac84c8d50",
     ".claude/skills/atm-bd-orchestration/examples/arch-qa-assignment-vars.json": "0a817099b7a9c4941e4d5e08f23e16b947bb923129fdd7c3d598a7b5603765d6",
