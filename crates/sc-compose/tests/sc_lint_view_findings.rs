@@ -159,8 +159,8 @@ fn view_findings_missing_runtime_is_explicit_and_non_pass() {
             .status()
             .unwrap();
         assert!(status.success());
-        fs::copy(&executable, bin.join("python3.exe")).unwrap();
-    }
+        fs::copy(&executable, bin.join("python3.exe")).unwrap()
+    };
     let output = sc_compose()
         .args([
             "lint",
