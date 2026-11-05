@@ -19,24 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - name: Install verified sc-lint release
-        shell: python
-        run: |
-          import os
-          from pathlib import Path
-          import subprocess
-          import sys
-
-          install_dir = Path(os.environ['RUNNER_TEMP']) / 'sc-lint' / 'bin'
-          env = dict(os.environ, SC_LINT_INSTALL_DIR=str(install_dir))
-          env.pop('SC_LINT_BIN', None)
-          subprocess.run([sys.executable, '.sc-lint/bootstrap.py', 'setup',
-                          '--config', 'sc-lint.toml'], env=env, check=True)
-          binary = install_dir / ('sc-lint.exe' if os.name == 'nt' else 'sc-lint')
-          if not binary.is_file():
-              raise SystemExit('setup succeeded but no sc-lint executable was found')
-          with open(env['GITHUB_PATH'], 'a', encoding='utf-8') as path_file:
-              path_file.write(str(install_dir) + '\n')
+      - uses: ./.github/actions/setup-sc-lint
       - run: just setup
       - name: Install LLVM for Windows cross compilation
         if: runner.os == 'Linux'
