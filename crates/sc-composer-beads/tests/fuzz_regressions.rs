@@ -89,6 +89,7 @@ impl Workspace {
     }
 }
 
+// Mutexes provide interior mutability for this shared `&self` test double.
 struct FakeRunner {
     outputs: Mutex<VecDeque<io::Result<ProcessOutput>>>,
     calls: Mutex<Vec<CommandSpec>>,
