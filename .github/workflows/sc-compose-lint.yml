@@ -13,8 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install pinned toolchain components
-        run: rustup toolchain install 1.94.1 --profile minimal --component rustfmt --component clippy
       - uses: taiki-e/install-action@v2
         with:
           tool: just
