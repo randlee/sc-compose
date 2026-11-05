@@ -1653,9 +1653,18 @@ The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/f
 
 The closing regression exercise reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 on the final candidate. Recovery commits and the case-to-test mapping must be verified; the previously cited single_pass_render.rs path does not exist on rebuild/from-main@c089c8a3. Missing cases, including FUZZ-171-10, remain explicit unresolved inputs rather than claimed recovered tests.
 
+The historical file `crates/sc-composer-beads/tests/single_pass_render.rs`
+at commit `bdb3bdae` names cases 01–09, 11, 12 and 14. It does not name
+cases 10 or 13, and its presence in history does not establish that any case
+has been recovered in the candidate. V3 must map each required case to its
+source and candidate test, or retain the missing case as an unresolved input.
+
 #### FR-24.32 — Approved item 24
 
 The 229-template corpus that passed the v1.7.0 comparison (QA report 01M6HZR22HZXX4HDW1CMFHHA86: 150 atm-core and 79 sc-compose `.j2` templates) is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7 (`ERR_VAL_UNDECLARED_TOKEN` no longer reported for True/False/None literals, filter and call targets, Jinja test and block-tag names, and comment and raw bodies).
+
+Recover the exact corpus manifest and source revisions before the rerun; the
+reported counts and prior QA verdict alone do not identify its template bytes.
 
 #### FR-24.33 — Plan-fix pour with caller variables
 
