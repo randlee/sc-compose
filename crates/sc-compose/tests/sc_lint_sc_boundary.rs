@@ -17,6 +17,26 @@ fn run_sc_boundary(fixture: &TempFixture) -> std::process::Output {
         .expect("run sc-compose lint sc-boundary")
 }
 
+fn assert_graph_discovers_owner(fixture: &TempFixture, package: &str, target: &str) {
+    let output = std::process::Command::new("sc-lint-boundary")
+        .args(["export-graph", "--root"])
+        .arg(&fixture.path)
+        .output()
+        .expect("run released boundary graph exporter");
+    assert!(output.status.success(), "graph export failed: {output:?}");
+    let graph: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(
+        graph["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|node| node["kind"] == "crate"
+                && node["package"] == package
+                && node["target"] == target),
+        "native owner missing from graph: {package}/{target}"
+    );
+}
+
 #[test]
 fn boundary_pass_uses_shared_runner_and_materializes_evidence() {
     let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
@@ -137,6 +157,7 @@ fn sc_sha_python_boundary_rejects_all_forbidden_dependency_classes() {
         name: "sc-sha-python-dependency-violation",
         target: "sc-boundary",
     });
+    assert_graph_discovers_owner(&fixture, "sc-sha-python", "sc_sha_native");
     let output = run_sc_boundary(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
@@ -172,6 +193,7 @@ fn sc_sha_boundary_rejects_renderer_dependency() {
         name: "sc-sha-dependency-violation",
         target: "sc-boundary",
     });
+    assert_graph_discovers_owner(&fixture, "sc-sha", "sc_sha");
     let output = run_sc_boundary(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
@@ -209,6 +231,7 @@ fn sc_sha_go_boundary_rejects_non_adapter_dependencies() {
         name: "sc-sha-go-forbidden-edge",
         target: "sc-boundary",
     });
+    assert_graph_discovers_owner(&fixture, "sc-sha-go", "sc_sha_go");
     let output = run_sc_boundary(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
@@ -246,6 +269,7 @@ fn sc_composer_beads_boundary_rejects_host_coupling_and_non_contract_dependencie
         name: "sc-composer-beads-forbidden-edge",
         target: "sc-boundary",
     });
+    assert_graph_discovers_owner(&fixture, "sc-composer-beads", "sc_composer_beads");
     let output = run_sc_boundary(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
