@@ -1,6 +1,6 @@
 ---
 name: question-tuning
-version: 0.8.7
+version: 0.9.0
 description: When and how to replace the generic Jev questions with anchor-specific wording, where the overrides live, how to test a question set with fixtures and known beads before trusting it, and when to stop tuning.
 ---
 
@@ -108,6 +108,14 @@ An override has the shape of the default set and contains only the questions to 
   `bd update <id> --body-file <file>`.
 - **In the record**: `question_overrides.plan` / `.dev` in `anchors.json`, for a plan with no beads. The bead wins if both exist.
 - **For a whole plan**: a complete alternative set passed with `--questions <file>`. Rare.
+
+## Extra questions
+
+Extra questions add to the set; they never replace or gate. Pass a JSONL file with `--extra-questions <file>` (repeatable): one question per line, `{"id": "...", "type": "choice", "instructions": "...", "criteria": {"yes": "...", "no": "...", "unclear": "..."}}`. Each is asked in the same request as the gate questions and its answer is recorded with the cell, so triage can read why a cell failed (for example: does the item own the requirement, or only consume it?) without a second run. `decide()` ignores them. An `--answers-file` fixture may omit them; a missing extra answer is skipped, while a missing gate answer or an unknown id is still refused.
+
+### Default triage questions
+
+The planning gate adds five measured triage questions by default (`owns`, `specific`, `stated`, `paraphrase`, `partial`), with routing rules in `rules.json` and the evidence in the folder's `README.md`. The installer seeds them once into `.sc/plan-anchor/triage/` in the repository; the repository owns that folder: edit, extend or delete the files, and later installs never overwrite them. `judge` reads `.sc/plan-anchor/triage/plan-questions.jsonl` when present, else the copy shipped under `assets/triage/`. Pass `--no-triage-questions` to skip them. The development gate has no default triage questions. Add a new default only after measurements across plans; keep an unmeasured question in the consuming repository's own file.
 
 ## How to write an anchor-specific question
 

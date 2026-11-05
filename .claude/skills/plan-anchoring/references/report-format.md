@@ -1,6 +1,6 @@
 ---
 name: report-format
-version: 0.8.7
+version: 0.9.0
 description: The provenance-quoting report format for gate results, what the planning agent or quality manager should do with each verdict, and where reports are posted.
 ---
 
@@ -53,4 +53,4 @@ The skill posts in the main session; agents return JSON and never write to beads
 
 ## Coverage report
 
-`coverage --format md` renders the anchor x item matrix with a Covered column and a list of uncovered anchors. Include it at the end of a planning-gate pass so the user sees the whole plan's state.
+`coverage --format md` renders the anchor x item matrix with a Covered column and a list of uncovered anchors. Include it at the end of a planning-gate pass so the user sees the whole plan's state. Each cell is the latest result for that anchor and item, so re-running some anchors keeps the others; a cell taken from an earlier run than the item's latest is listed under `carried_from_earlier_run`. With `--anchors`, the record's current exclusions apply: an exclusion recorded after a run shows as `excluded`, and one removed since is listed to re-judge and does not count.
