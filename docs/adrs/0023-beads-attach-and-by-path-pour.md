@@ -8,8 +8,8 @@ phase t planning). Extends
 is withdrawn.
 
 The Phase V advanced-mode amendment at the end supersedes the legacy
-missing-edge, provenance and write restrictions only for advanced rendering.
-The original rules remain the bd-owned compatibility contract.
+bead-input, missing-edge, provenance and write restrictions only for advanced
+rendering. The original rules remain the bd-owned compatibility contract.
 
 ## Context
 
@@ -324,8 +324,9 @@ command `bd dep add <from> <to> --type <type>`. Each `reason` is a closed
 exactly the rows of the Conflict rules, Relation validation and Formula
 grammar tables; the CLI prints its text form.
 
-Request errors (`Err(BeadComposeError)`: Rust `Err`, Python exception, CLI exit
-3) are only request-shape problems found before any stage: serde failures;
+On the preserved bd-owned path, request errors (`Err(BeadComposeError)`:
+Rust `Err`, Python exception, CLI exit 3) are only request-shape problems found
+before any stage: serde failures;
 `parent` / `ref` missing on an attach op or present on another op;
 non-empty `relations` on render or validate; non-empty `bead_variables` on an
 attach op (`RequestDeserializationFailed`); and the existing Phase R request
@@ -335,12 +336,15 @@ A `BeadId`, `GraphRef` or `StepId` that fails its newtype rule instead returns
 `GraphIdInvalid` (refused / exit 2, with field, value and rule), not
 `RequestDeserializationFailed`.
 
-A pour learns its mode only after resolving the active registry (see
+A bd-owned pour learns its mode only after resolving the active registry (see
 "Stages"), so its two mode-dependent misuses are refused receipts, before any
 write: non-empty
 `bead_variables` in graph mode is `GraphFormulaUnsupported`
 (`bead_variables_set`), and non-empty `relations` in registry mode is
 `GraphRelationInvalid` (`registry_pour`).
+
+FR-24.8 permits caller bead inputs for advanced graph pour and attach. The
+restrictions above remain in effect when `--render-by bd` is selected.
 
 Scope: the top-level `parent` and `ref` are authoritative. A template may also
 receive them through `compose_variables` to bake them into text; any such value
