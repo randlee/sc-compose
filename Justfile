@@ -15,8 +15,13 @@ generate-sc-sha-rust mode="write":
 
 # Prepare the ignored, host-native static library required only to run the
 # source-tree Go tests. Released consumers use a self-contained bundle instead.
+[unix]
 prepare-sc-sha-go-native:
-    python3 bindings/sc-sha-go/prepare_native.py
+    python_cmd="$(command -v python3 || command -v python)"; "$python_cmd" bindings/sc-sha-go/prepare_native.py
+
+[windows]
+prepare-sc-sha-go-native:
+    {{python}} bindings/sc-sha-go/prepare_native.py
 
 ensure-lint-runtime:
     python3 scripts/materialize_sc_lint_runtime.py --root .
