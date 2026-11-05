@@ -92,15 +92,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.x"
+          python-version: "3.11"
 
-      - name: Install pytest
-        run: python3 -m pip install maturin==1.9.4 pytest
+      - name: Install consumer test dependencies
+        run: python3 -m pip install maturin==1.9.4 pytest PyYAML==6.0.3
 
       - name: Install Rust toolchain for renderer bindings
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.94.1
+
+      - name: Install and verify pinned sc-docli
+        run: |
+          cargo install sc-docli --version 0.2.0 --locked
+          test "$(docli --version)" = "docli 0.2.0"
 
       - name: Build and install sc-compose renderer bindings
         run: |
@@ -123,9 +128,10 @@ jobs:
             --workspace-toml Cargo.toml
 
       - name: Run publish-kit regression tests
-        run: |
-          python3 -m pytest .github/scripts/tests
-          python3 -m pytest plugins/sc-publish/.github/scripts/tests
+        run: python3 -m pytest .github/scripts/tests
+
+      - name: Run CLI reference and consumer preflight tests
+        run: python3 -m unittest discover -s scripts/tests -p test_generate_cli_reference.py
 
       - name: Verify vendored Homebrew template tracks sc-publish
         shell: bash
