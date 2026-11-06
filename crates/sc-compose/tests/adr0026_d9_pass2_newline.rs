@@ -45,3 +45,27 @@ fn pass_two_preserves_variable_line_breaks() {
         }
     }
 }
+
+#[test]
+fn third_pass_also_preserves_the_following_line_break() {
+    let root = temp_root("adr0026-d9-third-pass");
+    write_file(
+        &root.join("template.j2"),
+        "---\npass: 1\n---\n---\npass: 2\n---\n---\npass: 3\ndefaults: {name: value}\n---\nA {{{{ name }}}}\nB\n",
+    );
+    let output = sc_compose()
+        .args([
+            "render", "--all", "--pass", "1", "--pass", "2", "--pass", "3", "--mode", "file",
+            "--root",
+        ])
+        .arg(&root)
+        .args(["--file", "template.j2"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "A value\nB\n");
+}
