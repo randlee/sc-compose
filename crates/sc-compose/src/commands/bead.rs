@@ -220,6 +220,28 @@ impl Drop for DirectStaging {
     }
 }
 
+/// Creates the private staging directory of a direct pour under `root`. The
+/// returned value owns the directory and removes it on drop, including when
+/// resolving its canonical spelling fails after creation.
+fn create_direct_staging(root: &Path) -> Result<DirectStaging, BeadComposeError> {
+    let bad = |message: String| BeadComposeError::RequestDeserializationFailed { message };
+    let dir = root.join(format!(
+        ".sc-compose-pour-{}-{}",
+        std::process::id(),
+        STAGING_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&dir).map_err(|error| {
+        bad(format!(
+            "cannot create private formula staging directory: {error}"
+        ))
+    })?;
+    DirectStaging::new(dir).map_err(|error| {
+        bad(format!(
+            "cannot resolve private formula staging directory: {error}"
+        ))
+    })
+}
+
 fn direct_pour_request(
     args: &BeadRequestArgs,
     operation: BeadOperation,
@@ -246,21 +268,8 @@ fn direct_pour_request(
     let external_snapshot = capture_external_source(&original_source, &canonical_root, operand)?;
     let name = direct_formula_name(&source)?;
     let formula_name = FormulaName::new(&name)?;
-    let dir = root.join(format!(
-        ".sc-compose-pour-{}-{}",
-        std::process::id(),
-        STAGING_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-    ));
-    fs::create_dir(&dir).map_err(|error| {
-        bad(format!(
-            "cannot create private formula staging directory: {error}"
-        ))
-    })?;
-    let staging = DirectStaging::new(dir.clone()).map_err(|error| {
-        bad(format!(
-            "cannot resolve private formula staging directory: {error}"
-        ))
-    })?;
+    let staging = create_direct_staging(&root)?;
+    let dir = staging.path.clone();
     if let Some((source_root, files)) = external_snapshot {
         source = write_source_snapshot(&dir, &source_root, &original_source, files)?;
     }
