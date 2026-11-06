@@ -224,21 +224,18 @@ impl Drop for DirectStaging {
 /// returned value owns the directory and removes it on drop, including when
 /// resolving its canonical spelling fails after creation.
 fn create_direct_staging(root: &Path) -> Result<DirectStaging, BeadComposeError> {
-    let bad = |message: String| BeadComposeError::RequestDeserializationFailed { message };
     let dir = root.join(format!(
         ".sc-compose-pour-{}-{}",
         std::process::id(),
         STAGING_SEQUENCE.fetch_add(1, Ordering::Relaxed)
     ));
-    fs::create_dir(&dir).map_err(|error| {
-        bad(format!(
-            "cannot create private formula staging directory: {error}"
-        ))
+    fs::create_dir(&dir).map_err(|source| BeadComposeError::DirectStagingFailed {
+        path: dir.clone(),
+        source: Box::new(source),
     })?;
-    DirectStaging::new(dir).map_err(|error| {
-        bad(format!(
-            "cannot resolve private formula staging directory: {error}"
-        ))
+    DirectStaging::new(dir.clone()).map_err(|source| BeadComposeError::DirectStagingFailed {
+        path: dir,
+        source: Box::new(source),
     })
 }
 
@@ -246,7 +243,7 @@ fn direct_pour_request(
     args: &BeadRequestArgs,
     operation: BeadOperation,
 ) -> Result<(BeadComposeRequest, DirectStaging), BeadComposeError> {
-    let bad = |message: String| BeadComposeError::RequestDeserializationFailed { message };
+    let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
     if operation != BeadOperation::Pour {
         return Err(bad("a direct formula is supported only by bead pour".into()));
     }
@@ -256,15 +253,33 @@ fn direct_pour_request(
             return Err(BeadComposeError::BeadVariableKeyDuplicate { key: key.clone() });
         }
     }
-    let root = std::env::current_dir().map_err(|error| bad(error.to_string()))?;
+    let root = std::env::current_dir().map_err(|source| BeadComposeError::DirectStagingFailed {
+        path: PathBuf::from("."),
+        source: Box::new(source),
+    })?;
     let operand = args
         .formula
         .as_deref()
         .ok_or_else(|| bad("formula is required".into()))?;
-    let mut source = resolve_direct_formula(&root, operand)
-        .ok_or_else(|| bad(format!("formula source not found: {operand}")))?;
-    let original_source = fs::canonicalize(&source).map_err(|error| bad(error.to_string()))?;
-    let canonical_root = fs::canonicalize(&root).map_err(|error| bad(error.to_string()))?;
+    let mut source = resolve_direct_formula(&root, operand).ok_or_else(|| {
+        BeadComposeError::DirectSourceFailed {
+            path: PathBuf::from(operand),
+            source: Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "formula source not found",
+            )),
+        }
+    })?;
+    let original_source =
+        fs::canonicalize(&source).map_err(|error| BeadComposeError::DirectSourceFailed {
+            path: source.clone(),
+            source: Box::new(error),
+        })?;
+    let canonical_root =
+        fs::canonicalize(&root).map_err(|error| BeadComposeError::DirectStagingFailed {
+            path: root.clone(),
+            source: Box::new(error),
+        })?;
     let external_snapshot = capture_external_source(&original_source, &canonical_root, operand)?;
     let name = direct_formula_name(&source)?;
     let formula_name = FormulaName::new(&name)?;
@@ -323,28 +338,47 @@ fn capture_external_source(
     if source.starts_with(workspace) || operand.contains(['/', '\\']) {
         return Ok(None);
     }
-    let bad = |message: String| BeadComposeError::RequestDeserializationFailed { message };
+    let failure = |path: &Path, error: Box<dyn std::error::Error + Send + Sync>| {
+        BeadComposeError::DirectSnapshotFailed {
+            path: path.to_path_buf(),
+            source: error,
+        }
+    };
     let root = source
         .parent()
-        .ok_or_else(|| bad("formula source has no parent".into()))?
+        .ok_or_else(|| {
+            failure(
+                source,
+                Box::new(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "formula source has no parent",
+                )),
+            )
+        })?
         .to_path_buf();
     let confined =
-        sc_composer::ConfiningRoot::new(&root).map_err(|error| bad(error.to_string()))?;
+        sc_composer::ConfiningRoot::new(&root).map_err(|error| failure(&root, Box::new(error)))?;
     let expanded =
         sc_composer::expand_includes(source, &confined, &sc_composer::ComposePolicy::default())
-            .map_err(|error| bad(format!("cannot snapshot formula source: {error}")))?;
+            .map_err(|error| failure(source, Box::new(error)))?;
     Ok(Some((root, expanded.source_texts)))
 }
 
 fn direct_formula_name(source: &Path) -> Result<String, BeadComposeError> {
-    source.file_name().and_then(|value| value.to_str()).and_then(|value| {
-        value.strip_suffix(".formula.toml.j2")
-            .or_else(|| value.strip_suffix(".formula.json.j2"))
-            .or_else(|| value.strip_suffix(".formula.toml"))
-            .or_else(|| value.strip_suffix(".formula.json"))
-    }).map(str::to_owned).ok_or_else(|| BeadComposeError::RequestDeserializationFailed {
-        message: "formula source must end in .formula.toml or .formula.json, optionally followed by .j2".into(),
-    })
+    source
+        .file_name()
+        .and_then(|value| value.to_str())
+        .and_then(|value| {
+            value
+                .strip_suffix(".formula.toml.j2")
+                .or_else(|| value.strip_suffix(".formula.json.j2"))
+                .or_else(|| value.strip_suffix(".formula.toml"))
+                .or_else(|| value.strip_suffix(".formula.json"))
+        })
+        .map(str::to_owned)
+        .ok_or_else(|| BeadComposeError::FormulaExtensionUnsupported {
+            path: source.to_path_buf(),
+        })
 }
 
 fn write_source_snapshot(
@@ -353,23 +387,34 @@ fn write_source_snapshot(
     source: &Path,
     files: std::collections::BTreeMap<PathBuf, String>,
 ) -> Result<PathBuf, BeadComposeError> {
-    let bad = |message: String| BeadComposeError::RequestDeserializationFailed { message };
+    let failure = |path: &Path, error: Box<dyn std::error::Error + Send + Sync>| {
+        BeadComposeError::DirectSnapshotFailed {
+            path: path.to_path_buf(),
+            source: error,
+        }
+    };
     let snapshot_root = dir.join("source");
     for (path, contents) in files {
         let relative = path
             .strip_prefix(source_root)
-            .map_err(|_error| bad("formula include escapes its registry root".into()))?;
+            .map_err(|error| failure(&path, Box::new(error)))?;
         let destination = snapshot_root.join(relative);
-        let parent = destination
-            .parent()
-            .ok_or_else(|| bad("formula snapshot has no parent".into()))?;
+        let parent = destination.parent().ok_or_else(|| {
+            failure(
+                &destination,
+                Box::new(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "formula snapshot has no parent",
+                )),
+            )
+        })?;
         fs::create_dir_all(parent)
             .and_then(|()| fs::write(&destination, contents))
-            .map_err(|error| bad(format!("cannot snapshot formula source: {error}")))?;
+            .map_err(|error| failure(&destination, Box::new(error)))?;
     }
     let relative = source
         .strip_prefix(source_root)
-        .map_err(|_error| bad("formula escapes registry root".into()))?;
+        .map_err(|error| failure(source, Box::new(error)))?;
     Ok(snapshot_root.join(relative))
 }
 
@@ -700,6 +745,38 @@ mod tests {
     };
     use serde_json::json;
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn direct_io_failures_preserve_code_cause_and_recovery() {
+        use std::error::Error;
+        use std::fs;
+        let root = std::env::temp_dir().join(format!("sc-compose-typed-io-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        let not_directory = root.join("file");
+        fs::write(&not_directory, "file").unwrap();
+        let staging = super::create_direct_staging(&not_directory)
+            .err()
+            .expect("staging must fail");
+        let snapshot = super::capture_external_source(
+            &root.join("missing.formula.toml"),
+            Path::new("/unrelated-workspace"),
+            "missing",
+        )
+        .unwrap_err();
+        for (error, code) in [
+            (staging, "BEADS_DIRECT_STAGING_FAILED"),
+            (snapshot, "BEADS_DIRECT_SNAPSHOT_FAILED"),
+        ] {
+            assert_eq!(error.code(), code);
+            assert!(error.source().is_some());
+            let json = serde_json::to_value(&error).unwrap();
+            assert!(json["details"]["path"].as_str().is_some());
+            assert!(json["details"]["cause"].as_str().is_some());
+            assert!(json["recovery"].as_str().is_some());
+            assert_eq!(super::bead_error_exit_code(&error), 2);
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
 
     /// Staging directory spelling of the hosted Windows failure (PR954 run
     /// 42196008975): `fs::canonicalize` returns the verbatim form.

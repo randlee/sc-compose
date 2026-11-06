@@ -1080,6 +1080,22 @@ fn direct_pour_rejects_duplicate_mixed_and_missing_sources_before_staging() {
     }
 }
 
+#[test]
+fn missing_direct_formula_reports_typed_source_failure() {
+    let root = TempFixture::new("direct-pour-missing-source");
+    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args(["bead", "pour", "missing.formula.toml", "--json"])
+        .current_dir(&root.path)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.contains("BEADS_DIRECT_SOURCE_FAILED"), "{text}");
+    assert!(text.contains("missing.formula.toml"), "{text}");
+    assert!(text.contains("recovery"), "{text}");
+    assert_eq!(fs::read_dir(&root.path).unwrap().count(), 0);
+}
+
 /// Every path a receipt prints must exist after the command returns, or be
 /// listed in `ephemeral_paths` because the command removed it.
 fn assert_receipt_paths_exist_or_are_ephemeral(payload: &serde_json::Value) -> Vec<String> {
