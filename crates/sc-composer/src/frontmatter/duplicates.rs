@@ -9,12 +9,11 @@ pub(super) struct CheckedValue(Value);
 
 impl<'de> Deserialize<'de> for CheckedValue {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        deserializer.deserialize_any(CheckedVisitor)
+        deserializer.deserialize_any(CheckedValue(Value::Null))
     }
 }
 
-struct CheckedVisitor;
-impl<'de> Visitor<'de> for CheckedVisitor {
+impl<'de> Visitor<'de> for CheckedValue {
     type Value = CheckedValue;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
