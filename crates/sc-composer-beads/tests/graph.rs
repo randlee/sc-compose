@@ -904,7 +904,7 @@ fn graph_pour_forbids_runtime_variables_and_registry_pour_forbids_relations() {
 }
 
 #[test]
-fn advanced_graph_and_attach_accept_bead_inputs() {
+fn advanced_attach_preserves_literal_bead_inputs_without_bd_vars() {
     let mut w = Workspace::new();
     fs::write(
         &w.req.template,
@@ -931,7 +931,7 @@ fn advanced_graph_and_attach_accept_bead_inputs() {
 }
 
 #[test]
-fn advanced_transport_renders_source_and_preserves_literal_data() {
+fn advanced_transport_renders_conditions_and_preserves_literal_delimiters() {
     struct Capture<'a> {
         inner: &'a FakeRunner,
         formula: Mutex<String>,
@@ -978,7 +978,7 @@ fn advanced_transport_renders_source_and_preserves_literal_data() {
 }
 
 #[test]
-fn bd_owned_graph_and_attach_retain_input_refusals() {
+fn bd_owned_attach_refuses_bead_inputs_before_runner() {
     let mut w = Workspace::new();
     w.req.bead_variables.insert("title".into(), "value".into());
     let runner = FakeRunner::new([]);

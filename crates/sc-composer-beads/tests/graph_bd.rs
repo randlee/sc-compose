@@ -650,7 +650,7 @@ fn refusals_preserve_beads_and_edges() {
 }
 
 #[test]
-fn advanced_transport_renders_source_and_preserves_literal_data() {
+fn real_bd_advanced_transport_preserves_fields_and_replay_state() {
     with_workspace(|w| {
         let template = w.root.join("release.formula.toml.j2");
         fs::write(&template, "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n{% for item in items %}[[steps]]\nid = \"{{ item }}\"\ntitle = \"{{ item }} {{ literal }}\"\ndescription = \"{{ value | lower }}:{{ value | length }}:{{ value[:3] }}\"\nlabels = [\"label-{{ item }}\"]\n{% endfor %}").unwrap();
