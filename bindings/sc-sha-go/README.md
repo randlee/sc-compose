@@ -91,8 +91,10 @@ The peer installer input remains `release/go-native-module-install.json`
 archive of the core release rows for the same Go OS/architecture, so
 `aarch64-pc-windows-gnullvm` needs no Rust CLI build row; #161's exact-LF
 `VERSION` staging is included). The core kit pin in
-`release/sc-publish-pin.toml` is unchanged: #165 changes only the peer package
-files (helper, its tests and README) relative to the pinned kit:
+`release/sc-publish-pin.toml` and `sc_publish_pin` in
+`release/sc-publish-install.json` both name the later merged producer revision
+`c619f225ebd1bfb3e20a59b91b1fc6e0e59fd07c`, which contains #165 (#165 itself
+changes only the peer package files: helper, its tests and README):
 
 ```sh
 python3 <pinned-sc-publish>/plugins/go-native-module/install.py \
