@@ -1756,8 +1756,8 @@ default precedence. These are the V1 contract consumed by V3, not choices
 silently deferred to implementation. Public request layouts remain unchanged.
 FR-24.34–35 fix additive existing-node edges and conditional elements;
 ADR-0023 records the atomic-write and provenance contract. The FR-24.24 byte
-comparison remains an evidence input to pin. Historical FUZZ-171 and
-The user ruling recorded in the `comp-phase-v` bead notes on 2026-11-05
+comparison remains an evidence input to pin. The user ruling recorded in the
+`comp-phase-v` bead notes on 2026-11-05
 replaces abandoned historical fuzz/corpus recovery with bounded deterministic
 regressions of the current intended contract. Historical FUZZ-171 cases and
 the 229-template corpus were not rerun, recovered, or passed; they are not
@@ -1765,9 +1765,10 @@ prerequisites for the replacement work. V1 qualifies available inputs, V3
 implements the bounded current-contract regressions, and V7 owns applicable
 final reruns.
 
-The unmerged PR #848 anchor records contain stale opt-in wording and
-incomplete testability evidence. Reconcile those records with the approved
-default as requirements maintenance; do not start an anchor-tuning project.
+The Phase V source anchor records include superseded wording for the legacy
+render default and historical FUZZ/corpus reruns. Their assigned anchor owner
+handles record dispositions through the normal anchor process; this V1
+requirements carry-forward does not edit those separate anchor records.
 
 #### bd variable semantics — observed evidence and limits
 
