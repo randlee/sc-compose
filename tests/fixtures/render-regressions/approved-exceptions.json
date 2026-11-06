@@ -21,6 +21,28 @@
         "code": null
       },
       "regression_test": "crates/sc-compose/tests/cli/render.rs::render_inline_vars_override_files_independent_of_argument_order"
+    },
+    {
+      "id": "ADR-0026-D9",
+      "decision": "deferred pass expressions preserve the following line break",
+      "issue": "https://github.com/randlee/sc-compose/issues/1001",
+      "approval": {
+        "kind": "explicit-user",
+        "reference": "session 9ec5e645 message 610cd975",
+        "date": "2026-11-06"
+      },
+      "case": "tests/fixtures/render-regressions/cases/adr0026-d9",
+      "before": {
+        "exit": 0,
+        "stdout_sha256": "a1f8fd5321c4df7b3b99c407f568a56983ff4b56226b220c7faf9418e758fa6b",
+        "code": null
+      },
+      "after": {
+        "exit": 0,
+        "stdout_sha256": "2f9d1b3bbb4596d550d8711894f1ebc7a4f762576c9444ace9bf5d054c3d938d",
+        "code": null
+      },
+      "regression_test": "crates/sc-compose/tests/adr0026_d9_pass2_newline.rs::pass_two_preserves_variable_line_breaks"
     }
   ]
 }
