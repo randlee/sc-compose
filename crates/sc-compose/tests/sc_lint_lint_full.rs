@@ -150,13 +150,13 @@ fn lint_full_without_materialized_utilities_is_explicit_config_error() {
     let output = run_lint_full(&fixture);
     assert_eq!(
         output.status.code(),
-        Some(2),
-        "missing utility must return the CLI usage-failure status: {output:?}"
+        Some(3),
+        "missing sc_lint runtime must return the CLI usage-failure status: {output:?}"
     );
 
     let payload = &parse_stdout(&output)["payload"];
     assert_eq!(payload["command_id"], COMMAND_ID);
-    assert_eq!(payload["outcome"], "failed");
+    assert_eq!(payload["outcome"], "config_error");
     assert_eq!(payload["exit_status"], 5);
     assert_eq!(payload["raw_payload"]["ok"], false);
     assert_eq!(payload["raw_payload"]["command"], COMMAND_ID);
@@ -177,11 +177,12 @@ fn lint_full_without_materialized_utilities_is_explicit_config_error() {
     assert!(
         payload["diagnostics"]
             .as_array()
-            .is_some_and(|items| !items.is_empty())
+            .is_some_and(|items| !items.is_empty()
+                && items.iter().all(|item| item["code"] == "CLI.CONFIG_ERROR"))
     );
     assert_report_materialized(
         &fixture.path,
-        &[COMMAND_ID, "failed", "ModuleNotFoundError"],
+        &[COMMAND_ID, "config_error", "ModuleNotFoundError"],
     );
 }
 
