@@ -32,10 +32,13 @@ prepare-sc-sha-go-native:
 # aarch64-pc-windows-gnullvm. The msvc cargo-xwin checks (sc-lint check.xwin /
 # clippy.xwin) verify the Windows CLI contract only and do NOT stand in for
 # these. Both are compile-time `cargo check`s; neither links or runs Go (see
-# docs/architecture.md section 3.5, "Cross-target verification").
+# docs/architecture.md section 3.5, "Cross-target verification"). FR-30 requires
+# the cargo xwin prefix on every Windows-target check; for these non-msvc
+# triples cargo-xwin configures nothing (no MSVC CRT/SDK), so the check is the
+# same compile-time check as plain `cargo check` and is not an MSVC validation.
 check-sc-sha-go-cross:
-    cargo check -p sc-sha-go --target x86_64-pc-windows-gnu
-    cargo check -p sc-sha-go --target aarch64-pc-windows-gnullvm
+    cargo xwin check -p sc-sha-go --target x86_64-pc-windows-gnu
+    cargo xwin check -p sc-sha-go --target aarch64-pc-windows-gnullvm
 
 ensure-lint-runtime:
     python3 scripts/materialize_sc_lint_runtime.py --root .
