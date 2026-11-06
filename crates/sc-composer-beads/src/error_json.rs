@@ -30,6 +30,12 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             json!({ "path": path.to_string_lossy(), "kind": format!("{:?}", source.kind()) }),
             "Check that the request path names an existing UTF-8 JSON file and that you have permission to read it.",
         )),
+        BeadComposeError::DirectStagingFailed { path, source }
+        | BeadComposeError::DirectSourceFailed { path, source }
+        | BeadComposeError::DirectSnapshotFailed { path, source } => Some((
+            json!({ "path": path.to_string_lossy(), "cause": source.to_string() }),
+            "Check the reported path, source includes, and filesystem permissions, then retry.",
+        )),
         BeadComposeError::OutputPathInvalid { path, rule } => Some((
             json!({ "field": "rendered_formula", "value": path.to_string_lossy(), "rule": rule }),
             "Choose a rendered_formula path whose parent directory exists inside working_directory.",

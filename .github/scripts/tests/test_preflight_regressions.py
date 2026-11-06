@@ -1,4 +1,5 @@
 """Nonpublishing regressions for credential probes and unpublished Cargo dependencies."""
+import hashlib
 import io
 import json
 import os
@@ -22,6 +23,57 @@ ROOT = next(p for p in Path(__file__).resolve().parents if (p / "install.py").is
 def step(identifier):
     workflow = yaml.safe_load((ROOT / ".github/workflows/release-preflight.yml").read_text())
     return next(s for s in workflow["jobs"]["preflight"]["steps"] if s.get("id") == identifier)
+
+
+def test_consumer_preflight_uses_read_only_job_token():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/release-preflight.yml").read_text())
+    assert workflow["permissions"] == "read-all"
+    assert "permissions" not in workflow["jobs"]["preflight"]
+    assert step("consumer_preflight")["env"] == {"GH_TOKEN": "${{ github.token }}"}
+
+
+@pytest.mark.parametrize("token_present", [True, False])
+def test_consumer_preflight_runner_inherits_token_without_logging(tmp_path, token_present):
+    selected = step("consumer_preflight")
+    scripts = tmp_path / ".github/scripts"
+    scripts.mkdir(parents=True)
+    shutil.copy2(ROOT / ".github/scripts/run-consumer-preflight.sh", scripts)
+    (tmp_path / "release").mkdir()
+    sentinel = "synthetic-consumer-preflight-token"
+    digest = hashlib.sha256(sentinel.encode()).hexdigest()
+    # Compare a digest so even a child failure cannot include the token in a traceback.
+    (tmp_path / "probe.py").write_text(
+        "import hashlib, os, sys\n"
+        "token = os.environ.get('GH_TOKEN', '')\n"
+        f"if hashlib.sha256(token.encode()).hexdigest() != {digest!r}:\n"
+        "    sys.exit('consumer authentication missing or incorrect')\n"
+        "print('consumer authentication received')\n"
+    )
+    (tmp_path / "release/publish-preflight.toml").write_text(
+        'schema_version = 1\n[[checks]]\nid = "auth-probe"\n'
+        'description = "offline authentication probe"\nrun = "python3 -I probe.py"\n'
+    )
+    env = {key: value for key, value in os.environ.items() if key not in {"GH_TOKEN", "GITHUB_TOKEN"}}
+    # The real runner invokes python3; use the test environment's TOML-capable Python.
+    env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+    if token_present:
+        assert selected["env"]["GH_TOKEN"] == "${{ github.token }}"
+        env["GH_TOKEN"] = sentinel
+    result = subprocess.run(
+        ["bash", "-c", selected["run"]], cwd=tmp_path, env=env,
+        text=True, capture_output=True, timeout=30,
+    )
+    output = result.stdout + result.stderr
+    assert sentinel not in output
+    assert "run-consumer-preflight: running auth-probe" in result.stdout
+    if token_present:
+        assert result.returncode == 0, output
+        assert "consumer authentication received" in result.stdout
+        assert "run-consumer-preflight: OK (1 check(s))" in result.stdout
+    else:
+        assert result.returncode != 0
+        assert "consumer authentication missing or incorrect" in result.stderr
+        assert "run-consumer-preflight: FAIL auth-probe: exit 1" in result.stderr
 
 
 @pytest.mark.parametrize("kind,status,body,accepted", [

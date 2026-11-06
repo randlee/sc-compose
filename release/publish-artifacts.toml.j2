@@ -117,6 +117,9 @@ cargo_toml = {{ crate.cargo_toml }}
 publish = {{ crate.publish }}
 publish_order = {{ crate.publish_order }}
 wait_after_publish_seconds = {{ crate.wait_after_publish_seconds }}
+{% if crate.has_verify_registry_visibility %}
+verify_registry_visibility = {{ crate.verify_registry_visibility }}
+{% endif %}
 {% endfor %}
 
 {% for binary in release_binaries %}

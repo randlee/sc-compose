@@ -2,6 +2,20 @@ name: Go Native Preflight
 
 on:
   workflow_dispatch:
+  # Called by the kit-registered release-preflight.yml (preflight_workflows in
+  # release/sc-publish-install.json). Never push/pull_request: manual preflight only.
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version candidate passed by Release Preflight (X.Y.Z or vX.Y.Z)"
+        required: false
+        type: string
+        default: ""
+      candidate_sha:
+        description: "Commit Release Preflight checked out (github.sha of the calling run)"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -68,7 +82,7 @@ jobs:
   # FR-25 / ANC-023: the manual full install matrix. The jobs below build the actual
   # candidate files for every required cell, and matrix-collect publishes them as the
   # release-files and release-checksums artifacts that scripts/check_install_matrix.py
-  # verifies (--workflow .github/workflows/go-native-preflight.yml). Manual dispatch only.
+  # verifies (--workflow = the run's workflow file: release-preflight.yml when called, this file when dispatched directly). Manual only.
   matrix-plan:
     name: Manual install-matrix plan
     runs-on: ubuntu-latest
@@ -79,6 +93,26 @@ jobs:
       workspace_toml: ${{ steps.plan.outputs.workspace_toml }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Verify the called candidate identity
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          # Empty inputs mean a direct workflow_dispatch run: the event ref is the candidate.
+          if [[ -n "${INPUT_CANDIDATE_SHA}" && "$(git rev-parse HEAD)" != "${INPUT_CANDIDATE_SHA}" ]]; then
+            echo "Checked-out commit $(git rev-parse HEAD) is not the requested candidate ${INPUT_CANDIDATE_SHA}" >&2
+            exit 1
+          fi
+          if [[ -n "${INPUT_VERSION}" ]]; then
+            workspace="$(python3 -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
+            if [[ "${INPUT_VERSION#v}" != "${workspace}" ]]; then
+              echo "Requested version ${INPUT_VERSION} does not match the workspace version ${workspace}" >&2
+              exit 1
+            fi
+          fi
 
       - id: plan
         name: Read the candidate version and release target matrix
@@ -356,6 +390,10 @@ jobs:
         env:
           CANDIDATE_VERSION: ${{ needs.matrix-plan.outputs.version }}
         run: |
+          # Under workflow_call GITHUB_WORKFLOW_REF names the calling workflow (release-preflight.yml),
+          # which is the workflow path recorded on the completed run.
+          workflow_path="${GITHUB_WORKFLOW_REF%@*}"
+          workflow_path="${workflow_path#"${GITHUB_REPOSITORY}/"}"
           # Completed-run identity, expiry and digest binding can only be checked after this
           # run completes: download release-files, release-checksums and the run/artifact JSON.
           {
@@ -366,7 +404,7 @@ jobs:
             echo "gh api repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts > artifacts.json"
             echo "gh run download ${GITHUB_RUN_ID} -n release-files -D staging -R ${GITHUB_REPOSITORY}"
             echo "gh run download ${GITHUB_RUN_ID} -n release-checksums -D checksums -R ${GITHUB_REPOSITORY}"
-            echo "python3 scripts/check_install_matrix.py --run run.json --artifacts artifacts.json --checksums checksums/checksums.txt --staging staging --repository ${GITHUB_REPOSITORY} --workflow .github/workflows/go-native-preflight.yml --candidate-sha ${GITHUB_SHA} --version ${CANDIDATE_VERSION}"
+            echo "python3 scripts/check_install_matrix.py --run run.json --artifacts artifacts.json --checksums checksums/checksums.txt --staging staging --repository ${GITHUB_REPOSITORY} --workflow ${workflow_path} --candidate-sha ${GITHUB_SHA} --version ${CANDIDATE_VERSION}"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 

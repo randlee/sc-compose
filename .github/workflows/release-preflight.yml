@@ -355,6 +355,8 @@ jobs:
         if: ${{ always() }}
         continue-on-error: true
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/run-consumer-preflight.sh
 
       - id: package_checks
@@ -520,3 +522,37 @@ jobs:
           if [[ "${#failed[@]}" -gt 0 || "${#blocked[@]}" -gt 0 ]]; then
             exit 1
           fi
+
+  consumer_workflow_install-matrix:
+    name: "Full five-family x six-coordinate install matrix on real target runners"
+    uses: "./.github/workflows/go-native-preflight.yml"
+    with:
+      version: ${{ inputs.version }}
+      candidate_sha: ${{ github.sha }}
+
+  consumer_workflows:
+    name: Record consumer preflight workflow outcomes
+    if: ${{ always() }}
+    needs: [consumer_workflow_install-matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deny release unless every consumer preflight workflow succeeded
+        shell: bash
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+
+          needs = json.loads(os.environ["NEEDS"])
+          rows = [f"| {job} | {need['result']} |" for job, need in sorted(needs.items())]
+          summary = "\n".join(["| Consumer preflight workflow | Result |", "|---|---|", *rows])
+          print(summary)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(summary + "\n")
+          failed = [job for job, need in sorted(needs.items()) if need["result"] != "success"]
+          if failed:
+              raise SystemExit(f"Consumer preflight workflow(s) did not succeed: {', '.join(failed)}")
+          PY
