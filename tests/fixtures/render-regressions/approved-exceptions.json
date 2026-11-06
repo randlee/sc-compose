@@ -1,6 +1,28 @@
 {
   "exceptions": [
     {
+      "id": "ADR-0026-D4",
+      "decision": "render --output writes nothing to stdout in text mode",
+      "issue": "https://github.com/randlee/sc-compose/issues/998",
+      "approval": {
+        "kind": "explicit-user",
+        "reference": "session 9ec5e645 message 5986cdba",
+        "date": "2026-11-06"
+      },
+      "case": "tests/fixtures/render-regressions/adr0026-d4",
+      "before": {
+        "exit": 0,
+        "stdout_sha256": "a1754fcb918ed43ac1527696967b6467a4ec4f455f3ccb2d5bbf1401a9f8ecdb",
+        "code": null
+      },
+      "after": {
+        "exit": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "code": null
+      },
+      "regression_test": "crates/sc-compose/tests/adr0026_d4_output_stdout.rs::output_file_suppresses_text_stdout_without_changing_file_bytes"
+    },
+    {
       "id": "ADR-0026-D7",
       "decision": "inline --var overrides --var-file regardless of argument order",
       "issue": "https://github.com/randlee/sc-compose/issues/999",
@@ -21,6 +43,50 @@
         "code": null
       },
       "regression_test": "crates/sc-compose/tests/cli/render.rs::render_inline_vars_override_files_independent_of_argument_order"
+    },
+    {
+      "id": "ADR-0026-D8-LINE-ENDINGS",
+      "decision": "preserve parent and child line-ending kinds while retaining existing trailing whitespace and blank-line trimming",
+      "issue": "https://github.com/randlee/sc-compose/issues/1000",
+      "approval": {
+        "kind": "explicit-user",
+        "reference": "session 9ec5e645 message 610cd975",
+        "date": "2026-11-06"
+      },
+      "case": "tests/fixtures/render-regressions/adr0026-d8/line-endings",
+      "before": {
+        "exit": 0,
+        "stdout_sha256": "6ff45bb22a3ecf664922855a91188617e4fbd687d34937c380958183664255e1",
+        "code": null
+      },
+      "after": {
+        "exit": 0,
+        "stdout_sha256": "125a7cda8ea63a1e28e0c90f218da830c49947a9dc4279a479dcc817ed621097",
+        "code": null
+      },
+      "regression_test": "crates/sc-compose/tests/adr0026_d8_include_layout.rs::crlf_receipt_case_materializes_git_stable_fixture"
+    },
+    {
+      "id": "ADR-0026-D8-TRAILING",
+      "decision": "append the directive line terminator when included content has none",
+      "issue": "https://github.com/randlee/sc-compose/issues/1000",
+      "approval": {
+        "kind": "explicit-user",
+        "reference": "session 9ec5e645 message 370d1803-5f65-4489-bbf6-6d66d8d435e3",
+        "date": "2026-11-06"
+      },
+      "case": "tests/fixtures/render-regressions/adr0026-d8/child-terminator",
+      "before": {
+        "exit": 0,
+        "stdout_sha256": "1659cafab99a18d6974848452c501bc602e9d2f00add94df9d27d1cad9da7f4a",
+        "code": null
+      },
+      "after": {
+        "exit": 0,
+        "stdout_sha256": "496a2d753b2ccf7890b7b99b19cd980d055474c988fdbb316e28effefde39cb9",
+        "code": null
+      },
+      "regression_test": "crates/sc-compose/tests/adr0026_d8_include_layout.rs::includes_preserve_line_terminators_and_layout"
     },
     {
       "id": "ADR-0026-D9",
