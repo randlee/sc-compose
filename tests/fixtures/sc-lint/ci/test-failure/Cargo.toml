@@ -1,7 +1,12 @@
 [package]
 name = "sc-lint-ci-test-failure-fixture"
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [workspace]
 
@@ -9,3 +14,8 @@ edition = "2024"
 version = "0.1.0"
 authors = ["sc-compose"]
 edition = "2024"
+
+rust-version = "1.94.1"
+license = "MIT"
+repository = "https://example.invalid/fixture"
+homepage = "https://example.invalid/fixture"
