@@ -1836,6 +1836,7 @@ Canonical failures must map to stable error families and stable codes.
 | Help topic name is not registered | `ConfigError` | `ERR_CONFIG_HELP_TOPIC_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
+| Python Beads adapter cannot serialize a value it returns to its caller (receipt, graph or relations); stage `output`; an adapter-level code, not a `BeadComposeError` variant | Python adapter error (`BeadComposeError::OUTPUT_SERIALIZATION_FAILED_CODE`) | `BEADS_OUTPUT_SERIALIZATION_FAILED` |
 
 The legacy `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` code is governed by
 [ADR-E1](#61-adr-e1-recursive-structured-input-contract-2026-07-29). It remains
@@ -2277,8 +2278,10 @@ the expected files on a failed check. V8 tests with temporary consumer outputs;
 V6 alone commits final production references after the final CLI model exists.
 V8 owns registration and current/stale production-path tests of the supported
 consumer preflight_checks entry; V6 consumes it after V8 on final references.
-Release Preflight runs the same --check command through the
-existing sc-publish extension; individual publish workflows are not mechanically
-gated. No separate documentation engine or competing generator.
+The supported entry runs the same --check command
+on every publish. No separate documentation engine or competing generator.
+Current implementation limitation, separate from this guarantee: individual
+publish workflows are not yet mechanically gated by the Release Preflight
+entry (FR-26).
 
 Model/CLI reference: [official docli usage](https://github.com/randlee/docli).
