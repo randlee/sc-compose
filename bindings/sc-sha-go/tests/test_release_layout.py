@@ -18,20 +18,22 @@ from pathlib import Path
 from unittest.mock import patch
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+# Controlled unit fixture; it is not the shipped release declaration.
 MANIFEST = Path(__file__).parent / "fixtures" / "release-targets.toml"
+SHIPPED_MANIFEST = REPOSITORY_ROOT / "release" / "publish-artifacts.toml"
 CONFIG = REPOSITORY_ROOT / "release" / "go-native-module.toml"
 SCRIPT = REPOSITORY_ROOT / ".github" / "scripts" / "go_native_module.py"
 BINDING_ROOT = REPOSITORY_ROOT / "bindings" / "sc-sha-go"
 
 
-def go_native_targets() -> list[dict[str, str]]:
+def target_matrix(manifest: Path = MANIFEST) -> list[dict[str, str]]:
     result = subprocess.run(
         [
             sys.executable,
             str(SCRIPT),
             "target-matrix",
             "--manifest",
-            str(MANIFEST),
+            str(manifest),
             "--config",
             str(CONFIG),
         ],
@@ -41,6 +43,10 @@ def go_native_targets() -> list[dict[str, str]]:
     )
     if result.returncode:
         raise RuntimeError(result.stderr)
+    return json.loads(result.stdout)["include"]
+
+
+def go_native_targets(manifest: Path = MANIFEST) -> list[dict[str, str]]:
     return [
         {
             "rust_target": target["target"],
@@ -48,8 +54,21 @@ def go_native_targets() -> list[dict[str, str]]:
             "goarch": target["goarch"],
             "library": target["library"],
         }
-        for target in json.loads(result.stdout)["include"]
+        for target in target_matrix(manifest)
     ]
+
+
+def rust_target_coordinate(triple: str) -> tuple[str, str]:
+    """Go OS/architecture of a Rust target triple used by the release manifest."""
+    goarch = {"x86_64": "amd64", "aarch64": "arm64"}[triple.split("-", 1)[0]]
+    for marker, goos in (
+        ("-linux-", "linux"),
+        ("-apple-darwin", "darwin"),
+        ("-windows-", "windows"),
+    ):
+        if marker in triple:
+            return goos, goarch
+    raise ValueError(f"unmapped release target: {triple}")
 
 
 class ReleaseLayoutTests(unittest.TestCase):
@@ -248,6 +267,33 @@ class ReleaseLayoutTests(unittest.TestCase):
             result = self.stage(linux, mismatched_library, root / "output")
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("native library name mismatch", result.stderr)
+
+
+class ShippedManifestTests(unittest.TestCase):
+    """Integration coverage of the shipped release manifest, not the fixture."""
+
+    def test_shipped_manifest_maps_every_native_target(self) -> None:
+        contract = tomllib.loads(
+            (BINDING_ROOT / "native" / "targets.toml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            sorted(go_native_targets(SHIPPED_MANIFEST), key=lambda t: t["rust_target"]),
+            sorted(contract["targets"], key=lambda t: t["rust_target"]),
+        )
+
+    def test_shipped_runners_are_declared_for_the_same_coordinate(self) -> None:
+        declared = tomllib.loads(SHIPPED_MANIFEST.read_text(encoding="utf-8"))
+        runners: dict[tuple[str, str], set[tuple[str, str]]] = {}
+        for row in declared["release_targets"]:
+            runners.setdefault(rust_target_coordinate(row["target"]), set()).add(
+                (row["os"], row["archive"])
+            )
+        for target in target_matrix(SHIPPED_MANIFEST):
+            with self.subTest(target=target["target"]):
+                self.assertIn(
+                    (target["os"], target["archive"]),
+                    runners.get((target["goos"], target["goarch"]), set()),
+                )
 
 
 class SourcePreparationTests(unittest.TestCase):
