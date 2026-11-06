@@ -1651,20 +1651,21 @@ The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/f
 
 #### FR-24.31 — Approved item 23
 
-The closing regression exercise reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 on the final candidate. Recovery commits and the case-to-test mapping must be verified; the previously cited single_pass_render.rs path does not exist on rebuild/from-main@c089c8a3. Missing cases, including FUZZ-171-10, remain explicit unresolved inputs rather than claimed recovered tests.
-
-The historical file `crates/sc-composer-beads/tests/single_pass_render.rs`
-at commit `bdb3bdae` names cases 01–09, 11, 12 and 14. It does not name
-cases 10 or 13, and its presence in history does not establish that any case
-has been recovered in the candidate. V3 must map each required case to its
-source and candidate test, or retain the missing case as an unresolved input.
+V3 builds bounded, deterministic regressions for the current approved Beads
+contract, pairing rejected inputs with permitted inputs where the contract
+requires both. V7 reruns the applicable regressions on the final candidate.
+The abandoned FUZZ-171 recovery is historical evidence, not a prerequisite
+for these tests; unavailable historical cases are not claimed as recovered or
+passed.
 
 #### FR-24.32 — Approved item 24
 
-The 229-template corpus that passed the v1.7.0 comparison (QA report 01M6HZR22HZXX4HDW1CMFHHA86: 150 atm-core and 79 sc-compose `.j2` templates) is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7 (`ERR_VAL_UNDECLARED_TOKEN` no longer reported for True/False/None literals, filter and call targets, Jinja test and block-tag names, and comment and raw bodies).
-
-Recover the exact corpus manifest and source revisions before the rerun; the
-reported counts and prior QA verdict alone do not identify its template bytes.
+V3 verifies compatible validation and rendering with a bounded, controlled
+set of current-contract templates, including accepted inputs and relevant
+refusals. V7 reruns the applicable checks on the final candidate. The prior
+229-template comparison is historical evidence; its unavailable exact corpus
+and source mapping are not a prerequisite for the current tests and are not
+represented as a passing rerun.
 
 #### FR-24.33 — Plan-fix pour with caller variables
 
@@ -1746,9 +1747,10 @@ mapping, direct-CLI request mapping, duplicate/conflict policy and scoped
 default precedence. These are the V1 contract consumed by V3, not choices
 silently deferred to implementation. Public request layouts remain unchanged.
 FR-24.34–35 fix additive existing-node edges and conditional elements;
-ADR-0023 records the atomic-write and provenance contract. The FR-24.24 byte comparison, exact 229-template
-corpus revision and FUZZ-171 case-to-test mapping remain evidence inputs to
-pin. Missing evidence never counts as a final regression PASS.
+ADR-0023 records the atomic-write and provenance contract. The FR-24.24 byte
+comparison remains an evidence input to pin. Historical FUZZ-171 and
+229-template results are not current regression passes; FR-24.31–32 govern
+their replacement with bounded current-contract coverage.
 
 The unmerged PR #848 anchor records contain stale opt-in wording and
 incomplete testability evidence. Reconcile those records with the approved
