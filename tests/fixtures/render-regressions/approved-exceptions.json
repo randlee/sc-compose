@@ -1,0 +1,26 @@
+{
+  "exceptions": [
+    {
+      "id": "ADR-0026-D7",
+      "decision": "inline --var overrides --var-file regardless of argument order",
+      "issue": "https://github.com/randlee/sc-compose/issues/999",
+      "approval": {
+        "kind": "explicit-user",
+        "reference": "session 9ec5e645 message 610cd975",
+        "date": "2026-11-06"
+      },
+      "case": "tests/fixtures/render-regressions/cases/adr0026-d7",
+      "before": {
+        "exit": 0,
+        "stdout_sha256": "1d1102e6d3abb9baa86c3d327745f5e51bff427c903e6c37b81999b46b3cf1c7",
+        "code": null
+      },
+      "after": {
+        "exit": 0,
+        "stdout_sha256": "1fd5cb35daf0cf6f7eaa688c64e8975da3120c0150a10fe741b0b07393f9748e",
+        "code": null
+      },
+      "regression_test": "crates/sc-compose/tests/cli/render.rs::render_inline_vars_override_files_independent_of_argument_order"
+    }
+  ]
+}
