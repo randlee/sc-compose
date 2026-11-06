@@ -715,3 +715,59 @@ fn advanced_transport_renders_source_and_preserves_literal_data() {
         assert_eq!(shown[0]["assignee"], "reviewer");
     });
 }
+
+#[test]
+fn advanced_conditional_nodes_preview_without_pruning_or_unqualified_apply() {
+    with_workspace(|w| {
+        let template = w.root.join("release.formula.toml.j2");
+        fs::write(&template, "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build\"\n{% if enabled %}[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\nneeds = [\"build\"]\n{% endif %}").unwrap();
+        let parent = w.parent();
+        let mut request = w.request(BeadOperation::Attach, Some(parent));
+        request
+            .compose_variables
+            .insert("enabled".into(), json!(false));
+        let initial = sc_composer_beads::execute_bead_request(&request).unwrap();
+        assert_eq!(initial.outcome, BeadOutcome::Succeeded);
+        assert_eq!(initial.graph.unwrap().ids.len(), 1);
+        let before = w.snapshot();
+        request
+            .compose_variables
+            .insert("enabled".into(), json!(true));
+        request.operation = BeadOperation::PreviewAttach;
+        let preview = sc_composer_beads::execute_bead_request(&request).unwrap();
+        assert_eq!(preview.outcome, BeadOutcome::Succeeded, "{preview:#?}");
+        assert!(preview.graph.unwrap().nodes.iter().any(|node| {
+            node.step
+                .as_ref()
+                .is_some_and(|step| step.as_str() == "verify")
+                && node.action == BeadNodeAction::Create
+        }));
+        assert_eq!(w.snapshot(), before);
+        request.operation = BeadOperation::Attach;
+        let refused = sc_composer_beads::execute_bead_request(&request).unwrap();
+        assert_eq!(
+            refused.outcome,
+            BeadOutcome::Refused {
+                code: "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE".into()
+            }
+        );
+        assert_eq!(w.snapshot(), before);
+
+        let parent = w.parent();
+        request.parent = Some(parent);
+        let initial_enabled = sc_composer_beads::execute_bead_request(&request).unwrap();
+        assert_eq!(initial_enabled.outcome, BeadOutcome::Succeeded);
+        assert_eq!(initial_enabled.graph.unwrap().ids.len(), 2);
+        let before_disabled = w.snapshot();
+        request
+            .compose_variables
+            .insert("enabled".into(), json!(false));
+        let disabled = sc_composer_beads::execute_bead_request(&request).unwrap();
+        assert_eq!(disabled.outcome, BeadOutcome::Succeeded, "{disabled:#?}");
+        assert_eq!(
+            w.snapshot(),
+            before_disabled,
+            "disabled nodes are never pruned"
+        );
+    });
+}

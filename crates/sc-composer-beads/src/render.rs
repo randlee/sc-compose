@@ -431,6 +431,20 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[test]
+    fn string_condition_flags_require_explicit_comparison() {
+        let root = temporary_directory();
+        let template = root.join("condition.formula.toml.j2");
+        let output = root.join("condition.formula.toml");
+        fs::write(&template, "{% if enabled == 'true' %}selected = true\n{% else %}selected = false\n{% endif %}").unwrap();
+        for (value, expected) in [("true", "selected = true"), ("false", "selected = false")] {
+            let vars = Map::from_iter([("enabled".into(), json!(value))]);
+            render_formula_with_options(&template, &output, &vars, &root, true, false).unwrap();
+            assert_eq!(fs::read_to_string(&output).unwrap().trim(), expected);
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
     // TMPL5-02: a template that declares a required input must refuse when the
     // input is absent instead of rendering a successful but incorrect formula.
     #[test]
