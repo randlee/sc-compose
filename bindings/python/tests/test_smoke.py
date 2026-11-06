@@ -23,7 +23,9 @@ TEAM_LEAD_SENDER = (FIXTURE_ROOT / "team-lead-sender.txt").read_text(
 
 def write(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(textwrap.dedent(contents), encoding="utf-8")
+    # Byte write: text-mode writes translate "\n" to CRLF on Windows, while the
+    # renderer correctly retains template bytes and the tests assert exact LF.
+    path.write_bytes(textwrap.dedent(contents).encode("utf-8"))
 
 
 def make_file_request(root: Path, name: str, **kwargs: object) -> sc_compose.ComposeRequest:
