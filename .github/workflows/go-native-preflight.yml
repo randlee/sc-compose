@@ -113,37 +113,6 @@ jobs:
       - name: Install Linux native build deps
         uses: ./.github/actions/install-linux-native-deps
 
-      - name: Install pinned LLVM-MinGW for the gnullvm target
-        if: ${{ matrix.target == 'aarch64-pc-windows-gnullvm' }}
-        shell: bash
-        env:
-          LLVM_MINGW_TAG: "20261104"
-          LLVM_MINGW_SHA256: 7d7f8387a8706639b0b47a629d6e23f8b3ef9acce67e9832b8cd4c5bb2816eab
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib, os, urllib.request, zipfile
-          from pathlib import Path
-
-          tag = os.environ["LLVM_MINGW_TAG"]
-          name = f"llvm-mingw-{tag}-ucrt-aarch64"
-          url = f"https://github.com/mstorsjo/llvm-mingw/releases/download/{tag}/{name}.zip"
-          archive = Path(os.environ["RUNNER_TEMP"]) / f"{name}.zip"
-          archive.write_bytes(urllib.request.urlopen(url).read())
-          digest = hashlib.sha256(archive.read_bytes()).hexdigest()
-          if digest != os.environ["LLVM_MINGW_SHA256"]:
-              raise SystemExit(f"LLVM-MinGW digest mismatch: {digest}")
-          root = Path(os.environ["RUNNER_TEMP"]) / "llvm-mingw"
-          with zipfile.ZipFile(archive) as payload:
-              payload.extractall(root)
-          bin_dir = root / name / "bin"
-          with Path(os.environ["GITHUB_PATH"]).open("a", encoding="utf-8") as path_file:
-              path_file.write(f"{bin_dir}\n")
-          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
-              env_file.write("CARGO_TARGET_AARCH64_PC_WINDOWS_GNULLVM_LINKER=aarch64-w64-mingw32-clang\n")
-              env_file.write("CC=aarch64-w64-mingw32-clang\n")
-          PY
-
       - name: Build release binaries
         shell: bash
         run: |

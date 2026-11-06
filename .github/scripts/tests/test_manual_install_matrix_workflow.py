@@ -65,11 +65,12 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
         self.assertTrue(upload[0]["with"]["name"].startswith("matrix-cell-"))
         self.assertTrue(upload[0]["with"]["path"].endswith("${{ matrix.artifact_prefix }}-${{ matrix.target }}.zip"))
 
-    def test_gnullvm_toolchain_is_pinned_by_digest(self):
-        for job in ("matrix-rust", "go-native-matrix"):
-            step = next(s for s in self.jobs[job]["steps"] if "LLVM-MinGW" in s.get("name", ""))
-            self.assertEqual(len(step["env"]["LLVM_MINGW_SHA256"]), 64)
-            self.assertIn("gnullvm", step["if"])
+    def test_gnullvm_toolchain_is_pinned_by_digest_in_the_go_job_only(self):
+        step = next(s for s in self.jobs["go-native-matrix"]["steps"] if "LLVM-MinGW" in s.get("name", ""))
+        self.assertEqual(len(step["env"]["LLVM_MINGW_SHA256"]), 64)
+        self.assertIn("gnullvm", step["if"])
+        # The Rust CLI gnullvm coupling is tracked separately (sc-publish#164), not worked around here.
+        self.assertFalse([s for s in self.jobs["matrix-rust"]["steps"] if "LLVM-MinGW" in s.get("name", "")])
 
 
 if __name__ == "__main__":
