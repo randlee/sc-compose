@@ -124,6 +124,16 @@ def test_bead_exception_constructor_preserves_native_contract() -> None:
         beads.BeadComposeError(code="CODE", message="message")
     with pytest.raises(TypeError):
         beads.BeadComposeError("CODE", "message", None, {"bad": 1})
+    for details in ([("a", "1")], (("a", "1"),)):
+        with pytest.raises(TypeError):
+            beads.BeadComposeError("CODE", "message", None, details)
+    supplied = {"a": "1"}
+    copied = beads.BeadComposeError("CODE", "message", None, supplied)
+    supplied["a"] = "changed"
+    assert copied.details == {"a": "1"}
+    result = copied.details
+    result["a"] = "local"
+    assert copied.details == {"a": "1"}
     with pytest.raises(TypeError):
         type("Derived", (beads.BeadComposeError,), {})
 
