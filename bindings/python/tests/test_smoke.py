@@ -1160,7 +1160,7 @@ def test_headerless_templates_keep_phase_c_behavior() -> None:
         (
             lambda root: sc_compose.render_template("{% if true %}", {}),
             sc_compose.ScRenderError,
-            None,
+            sc_compose.DiagnosticCode.ERR_RENDER_TEMPLATE,
         ),
         (
             lambda root: sc_compose.resolve_template_path(
