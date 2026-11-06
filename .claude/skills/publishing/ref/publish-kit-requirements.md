@@ -80,6 +80,11 @@
   Consumers that ship a **customer-facing CLI SHOULD** enable it so CLI HTML
   drift is caught in Release Preflight, not on every sprint PR CI. See
   `docs/consumer-preflight-and-docli.md`.
+- Optional `preflight_workflows` in consumer input JSON calls consumer-owned
+  reusable workflows (for example a multi-runner matrix) from Release
+  Preflight. The installer appends one call job per entry and a
+  `consumer_workflows` job that fails unless every call succeeded. When
+  nothing is declared, `release-preflight.yml` is installed byte for byte.
 
 ## 5. Agent Behavior Around Credentials
 

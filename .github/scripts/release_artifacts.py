@@ -33,6 +33,7 @@ from release_manifest import (
     _require_project,
     load_channel_contracts,
     load_manifest,
+    cmd_list_publish_plan,
     manifest_python_upload_tool,
     manifest_rust_toolchain,
     manifest_workspace_toml,
@@ -417,13 +418,6 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
     # A missing or unsupported distribution build_system is a validation failure.
     _python_distribution_entries(manifest)
     print("manifest validation passed")
-    return 0
-
-
-def cmd_list_publish_plan(args: argparse.Namespace) -> int:
-    manifest = load_manifest(Path(args.manifest))
-    for crate in manifest["crates"]:
-        print(f"{crate['package']}|{crate['wait_after_publish_seconds']}" + (f"|{crate['cargo_toml']}" if args.include_manifest else ""))
     return 0
 
 
@@ -869,6 +863,7 @@ def main() -> int:
 
     p = sub.add_parser("list-publish-plan")
     p.add_argument("--include-manifest", action="store_true")
+    p.add_argument("--include-visibility", action="store_true", help="Append the consumer-declared registry visibility check flag")
     p.add_argument("--manifest", required=True)
     p.set_defaults(func=cmd_list_publish_plan)
 

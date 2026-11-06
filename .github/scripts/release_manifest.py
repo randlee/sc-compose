@@ -53,6 +53,9 @@ def load_manifest(path: Path, *, with_channel_contracts: bool = False) -> dict:
     release_binaries = data.get("release_binaries", [])
     python_packages = data.get("python_packages", [])
     python_distributions = data.get("python_distributions", [])
+    for crate in crates:
+        if "verify_registry_visibility" in crate and type(crate["verify_registry_visibility"]) is not bool:
+            raise SystemExit("crates.verify_registry_visibility must be a boolean")
     crates = sorted(crates, key=lambda item: (item["publish_order"], item["artifact"]))
     manifest = {
         "project": data.get("project", {}),
@@ -738,3 +741,16 @@ def _channel_preflight_result(
         "credential_rehearsal": rehearsal,
         "sanitized_diagnostic": diagnostic,
     }
+
+
+def cmd_list_publish_plan(args: object) -> int:
+    """Render the ordered plan, retaining the legacy fields unless requested."""
+    manifest = load_manifest(Path(args.manifest))
+    for crate in manifest["crates"]:
+        row = f"{crate['package']}|{crate['wait_after_publish_seconds']}"
+        if args.include_manifest:
+            row += f"|{crate['cargo_toml']}"
+        if args.include_visibility:
+            row += "|" + str(crate.get("verify_registry_visibility", False)).lower()
+        print(row)
+    return 0

@@ -33,6 +33,30 @@ TEMPLATES = {
 
 CHANNEL_NAMES = ("pypi", "npm", "homebrew", "scoop", "winget")
 
+# Optional consumer-owned reusable workflows called by Release Preflight. The
+# kit always passes these inputs; declared `with` inputs must not reuse them.
+PREFLIGHT_WORKFLOW = Path(".github/workflows/release-preflight.yml")
+PREFLIGHT_WORKFLOW_ID = re.compile(r"[a-z0-9][a-z0-9_-]*")
+PREFLIGHT_WORKFLOW_INPUT = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
+PREFLIGHT_WORKFLOW_KIT_INPUTS = ("version", "candidate_sha")
+PREFLIGHT_WORKFLOW_OUTCOME_SCRIPT = """\
+set -euo pipefail
+python3 - <<'PY'
+import json
+import os
+
+needs = json.loads(os.environ["NEEDS"])
+rows = [f"| {job} | {need['result']} |" for job, need in sorted(needs.items())]
+summary = "\\n".join(["| Consumer preflight workflow | Result |", "|---|---|", *rows])
+print(summary)
+with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+    handle.write(summary + "\\n")
+failed = [job for job, need in sorted(needs.items()) if need["result"] != "success"]
+if failed:
+    raise SystemExit(f"Consumer preflight workflow(s) did not succeed: {', '.join(failed)}")
+PY
+"""
+
 # Copied byte-for-byte, but installed under a different consumer path so the
 # kit never overwrites a consumer-owned file of the same name.
 RENAMED_FILES = {
@@ -171,6 +195,11 @@ def load_install_values(path: Path) -> dict[str, object]:
         _require_string(crate_value.get("package"), f"crates[{position}].package")
         _require_string(crate_value.get("cargo_toml"), f"crates[{position}].cargo_toml")
         publish = _require_boolean(crate_value.get("publish"), f"crates[{position}].publish")
+        if "verify_registry_visibility" in crate_value:
+            _require_boolean(
+                crate_value["verify_registry_visibility"],
+                f"crates[{position}].verify_registry_visibility",
+            )
         _require_non_negative_integer(
             crate_value.get("wait_after_publish_seconds"),
             f"crates[{position}].wait_after_publish_seconds",
@@ -398,7 +427,104 @@ def load_install_values(path: Path) -> dict[str, object]:
             if "sc_docli_version" in docli:
                 _require_string(docli["sc_docli_version"], "docli.sc_docli_version")
 
+    values["preflight_workflows"] = _load_preflight_workflows(values.get("preflight_workflows", []))
     return values
+
+
+def _load_preflight_workflows(value: object) -> list[dict[str, Any]]:
+    """Validate the optional consumer-owned reusable workflows called by preflight."""
+    workflows: list[dict[str, Any]] = []
+    for position, entry in enumerate(_require_array(value, "preflight_workflows"), start=1):
+        label = f"preflight_workflows[{position}]"
+        mapping = _require_mapping(entry, label)
+        unknown = set(mapping) - {"id", "description", "uses", "with"}
+        if unknown:
+            raise argparse.ArgumentTypeError(f"{label} has unknown field(s): {', '.join(sorted(unknown))}")
+        workflow_id = _require_string(mapping.get("id"), f"{label}.id")
+        if not PREFLIGHT_WORKFLOW_ID.fullmatch(workflow_id):
+            raise argparse.ArgumentTypeError(f"{label}.id must match {PREFLIGHT_WORKFLOW_ID.pattern}")
+        inputs = _require_mapping(mapping.get("with", {}), f"{label}.with")
+        for name, input_value in inputs.items():
+            if not PREFLIGHT_WORKFLOW_INPUT.fullmatch(name) or name in PREFLIGHT_WORKFLOW_KIT_INPUTS:
+                raise argparse.ArgumentTypeError(
+                    f"{label}.with.{name} must be an input name other than "
+                    f"{', '.join(PREFLIGHT_WORKFLOW_KIT_INPUTS)}"
+                )
+            if not isinstance(input_value, (str, bool, int)):
+                raise argparse.ArgumentTypeError(f"{label}.with.{name} must be a string, boolean or integer")
+        workflows.append(
+            {
+                "id": workflow_id,
+                "description": _require_string(mapping.get("description"), f"{label}.description"),
+                "uses": _require_string(mapping.get("uses"), f"{label}.uses"),
+                "with": inputs,
+            }
+        )
+    ids = [workflow["id"] for workflow in workflows]
+    if len(ids) != len(set(ids)):
+        raise argparse.ArgumentTypeError("preflight_workflows ids must be unique")
+    return workflows
+
+
+def preflight_workflow_jobs(workflows: list[dict[str, Any]]) -> str:
+    """Return the jobs appended to release-preflight.yml for declared workflows.
+
+    Each declared workflow is called with the dispatched version and candidate
+    commit plus its declared inputs. It inherits the workflow's read-all token
+    and receives no secrets. One job then records every call's result and fails
+    unless all succeeded. No declared workflow returns an empty string, so the
+    installed workflow is the kit file byte for byte.
+    """
+    if not workflows:
+        return ""
+    lines: list[str] = []
+    job_ids = []
+    for workflow in workflows:
+        job_id = f"consumer_workflow_{workflow['id']}"
+        job_ids.append(job_id)
+        lines += [
+            "",
+            f"  {job_id}:",
+            f"    name: {json.dumps(workflow['description'])}",
+            f"    uses: {json.dumps(workflow['uses'])}",
+            "    with:",
+            "      version: ${{ inputs.version }}",
+            "      candidate_sha: ${{ github.sha }}",
+        ]
+        lines += [f"      {name}: {json.dumps(value)}" for name, value in workflow["with"].items()]
+    lines += [
+        "",
+        "  consumer_workflows:",
+        "    name: Record consumer preflight workflow outcomes",
+        "    if: ${{ always() }}",
+        f"    needs: [{', '.join(job_ids)}]",
+        "    runs-on: ubuntu-latest",
+        "    steps:",
+        "      - name: Deny release unless every consumer preflight workflow succeeded",
+        "        shell: bash",
+        "        env:",
+        "          NEEDS: ${{ toJSON(needs) }}",
+        "        run: |",
+    ]
+    lines += [f"          {line}" if line else "" for line in PREFLIGHT_WORKFLOW_OUTCOME_SCRIPT.splitlines()]
+    return "\n".join(lines) + "\n"
+
+
+def install_sources(
+    copies: list[tuple[Path, Path]], values: dict[str, object], directory: Path
+) -> list[tuple[Path, Path]]:
+    """Return copy sources, extending release-preflight.yml only when workflows are declared."""
+    jobs = preflight_workflow_jobs(_require_array(values.get("preflight_workflows", []), "preflight_workflows"))
+    if not jobs:
+        return copies
+    sources = []
+    for source, relative in copies:
+        if relative == PREFLIGHT_WORKFLOW:
+            extended = directory / PREFLIGHT_WORKFLOW.name
+            extended.write_bytes(source.read_bytes() + jobs.encode("utf-8"))
+            source = extended
+        sources.append((source, relative))
+    return sources
 
 
 def _toml_literal(value: object) -> str:
@@ -463,6 +589,14 @@ def template_values(values: dict[str, object]) -> dict[str, object]:
             ]
         converted_channels[name] = converted
 
+    converted_crates = []
+    for crate_value in _require_array(values["crates"], "crates"):
+        crate = _require_mapping(crate_value, "crates entry")
+        converted = _toml_scalars(crate)
+        converted["has_verify_registry_visibility"] = "verify_registry_visibility" in crate
+        converted.setdefault("verify_registry_visibility", "false")
+        converted_crates.append(converted)
+
     release_binaries = []
     for binary_value in _require_array(values["release_binaries"], "release_binaries"):
         binary = _require_mapping(binary_value, "release_binaries entry")
@@ -520,10 +654,7 @@ def template_values(values: dict[str, object]) -> dict[str, object]:
             _toml_scalars(_require_mapping(target, "release_targets entry"))
             for target in _require_array(values["release_targets"], "release_targets")
         ],
-        "crates": [
-            _toml_scalars(_require_mapping(crate, "crates entry"))
-            for crate in _require_array(values["crates"], "crates")
-        ],
+        "crates": converted_crates,
         "release_binaries": release_binaries,
         "python_packages": [
             _toml_scalars(_require_mapping(package, "python_packages entry"))
@@ -682,7 +813,7 @@ Exit 0 means clean/success; a dry-run returns 1 when consumer files would change
             parser.error(str(error))
 
         changed = False
-        for source, relative in copies:
+        for source, relative in install_sources(copies, values, Path(temporary_directory)):
             destination = consumer / relative
             if destination.exists() and destination.read_bytes() == source.read_bytes():
                 continue
