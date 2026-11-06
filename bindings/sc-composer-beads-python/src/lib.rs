@@ -48,12 +48,63 @@ fn error(
     stage: Option<&str>,
     message: impl Into<String>,
 ) -> PyErr {
+    error_with_details(py, &code.into(), stage, &message.into(), None)
+}
+
+/// Builds the typed `BeadComposeError`, or the adapter's one fallback when the
+/// class cannot be loaded.
+fn error_with_details(
+    py: Python<'_>,
+    code: &str,
+    stage: Option<&str>,
+    message: &str,
+    details: Option<BTreeMap<String, String>>,
+) -> PyErr {
     match bead_error_type(py) {
-        Ok(class) => PyErr::from_type(
-            class,
-            (code.into(), message.into(), stage.map(str::to_owned)),
-        ),
-        Err(error) => error,
+        Ok(class) => match details {
+            Some(details) => PyErr::from_type(
+                class,
+                (
+                    code.to_owned(),
+                    message.to_owned(),
+                    stage.map(str::to_owned),
+                    details,
+                ),
+            ),
+            None => PyErr::from_type(
+                class,
+                (
+                    code.to_owned(),
+                    message.to_owned(),
+                    stage.map(str::to_owned),
+                ),
+            ),
+        },
+        Err(construction_error) => fallback_error(py, code, stage, message, &construction_error),
+    }
+}
+
+/// The fallback when the typed class cannot be loaded: a plain `Exception`
+/// that still carries the stable `code`, `stage` and `message` as attributes
+/// and in its text, with the construction failure.
+fn fallback_error(
+    py: Python<'_>,
+    code: &str,
+    stage: Option<&str>,
+    message: &str,
+    construction_error: &PyErr,
+) -> PyErr {
+    let error = pyo3::exceptions::PyException::new_err(format!(
+        "{message} [{code}] (typed exception construction failed: {construction_error})"
+    ));
+    let value = error.value(py);
+    match value
+        .setattr("code", code)
+        .and_then(|()| value.setattr("message", message))
+        .and_then(|()| value.setattr("stage", stage))
+    {
+        Ok(()) => error,
+        Err(attribute_error) => attribute_error,
     }
 }
 
@@ -89,50 +140,35 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
 }
 
 fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyErr {
-    if let RustBeadComposeError::OutputPathInvalid { path, rule } = error_kind {
-        let details = BTreeMap::from([
-            ("field".to_owned(), "rendered_formula".to_owned()),
-            ("value".to_owned(), path.to_string_lossy().into_owned()),
-            ("rule".to_owned(), rule.clone()),
-        ]);
-        return match bead_error_type(py) {
-            Ok(class) => PyErr::from_type(
-                class,
-                (
-                    error_kind.code(),
-                    error_kind.to_string(),
-                    rust_error_stage(error_kind),
-                    details,
-                ),
-            ),
-            Err(error) => error,
-        };
-    }
-    if let RustBeadComposeError::GraphIdInvalid { field, value } = error_kind {
-        let details = BTreeMap::from([
-            ("field".to_owned(), field.as_str().to_owned()),
-            ("value".to_owned(), value.clone()),
-            ("rule".to_owned(), field.rule().to_owned()),
-        ]);
-        return match bead_error_type(py) {
-            Ok(class) => PyErr::from_type(
-                class,
-                (
-                    error_kind.code(),
-                    error_kind.to_string(),
-                    rust_error_stage(error_kind),
-                    details,
-                ),
-            ),
-            Err(error) => error,
-        };
-    }
-    error(
+    error_with_details(
         py,
         error_kind.code(),
         Some(rust_error_stage(error_kind)),
-        error_kind.to_string(),
+        &error_kind.to_string(),
+        rust_error_details(error_kind),
     )
+}
+
+/// Structured `details` of the errors that name an offending field value.
+fn rust_error_details(error_kind: &RustBeadComposeError) -> Option<BTreeMap<String, String>> {
+    let (field, value, rule) = match error_kind {
+        RustBeadComposeError::OutputPathInvalid { path, rule } => (
+            "rendered_formula".to_owned(),
+            path.to_string_lossy().into_owned(),
+            rule.clone(),
+        ),
+        RustBeadComposeError::GraphIdInvalid { field, value } => (
+            field.as_str().to_owned(),
+            value.clone(),
+            field.rule().to_owned(),
+        ),
+        _ => return None,
+    };
+    Some(BTreeMap::from([
+        ("field".to_owned(), field),
+        ("value".to_owned(), value),
+        ("rule".to_owned(), rule),
+    ]))
 }
 
 fn coerce_path(py: Python<'_>, value: &Bound<'_, PyAny>, field: &str) -> PyResult<PathBuf> {
@@ -772,6 +808,78 @@ mod tests {
     use super::*;
     use sc_composer_beads::BeadPourMode;
     use serde_json::json;
+
+    /// A typed class that cannot be loaded is simulated with a controlled
+    /// construction error; the fallback keeps code, stage and message.
+    #[test]
+    fn fallback_error_keeps_code_stage_and_message() {
+        Python::initialize();
+        Python::attach(|py| {
+            let cause = pyo3::exceptions::PyImportError::new_err("helper import failed");
+            let error = fallback_error(py, "BEADS_X", Some("request"), "bad request", &cause);
+            let value = error.value(py);
+            assert_eq!(value.get_type().name().unwrap(), "Exception");
+            assert_eq!(
+                value.getattr("code").unwrap().extract::<String>().unwrap(),
+                "BEADS_X"
+            );
+            assert_eq!(
+                value.getattr("stage").unwrap().extract::<String>().unwrap(),
+                "request"
+            );
+            assert_eq!(
+                value
+                    .getattr("message")
+                    .unwrap()
+                    .extract::<String>()
+                    .unwrap(),
+                "bad request"
+            );
+            let text = value.str().unwrap().to_string();
+            assert!(text.starts_with("bad request [BEADS_X]"), "{text}");
+            assert!(text.contains("helper import failed"), "{text}");
+
+            let error = fallback_error(py, "BEADS_Y", None, "m", &cause);
+            assert!(error.value(py).getattr("stage").unwrap().is_none());
+        });
+    }
+
+    /// Both detail-bearing errors share one branch and keep their exact
+    /// `details`; other errors carry none.
+    #[test]
+    fn typed_errors_keep_details_through_one_branch() {
+        Python::initialize();
+        Python::attach(|py| {
+            let output = RustBeadComposeError::OutputPathInvalid {
+                path: PathBuf::from("out.formula.toml"),
+                rule: "must be inside".to_owned(),
+            };
+            let value = rust_error_to_pyerr(py, &output)
+                .into_value(py)
+                .into_bound(py);
+            assert_eq!(value.get_type().name().unwrap(), "BeadComposeError");
+            assert_eq!(
+                value.getattr("code").unwrap().extract::<String>().unwrap(),
+                output.code()
+            );
+            let details: BTreeMap<String, String> =
+                value.getattr("details").unwrap().extract().unwrap();
+            assert_eq!(
+                details,
+                BTreeMap::from([
+                    ("field".to_owned(), "rendered_formula".to_owned()),
+                    ("rule".to_owned(), "must be inside".to_owned()),
+                    ("value".to_owned(), "out.formula.toml".to_owned()),
+                ])
+            );
+            let plain = request_error(py, "bad").into_value(py).into_bound(py);
+            assert!(plain.getattr("details").unwrap().is_none());
+            assert_eq!(
+                plain.getattr("stage").unwrap().extract::<String>().unwrap(),
+                REQUEST_STAGE
+            );
+        });
+    }
 
     #[test]
     fn output_serialization_code_is_registered() {

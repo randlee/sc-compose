@@ -75,9 +75,24 @@ fn error(py: Python<'_>, code: impl Into<String>, message: impl Into<String>) ->
     let message = message.into();
     match sc_sha_error_type(py) {
         Ok(error_type) => PyErr::from_type(error_type, (code, message)),
-        Err(error) => PyException::new_err(format!(
-            "{message} (typed exception construction failed: {error})"
-        )),
+        Err(construction_error) => fallback_error(py, &code, &message, &construction_error),
+    }
+}
+
+/// The fallback when `ScShaError` cannot be loaded: a plain `Exception` that
+/// still carries the stable `code` and `message` as attributes and in its
+/// text, with the construction failure.
+fn fallback_error(py: Python<'_>, code: &str, message: &str, construction_error: &PyErr) -> PyErr {
+    let error = PyException::new_err(format!(
+        "{message} [{code}] (typed exception construction failed: {construction_error})"
+    ));
+    let value = error.value(py);
+    match value
+        .setattr("code", code)
+        .and_then(|()| value.setattr("message", message))
+    {
+        Ok(()) => error,
+        Err(attribute_error) => attribute_error,
     }
 }
 
@@ -319,4 +334,55 @@ fn native(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(calculate_hash_py, module)?)?;
     module.add_function(wrap_pyfunction!(calculate_composition_hash_py, module)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A class that cannot be loaded is simulated with a controlled
+    /// construction error; the fallback keeps code and message.
+    #[test]
+    fn fallback_error_keeps_code_and_message() {
+        Python::initialize();
+        Python::attach(|py| {
+            let cause = pyo3::exceptions::PyImportError::new_err("helper import failed");
+            let error = fallback_error(py, "SC_SHA_INVALID_INPUT", "bad input", &cause);
+            let value = error.value(py);
+            assert_eq!(value.get_type().name().unwrap(), "Exception");
+            assert_eq!(
+                value.getattr("code").unwrap().extract::<String>().unwrap(),
+                "SC_SHA_INVALID_INPUT"
+            );
+            assert_eq!(
+                value
+                    .getattr("message")
+                    .unwrap()
+                    .extract::<String>()
+                    .unwrap(),
+                "bad input"
+            );
+            let text = value.str().unwrap().to_string();
+            assert!(
+                text.starts_with("bad input [SC_SHA_INVALID_INPUT]"),
+                "{text}"
+            );
+            assert!(text.contains("helper import failed"), "{text}");
+        });
+    }
+
+    #[test]
+    fn typed_error_keeps_code_and_message() {
+        Python::initialize();
+        Python::attach(|py| {
+            let value = error(py, "SC_SHA_INVALID_INPUT", "bad input")
+                .into_value(py)
+                .into_bound(py);
+            assert_eq!(value.get_type().name().unwrap(), "ScShaError");
+            assert_eq!(
+                value.getattr("code").unwrap().extract::<String>().unwrap(),
+                "SC_SHA_INVALID_INPUT"
+            );
+        });
+    }
 }
