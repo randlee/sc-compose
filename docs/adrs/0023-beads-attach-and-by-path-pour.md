@@ -95,7 +95,17 @@ forked Beads.
    calculate_hash` re-export (ADR-0018). Everything uses bd v1.3.1 commands;
    no capability probe, fork build or proto is involved.
 
-The sections below are the normative contract.
+The numbered decision above describes the original graph-creation contract.
+The Phase V amendment below adds requirements for existing-node edge changes
+and transaction-boundary ownership checks. The graph-creation transaction
+alone does not establish those additional guarantees: bd 1.3.1 has no
+qualified ownership-precondition interface for that apply path. Until a
+supported operation satisfies the amendment, advanced apply must refuse the
+unsupported mutation before writing; the original creation and preview
+contracts remain in force. The required capability is tracked in
+[Beads #8155](https://github.com/gastownhall/beads/issues/8155).
+
+The sections below, including the Phase V amendment, are the normative contract.
 
 ## Use cases
 
