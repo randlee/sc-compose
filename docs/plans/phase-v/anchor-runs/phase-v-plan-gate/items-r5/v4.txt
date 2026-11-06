@@ -1,0 +1,25 @@
+# v-4: sc-lint-migration-and-fixes
+
+## Description
+
+Agent level: normal.
+### Deliverables
+1. FR-27 migration: install/verify released sc-lint 0.8.5 through supported canonical inputs, materialize its actual runtime and run root/boundary discovery against the unchanged product baseline. Preserve the actual sc_compose_native owner and report real findings.
+2. FR-27 fixes: correct the existing violations discovered by that migration, preserving behavior, boundaries and deterministic tests. Narrow the implementation edit fence to actual finding paths before fixing. No suppression, misleading inventory, weakened assertion or empty-check pass.
+3. FR-26 shared CLI contract: fold the small generic live-Clap model exporter and its command registration into this existing CLI repair sprint. `sc-compose reference --json` returns the normal FR-8a envelope with payload.model containing the neutral docli command tree. Cover current command/options by walking the actual CommandFactory model; future Beads arguments are discovered automatically. V4 exports the command model consumed by docli; V8 adds docli as sc-compose’s external CLI-documentation generator through a thin wrapper. The workspace does not take a docli crate dependency, and the exporter does not use a handwritten inventory. V8 consumes this working exporter while V2/V3 proceed on their disjoint files.
+4. Hand V2 the lint-fixed dependency baseline and V8 the actual tested command-model producer. External docli/kit tooling stays in V8; final generated references and byte wiring stay in V6. Migration and fixes remain ordered stages of one substantive sprint.
+
+## Acceptance criteria
+
+Exact 0.8.5 installation and real root/boundary analysis run on Linux/macOS/Windows. All discovered baseline violations are fixed or explicitly unresolved blockers; no rules/edges are weakened. Workspace behavior remains compatible before advanced feature integration. The exporter produces the actual neutral command tree in the existing envelope and includes later parser additions automatically, verified by controlled command-model fixtures.
+
+### Required Validation
+cargo build --workspace; cargo test --workspace; cargo clippy --all-targets --all-features -- -D warnings; cargo fmt --all -- --check.
+- sc-lint version --json; just lint full; just lint sc-boundary; just lint sc-portability (real nonempty analysis).
+- python3 -m unittest discover -s scripts/tests -p test_materialize_sc_lint_runtime.py.
+- cargo test -p sc-compose --test cli_reference (V4 adds exporter/registration tests).
+- cargo run --quiet --bin sc-compose -- reference --json (verify payload.model against live clap; no copied command inventory).
+- Required Linux/macOS/Windows unit CI must reach and execute tests after analyzer setup. Windows amd64 and manylinux integration runs remain excluded from normal CI under FR-25.4; those run only in manual preflight integration.
+ANC-031: codespell passes with justified project-word attribution/allowlisting; no disabling the spelling check.
+- codespell --config .codespellrc (retain the check; edit only justified project-word entries).
+V4 owns/repairs the configured check-xwin and clippy-xwin analyzer targets consumed by just check xwin / just clippy xwin; these existing Justfile recipes are not missing new commands.

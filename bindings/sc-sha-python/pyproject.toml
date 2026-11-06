@@ -6,7 +6,7 @@ build-backend = "maturin"
 name = "sc-sha"
 version = "1.7.0"
 description = "Python adapter for deterministic sc-sha file and composition identities"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 license = { text = "MIT" }
 
 [tool.maturin]

@@ -130,8 +130,29 @@ jobs:
       - name: Run publish-kit regression tests
         run: python3 -m pytest .github/scripts/tests
 
+      # Root tests cover these identical vendored implementations. Fail on drift
+      # rather than executing the same behavioral suite a second time.
+      - name: Verify vendored publish-plugin coverage parity
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('.github/scripts')
+          plugin = Path('plugins/sc-publish/.github/scripts')
+          for source in plugin.rglob('*.py'):
+              relative = source.relative_to(plugin)
+              if relative.as_posix() == 'tests/test_setup_sc_lint_source.py':
+                  continue  # Root has an additional host-workflow assertion.
+              installed = root / relative
+              assert installed.read_bytes() == source.read_bytes(), f'vendored coverage drift: {relative}'
+          action = Path('.github/actions/setup-sc-lint/action.yml')
+          assert action.read_bytes() == (Path('plugins/sc-publish') / action).read_bytes()
+          PY
+
       - name: Run CLI reference and consumer preflight tests
         run: python3 -m unittest discover -s scripts/tests -p test_generate_cli_reference.py
+
+      - name: Verify generated CLI reference is current
+        run: python3 scripts/generate_cli_reference.py --check --install-docli
 
       - name: Verify vendored Homebrew template tracks sc-publish
         shell: bash

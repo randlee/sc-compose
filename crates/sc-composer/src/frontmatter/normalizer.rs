@@ -21,6 +21,19 @@ pub(super) fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, 
         json_escape_mode,
     } = raw;
 
+    let has_variable_schema = raw_required_variables.present
+        || raw_variables.present
+        || raw_defaults.present
+        || raw_input_defaults.present;
+    let raw_required_variables = raw_required_variables.value;
+    let raw_variables = raw_variables.value;
+    let raw_defaults = raw_defaults.value;
+    let raw_input_defaults = raw_input_defaults.value;
+    let declared_variables = raw_variables
+        .keys()
+        .filter_map(|name| VariableName::new(name).ok())
+        .collect();
+
     let mut required_variables =
         Vec::with_capacity(raw_required_variables.len() + raw_variables.len());
     let mut seen = BTreeSet::new();
@@ -52,25 +65,7 @@ pub(super) fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, 
         }
     }
 
-    let mut diagnostics = Vec::new();
-    let mut defaults = BTreeMap::new();
-    for (name, value) in raw_defaults {
-        let (variable, input_value) = parse_default_entry("default", name, value)?;
-        defaults.insert(variable, input_value);
-    }
-
-    if !defaults.is_empty() && !raw_input_defaults.is_empty() {
-        diagnostics.push(Diagnostic::new(
-            DiagnosticSeverity::Warning,
-            DiagnosticCode::WarnValConflictingDefaultSections,
-            "frontmatter contains both `defaults` and `input_defaults`; `input_defaults` overrides overlapping keys",
-        ));
-    }
-
-    for (name, value) in raw_input_defaults {
-        let (variable, input_value) = parse_default_entry("input_defaults", name, value)?;
-        defaults.insert(variable, input_value);
-    }
+    let (defaults, diagnostics) = normalize_defaults(raw_defaults, raw_input_defaults)?;
 
     let metadata = raw_metadata
         .into_iter()
@@ -83,12 +78,38 @@ pub(super) fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, 
             Some(pass_number) => pass_number,
         },
         has_explicit_pass_number: pass.is_some(),
+        has_variable_schema,
+        declared_variables,
         required_variables,
         defaults,
         metadata,
         json_escape_mode,
         diagnostics,
     })
+}
+
+fn normalize_defaults(
+    raw_defaults: BTreeMap<String, serde_yaml::Value>,
+    raw_input_defaults: BTreeMap<String, serde_yaml::Value>,
+) -> Result<(BTreeMap<VariableName, InputValue>, Vec<Diagnostic>), ComposeError> {
+    let mut diagnostics = Vec::new();
+    let mut defaults = BTreeMap::new();
+    for (name, value) in raw_defaults {
+        let (variable, input_value) = parse_default_entry("default", name, value)?;
+        defaults.insert(variable, input_value);
+    }
+    if !defaults.is_empty() && !raw_input_defaults.is_empty() {
+        diagnostics.push(Diagnostic::new(
+            DiagnosticSeverity::Warning,
+            DiagnosticCode::WarnValConflictingDefaultSections,
+            "frontmatter contains both `defaults` and `input_defaults`; `input_defaults` overrides overlapping keys",
+        ));
+    }
+    for (name, value) in raw_input_defaults {
+        let (variable, input_value) = parse_default_entry("input_defaults", name, value)?;
+        defaults.insert(variable, input_value);
+    }
+    Ok((defaults, diagnostics))
 }
 
 fn parse_default_entry(

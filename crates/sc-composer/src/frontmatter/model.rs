@@ -1,6 +1,6 @@
 //! Public frontmatter models and the raw YAML schema consumed by normalization.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Deserialize;
 
@@ -14,6 +14,8 @@ use crate::types::{InputValue, MetadataValue, VariableName, default_pass_number}
 pub struct Frontmatter {
     pub(super) pass_number: u8,
     pub(super) has_explicit_pass_number: bool,
+    pub(super) has_variable_schema: bool,
+    pub(super) declared_variables: BTreeSet<VariableName>,
     pub(super) required_variables: Vec<VariableName>,
     pub(super) defaults: BTreeMap<VariableName, InputValue>,
     pub(super) metadata: BTreeMap<String, MetadataValue>,
@@ -26,6 +28,8 @@ impl Default for Frontmatter {
         Self {
             pass_number: default_pass_number(),
             has_explicit_pass_number: false,
+            has_variable_schema: false,
+            declared_variables: BTreeSet::new(),
             required_variables: Vec::new(),
             defaults: BTreeMap::new(),
             metadata: BTreeMap::new(),
@@ -52,6 +56,18 @@ impl Frontmatter {
     #[must_use]
     pub fn required_variables(&self) -> &[VariableName] {
         &self.required_variables
+    }
+
+    /// Whether this header explicitly declares a variable schema, even if empty.
+    #[must_use]
+    pub const fn has_variable_schema(&self) -> bool {
+        self.has_variable_schema
+    }
+
+    /// Borrow valid names explicitly declared in the variables mapping.
+    #[must_use]
+    pub fn declared_variables(&self) -> &BTreeSet<VariableName> {
+        &self.declared_variables
     }
 
     /// Borrow normalized default values.
@@ -136,17 +152,41 @@ impl ParsedTemplate {
 pub(super) struct RawFrontmatter {
     pub(super) pass: Option<u8>,
     #[serde(default)]
-    pub(super) required_variables: Vec<String>,
+    pub(super) required_variables: Declared<Vec<String>>,
     #[serde(default)]
-    pub(super) variables: BTreeMap<String, RawVariable>,
+    pub(super) variables: Declared<BTreeMap<String, RawVariable>>,
     #[serde(default)]
-    pub(super) defaults: BTreeMap<String, serde_yaml::Value>,
+    pub(super) defaults: Declared<BTreeMap<String, serde_yaml::Value>>,
     #[serde(default)]
-    pub(super) input_defaults: BTreeMap<String, serde_yaml::Value>,
+    pub(super) input_defaults: Declared<BTreeMap<String, serde_yaml::Value>>,
     #[serde(default)]
     pub(super) metadata: BTreeMap<String, serde_yaml::Value>,
     #[serde(default)]
     pub(super) json_escape_mode: Option<JsonEscapeMode>,
+}
+
+#[derive(Debug)]
+pub(super) struct Declared<T> {
+    pub(super) present: bool,
+    pub(super) value: T,
+}
+
+impl<T: Default> Default for Declared<T> {
+    fn default() -> Self {
+        Self {
+            present: false,
+            value: T::default(),
+        }
+    }
+}
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Declared<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        T::deserialize(deserializer).map(|value| Self {
+            present: true,
+            value,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]

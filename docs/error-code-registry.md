@@ -239,6 +239,7 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 | `BEADS_GRAPH_CONFLICT` | execution | a planned bead already exists with different content; existing beads are never edited | graph planning |
 | `BEADS_GRAPH_EDGE_CONFLICT` | execution | an existing edge has a different type than requested | graph planning |
 | `BEADS_GRAPH_EDGE_MISSING` | execution | planned edges are absent; the receipt carries `missing_edges` and recovery `bd dep add` commands | graph planning, attach |
+| `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` | execution | the installed bd lacks a qualified mixed-update transaction with ownership preconditions; no mutation is attempted | advanced graph planning, attach |
 | `BEADS_GRAPH_READ_FAILED` | execution | reading existing beads with `bd show` failed; large id sets are read in batches | graph planning |
 | `BEADS_GRAPH_APPLY_FAILED` | execution | `bd create --graph` failed; nothing was written | graph apply |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | execution | `bd create --graph` exited 0 but its response cannot be consumed, so beads may exist; reconcile with `bd show` before pouring again | graph apply |

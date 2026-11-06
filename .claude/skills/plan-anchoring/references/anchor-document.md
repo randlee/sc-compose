@@ -1,6 +1,6 @@
 ---
 name: anchor-document
-version: 0.8.7
+version: 0.9.1
 description: The intent document, the anchors.json record of truth and its rendered anchors.md, ID rules, provenance, versioning, promotion, and retirement.
 ---
 
@@ -60,6 +60,7 @@ Full example: `assets/examples/anchors.example.json`. Run `validate` after any c
 
 - `item` is the plan item id exactly as `judge --item-id` receives it (the sprint or bead id the caller names). `reason` is one non-empty sentence. One entry per item; `validate` rejects an empty reason, unknown keys and duplicates.
 - Record it with `exclude --id ANC-011 --item atm-bi-2 --reason "..."`; drop it with `exclude --id ANC-011 --item atm-bi-2 --remove`. Both append a history event and do not bump `version`, so no earlier run of any cell is invalidated. A locked or promoted anchor stays editable this way: locking is the `status` field, and nothing hashes the anchor record (the tuner's `authority.anchors` digest covers a fixed projection of fields that has no `exclude`).
+- Many at once: `exclude --from <file.jsonl>`, one `{"id": "ANC-011", "item": "atm-bi-2", "reason": "..."}` or `{"id": ..., "item": ..., "remove": true}` per line. The file is applied all or nothing: a bad line, a pair listed twice or an unknown anchor saves nothing, and the error names `file:line`. `data.applied` holds one entry per line, as the single-cell form returns.
 - `judge` makes no Jev call for an excluded cell and reports verdict `excluded`, `exclusion: {item, reason}`, in `summary.excluded`. It counts as passing. `report` always lists it with the reason; `coverage` and `diff` carry the reason; `anchors.md` lists it under the anchor.
 - No approval or frozen expected verdict is needed, and nobody verifies it: the reason is the record. Use it when the anchor's `scope` is right and this item simply does not touch it. If the scope is wrong for many items, fix the scope instead (`triage-and-iteration.md`).
 - `lint --plan-items <file>` (the selected tracker's `show --json` output or a JSON list of ids; or `--plan-item ID`, repeatable) warns about an exclusion naming an item the plan does not have. It is a warning only: it does not change `data.clean`, and `judge` ignores an exclusion for another item.

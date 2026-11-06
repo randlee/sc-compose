@@ -87,6 +87,7 @@ fn populate_pass_validation_maps(state: &mut ValidationState, expanded: &Expande
             pass.required_variables()
                 .iter()
                 .chain(pass.defaults().keys())
+                .chain(pass.declared_variables())
                 .cloned()
         })
         .collect::<BTreeSet<_>>();
@@ -111,6 +112,7 @@ fn populate_pass_validation_maps(state: &mut ValidationState, expanded: &Expande
                 .cloned()
                 .chain(pass.required_variables().iter().cloned())
                 .chain(pass.defaults().keys().cloned())
+                .chain(pass.declared_variables().iter().cloned())
                 .collect::<BTreeSet<_>>();
             (usize::from(pass.pass_number()), declared)
         })
@@ -234,6 +236,9 @@ fn merge_frontmatter(
     state: &mut ValidationState,
     is_root: bool,
 ) {
+    state
+        .declared_variables
+        .extend(frontmatter.declared_variables().iter().cloned());
     for variable in frontmatter.required_variables() {
         state
             .required_origins

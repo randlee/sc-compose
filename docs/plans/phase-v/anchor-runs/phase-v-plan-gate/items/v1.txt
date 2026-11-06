@@ -1,0 +1,21 @@
+# v-1: recovery-contract
+
+## Description
+
+Agent level: fast.
+### Deliverables
+1. FR-24 / ADR-0023–24: verify the documented options/runner signatures, Python keyword mapping, CLI formula/input rules, provenance-v2 identity and atomic additive graph contract. V3 consumes these named contract sections; do not leave an unnamed approved API. Public request layouts remain source compatible.
+2. FR-24.34–35: reproduce the current existing-node missing-edge refusal using the existing controlled graph test and an isolated bd counterpart. Pin formula, mode, binary/version and stored-edge readback in the existing PR. Qualify the selected bd transaction for pure-edge and mixed node/edge additions with controlled rollback/ownership cases; record its exact command/schema/version in ADR-0023. If unsupported, coordinate the minimal canonical bd capability and block only that apply acceptance until available. No new local writer or rollback framework.
+3. FR-25.2: verify the owner's CPython 3.9+ / Windows ARM64 3.11+ ruling is consistent in requirements and ADR-0025. Align ADR-0020 with actual approved UniFFI 0.31.2. Keep API/registry changes in the owning implementation fence.
+4. Consolidate planning copies #849/#850 and the retained #848 requirements records using the existing inventory. Recover the exact corpus and named historical regression mapping before claiming full coverage. Raw runs remain retrievable in PR/git history; retain the approved records without a new archive-and-verify project. Apply the root PR-disposition rule to completed planning dispositions. V3 alone owns vetted #810 recovery/disposition; #816 stays closed. This is explicitly a planning/design verification sprint, with no product runtime credit.
+Paths to delete in the current checkout: none. Review/close obsolete proposal PRs using their git history; do not copy missing obsolete proposal files or raw judge runs merely to delete them.
+
+## Acceptance criteria
+
+All named contracts and governing references agree with the owner decisions; unsupported bd capability is explicitly pinned as a dependency and cannot be reported as complete. Every retained planning obligation has one owner. Completed planning PRs have truthful root-rule dispositions. No unavailable historical input or unsaved judge output is counted as passing evidence.
+
+### Required Validation
+- git diff --check -- docs/requirements.md docs/architecture.md docs/adrs docs/error-code-registry.md docs/project-plan.md.
+- cargo test -p sc-composer-beads --test graph edge_conflict_missing_edge_and_noop_preserve_the_prior_plan (current baseline must reproduce the documented refusal, not be relabeled PASS for the new feature).
+- BD_EXECUTABLE="$(command -v bd)" cargo test -p sc-composer-beads --test graph_bd (only through the existing isolated-workspace harness; missing binary/isolation is a prerequisite failure).
+- Verify the changed Markdown relative links resolve. Verify the exact 17-PR set in V2 against the existing inventory. Record protocol-qualification outcome in ADR-0023 and the existing PR; no new ledger.

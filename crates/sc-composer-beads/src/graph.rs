@@ -50,7 +50,19 @@ pub(crate) fn execute(
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
     };
-    let result = run(request, &mut runtime, formula_input, stage);
+    let result = match graph_plan_path(&runtime) {
+        Ok(_) => run(
+            request,
+            normalized.advanced,
+            &mut runtime,
+            formula_input,
+            stage,
+        ),
+        Err(error) => {
+            runtime.stage = stage;
+            Err(error)
+        }
+    };
     let missing_edges = match &result {
         Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
         _ => Vec::new(),
@@ -127,6 +139,7 @@ fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
 
 fn run(
     request: &BeadComposeRequest,
+    advanced: bool,
     runtime: &mut Runtime<'_>,
     formula_input: &InputSnapshot,
     stage: BeadStage,
@@ -166,11 +179,42 @@ fn run(
     };
     let validated = validate::validate(request, cooked, &rendered, mode)?;
     runtime.stage = stage;
-    match plan::plan(&validated, runtime)? {
-        GraphPlan::Noop(graph) => Ok(graph),
+    let plan = plan::plan(&validated, advanced, runtime)?;
+    execute_plan(request.operation, advanced, plan, runtime)
+}
+
+fn execute_plan(
+    operation: BeadOperation,
+    advanced: bool,
+    plan: GraphPlan,
+    runtime: &mut Runtime<'_>,
+) -> Result<BeadGraph, BeadComposeError> {
+    match plan {
+        GraphPlan::Noop(graph) => {
+            if advanced
+                && matches!(operation, BeadOperation::Attach | BeadOperation::Pour)
+                && graph
+                    .edges
+                    .iter()
+                    .any(|edge| edge.action == BeadEdgeAction::Add)
+            {
+                return Err(BeadComposeError::GraphAtomicUpdateUnavailable);
+            }
+            Ok(graph)
+        }
         GraphPlan::Create(pending) => {
+            if advanced
+                && matches!(operation, BeadOperation::Attach | BeadOperation::Pour)
+                && pending
+                    .graph
+                    .nodes
+                    .iter()
+                    .any(|node| node.action == BeadNodeAction::Existing)
+            {
+                return Err(BeadComposeError::GraphAtomicUpdateUnavailable);
+            }
             if matches!(
-                request.operation,
+                operation,
                 BeadOperation::PreviewAttach | BeadOperation::PreviewPour
             ) {
                 pending.preview(runtime)
@@ -427,14 +471,24 @@ fn graph_plan_path(runtime: &Runtime<'_>) -> Result<(PathBuf, PathBuf), BeadComp
     let parent = path
         .parent()
         .and_then(|p| fs::canonicalize(p).ok())
-        .ok_or_else(|| BeadComposeError::OutputPathInvalid {
+        .ok_or_else(|| BeadComposeError::GraphPlanPathInvalid {
             path: public_path.clone(),
             rule: "output parent must exist and be accessible".into(),
         })?;
     if !parent.starts_with(&runtime.normalized.working_directory) {
         return Err(BeadComposeError::OutputOutsideWorkingDirectory { path: public_path });
     }
+    crate::render::validate_output_destination(&path).map_err(graph_plan_path_error)?;
     Ok((path, public_path))
+}
+
+fn graph_plan_path_error(error: BeadComposeError) -> BeadComposeError {
+    match error {
+        BeadComposeError::OutputPathInvalid { path, rule } => {
+            BeadComposeError::GraphPlanPathInvalid { path, rule }
+        }
+        error => error,
+    }
 }
 
 impl PendingCreate {
@@ -451,7 +505,6 @@ impl PendingCreate {
         preview: bool,
     ) -> Result<BeadGraph, BeadComposeError> {
         let (path, public_path) = graph_plan_path(runtime)?;
-        crate::render::validate_output_destination(&path)?;
         let bytes = serde_json::to_vec(&self.payload).expect("plan JSON serializes");
         let plan_input = InputSnapshot::write(&path, &bytes)
             .map_err(|error| crate::snapshot::output_error(&path, error))?;
@@ -612,6 +665,7 @@ mod presentation_tests {
             working_directory: "/work".into(),
             template: "/work/sample.formula.toml.j2".into(),
             rendered_formula: "/work/sample.formula.toml".into(),
+            advanced: false,
         };
         let mut runtime = Runtime {
             runner: &Response,
@@ -658,6 +712,7 @@ mod presentation_tests {
             working_directory: "/work".into(),
             template: "/work/sample.formula.toml.j2".into(),
             rendered_formula: "/work/sample.formula.toml".into(),
+            advanced: false,
         };
         let mut runtime = Runtime {
             runner: &ArgumentFailure,

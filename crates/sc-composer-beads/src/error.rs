@@ -117,6 +117,7 @@ pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
 /// #     BeadComposeError::GraphConflict { .. } => 0,
 /// #     BeadComposeError::GraphEdgeConflict { .. } => 0,
 /// #     BeadComposeError::GraphEdgeMissing { .. } => 0,
+/// #     BeadComposeError::GraphAtomicUpdateUnavailable => 0,
 /// #     BeadComposeError::GraphReadFailed { .. } => 0,
 /// #     BeadComposeError::GraphApplyFailed { .. } => 0,
 /// #     BeadComposeError::GraphApplyUnconfirmed { .. } => 0,
@@ -178,6 +179,14 @@ pub enum BeadComposeError {
         /// Output path supplied by the request.
         path: PathBuf,
         /// Rule that the output path failed.
+        rule: String,
+    },
+    /// The graph-plan output path cannot be written safely.
+    #[error("invalid graph plan output path `{path}`: {rule}")]
+    GraphPlanPathInvalid {
+        /// Graph plan path derived beside the rendered formula.
+        path: PathBuf,
+        /// Rule that the graph plan path failed.
         rule: String,
     },
     /// A template path escaped the working directory.
@@ -373,6 +382,11 @@ pub enum BeadComposeError {
         /// Non-empty missing edges in plan order; repair each before retrying.
         edges: Vec<MissingEdge>,
     },
+    /// The installed bd has no qualified atomic mixed-update protocol.
+    #[error(
+        "graph atomic update unavailable: no supported transaction with ownership preconditions is qualified"
+    )]
+    GraphAtomicUpdateUnavailable,
     /// `ReadFailed` condition from ADR-0023.
     #[error(
         "graph read failed ({status:?}): {cause}; {command:?}; fix bd and retry, nothing was written"
@@ -541,6 +555,10 @@ impl BeadComposeError {
     /// Stable code for [`BeadComposeError::GraphEdgeMissing`].
     pub const GRAPH_EDGE_MISSING_CODE: &'static str = "BEADS_GRAPH_EDGE_MISSING";
 
+    /// Stable code for [`BeadComposeError::GraphAtomicUpdateUnavailable`].
+    pub const GRAPH_ATOMIC_UPDATE_UNAVAILABLE_CODE: &'static str =
+        "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE";
+
     /// Stable code for [`BeadComposeError::GraphReadFailed`].
     pub const GRAPH_READ_FAILED_CODE: &'static str = "BEADS_GRAPH_READ_FAILED";
 
@@ -569,6 +587,7 @@ impl BeadComposeError {
         Self::GRAPH_CONFLICT_CODE,
         Self::GRAPH_EDGE_CONFLICT_CODE,
         Self::GRAPH_EDGE_MISSING_CODE,
+        Self::GRAPH_ATOMIC_UPDATE_UNAVAILABLE_CODE,
         Self::GRAPH_READ_FAILED_CODE,
         Self::GRAPH_APPLY_FAILED_CODE,
         Self::GRAPH_APPLY_UNCONFIRMED_CODE,
@@ -599,6 +618,7 @@ impl BeadComposeError {
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
+            | Self::GraphAtomicUpdateUnavailable
             | Self::GraphReadFailed { .. }
             | Self::GraphApplyFailed { .. }
             | Self::GraphApplyUnconfirmed { .. }
@@ -610,6 +630,7 @@ impl BeadComposeError {
             | Self::FormulaExtensionUnsupported { .. }
             | Self::TemplatePathInvalid { .. }
             | Self::OutputPathInvalid { .. }
+            | Self::GraphPlanPathInvalid { .. }
             | Self::TemplateOutsideWorkingDirectory { .. }
             | Self::OutputOutsideWorkingDirectory { .. }
             | Self::OutputPathSymlink { .. }
@@ -664,9 +685,11 @@ impl BeadComposeError {
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
+            | Self::GraphAtomicUpdateUnavailable
             | Self::GraphReadFailed { .. }
             | Self::GraphApplyFailed { .. }
-            | Self::GraphApplyUnconfirmed { .. } => BeadErrorClass::Execution,
+            | Self::GraphApplyUnconfirmed { .. }
+            | Self::GraphPlanPathInvalid { .. } => BeadErrorClass::Execution,
         }
     }
 
@@ -681,7 +704,9 @@ impl BeadComposeError {
             Self::FormulaPathNotFile { .. } => Self::FORMULA_NOT_FILE_CODE,
             Self::FormulaExtensionUnsupported { .. } => Self::FORMULA_EXTENSION_UNSUPPORTED_CODE,
             Self::TemplatePathInvalid { .. } => Self::TEMPLATE_PATH_INVALID_CODE,
-            Self::OutputPathInvalid { .. } => Self::OUTPUT_PATH_INVALID_CODE,
+            Self::OutputPathInvalid { .. } | Self::GraphPlanPathInvalid { .. } => {
+                Self::OUTPUT_PATH_INVALID_CODE
+            }
             Self::TemplateOutsideWorkingDirectory { .. } => Self::TEMPLATE_OUTSIDE_WORKING_DIR_CODE,
             Self::OutputOutsideWorkingDirectory { .. } => Self::OUTPUT_OUTSIDE_WORKING_DIR_CODE,
             Self::OutputPathSymlink { .. } => Self::OUTPUT_PATH_SYMLINK_CODE,
@@ -710,6 +735,7 @@ impl BeadComposeError {
             Self::GraphConflict { .. } => Self::GRAPH_CONFLICT_CODE,
             Self::GraphEdgeConflict { .. } => Self::GRAPH_EDGE_CONFLICT_CODE,
             Self::GraphEdgeMissing { .. } => Self::GRAPH_EDGE_MISSING_CODE,
+            Self::GraphAtomicUpdateUnavailable => Self::GRAPH_ATOMIC_UPDATE_UNAVAILABLE_CODE,
             Self::GraphReadFailed { .. } => Self::GRAPH_READ_FAILED_CODE,
             Self::GraphApplyFailed { .. } => Self::GRAPH_APPLY_FAILED_CODE,
             Self::GraphApplyUnconfirmed { .. } => Self::GRAPH_APPLY_UNCONFIRMED_CODE,
@@ -737,6 +763,8 @@ pub enum GraphConflictReason {
     NotOwned,
     /// The `provenance_differs` refusal reason.
     ProvenanceDiffers,
+    /// A v1 node lacks verifiable creation history for migration.
+    MigrationProofMissing,
 }
 
 impl std::fmt::Display for GraphConflictReason {
@@ -744,6 +772,7 @@ impl std::fmt::Display for GraphConflictReason {
         f.write_str(match self {
             Self::NotOwned => "not_owned",
             Self::ProvenanceDiffers => "provenance_differs",
+            Self::MigrationProofMissing => "migration_proof_missing",
         })
     }
 }

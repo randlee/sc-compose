@@ -14,7 +14,7 @@ categories = ["api-bindings", "development-tools"]
 
 [features]
 default = []
-python-extension = ["pyo3/extension-module"]
+python-extension = ["pyo3/extension-module", "pyo3/abi3-py39"]
 
 [lib]
 name = "sc_compose_native"

@@ -22,7 +22,10 @@ variant never stands in for a missing coordinate.
 
 Every check fails closed: a wrong, missing, stale or expired run, a wrong
 candidate head or version, a missing, extra or changed file, and a digest
-mismatch are all errors. The clock and the trust inputs (repository, workflow
+mismatch are all errors. The run's artifact listing must name the checksums
+artifact and the release-files artifact, each exactly once, owned by the run
+at the candidate head and unexpired; an unrelated live artifact never stands
+in for either. The clock and the trust inputs (repository, workflow
 path, candidate head and version) are explicit arguments, so the check is
 deterministic for fixed inputs. This verifies evidence only; it does not
 build, install, stage or publish anything.
@@ -65,6 +68,8 @@ FAMILIES = (RUST_FAMILY, *WHEEL_FAMILIES.values(), GO_FAMILY)
 REQUIRED_CELLS = len(FAMILIES) * len(REQUIRED_COORDINATES)
 DEFAULT_WORKFLOW = ".github/workflows/release-preflight.yml"
 DISPATCH_EVENT = "workflow_dispatch"  # FR-25.4: the full matrix runs only on manual dispatch
+CHECKSUMS_ARTIFACT = "release-checksums"  # the run artifact that holds checksums.txt
+FILES_ARTIFACT = "release-files"  # the run artifact that holds the files to stage
 WHEEL_ABI = "abi3"
 WHEEL_PYTHON = "cp39"
 WINDOWS_ARM64_PYTHON = "cp311"  # FR-25.2: the one recorded platform exception
@@ -189,7 +194,17 @@ def pep440(version: str) -> str | None:
     return match[1] + (f"{PEP440_PRE[match[2]]}{match[3]}" if match[2] else "")
 
 
-def check_run(report: Report, run: Any, artifacts: Any, *, repository: str, workflow: str, head: str, now: datetime) -> None:
+def check_run(
+    report: Report,
+    run: Any,
+    artifacts: Any,
+    *,
+    repository: str,
+    workflow: str,
+    head: str,
+    now: datetime,
+    required_artifacts: tuple[str, ...] = (CHECKSUMS_ARTIFACT, FILES_ARTIFACT),
+) -> None:
     if not isinstance(run, dict) or not run.get("id"):
         report.fail("RUN_MISSING", "no trusted workflow run was supplied")
         return
@@ -220,6 +235,13 @@ def check_run(report: Report, run: Any, artifacts: Any, *, repository: str, work
         expires = parse_time(artifact.get("expires_at")) if isinstance(artifact, dict) else None
         if not isinstance(artifact, dict) or artifact.get("expired") is not False or expires is None or expires <= now:
             report.fail("EVIDENCE_EXPIRED", f"artifact {name!r} of run {run_id} is expired or has no valid expiry")
+    names = [artifact.get("name") for artifact in listing if isinstance(artifact, dict)]
+    for required in required_artifacts:
+        count = names.count(required)
+        if count == 0:
+            report.fail("EVIDENCE_MISSING", f"run {run_id} retains no {required!r} artifact")
+        elif count > 1:
+            report.fail("EVIDENCE_AMBIGUOUS", f"run {run_id} lists the {required!r} artifact {count} times")
 
 
 def parse_checksums(report: Report, text: str) -> dict[str, str]:
@@ -314,6 +336,8 @@ def verify(
     head: str,
     version: str,
     now: datetime,
+    checksums_artifact: str = CHECKSUMS_ARTIFACT,
+    files_artifact: str = FILES_ARTIFACT,
 ) -> dict[str, Any]:
     """Return the verification result; ``ok`` is true only when nothing failed."""
     report = Report()
@@ -321,7 +345,16 @@ def verify(
         report.fail("CANDIDATE_INVALID", f"candidate head {head!r} is not a full commit SHA")
     if pep440(version) is None:
         report.fail("CANDIDATE_INVALID", f"candidate version {version!r} is not X.Y.Z or X.Y.Z-(alpha|beta|rc).N")
-    check_run(report, run, artifacts, repository=repository, workflow=workflow, head=head, now=now)
+    check_run(
+        report,
+        run,
+        artifacts,
+        repository=repository,
+        workflow=workflow,
+        head=head,
+        now=now,
+        required_artifacts=(checksums_artifact, files_artifact),
+    )
     trusted = parse_checksums(report, checksums_text)
     staged = {p.name: p for p in sorted(staging.iterdir()) if p.is_file()} if staging.is_dir() else {}
     if not staging.is_dir():
@@ -385,6 +418,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workflow", default=DEFAULT_WORKFLOW, help="trusted workflow path the run must come from")
     parser.add_argument("--candidate-sha", required=True, help="full commit SHA of the release candidate")
     parser.add_argument("--version", required=True, help="release version, X.Y.Z or X.Y.Z-rc.N")
+    parser.add_argument("--checksums-artifact", default=CHECKSUMS_ARTIFACT, help="run artifact name that holds checksums.txt")
+    parser.add_argument("--files-artifact", default=FILES_ARTIFACT, help="run artifact name that holds the staged files")
     parser.add_argument("--now", help="check time, ISO 8601 with offset (default: the current UTC time)")
     args = parser.parse_args(argv)
     try:
@@ -406,6 +441,8 @@ def main(argv: list[str] | None = None) -> int:
             head=args.candidate_sha,
             version=args.version,
             now=now,
+            checksums_artifact=args.checksums_artifact,
+            files_artifact=args.files_artifact,
         )
     except (EvidenceInputError, ContractError) as error:
         print(json.dumps({"ok": False, "errors": [{"code": "INPUT_UNREADABLE", "message": str(error)}]}))

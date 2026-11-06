@@ -1,5 +1,5 @@
 ---
-version: 0.8.7
+version: 0.9.1
 ---
 
 # Planning-review workflow
@@ -21,7 +21,7 @@ and state what remains plainly. Add text only where Jev found something missing.
 4. **Re-run** only the affected beads, `diff` each against its previous run, and recompute coverage in code, never by asking Jev. `diff.item_size` must be reviewed: a failing-to-passing edit that grew is not accepted unless every added passage cites a pre-existing locked ANC/REQ/ADR; otherwise cut or replace instead.
 
 ```bash
-python3 "$S" coverage --runs "$P/anchor-runs" --gate plan --format md
+python3 "$S" coverage --runs "$P/anchor-runs" --gate plan --anchors "$A" --format md
 ```
 
 5. **Stop** when every bead's latest run passes and every locked anchor is `satisfied` by at least one bead. Report any allowed growth with its pre-existing authority when planning is complete. A hard stop also ends the loop: three identical failing runs of one bead, or an anchor reworded three times. Question design: `references/plan-anchor-questions.md`. Verdict logic: `references/verdict-gating.md`.

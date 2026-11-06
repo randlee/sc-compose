@@ -136,6 +136,8 @@ PROBABILITY_ROUNDING = 0.01        # Jev rounds each probability; the sum may be
 TRUNCATION_MARKER = "\n[... truncated by jev_judge; keep the state small ...]"
 HERE = pathlib.Path(__file__).resolve().parent
 QUESTIONS_DIR = HERE.parent / "assets" / "questions"
+TRIAGE_ASSETS = HERE.parent / "assets" / "triage"
+TRIAGE_RELDIR = ".sc/plan-anchor/triage"
 
 SOURCE_TYPES = ("ANC", "REQ", "ADR")
 REGISTER_NAMES = {"REQ": "requirements register", "ADR": "ADR register"}
@@ -816,28 +818,17 @@ def cmd_retire(args) -> Result[dict, JudgeError]:
                                          "replaced_by": args.replaced_by or None, "version": a["version"]}, "error": None})
 
 
-def cmd_exclude(args) -> Result[dict, JudgeError]:
-    """Add, replace or remove one exclusion. Not a requirement change: no version bump, earlier runs stay valid, any status."""
-    item = (args.item or "").strip()
-    if not item:
-        return fail("VALIDATION.INPUT", "--item cannot be empty; pass the plan item id exactly as judge --item-id gets it")
-    reason = (args.reason or "").strip()
-    if not args.remove and not reason:
-        return fail("VALIDATION.INPUT", "--reason cannot be empty",
-                    action="Say in one sentence why the anchor does not apply to this item.")
-    loaded = _record_and_anchor(args.anchors, args.id)
-    if isinstance(loaded, Err):
-        return loaded
-    rec, a = loaded.value
+def apply_exclusion(a: dict, item: str, reason: str, remove: bool) -> Result[dict, JudgeError]:
+    """Add, replace or remove one exclusion on an anchor in memory. Ok(data); data.changed says whether the anchor changed."""
     exclude = a.get("exclude")
     if exclude is not None and not isinstance(exclude, list):
-        return fail("VALIDATION.ANCHORS", f"{args.id}: exclude must be a list", action="Fix the record by hand, then run validate.")
+        return fail("VALIDATION.ANCHORS", f"{a['id']}: exclude must be a list", action="Fix the record by hand, then run validate.")
     kept = [x for x in (exclude or []) if not (isinstance(x, dict) and x.get("item") == item)]
     removed = len(kept) != len(exclude or [])
-    if args.remove:
-        if not removed:  # nothing to remove: a no-op, not a failure; nothing is saved
-            return Ok({"success": True, "data": {"id": a["id"], "item": item, "removed": True, "changed": False,
-                                                 "exclude": a.get("exclude", []), "version": a.get("version", 1)}, "error": None})
+    if remove:
+        if not removed:  # nothing to remove: a no-op, not a failure
+            return Ok({"id": a["id"], "item": item, "removed": True, "changed": False,
+                       "exclude": a.get("exclude", []), "version": a.get("version", 1)})
         a["exclude"] = kept
         if not kept:
             del a["exclude"]
@@ -846,9 +837,99 @@ def cmd_exclude(args) -> Result[dict, JudgeError]:
         a["exclude"] = kept + [{"item": item, "reason": reason}]
         event = history_event("excluded", item=item, reason=reason, replaced=removed)
     a.setdefault("history", []).append(event)
-    save_json(args.anchors, rec)
-    return Ok({"success": True, "data": {"id": a["id"], "item": item, "removed": bool(args.remove), "changed": True,
-                                         "exclude": a.get("exclude", []), "version": a.get("version", 1)}, "error": None})
+    return Ok({"id": a["id"], "item": item, "removed": bool(remove), "changed": True,
+               "exclude": a.get("exclude", []), "version": a.get("version", 1)})
+
+
+def read_exclusion_lines(path: str) -> Result[list, JudgeError]:
+    """Parse an `exclude --from` JSONL file: one {id, item, reason} or {id, item, remove: true} per non-blank line."""
+    p = pathlib.Path(path)
+    if not path.strip() or not p.is_file():
+        return fail("INPUT.MISSING", f"exclusions file not found: {path!r}", action="Pass an existing JSONL file to --from.")
+    try:
+        text = p.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return fail("INPUT.MALFORMED", f"exclusions file could not be read: {exc}", action=f"Check {path} is a readable UTF-8 file.")
+    entries, seen = [], {}
+    for n, line in enumerate(text.splitlines(), 1):
+        if not line.strip():
+            continue
+        where = f"{path}:{n}"
+        try:
+            e = json.loads(line)
+        except json.JSONDecodeError as exc:
+            return fail("INPUT.MALFORMED", f"{where}: not a JSON object ({exc.msg})", action="Write one exclusion object per line.")
+        if not isinstance(e, dict):
+            return fail("INPUT.MALFORMED", f"{where}: not a JSON object", action="Write one exclusion object per line.")
+        unknown = sorted(set(e) - {"id", "item", "reason", "remove"})
+        if unknown:
+            return fail("INPUT.MALFORMED", f"{where}: unknown field(s) {unknown}", action="Use only id, item, reason and remove.")
+        aid, item = e.get("id"), e.get("item")
+        reason, remove = e.get("reason", ""), e.get("remove", False)
+        if not isinstance(aid, str) or not aid.strip() or not isinstance(item, str) or not item.strip():
+            return fail("VALIDATION.INPUT", f"{where}: 'id' and 'item' must be non-empty strings",
+                        action="Pass the anchor id and the plan item id exactly as judge --item-id gets it.")
+        if not isinstance(remove, bool) or not isinstance(reason, str):
+            return fail("INPUT.MALFORMED", f"{where}: 'remove' must be true or false and 'reason' a string")
+        if not remove and not reason.strip():
+            return fail("VALIDATION.INPUT", f"{where}: 'reason' cannot be empty",
+                        action="Say in one sentence why the anchor does not apply to this item.")
+        key = (aid, item.strip())
+        if key in seen:
+            return fail("VALIDATION.INPUT", f"{where}: {aid} x {item.strip()} is already on line {seen[key]}",
+                        action="List each (anchor, item) pair once.")
+        seen[key] = n
+        entries.append({"id": aid, "item": item.strip(), "reason": reason.strip(), "remove": remove, "line": n})
+    if not entries:
+        return fail("INPUT.EMPTY", f"exclusions file {path} has no entries", action="Write one exclusion object per line.")
+    return Ok(entries)
+
+
+def cmd_exclude(args) -> Result[dict, JudgeError]:
+    """Add, replace or remove exclusions. Not a requirement change: no version bump, earlier runs stay valid, any status.
+
+    --from applies every line of a JSONL file atomically: any bad line or unknown anchor saves nothing.
+    """
+    if args.from_file:
+        if args.id or args.item or args.reason or args.remove:
+            return fail("VALIDATION.INPUT", "--from cannot be combined with --id, --item, --reason or --remove",
+                        action="Put every exclusion in the file, or use the single-cell flags without --from.")
+        parsed = read_exclusion_lines(args.from_file)
+        if isinstance(parsed, Err):
+            return parsed
+        entries = parsed.value
+    else:
+        if not args.id or args.item is None:
+            return fail("VALIDATION.INPUT", "pass --id and --item, or --from <file.jsonl>")
+        item = (args.item or "").strip()
+        if not item:
+            return fail("VALIDATION.INPUT", "--item cannot be empty; pass the plan item id exactly as judge --item-id gets it")
+        reason = (args.reason or "").strip()
+        if not args.remove and not reason:
+            return fail("VALIDATION.INPUT", "--reason cannot be empty",
+                        action="Say in one sentence why the anchor does not apply to this item.")
+        entries = [{"id": args.id, "item": item, "reason": reason, "remove": bool(args.remove), "line": None}]
+    loaded = load_record(args.anchors)
+    if isinstance(loaded, Err):
+        return loaded
+    rec = loaded.value
+    results = []
+    for e in entries:
+        found = find_anchor(rec, e["id"])
+        if isinstance(found, Err):
+            if e["line"] is not None:
+                return fail(found.error.code, f"{args.from_file}:{e['line']}: {found.error.message}", action=found.error.action)
+            return found
+        applied = apply_exclusion(found.value, e["item"], e["reason"], e["remove"])
+        if isinstance(applied, Err):
+            return applied
+        results.append(applied.value)
+    if any(r["changed"] for r in results):
+        save_json(args.anchors, rec)
+    if not args.from_file:
+        return Ok({"success": True, "data": results[0], "error": None})
+    return Ok({"success": True, "data": {"applied": results, "count": len(results),
+                                         "changed": sum(1 for r in results if r["changed"])}, "error": None})
 
 
 def validate_record(rec: dict) -> list:
@@ -1568,6 +1649,73 @@ def load_question_set(gate: str, override_path: str = "") -> Result[dict, JudgeE
     return Ok(qs)
 
 
+def load_extra_questions(paths: list, base: dict) -> Result[tuple, JudgeError]:
+    """Add consumer questions from JSONL files to the base set. Ok((merged_set, sources)).
+
+    Each non-blank line is one question object with an `id` plus the shape of a question in the base set.
+    Extra questions are asked and recorded with every cell but never gate: no role may map to one.
+    """
+    merged = json.loads(json.dumps(base))
+    sources = []
+    for path in paths or []:
+        p = pathlib.Path(path)
+        if not p.is_file():
+            return fail("INPUT.MISSING", f"extra questions not found: {path!r}", action="Pass an existing JSONL file to --extra-questions.")
+        try:
+            raw = p.read_bytes()
+            text = raw.decode("utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            return fail("INPUT.MALFORMED", f"extra questions could not be read: {exc}", action=f"Check {path} is a readable UTF-8 file.")
+        ids = []
+        for n, line in enumerate(text.splitlines(), 1):
+            if not line.strip():
+                continue
+            where = f"{path}:{n}"
+            try:
+                q = json.loads(line)
+            except json.JSONDecodeError as e:
+                return fail("INPUT.MALFORMED", f"{where}: not a JSON object ({e.msg})", action="Write one question object per line.")
+            if not isinstance(q, dict):
+                return fail("INPUT.MALFORMED", f"{where}: not a JSON object", action="Write one question object per line.")
+            qid = q.pop("id", None)
+            if not isinstance(qid, str) or not qid.strip():
+                return fail("INPUT.MALFORMED", f"{where}: missing a non-empty string 'id'", action="Give every extra question a unique id.")
+            if qid in merged["questions"]:
+                return fail("INPUT.MALFORMED", f"{where}: question id '{qid}' is already in the question set",
+                            action="Extra questions add to the set; to replace a question use an override instead.")
+            if not isinstance(q.get("instructions"), str) or not q.get("type"):
+                return fail("INPUT.MALFORMED", f"{where}: '{qid}' needs 'type' and string 'instructions'",
+                            action="Copy the shape of a question in assets/questions/<gate>.json.")
+            merged["questions"][qid] = q
+            ids.append(qid)
+        sources.append({"path": str(path), "sha256": hashlib.sha256(raw).hexdigest(), "ids": ids})
+    return Ok((merged, sources))
+
+
+def triage_questions_path(args, gate: str) -> str:
+    """The triage questions judge adds by default: the repository's .sc/plan-anchor/triage/<gate>-questions.jsonl
+    (nearest at or above --repository-root, stopping before home), else the shipped default; "" when there are none."""
+    import plan_anchor_paths  # stdlib-only sibling
+    name = f"{gate}-questions.jsonl"
+    start = pathlib.Path(getattr(args, "repository_root", "") or ".").resolve()
+    settings = plan_anchor_paths.find_settings(start)
+    if settings is not None:
+        local = settings.parent / "triage" / name
+        if local.is_file():
+            return str(local)
+    shipped = TRIAGE_ASSETS / name
+    return str(shipped) if shipped.is_file() else ""
+
+
+def check_extra_not_gating(qs: dict, extra_ids: set, where: str) -> Result[None, JudgeError]:
+    """An extra question never gates: refuse a role that maps to one (for example through an override)."""
+    for role, qid in (qs.get("roles") or {}).items():
+        if qid in extra_ids:
+            return fail("QUESTIONS.ROLES", f"{where} maps role '{role}' to extra question '{qid}'; extra questions never gate",
+                        action="Map the role to a question in the gate's set, or replace that question with an override.")
+    return Ok(None)
+
+
 def merge_overrides(base: dict, override: dict) -> Result[dict, JudgeError]:
     """Per-anchor overrides replace question text by id; roles stay as in base unless overridden."""
     merged = json.loads(json.dumps(base))
@@ -1715,7 +1863,7 @@ def fit_request(body: dict, max_request_bytes: int, min_item_chars: int, meta: d
 
 
 def judge_with_policy(body: dict, api_key: str, timeout: float, max_request_bytes: int, min_item_chars: int, questions: dict,
-                      shorten: bool = True) -> Result[tuple, JudgeError]:
+                      shorten: bool = True, optional=frozenset()) -> Result[tuple, JudgeError]:
     """call_jev with the attempt policy and context handling. Returns Ok((validated response, meta)) or Err(JudgeError carrying .meta).
 
     - Transport-level failures (429, 529, 5xx, network, invalid response): up to MAX_ATTEMPTS attempts; the first
@@ -1736,7 +1884,7 @@ def judge_with_policy(body: dict, api_key: str, timeout: float, max_request_byte
         meta["item_chars_sent"] = len(item["text"]) if item else 0
         answered = call_jev(body, api_key, timeout)
         if isinstance(answered, Ok):
-            answered = validate_response(answered.value, questions)
+            answered = validate_response(answered.value, questions, optional)
             if isinstance(answered, Ok):
                 return Ok((answered.value, meta))
         exc = answered.error
@@ -1809,16 +1957,20 @@ def answer_problem(ans, question) -> str:
     return None
 
 
-def validate_response(resp: dict, questions: dict) -> Result[dict, JudgeError]:
+def validate_response(resp: dict, questions: dict, optional=frozenset()) -> Result[dict, JudgeError]:
+    """Every question must be answered except the ``optional`` (extra, never-gating) ones; no unknown ids."""
     if not isinstance(resp, dict) or not isinstance(resp.get("answers"), dict):
         return fail("JEV.RESPONSE_INVALID", "Jev response has no 'answers' object", recoverable=True,
                     action="Retry; if it repeats, check the --model name.")
     answers = resp["answers"]
-    if set(answers) != set(questions):
-        missing, extra = sorted(set(questions) - set(answers)), sorted(set(answers) - set(questions))
+    required = set(questions) - set(optional)
+    if not required <= set(answers) or not set(answers) <= set(questions):
+        missing, extra = sorted(required - set(answers)), sorted(set(answers) - set(questions))
         return fail("JEV.RESPONSE_INVALID", f"Jev answer ids differ from the questions (missing {missing}, unexpected {extra})", recoverable=True,
                     action="Retry; if it repeats, check the question ids in the overrides.")
     for qid, q in questions.items():
+        if qid not in answers:
+            continue  # an optional question left unanswered
         problem = answer_problem(answers[qid], q)
         if problem:
             return fail("JEV.RESPONSE_INVALID", f"invalid answer for {qid}: {problem}", recoverable=True,
@@ -2038,7 +2190,7 @@ def check_api_key(api_key: str) -> Result[None, JudgeError]:
     return Ok(None)
 
 
-def judge_context(args, rec: dict, remote: bool = True) -> Result[dict, JudgeError]:
+def judge_context(args, rec: dict, remote: bool = True, triage: bool = False) -> Result[dict, JudgeError]:
     """Shared pre-flight for judge and check-fixtures: options, question set, overrides, fixture answers, key and consent.
 
     remote=False (every selected anchor is excluded from the item) skips the key and consent check: nothing is sent.
@@ -2064,7 +2216,19 @@ def judge_context(args, rec: dict, remote: bool = True) -> Result[dict, JudgeErr
     loaded = load_question_set(args.gate, getattr(args, "questions", ""))
     if isinstance(loaded, Err):
         return loaded
-    ctx["base_qs"] = loaded.value
+    extra_paths = list(getattr(args, "extra_questions", None) or [])
+    triage_default = ""
+    if triage and not getattr(args, "no_triage_questions", False):
+        triage_default = triage_questions_path(args, args.gate)
+        if triage_default:
+            extra_paths.append(triage_default)
+    extra = load_extra_questions(extra_paths, loaded.value)
+    if isinstance(extra, Err):
+        return extra
+    ctx["base_qs"], ctx["extra_questions"] = extra.value
+    # The triage questions are asked in a second request, and only for a cell that failed, so the gate request (and so every
+    # verdict) is exactly what it is without them. Questions from --extra-questions stay in the gate request.
+    ctx["deferred_ids"] = set(ctx["extra_questions"][-1]["ids"]) if triage_default else set()
     loaded = load_answers_fixture(getattr(args, "answers_file", ""), "anchor id")
     if isinstance(loaded, Err):
         return loaded
@@ -2214,7 +2378,13 @@ def prepare_question_sets(ctx: dict, anchors: list) -> Result[list, JudgeError]:
         checked = check_roles(qs, f"question set for {a['id']} after overrides")
         if isinstance(checked, Err):
             return checked
+        extra_ids = {i for s in ctx.get("extra_questions") or [] for i in s["ids"]}
+        checked = check_extra_not_gating(qs, extra_ids, f"question set for {a['id']} after overrides")
+        if isinstance(checked, Err):
+            return checked
         overridden = any(o.get(k) for o in (record_override, bead_override) for k in ("questions", "roles"))
+        qs["optional"] = sorted(extra_ids & set(qs["questions"]))
+        qs["deferred"] = sorted(set(qs["optional"]) & set(ctx.get("deferred_ids") or ()))
         prepared.append((a, qs, bool(overridden)))
     return Ok(prepared)
 
@@ -2227,12 +2397,15 @@ def _first_answer(ctx: dict, a: dict, qs: dict, body: dict, meta: dict, fixture_
             return fail("FIXTURE.MISSING", f"answers fixture has no entry for {fixture_key(a)} (or '*')",
                         action=f"Add an entry for {fixture_key(a)} (or '*') to the answers file.")
         meta["attempts"] = 1
-        checked = validate_response({"model": "fixture", "answers": fx}, qs["questions"])
+        sent = body["questions"]
+        left_out = set(qs["questions"]) - set(sent)  # extra questions dropped from this request for size
+        checked = validate_response({"model": "fixture", "answers": {k: v for k, v in fx.items() if k not in left_out}}, sent,
+                                    qs.get("optional") or ())
         if isinstance(checked, Err):
             return checked
         return Ok((checked.value, meta))
-    return judge_with_policy(body, ctx["api_key"], ctx["timeout"], ctx["max_request_bytes"], ctx["min_item_chars"], qs["questions"],
-                             shorten=ctx["gate"] != "plan")
+    return judge_with_policy(body, ctx["api_key"], ctx["timeout"], ctx["max_request_bytes"], ctx["min_item_chars"], body["questions"],
+                             shorten=ctx["gate"] != "plan", optional=frozenset(qs.get("optional") or ()))
 
 
 def entry_base(a: dict) -> dict:
@@ -2258,6 +2431,33 @@ def excluded_entry(a: dict, exclusion: dict, gate: str) -> dict:
     return entry
 
 
+def ask_triage(ctx: dict, a: dict, qs: dict, deferred: set, item: dict, fixture_key, entry: dict) -> Result[int, JudgeError]:
+    """Ask the triage questions of one failed cell in their own request and record the answers on the cell; never touches the
+    verdict. Ok(attempts made); Err only for an ABORT_CODES error. A request over the size cap, or a call that gets no answer, is
+    recorded on the cell (extra_questions_dropped, triage_error) and costs nothing else."""
+    asked = {k: v for k, v in qs["questions"].items() if k in deferred}
+    if ctx["answers_fixture"] is not None:
+        fx = ctx["answers_fixture"].get(fixture_key(a)) or ctx["answers_fixture"].get("*") or {}
+        entry["answers"].update({k: v for k, v in fx.items() if k in asked})
+        entry["triage_questions"] = [k for k in asked if k in entry["answers"]]
+        return Ok(0)
+    body = {"model": ctx["model"], "state": build_state(a, item), "questions": asked}
+    if len(encode_body(body)) > ctx["max_request_bytes"]:
+        entry["extra_questions_dropped"] = sorted(set(entry.get("extra_questions_dropped") or ()) | deferred)
+        return Ok(0)
+    got = judge_with_policy(body, ctx["api_key"], ctx["timeout"], ctx["max_request_bytes"], ctx["min_item_chars"], asked,
+                            shorten=False, optional=frozenset(asked))
+    if isinstance(got, Err):
+        if got.error.code in ABORT_CODES:
+            return got
+        entry["triage_error"] = got.error.to_json()["error"]
+        return Ok((got.error.meta or {}).get("attempts", 0))
+    resp, meta = got.value
+    entry["answers"].update(resp["answers"])
+    entry["triage_questions"] = [k for k in asked if k in entry["answers"]]  # which answers are triage, in question order, for the report
+    return Ok(meta.get("attempts", 0))
+
+
 def judge_entries(ctx: dict, prepared: list, item: dict, fixture_key) -> Result[tuple, JudgeError]:
     """One Jev request per anchor. Returns Ok((results, requests_out, model_answered)); Err only for an ABORT_CODES error.
 
@@ -2266,14 +2466,26 @@ def judge_entries(ctx: dict, prepared: list, item: dict, fixture_key) -> Result[
     """
     results, requests_out, model_answered = [], [], None
     for a, qs, overridden in prepared:
-        body = {"model": ctx["model"], "state": build_state(a, item), "questions": qs["questions"]}
+        deferred = set(qs.get("deferred") or ())
+        body = {"model": ctx["model"], "state": build_state(a, item),
+                "questions": {k: v for k, v in qs["questions"].items() if k not in deferred}}
+        dropped = []
+        if (set(qs.get("optional") or ()) - deferred) and len(encode_body(body)) > ctx["max_request_bytes"]:
+            # extra questions never cost a verdict: over the size cap they are left out of this request, not the item
+            dropped = sorted(set(qs["optional"]) - deferred)
+            body["questions"] = {k: v for k, v in body["questions"].items() if k not in dropped}
         entry = entry_base(a)
         entry.update({
             "question_set": {"gate": qs.get("gate", ctx["gate"]), "version": qs.get("version"), "overridden": overridden},
-            "questions_sha256": questions_digest(qs["questions"]),
+            # the gate questions' digest: extra questions never change it (they get their own)
+            "questions_sha256": questions_digest({k: v for k, v in qs["questions"].items() if k not in (qs.get("optional") or ())}),
         })
+        if qs.get("optional"):
+            entry["extra_questions_sha256"] = questions_digest({k: qs["questions"][k] for k in qs["optional"]})
         if overridden:
             entry["questions"] = qs["questions"]
+        if dropped:
+            entry["extra_questions_dropped"] = dropped
         meta = {"attempts": 0, "item_chars_sent": len(item["text"]), "item_shortened": False}
         if entry["kind"] == "structural" and ctx["gate"] == "plan":
             # Jev is not asked: the default compliance question answered no on 9/10 beads for a structural anchor.
@@ -2302,8 +2514,8 @@ def judge_entries(ctx: dict, prepared: list, item: dict, fixture_key) -> Result[
             if ctx["answers_fixture"] is None and ctx.get("confirm", False) and near_threshold(resp["answers"], qs["roles"], ctx["threshold"], entry["kind"]):
                 # Near the threshold a single answer is noise (8/50 identical re-runs flipped): ask once more, require agreement.
                 entry["near_threshold"] = True
-                second = judge_with_policy(body, ctx["api_key"], ctx["timeout"], ctx["max_request_bytes"], ctx["min_item_chars"], qs["questions"],
-                                           shorten=ctx["gate"] != "plan")
+                second = judge_with_policy(body, ctx["api_key"], ctx["timeout"], ctx["max_request_bytes"], ctx["min_item_chars"], body["questions"],
+                                           shorten=ctx["gate"] != "plan", optional=frozenset(qs.get("optional") or ()))
                 if isinstance(second, Ok):
                     resp2, meta2 = second.value
                     meta["attempts"] += meta2.get("attempts", 0)
@@ -2323,6 +2535,11 @@ def judge_entries(ctx: dict, prepared: list, item: dict, fixture_key) -> Result[
                           "explanation": explain(verdict, min_conf, ctx["gate"]), "usage": resp.get("usage")})
             if verdict == "underspecified":
                 entry["low_questions"] = low_questions_of(entry, qs["roles"], ctx["threshold"])
+            if deferred and verdict in FAILING:
+                triaged = ask_triage(ctx, a, qs, deferred, item, fixture_key, entry)
+                if isinstance(triaged, Err):
+                    return triaged
+                entry["triage_attempts"] = triaged.value  # kept apart from the gate request's attempts
         else:
             exc = first.error
             if exc.code in ABORT_CODES:
@@ -2373,6 +2590,7 @@ def assemble_run(ctx: dict, rec: dict, anchors_path: str, item: dict, results: l
         "min_item_chars": ctx["min_item_chars"],
         "dry_run": ctx["dry_run"],
         "fixture": ctx["answers_fixture"] is not None,
+        "extra_questions": ctx.get("extra_questions") or [],
         "results": results,
         "summary": {
             "counts": {k: v for k, v in counts.items() if v},
@@ -2447,7 +2665,7 @@ def cmd_judge(args) -> Result[dict, JudgeError]:
     # An anchor whose `exclude` names this item is never asked: no question set, no size check, no request.
     exclusions = {a["id"]: exclusion_for(a, args.item_id) for a in anchors}
     judged_anchors = [a for a in anchors if exclusions[a["id"]] is None]
-    built = judge_context(args, rec, remote=bool(judged_anchors))
+    built = judge_context(args, rec, remote=bool(judged_anchors), triage=True)
     if isinstance(built, Err):
         return built
     ctx = built.value
@@ -2466,7 +2684,8 @@ def cmd_judge(args) -> Result[dict, JudgeError]:
                 return f"the plan-gate item budget is --max-item-chars {ctx['max_item_chars']}"
             trial = dict(item, text=text)
             for a, qs, _ in prepared:
-                size = len(encode_body({"model": ctx["model"], "state": build_state(a, trial), "questions": qs["questions"]}))
+                gate_questions = {k: v for k, v in qs["questions"].items() if k not in (qs.get("optional") or ())}
+                size = len(encode_body({"model": ctx["model"], "state": build_state(a, trial), "questions": gate_questions}))
                 if size > ctx["max_request_bytes"]:
                     return f"with {a['id']} and its questions the request is {size} bytes, over --max-request-bytes {ctx['max_request_bytes']}"
             return None
@@ -2997,6 +3216,25 @@ def sentence(text: str) -> str:
     return s if s.endswith((".", "!", "?")) else s + "."
 
 
+def triage_lines(r: dict) -> list:
+    """The triage answers of one failed cell, one line, in question order; or why there are none. The answers never change the
+    verdict; they are what triage/rules.json routes on, so the reader sees why a cell goes to exclude, plan, question or human."""
+    lines = []
+    answers = r.get("answers") or {}
+    shown = []
+    for qid in r.get("triage_questions") or []:
+        if isinstance(answers.get(qid), dict):
+            choice, conf = answer_choice(answers[qid])
+            shown.append(f"`{qid}` {choice} ({conf:.2f})")
+    if shown:
+        lines.append(">   Triage: " + ", ".join(shown) + ".")
+    if r.get("extra_questions_dropped"):
+        lines.append(">   Not asked, over the request size cap: " + ", ".join(f"`{q}`" for q in r["extra_questions_dropped"]) + ".")
+    if isinstance(r.get("triage_error"), dict) and r["triage_error"].get("code"):
+        lines.append(f">   Triage error {r['triage_error']['code']}: {r['triage_error'].get('message', '')}".rstrip())
+    return lines
+
+
 def report_lines(run: dict, include_passing: bool = False) -> list:
     """One blockquote per judged anchor: the testable statement, then the provenance quote, then the explanation.
 
@@ -3005,6 +3243,7 @@ def report_lines(run: dict, include_passing: bool = False) -> list:
              (the says-clause is skipped when the quote is the statement, as it is for register text)
     Run files written before the quote field existed are read as quote = statement.
     An excluded cell is always listed, with the exclusion's reason in place of the provenance and explanation.
+    A failed cell's triage answers follow on a `Triage:` line (run files written before 0.9.1 do not record them).
     """
     lines = []
     item_id = run["item"]["id"]
@@ -3037,6 +3276,7 @@ def report_lines(run: dict, include_passing: bool = False) -> list:
             lines.append(f">   Low: {q['role']} `{q['question_id']}` answered {q['choice']} at {q['confidence']:.2f}{ask}.")
         if r.get("unstable"):
             lines.append(f">   Unstable: two identical requests gave {r.get('verdict_first')} then {r.get('verdict_second')}.")
+        lines.extend(triage_lines(r))
         if v == "error" and isinstance(r.get("error"), dict) and r["error"].get("code"):
             lines.append(f">   Error {r['error']['code']}: {r['error'].get('message', '')}".rstrip())
         if r.get("deterministic_check") and v in ("satisfied", "asserted_only") and run["gate"] == "dev":
@@ -3086,26 +3326,54 @@ def cmd_coverage(args) -> Result[Any, JudgeError]:
         runs = [r for r in runs if r.get("gate") == args.gate]
     if not runs:
         return fail("RUNS.NONE", "no run files found", action="Run `judge` first, or check the --runs path.")
-    # latest run per (gate, item) wins
+    record = None
+    if getattr(args, "anchors", ""):
+        loaded = _valid_record(args.anchors)
+        if isinstance(loaded, Err):
+            return loaded
+        record = {a["id"]: a for a in loaded.value["anchors"]}
+    ordered = sorted(runs, key=lambda r: str(r.get("created_at", "")))
+    # latest run per (gate, item), for runs_considered and to mark cells carried from an earlier run
     latest = {}
-    for r in sorted(runs, key=lambda r: str(r.get("created_at", ""))):
+    for r in ordered:
         latest[(r["gate"], r["item"]["id"])] = r
 
     # without a --gate filter, columns are qualified so plan and dev verdicts for one item never overwrite each other
     def column(gate, item_id):
         return item_id if args.gate else f"{gate}:{item_id}"
-    matrix, excluded = {}, {}
-    items = sorted({column(g, i) for g, i in latest})
-    for (gate, item_id), r in latest.items():
+    # latest result per (gate, item, anchor): a re-run of some anchors never drops the others' results
+    cells = {}
+    for r in ordered:
         for res in r["results"]:
-            matrix.setdefault(res["anchor_id"], {})[column(gate, item_id)] = res["verdict"]
-            if res["verdict"] == "excluded":
-                excluded.setdefault(res["anchor_id"], {})[column(gate, item_id)] = (res.get("exclusion") or {}).get("reason", "")
+            cells[(r["gate"], r["item"]["id"], res["anchor_id"])] = (res, r)
+    matrix, excluded, carried, rejudge = {}, {}, {}, {}
+    items = sorted({column(g, i) for g, i in latest})
+    for (gate, item_id, anchor_id), (res, r) in cells.items():
+        col = column(gate, item_id)
+        verdict = res["verdict"]
+        reason = (res.get("exclusion") or {}).get("reason", "")
+        if record is not None and anchor_id in record:
+            # the record is authoritative for exclusions: one recorded after the run applies, one removed since needs a re-run
+            current = exclusion_for(record[anchor_id], item_id)
+            if current is not None:
+                verdict, reason = "excluded", current.get("reason", "")
+            elif verdict == "excluded":
+                rejudge.setdefault(anchor_id, []).append(col)
+                verdict = None
+        if verdict is None:
+            matrix.setdefault(anchor_id, {})  # still listed, and uncovered unless another item satisfies it
+            continue
+        matrix.setdefault(anchor_id, {})[col] = verdict
+        if verdict == "excluded":
+            excluded.setdefault(anchor_id, {})[col] = reason
+        if r is not latest[(gate, item_id)]:
+            carried.setdefault(anchor_id, {})[col] = r.get("run_id")
     anchors_sorted = sorted(matrix)
     uncovered = [a for a in anchors_sorted if not any(v == "satisfied" for v in matrix[a].values())]
     contradicted = {a: [i for i, v in matrix[a].items() if v == "contradicted"] for a in anchors_sorted if any(v == "contradicted" for v in matrix[a].values())}
     data = {"gate": args.gate or "all", "items": items, "anchors": anchors_sorted, "matrix": matrix,
-            "uncovered_anchors": uncovered, "contradicted": contradicted, "excluded": excluded, "runs_considered": len(latest)}
+            "uncovered_anchors": uncovered, "contradicted": contradicted, "excluded": excluded, "runs_considered": len(latest),
+            "carried_from_earlier_run": carried, "exclusion_removed_rejudge": rejudge}
     if args.format == "md":
         lines = [f"## Anchor coverage ({data['gate']})", "", "| Anchor | " + " | ".join(items) + " | Covered |", "| --- | " + " | ".join("---" for _ in items) + " | --- |"]
         for a in anchors_sorted:
@@ -3120,6 +3388,15 @@ def cmd_coverage(args) -> Result[Any, JudgeError]:
             for a in sorted(excluded):
                 for i, reason in sorted(excluded[a].items()):
                     lines.append(f"- {a} x {i}: {reason}")
+        if carried:
+            lines.append("")
+            lines.append("Cells from an earlier run than the item's latest (that run did not judge them):")
+            for a in sorted(carried):
+                for i, run_id in sorted(carried[a].items()):
+                    lines.append(f"- {a} x {i}: {run_id}")
+        if rejudge:
+            lines.append("")
+            lines.append("Exclusion removed since the run; re-judge: " + ", ".join(f"{a} x {i}" for a in sorted(rejudge) for i in sorted(rejudge[a])))
         return Ok("\n".join(lines) + "\n")
     return Ok({"success": True, "data": data, "error": None})
 
@@ -3225,6 +3502,20 @@ def add_judge_options(parser, with_item: bool) -> None:
         parser.add_argument("--id", default="", help="one anchor id")
         parser.add_argument("--all", action="store_true", help="every non-retired anchor that has fixtures")
     parser.add_argument("--questions", default="", help="question-set JSON; default assets/questions/<gate>.json")
+    parser.add_argument("--extra-questions", action="append", default=[], metavar="FILE.jsonl",
+                        help="repeatable: JSONL, one question per line ({id, type, instructions, criteria}); added to the gate questions "
+                             "and the triage questions for this run, asked and recorded with every cell, never gating. Use it to try a "
+                             "question once; to keep one, add its line to .sc/plan-anchor/triage/<gate>-questions.jsonl (see --no-triage-questions)")
+    parser.add_argument("--no-triage-questions", action="store_true",
+                        help="judge: do not add the triage questions. They are on by default for the planning gate: five extra, never-gating "
+                             "questions (owns, specific, stated, paraphrase, partial), asked in a second request and only for a cell that "
+                             "failed the gate, and recorded on that cell, so the gate request and every verdict are the same with or without "
+                             "them. Their intent is triage: when a cell fails, they say whether the item should own the "
+                             "requirement, state it more specifically, or whether the gate question needs tuning, so you fix the right thing. "
+                             "They never change a verdict. The set is .sc/plan-anchor/triage/<gate>-questions.jsonl in your repository "
+                             "(seeded once from the shipped default, never overwritten by upgrades; the nearest one wins, else the shipped copy). "
+                             "To change a default, edit that line (keep its id); to add a question, add a line ({id, type, instructions, criteria}); "
+                             "to drop one, delete its line. Routing of failing cells is in triage/rules.json beside it. Details: triage/README.md")
     parser.add_argument("--overrides-file", default="", help="JSON {anchor_id: {questions: {...}, roles: {...}}} read from the question beads; merged after anchors.json overrides")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
@@ -3312,10 +3603,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     ex = sub.add_parser("exclude", help="record that an anchor does not apply to one plan item (judge reports it as excluded); no version bump")
     ex.add_argument("--anchors", required=True)
-    ex.add_argument("--id", required=True, help="anchor id")
-    ex.add_argument("--item", required=True, help="plan item id, exactly as judge --item-id gets it")
+    ex.add_argument("--id", default="", help="anchor id")
+    ex.add_argument("--item", default=None, help="plan item id, exactly as judge --item-id gets it")
     ex.add_argument("--reason", default="", help="one sentence: why the anchor does not apply to this item (required unless --remove)")
     ex.add_argument("--remove", action="store_true", help="drop the exclusion for --item")
+    ex.add_argument("--from", dest="from_file", default="", metavar="FILE.jsonl",
+                    help="apply many at once: one {id, item, reason} or {id, item, remove: true} per line; all or nothing")
     ex.set_defaults(func=cmd_exclude)
 
     v = sub.add_parser("validate", help="check anchors.json; data.valid false with data.problems when it has problems")
@@ -3423,6 +3716,7 @@ def build_parser() -> argparse.ArgumentParser:
     cv.add_argument("--runs", nargs="+", required=True, help="run files or directories")
     cv.add_argument("--gate", choices=("plan", "dev"), default="")
     cv.add_argument("--format", choices=("json", "md"), default="json")
+    cv.add_argument("--anchors", default="", help="anchors.json: apply its current exclusions to the runs (one recorded after a run applies; one removed since is listed to re-judge)")
     cv.set_defaults(func=cmd_coverage)
 
     d = sub.add_parser("diff", help="compare two runs")

@@ -6,7 +6,7 @@ build-backend = "maturin"
 name = "sc-composer-beads"
 version = "1.7.0"
 description = "Typed Python adapter for host-neutral Beads formula composition"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "Randlee" }]
 

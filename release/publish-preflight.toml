@@ -8,3 +8,19 @@ schema_version = 1
 id = "cli-reference-fresh"
 description = "Generated CLI reference matches the live sc-compose model (docli)"
 run = "python3 scripts/generate_cli_reference.py --check --install-docli"
+[[checks]]
+id = "workspace-fmt"
+description = "Workspace is rustfmt-clean (restored from the pre-PR866 release preflight)"
+run = "cargo fmt --all --check"
+[[checks]]
+id = "workspace-clippy"
+description = "Workspace is clippy-clean with warnings denied (restored from the pre-PR866 release preflight)"
+run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
+[[checks]]
+id = "workspace-tests"
+description = "Workspace tests pass (restored from the pre-PR866 release preflight)"
+run = "cargo test --workspace"
+[[checks]]
+id = "go-native-version-lockstep"
+description = "Go native peer version follows the workspace release version (restored from the pre-PR866 release paths)"
+run = "python3 .github/scripts/go_native_module.py verify-version-lockstep --config release/go-native-module.toml --workspace-toml Cargo.toml"

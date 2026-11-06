@@ -1,5 +1,7 @@
 //! Public validation entrypoint.
 
+use std::collections::BTreeMap;
+
 use crate::observer::{
     CompositionObserver, IncludeOutcomeEvent, NoopObserver, ResolveAttemptEvent,
     ResolveOutcomeEvent, ValidationOutcomeEvent,
@@ -115,6 +117,30 @@ pub fn validate_with_observer_and_delimiters_with_expansion(
     report.errors = event.errors;
 
     Ok((report, expanded))
+}
+
+/// Validate expanded source with its rendering delimiters and return its context.
+///
+/// Defaults from included templates are merged before explicit inputs.
+#[must_use]
+pub fn validate_expanded_with_context(
+    request: &ComposeRequest,
+    expanded: &ExpandedTemplate,
+    resolve_result: crate::ResolveResult,
+    variable_delimiters: (&str, &str),
+) -> (ValidationReport, BTreeMap<String, crate::InputValue>) {
+    let (report, state) = crate::validation::validate_expanded_with_delimiters(
+        request,
+        expanded,
+        resolve_result,
+        Some(variable_delimiters),
+    );
+    let context = state
+        .context
+        .into_iter()
+        .map(|(name, value)| (name.to_string(), value))
+        .collect();
+    (report, context)
 }
 
 #[cfg(test)]

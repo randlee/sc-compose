@@ -196,6 +196,24 @@ def test_sc_sha_error_str_is_human_readable_and_preserves_code() -> None:
     assert str(error.value) == "utf8_file_bytes must be bytes; encode text as UTF-8 explicitly"
 
 
+def test_sc_sha_error_constructor_and_import_contract() -> None:
+    import inspect
+
+    error_type = sc_sha.ScShaError
+    error = error_type("SC_SHA_PROBE", "probe message")
+
+    assert error_type is sc_sha._native.ScShaError
+    assert error_type.__module__ == "builtins"
+    assert str(inspect.signature(error_type)) == "(code, message)"
+    assert error.args == ("SC_SHA_PROBE", "probe message")
+    assert str(error) == "probe message"
+    assert error.code == "SC_SHA_PROBE"
+    assert error.message == "probe message"
+    assert issubclass(error_type, Exception)
+    with pytest.raises(TypeError, match="no keyword arguments"):
+        error_type(code="SC_SHA_PROBE", message="probe message")
+
+
 def test_shared_cross_language_conformance_vectors() -> None:
     vectors = json.loads(CONFORMANCE_VECTORS.read_text(encoding="utf-8"))
 

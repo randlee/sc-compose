@@ -35,18 +35,17 @@ The canonical publish kit and optional Go peer remain upstream-owned under
 ADR-0022; use their supported installer inputs and immutable releases. V4 owns the generic command-model exporter; V8 owns reusable external
 docli/kit consumer adapters, V9 the Go-native adapter,
 and V6 final command-reference refresh and artifact composition. FR-26
-requires docli as the declared consumer-preflight check run by Release Preflight
-through the existing sc-publish extension, with stale-reference refusal;
-individual publish workflows are not mechanically gated. Recovery does not
-perform public publication.
+requires docli on every publish and stale-reference refusal. Implementation
+limitation, separate from that guarantee: individual publish workflows are not
+yet mechanically gated (FR-26). Recovery does not perform public publication.
 
 ## References
 
 - [PyO3 0.30.1: building and distribution](https://pyo3.rs/v0.30.1/building-and-distribution)
 - [CPython: limited API scope and performance](https://docs.python.org/3/c-api/stable.html)
 
-V8 alone owns the docli preflight_checks registration run by Release Preflight
-and its real current/stale consumer-preflight tests; V6 consumes the interface on final
+V8 alone owns per-publish docli/preflight_checks registration and its real
+current/stale consumer-preflight tests; V6 consumes the interface on final
 references. Full integration runs, including Windows amd64 and manylinux,
 are manual-only; routine native Windows unit checks remain normal CI.
 FR-28 names V7 as owner of 1.8.0 version preparation, including manifests

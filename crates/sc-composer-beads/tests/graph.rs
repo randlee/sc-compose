@@ -263,7 +263,15 @@ fn request_shape_and_authorization_fail_before_render_or_bd() {
             _ => unreachable!(),
         }
         let runner = FakeRunner::new([]);
-        let err = execute_bead_request_with_runner(&w.req, &runner).expect_err("shape refused");
+        let err = execute_bead_request_with_options_and_runner(
+            &w.req,
+            &BeadExecutionOptions {
+                render_by: BeadRenderBy::Bd,
+                strict: false,
+            },
+            &runner,
+        )
+        .expect_err("shape refused");
         assert_eq!(err.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
         let expected_message = match case {
             0 => "attach requires parent",
@@ -447,6 +455,22 @@ fn existing(w: &Workspace) -> String {
     let metadata = w.plan()["nodes"][0]["metadata"].clone();
     json!([{"id":"proj-1"},{"id":"proj-1.chain-build","status":"closed","notes":"keep","metadata":metadata}]).to_string()
 }
+
+fn existing_bd_owned(w: &Workspace) -> String {
+    let preview = FakeRunner::new([ok(COOKED), parent(), ok("{}")]);
+    let receipt = execute_bead_request_with_options_and_runner(
+        &w.req,
+        &BeadExecutionOptions {
+            render_by: BeadRenderBy::Bd,
+            strict: false,
+        },
+        &preview,
+    )
+    .unwrap();
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    let metadata = w.plan()["nodes"][0]["metadata"].clone();
+    json!([{"id":"proj-1"},{"id":"proj-1.chain-build","status":"closed","notes":"keep","metadata":metadata}]).to_string()
+}
 #[test]
 fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
     for (deps, code) in [
@@ -461,12 +485,20 @@ fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
         ),
     ] {
         let w = Workspace::new();
-        let rows = existing(&w);
+        let rows = existing_bd_owned(&w);
         let before = w.plan();
         let mut dependencies = ok(deps);
         dependencies.stderr = "unrelated bd dep add forged source --type blocks".into();
         let runner = FakeRunner::new([ok(COOKED), ok(&rows), dependencies]);
-        let r = w.run(&runner);
+        let r = execute_bead_request_with_options_and_runner(
+            &w.req,
+            &BeadExecutionOptions {
+                render_by: BeadRenderBy::Bd,
+                strict: false,
+            },
+            &runner,
+        )
+        .unwrap();
         if code == Some("BEADS_GRAPH_EDGE_MISSING") {
             assert_eq!(
                 r.missing_edges,
@@ -492,6 +524,138 @@ fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
             ["dep", "list", "--json", "--", "proj-1.chain-build"]
         );
     }
+}
+
+#[test]
+fn advanced_missing_edge_refuses_unqualified_atomic_update_without_writes() {
+    let mut w = Workspace::new();
+    let rows = existing(&w);
+    let preview_runner = FakeRunner::new([ok(COOKED), ok(&rows), ok("[]")]);
+    let preview = w.run(&preview_runner);
+    assert_eq!(preview.outcome, BeadOutcome::Succeeded);
+    assert!(
+        preview
+            .graph
+            .unwrap()
+            .edges
+            .iter()
+            .any(|edge| edge.action == BeadEdgeAction::Add)
+    );
+    assert_read_only(&preview_runner);
+    w.req.operation = BeadOperation::Attach;
+    let runner = FakeRunner::new([ok(COOKED), ok(&rows), ok("[]")]);
+    let receipt = w.run(&runner);
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE".into()
+        }
+    );
+    assert_read_only(&runner);
+}
+
+#[test]
+fn advanced_provenance_v2_ignores_graph_revision_but_rejects_changed_node() {
+    let w = Workspace::new();
+    let rows = existing(&w);
+    let metadata = w.plan()["nodes"][0]["metadata"][PROVENANCE_KEY].clone();
+    assert_eq!(metadata["v"], 2);
+    assert!(metadata["node_definition"].as_str().is_some());
+    fs::write(
+        &w.req.template,
+        "formula = \"sample\"\n# changed graph source\n",
+    )
+    .unwrap();
+    let runner = FakeRunner::new([
+        ok(COOKED),
+        ok(&rows),
+        ok(r#"[{"id":"proj-1","dependency_type":"parent-child"}]"#),
+    ]);
+    let replay = w.run(&runner);
+    assert_eq!(replay.outcome, BeadOutcome::Succeeded, "{replay:#?}");
+    assert_read_only(&runner);
+
+    let changed =
+        r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Changed"}]}"#;
+    let runner = FakeRunner::new([ok(changed), ok(&rows)]);
+    let refused = w.run(&runner);
+    assert_eq!(
+        refused.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_CONFLICT".into()
+        }
+    );
+    assert_read_only(&runner);
+}
+
+#[test]
+fn advanced_v1_ownership_without_creation_proof_refuses_before_mutation() {
+    let mut w = Workspace::new();
+    let rows = existing_bd_owned(&w);
+    w.req.operation = BeadOperation::Attach;
+    let runner = FakeRunner::new([ok(COOKED), ok(&rows)]);
+    let receipt = w.run(&runner);
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_CONFLICT".into()
+        }
+    );
+    assert!(
+        receipt
+            .stages
+            .last()
+            .unwrap()
+            .stderr_excerpt
+            .contains("migration_proof_missing")
+    );
+    assert_read_only(&runner);
+}
+
+#[test]
+fn advanced_new_optional_node_previews_but_never_applies_without_atomic_capability() {
+    let mut w = Workspace::new();
+    let rows = existing(&w);
+    fs::write(
+        &w.req.template,
+        "formula = \"sample\"\n# optional node enabled\n",
+    )
+    .unwrap();
+    let enabled = r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"},{"id":"verify","title":"Verify","needs":["build"]}]}"#;
+    let parent_edge = r#"[{"id":"proj-1","dependency_type":"parent-child"}]"#;
+    let preview_runner = FakeRunner::new([ok(enabled), ok(&rows), ok(parent_edge), ok("{}")]);
+    let preview = w.run(&preview_runner);
+    assert_eq!(preview.outcome, BeadOutcome::Succeeded, "{preview:#?}");
+    let graph = preview.graph.unwrap();
+    assert!(graph.nodes.iter().any(|node| {
+        node.step
+            .as_ref()
+            .is_some_and(|step| step.as_str() == "build")
+            && node.action == BeadNodeAction::Existing
+    }));
+    assert!(graph.nodes.iter().any(|node| {
+        node.step
+            .as_ref()
+            .is_some_and(|step| step.as_str() == "verify")
+            && node.action == BeadNodeAction::Create
+    }));
+    assert!(
+        preview_runner
+            .calls()
+            .iter()
+            .all(|call| call.args[0] != "create" || call.args.iter().any(|arg| arg == "--dry-run"))
+    );
+
+    w.req.operation = BeadOperation::Attach;
+    let apply_runner = FakeRunner::new([ok(enabled), ok(&rows), ok(parent_edge)]);
+    let receipt = w.run(&apply_runner);
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE".into()
+        }
+    );
+    assert_read_only(&apply_runner);
 }
 #[test]
 fn apply_failure_is_failed_at_the_apply_stage() {
@@ -710,7 +874,15 @@ fn graph_pour_forbids_runtime_variables_and_registry_pour_forbids_relations() {
     let where_output = json!({"path":w.root.join(".beads")}).to_string();
     let runner = FakeRunner::new([ok("{}"), ok(&where_output), ok(COOKED)]);
     refused_with_reason(
-        &w.run(&runner),
+        &execute_bead_request_with_options_and_runner(
+            &w.req,
+            &BeadExecutionOptions {
+                render_by: BeadRenderBy::Bd,
+                strict: false,
+            },
+            &runner,
+        )
+        .expect("bd-owned request"),
         "BEADS_GRAPH_FORMULA_UNSUPPORTED",
         BeadStage::PreviewPour,
         "bead_variables_set",
@@ -730,6 +902,98 @@ fn graph_pour_forbids_runtime_variables_and_registry_pour_forbids_relations() {
     );
     assert_read_only(&runner);
 }
+
+#[test]
+fn advanced_graph_and_attach_accept_bead_inputs() {
+    let mut w = Workspace::new();
+    fs::write(
+        &w.req.template,
+        "formula = \"sample\"\ntitle = \"{{ title }}\"\n",
+    )
+    .unwrap();
+    w.req
+        .bead_variables
+        .insert("title".into(), "{{ literal }}".into());
+    let runner = FakeRunner::new([ok(COOKED), parent(), ok("{}")]);
+    let receipt = w.run(&runner);
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    assert!(
+        fs::read_to_string(&w.req.rendered_formula)
+            .unwrap()
+            .contains("{{ literal }}")
+    );
+    assert!(
+        runner
+            .calls()
+            .iter()
+            .all(|call| !call.args.iter().any(|arg| arg == "--var"))
+    );
+}
+
+#[test]
+fn advanced_transport_renders_source_and_preserves_literal_data() {
+    struct Capture<'a> {
+        inner: &'a FakeRunner,
+        formula: Mutex<String>,
+    }
+    impl ProcessRunner for Capture<'_> {
+        fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+            if spec.args.first().is_some_and(|arg| arg == "cook") {
+                *self.formula.lock().unwrap() = fs::read_to_string(&spec.args[1])?;
+            }
+            self.inner.run(spec)
+        }
+    }
+    let mut w = Workspace::new();
+    fs::write(&w.req.template, "formula = \"sample\"\n{% if enabled %}{% for item in items %}title = \"{{ item }} {{ literal }}\"\n{% endfor %}{% endif %}{# comment #}\n").unwrap();
+    w.req
+        .compose_variables
+        .insert("enabled".into(), json!(true));
+    w.req
+        .compose_variables
+        .insert("items".into(), json!(["one", "two"]));
+    w.req
+        .bead_variables
+        .insert("literal".into(), "{{ data }} {% raw %}".into());
+    let fake = FakeRunner::new([ok(COOKED), parent(), ok("{}")]);
+    let runner = Capture {
+        inner: &fake,
+        formula: Mutex::new(String::new()),
+    };
+    let receipt = execute_bead_request_with_runner(&w.req, &runner).unwrap();
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    let formula = runner.formula.lock().unwrap();
+    assert!(formula.contains("one {{ data }} {% raw %}"));
+    assert!(formula.contains("two {{ data }} {% raw %}"));
+    assert!(
+        !formula.contains("{% for")
+            && !formula.contains("{% if")
+            && !formula.contains("{# comment")
+    );
+    assert!(
+        fake.calls()
+            .iter()
+            .all(|call| !call.args.iter().any(|arg| arg == "--var"))
+    );
+}
+
+#[test]
+fn bd_owned_graph_and_attach_retain_input_refusals() {
+    let mut w = Workspace::new();
+    w.req.bead_variables.insert("title".into(), "value".into());
+    let runner = FakeRunner::new([]);
+    let error = execute_bead_request_with_options_and_runner(
+        &w.req,
+        &BeadExecutionOptions {
+            render_by: BeadRenderBy::Bd,
+            strict: false,
+        },
+        &runner,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("attach forbids bead_variables"));
+    assert!(runner.calls().is_empty());
+}
 #[test]
 fn graph_plan_symlink_is_refused_without_touching_target() {
     #[cfg(unix)]
@@ -742,15 +1006,57 @@ fn graph_plan_symlink_is_refused_without_touching_target() {
             w.req.rendered_formula.with_extension("toml.graph.json"),
         )
         .expect("symlink");
-        let runner = FakeRunner::new([ok(COOKED), parent()]);
+        let runner = FakeRunner::new([]);
         refused(
             &w.run(&runner),
             "BEADS_OUTPUT_PATH_SYMLINK",
             BeadStage::PreviewAttach,
         );
         assert_eq!(fs::read_to_string(target).expect("target"), "unchanged");
-        assert_read_only(&runner);
+        assert!(runner.calls().is_empty());
     }
+}
+
+#[test]
+fn graph_plan_directory_is_refused_before_bd() {
+    let w = Workspace::new();
+    let plan = w.req.rendered_formula.with_extension("toml.graph.json");
+    fs::create_dir(&plan).expect("blocked graph plan");
+    let runner = FakeRunner::new([]);
+    let receipt = w.run(&runner);
+    refused(
+        &receipt,
+        "BEADS_OUTPUT_PATH_INVALID",
+        BeadStage::PreviewAttach,
+    );
+    assert!(
+        receipt
+            .stages
+            .last()
+            .unwrap()
+            .stderr_excerpt
+            .contains("graph plan")
+    );
+    assert!(plan.is_dir());
+    assert!(runner.calls().is_empty());
+}
+
+#[test]
+fn output_diagnostics_distinguish_graph_plan_from_rendered_formula() {
+    let path = PathBuf::from("example.graph.json");
+    let graph = BeadComposeError::GraphPlanPathInvalid {
+        path: path.clone(),
+        rule: "blocked".into(),
+    };
+    let rendered = BeadComposeError::OutputPathInvalid {
+        path,
+        rule: "blocked".into(),
+    };
+    let graph_json = serde_json::to_value(&graph).unwrap();
+    let rendered_json = serde_json::to_value(&rendered).unwrap();
+    assert_eq!(graph_json["details"]["field"], "graph_plan");
+    assert_eq!(rendered_json["details"]["field"], "rendered_formula");
+    assert_eq!(graph.code(), rendered.code());
 }
 
 #[test]
