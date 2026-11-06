@@ -396,22 +396,10 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
     let findings = payload_findings(payload)
         .and_then(Value::as_array)
         .map_or(0, Vec::len);
-<<<<<<< HEAD
     let reported_finding_failure = findings > 0
         && ((payload.get("ok").and_then(Value::as_bool) == Some(true) && exit_status == Some(10))
-            || (exit_status == Some(5)
-                && code == "CLI.BACKEND_EXEC_FAILURE"
-                && payload
-                    .pointer("/error/details/status")
-                    .and_then(Value::as_str)
-                    == Some("fail")));
+            || (payload_status(payload) == Some("fail") && matches!(exit_status, Some(5 | 10))));
     if reported_finding_failure {
-=======
-    if findings > 0
-        && payload_status(payload) == Some("fail")
-        && matches!(exit_status, Some(5 | 10))
-    {
->>>>>>> origin/develop
         return ScLintOutcome::Findings;
     }
     if payload.get("ok").and_then(Value::as_bool) == Some(true) && exit_status == Some(0) {
@@ -426,17 +414,6 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
 }
 
 fn payload_findings(payload: &Value) -> Option<&Value> {
-<<<<<<< HEAD
-    payload.pointer("/data/findings").or_else(|| {
-        (payload.pointer("/error/code").and_then(Value::as_str) == Some("CLI.BACKEND_EXEC_FAILURE")
-            && payload
-                .pointer("/error/details/status")
-                .and_then(Value::as_str)
-                == Some("fail"))
-        .then(|| payload.pointer("/error/details/findings"))
-        .flatten()
-    })
-=======
     payload
         .get("data")
         .and_then(|data| data.get("findings"))
@@ -459,7 +436,6 @@ fn payload_status(payload: &Value) -> Option<&str> {
                 .and_then(|details| details.get("status"))
         })
         .and_then(Value::as_str)
->>>>>>> origin/develop
 }
 
 fn normalize_diagnostics(mut diagnostics: Value, outcome: ScLintOutcome) -> Value {
