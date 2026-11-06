@@ -243,7 +243,7 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 | `BEADS_GRAPH_CONFLICT` | execution | a planned bead already exists with different content; existing beads are never edited | graph planning |
 | `BEADS_GRAPH_EDGE_CONFLICT` | execution | an existing edge has a different type than requested | graph planning |
 | `BEADS_GRAPH_EDGE_MISSING` | execution | planned edges are absent; the receipt carries `missing_edges` and recovery `bd dep add` commands | graph planning, attach |
-| `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` | execution | the installed bd lacks a qualified mixed-update transaction with ownership preconditions; no mutation is attempted | advanced graph planning, attach |
+| `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` | execution | advanced `attach`/`pour` unconditionally refuses before mutation when a create plan contains an existing node or a no-op plan adds an edge; the mixed update is not supported | advanced graph planning, attach |
 | `BEADS_GRAPH_READ_FAILED` | execution | reading existing beads with `bd show` failed; large id sets are read in batches | graph planning |
 | `BEADS_GRAPH_APPLY_FAILED` | execution | `bd create --graph` failed; nothing was written | graph apply |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | execution | `bd create --graph` exited 0 but its response cannot be consumed, so beads may exist; reconcile with `bd show` before pouring again | graph apply |
@@ -252,8 +252,13 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 
 ### Phase V planned graph capability refusal
 
-`BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` is planned for FR-24.34–35 under the
-ADR-0023 advanced-mode amendment. It is an execution refusal (CLI exit 2)
-before any write when the selected bd binary cannot provide the required
-atomic graph-addition capability. V3 implements and tests the code; this
-entry is a contract, not a claim that the current binary emits it.
+`BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` is the shipped execution refusal
+(CLI exit 2) for two advanced `attach`/`pour` plan shapes: a `Create` plan
+containing any existing node, and a `Noop` plan containing an edge marked
+`Add`. The refusal is unconditional and happens before any write; the current
+implementation does not probe the selected bd binary for mixed-update
+capability. Fresh creates and exact replays are unaffected. Mixed graph
+updates requiring a qualified atomic transaction with ownership preconditions
+remain undelivered; this refusal is not evidence that such updates are
+supported. FR-24.34–35 and the ADR-0023 advanced-mode amendment remain the
+required contract.
