@@ -2511,8 +2511,8 @@ review round or duplicate implementation obligation.
 | ANC-003 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
 | ANC-004 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
 | ANC-014 | FR-26 | V8 | Carried: V4 supplies the live model exporter; V8 supplies the external docli generator. |
-| ANC-015 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. |
-| ANC-016 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. |
+| ANC-015 | FR-26 | V8 | Carried: V8 owns the declared consumer-preflight check, run by Release Preflight through the existing sc-publish extension, and its current/stale tests; individual publish workflows are not mechanically gated; V6 consumes them on final references. |
+| ANC-016 | FR-26 | V8 | Carried: V8 owns the declared consumer-preflight check, run by Release Preflight through the existing sc-publish extension, and its current/stale tests; individual publish workflows are not mechanically gated; V6 consumes them on final references. |
 | ANC-023 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
 | ANC-031 | FR-27 | V4 | Carried: codespell passes; legitimate project terms attributed/allowlisted. |
 | ANC-033 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
