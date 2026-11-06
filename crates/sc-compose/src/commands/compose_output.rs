@@ -18,8 +18,13 @@ pub(super) fn emit_render_output(
     checked_output: &sc_composer::CheckedOutput,
     warnings: Vec<Diagnostic>,
     render_check: Option<sc_composer::RenderCheckReport>,
+    includes: bool,
 ) -> Result<(), CommandError> {
     let rendered_text = checked_output.body();
+    let add_stdout_newline = !(includes
+        && request.guidance_block.as_deref().is_none_or(str::is_empty)
+        && request.user_prompt.as_deref().is_none_or(str::is_empty)
+        && rendered_text.ends_with("\r\n"));
     let output_path: Option<&Path> = args.output.as_deref().or(args.append.as_deref());
     let derived_path = derived_output_path(request, output_path);
     let would_change = if args.dry_run {
@@ -36,7 +41,7 @@ pub(super) fn emit_render_output(
     } else {
         // Plain stdout uses println!, so the logical render target includes
         // its trailing newline even though the JSON body does not.
-        Some(rendered_text.len() + 1)
+        Some(rendered_text.len() + usize::from(add_stdout_newline))
     };
 
     if args.json {
@@ -83,14 +88,27 @@ pub(super) fn emit_render_output(
         println!();
         println!("{rendered_text}");
     } else {
-        let mut stdout = std::io::stdout().lock();
-        checked_output
-            .emit(&mut stdout)
-            .and_then(|()| writeln!(stdout))
-            .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+        emit_stdout(checked_output, add_stdout_newline)?;
     }
 
     Ok(())
+}
+
+fn emit_stdout(
+    checked_output: &sc_composer::CheckedOutput,
+    add_newline: bool,
+) -> Result<(), CommandError> {
+    let mut stdout = std::io::stdout().lock();
+    checked_output
+        .emit(&mut stdout)
+        .and_then(|()| {
+            if add_newline {
+                writeln!(stdout)
+            } else {
+                Ok(())
+            }
+        })
+        .map_err(|error| CommandError::render_write(anyhow!(error)))
 }
 
 fn write_checked_output(

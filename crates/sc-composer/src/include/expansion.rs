@@ -50,6 +50,20 @@ pub(super) struct ExpandedText {
 }
 
 impl ExpandedText {
+    fn push_include(&mut self, child: Self, line: &str, chain: &SourceChain, line_number: usize) {
+        let needs_terminator = !child.text.ends_with(['\n', '\r']);
+        self.push_expanded(child);
+        if needs_terminator {
+            let terminator = if line.ends_with("\r\n") {
+                "\r\n"
+            } else if line.ends_with('\n') {
+                "\n"
+            } else {
+                ""
+            };
+            self.push_source(terminator, chain, line_number);
+        }
+    }
     fn at_line_start(&self) -> bool {
         self.text.is_empty() || self.text.ends_with('\n')
     }
@@ -224,7 +238,12 @@ impl ExpansionContext<'_> {
             let line_number = body_first_line + index;
             match parse_include_directive(line) {
                 Some(IncludeDirective::Static(target)) if is_static_target(&target) => {
-                    expanded.push_expanded(self.expand_candidate(&target, path)?);
+                    expanded.push_include(
+                        self.expand_candidate(&target, path)?,
+                        line,
+                        chain,
+                        line_number,
+                    );
                 }
                 Some(IncludeDirective::Conditional {
                     condition,
@@ -244,9 +263,9 @@ impl ExpansionContext<'_> {
                         path,
                     )?;
                     expanded.push_source(&format!("{{% if {condition} %}}"), chain, line_number);
-                    expanded.push_expanded(first);
+                    expanded.push_include(first, line, chain, line_number);
                     expanded.push_source("{% else %}", chain, line_number);
-                    expanded.push_expanded(second);
+                    expanded.push_include(second, line, chain, line_number);
                     expanded.push_source("{% endif %}", chain, line_number);
                 }
                 Some(IncludeDirective::Dynamic | IncludeDirective::Static(_)) | None

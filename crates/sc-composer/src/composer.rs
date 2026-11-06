@@ -127,6 +127,7 @@ fn compose_expanded(
     let locate = |error: crate::RenderError| {
         error.located_in(&expanded, &resolved_path, &request.root, &request.policy)
     };
+    let preserve_crlf = expanded.resolved_files.len() > 1 && expanded.text.ends_with("\r\n");
     let (rendered_text, failing_pass) = if parsed.passes().len() > 1 {
         let contexts = build_pass_contexts(
             parsed.passes(),
@@ -144,16 +145,20 @@ fn compose_expanded(
                 request.policy.json_escape_mode,
                 parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
             ),
-            Some(OutputFormat::from_template_path(
-                &validation_report.resolve_result.resolved_path,
-            )),
+            (
+                Some(OutputFormat::from_template_path(
+                    &validation_report.resolve_result.resolved_path,
+                )),
+                preserve_crlf,
+            ),
         )?;
         (rendered.body, rendered.failing_pass)
     } else {
         let renderer = Renderer::with_json_escape_mode(crate::resolve_json_escape_mode(
             request.policy.json_escape_mode,
             parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
-        ));
+        ))
+        .preserve_trailing_newline(preserve_crlf);
         (
             renderer
                 .render_named(
@@ -175,11 +180,7 @@ fn compose_expanded(
         )
     };
     report_rendered_bytes(observer, rendered_text.len());
-    let rendered_text = assemble_output(
-        &rendered_text,
-        request.guidance_block.as_deref(),
-        request.user_prompt.as_deref(),
-    );
+    let rendered_text = assemble_composed_output(&rendered_text, request, preserve_crlf);
 
     Ok(ComposeResult {
         rendered_text,
@@ -190,6 +191,26 @@ fn compose_expanded(
         warnings: validation_outcome.warnings,
         composition_fingerprint: expanded.composition_fingerprint,
     })
+}
+
+fn assemble_composed_output(
+    rendered_text: &str,
+    request: &ComposeRequest,
+    preserve_crlf: bool,
+) -> String {
+    if preserve_crlf
+        && rendered_text.ends_with("\r\n")
+        && request.guidance_block.as_deref().is_none_or(str::is_empty)
+        && request.user_prompt.as_deref().is_none_or(str::is_empty)
+    {
+        format!("{}\r\n", rendered_text.trim_end())
+    } else {
+        assemble_output(
+            rendered_text,
+            request.guidance_block.as_deref(),
+            request.user_prompt.as_deref(),
+        )
+    }
 }
 
 fn report_rendered_bytes(observer: &mut dyn CompositionObserver, count: usize) {
@@ -230,7 +251,7 @@ pub fn render_all(
         &mut observer,
         &|error| error,
         crate::JsonEscapeMode::Auto,
-        None,
+        (None, false),
     )
     .map(|rendered| rendered.body)
 }
@@ -385,8 +406,9 @@ fn render_all_with_observer(
     observer: &mut dyn CompositionObserver,
     locate_first_pass: &dyn Fn(crate::RenderError) -> crate::RenderError,
     json_escape_mode: crate::JsonEscapeMode,
-    output_format: Option<OutputFormat>,
+    output_options: (Option<OutputFormat>, bool),
 ) -> Result<PassRenderResult, ComposeError> {
+    let (output_format, preserve_crlf) = output_options;
     if contexts.len() != parsed.passes().len() {
         return Err(ConfigError::new(
             DiagnosticCode::ErrConfigParse,
@@ -421,16 +443,10 @@ fn render_all_with_observer(
         let open = "{".repeat(brace_count);
         let close = "}".repeat(brace_count);
         let renderer =
-            Renderer::with_delimiters_and_json_escape_mode(&open, &close, json_escape_mode)?;
+            Renderer::with_delimiters_and_json_escape_mode(&open, &close, json_escape_mode)?
+                .preserve_trailing_newline(preserve_crlf);
         let protected_body = protect_higher_braces(&body, brace_count);
-        let mut merged_variables = frontmatter.defaults().clone();
-        for (name, value) in variables {
-            merged_variables.insert(name.clone(), value.clone());
-        }
-        let render_context = merged_variables
-            .iter()
-            .map(|(name, value)| (name.to_string(), value.clone()))
-            .collect::<BTreeMap<_, _>>();
+        let render_context = pass_render_context(frontmatter, variables);
 
         observer.on_pass_start(&PassStartEvent::new(header_pass_number));
         body = renderer
@@ -461,6 +477,20 @@ fn render_all_with_observer(
     }
 
     Ok(PassRenderResult { body, failing_pass })
+}
+
+fn pass_render_context(
+    frontmatter: &Frontmatter,
+    variables: &BTreeMap<VariableName, InputValue>,
+) -> BTreeMap<String, InputValue> {
+    let mut merged = frontmatter.defaults().clone();
+    for (name, value) in variables {
+        merged.insert(name.clone(), value.clone());
+    }
+    merged
+        .into_iter()
+        .map(|(name, value)| (name.to_string(), value))
+        .collect()
 }
 
 struct PassRenderResult {

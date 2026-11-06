@@ -17,20 +17,19 @@ Each message is cited by its uuid and UTC time.
 | b059 (part of D1): include escape is the correct error | explicit user ruling | `60cfdb6b`, 2026-11-06T22:02:39Z: "escape sounds like the correct error to return" |
 | D1 rule: a boundary violation is reported in preference to not-found | explicit user ruling | `8251bf87`, 2026-11-06T22:08:22Z: "a boundary violation is a more specific error than what the agent expected" |
 | D3, D7, D8 (parent line endings) | explicit user approval | `610cd975`, 2026-11-06T22:11:59Z: "agree" to each |
+| D8 trailing line break | explicit user approval | session `9ec5e645`, message `370d1803-5f65-4489-bbf6-6d66d8d435e3`, 2026-11-06T22:58:33.362Z: "D8 yes" |
 | D9 | explicit user approval | `610cd975`: "bug --> Multi-pass" |
 | D2, D4, D5, D6, D10, D11, D12, and the D8 points other than line endings | delegated contract decision | `8251bf87`: "We need to make appropriate decisions, create req/adr to cover any ambiguity and fix any issues"; `7bf5ef58`, 2026-11-06T22:06:35Z: "There should be no inconclusive results" |
 
 Approval of the FR-24.2 exceptions:
 
-- **D7, D8 line endings, D9:** the user explicitly approved each behaviour
+- **D7, D8 line endings and trailing line break, D9:** the user explicitly approved each behaviour
   change. That approval is recorded as the exception approval.
 - **D4 (`--output` no longer echoes to stdout):** this is a delegated
   decision. The user has not explicitly approved its FR-24.2 exception, and
   FR-24.2 says adding an entry requires user approval. The D4 fix must not add
   its `approved-exceptions.json` entry until that explicit approval is
   recorded.
-- **D8 trailing-line-break point:** it changes output, and its exception
-  approval is likewise still pending.
 
 ## Context
 

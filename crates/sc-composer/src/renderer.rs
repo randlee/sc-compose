@@ -437,6 +437,11 @@ impl Renderer {
         })
     }
 
+    pub(crate) fn preserve_trailing_newline(mut self, preserve: bool) -> Self {
+        self.env.set_keep_trailing_newline(preserve);
+        self
+    }
+
     /// Refuse to print an undefined value instead of rendering it empty.
     ///
     /// Tests such as `{% if name %}` and `name is defined` still see an
