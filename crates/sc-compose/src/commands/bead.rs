@@ -36,43 +36,10 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         },
         strict: args.strict,
     };
-    let mut staging = None;
-    let mut request = if let Some(request_path) = &args.request {
-        let input = match fs::read_to_string(request_path) {
-            Ok(input) => input,
-            Err(error) => {
-                let error = BeadComposeError::RequestReadFailed {
-                    path: request_path.clone(),
-                    source: error,
-                };
-                return print_bead_error(&error, operation, json);
-            }
-        };
-        match parse_request_for_operation(&input, operation) {
-            Ok(RequestParseOutcome::Ready(request)) => request,
-            Ok(RequestParseOutcome::Refused(mut receipt)) => {
-                receipt.receipt.operation = operation;
-                return print_refused_receipt(&receipt, json, &[]);
-            }
-            // An identifier error that survives parsing is outside the attach
-            // family (attach identifiers become refused receipts): ADR-0023 calls
-            // it a request error, exit 3, keeping the native typed error.
-            Err(error @ BeadComposeError::GraphIdInvalid { .. }) => {
-                return print_bead_error_with_exit(&error, operation, json, exit_codes::USAGE_FAIL);
-            }
-            Err(error) => return print_bead_error(&error, operation, json),
-        }
-    } else {
-        match direct_pour_request(args, operation) {
-            Ok((request, dir)) => {
-                staging = Some(dir);
-                request
-            }
-            Err(error) => return print_bead_error(&error, operation, json),
-        }
+    let (request, staging) = match request_from_args(args, operation, json) {
+        Ok(prepared) => prepared,
+        Err(response) => return response,
     };
-    request.operation = operation;
-
     let mut diagnostics = Vec::new();
     let mut refusal_diagnostic = None;
     let result =
@@ -106,6 +73,55 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         }
         Err(error) => print_bead_error(&error, operation, json),
     }
+}
+
+fn request_from_args(
+    args: &BeadRequestArgs,
+    operation: BeadOperation,
+    json: bool,
+) -> Result<(BeadComposeRequest, Option<DirectStaging>), Result<i32, CommandError>> {
+    let mut staging = None;
+    let mut request = if let Some(request_path) = &args.request {
+        let input = match fs::read_to_string(request_path) {
+            Ok(input) => input,
+            Err(error) => {
+                let error = BeadComposeError::RequestReadFailed {
+                    path: request_path.clone(),
+                    source: error,
+                };
+                return Err(print_bead_error(&error, operation, json));
+            }
+        };
+        match parse_request_for_operation(&input, operation) {
+            Ok(RequestParseOutcome::Ready(request)) => request,
+            Ok(RequestParseOutcome::Refused(mut receipt)) => {
+                receipt.receipt.operation = operation;
+                return Err(print_refused_receipt(&receipt, json, &[]));
+            }
+            // An identifier error that survives parsing is outside the attach
+            // family (attach identifiers become refused receipts): ADR-0023 calls
+            // it a request error, exit 3, keeping the native typed error.
+            Err(error @ BeadComposeError::GraphIdInvalid { .. }) => {
+                return Err(print_bead_error_with_exit(
+                    &error,
+                    operation,
+                    json,
+                    exit_codes::USAGE_FAIL,
+                ));
+            }
+            Err(error) => return Err(print_bead_error(&error, operation, json)),
+        }
+    } else {
+        match direct_pour_request(args, operation) {
+            Ok((request, dir)) => {
+                staging = Some(dir);
+                request
+            }
+            Err(error) => return Err(print_bead_error(&error, operation, json)),
+        }
+    };
+    request.operation = operation;
+    Ok((request, staging))
 }
 
 static STAGING_SEQUENCE: AtomicU64 = AtomicU64::new(0);
