@@ -449,10 +449,6 @@ fn graph_plan_path_error(error: BeadComposeError) -> BeadComposeError {
         BeadComposeError::OutputPathInvalid { path, rule } => {
             BeadComposeError::GraphPlanPathInvalid { path, rule }
         }
-        BeadComposeError::OutputPathSymlink { path } => BeadComposeError::GraphPlanPathInvalid {
-            path,
-            rule: "graph plan destination must not be a symbolic link".into(),
-        },
         error => error,
     }
 }
