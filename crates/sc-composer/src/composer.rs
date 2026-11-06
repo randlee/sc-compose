@@ -256,7 +256,12 @@ pub fn protect_higher_braces(text: &str, brace_count: usize) -> String {
         result.push_str(&text[cursor..absolute_start]);
         result.push_str("{% raw %}");
         result.push_str(&text[absolute_start..absolute_end]);
-        result.push_str("{% endraw %}");
+        // The synthetic block must not consume the original following newline.
+        if text[absolute_end..].starts_with('\n') || text[absolute_end..].starts_with("\r\n") {
+            result.push_str("{% endraw +%}");
+        } else {
+            result.push_str("{% endraw %}");
+        }
         cursor = absolute_end;
     }
 
