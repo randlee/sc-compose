@@ -7,6 +7,10 @@ use serde_json::json;
 
 use crate::support::{TempFixture, sc_compose, write_file};
 
+#[cfg(unix)]
+#[path = "../../../test-support/fake_exec.rs"]
+pub(crate) mod fake_exec;
+
 const BEADS_SCHEMA: &str = "sc-compose/beads/v1";
 
 #[test]
@@ -120,24 +124,16 @@ fn initialize_beads_workspace(root: &Path, bd: &Path) {
 
 #[cfg(unix)]
 fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathBuf) {
-    use std::os::unix::fs::PermissionsExt;
-
     let trace = root.join("bd.trace");
     let executable = root.join("fake-bd");
-    fs::write(
+    fake_exec::install(
         &executable,
-        format!(
+        &format!(
             "#!/bin/sh\nprintf '%s\\n' \"$1\" >> '{}'\nif [ \"$1\" = cook ]; then exit {cook_exit}; fi\nif [ \"$1\" = where ]; then printf '%s' '{{\"path\":\"{}\"}}'; fi\nif [ \"$1\" = mol ]; then exit {pour_exit}; fi\nexit 0\n",
             trace.display(),
             root.join(".beads").display()
         ),
-    )
-    .expect("write fake bd");
-    let mut permissions = fs::metadata(&executable)
-        .expect("fake bd metadata")
-        .permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&executable, permissions).expect("make fake bd executable");
+    );
     (executable, trace)
 }
 
