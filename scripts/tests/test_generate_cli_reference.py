@@ -143,7 +143,7 @@ class ConsumerPreflightTests(unittest.TestCase):
     MANIFEST = ROOT / "release" / "publish-preflight.toml"
     WRAPPER_CHECK = "python3 scripts/generate_cli_reference.py --check --install-docli"
 
-    def test_every_publish_path_declares_docli_check(self):
+    def test_publish_families_and_consumer_preflight_entrypoint(self):
         scripts = ROOT / ".github" / "scripts"
         manifest_path = ROOT / "release" / "publish-artifacts.toml"
         plan = json.loads(
@@ -160,19 +160,35 @@ class ConsumerPreflightTests(unittest.TestCase):
         active = {n for n in contracts if n != "npm"}  # npm: no npm_packages in this manifest
         self.assertEqual(paths, {"crates_io", "github_release", "pypi", "homebrew", "winget", "scoop"})
         self.assertEqual(paths, active)
+        # Configured publication families and the raw workflow_dispatch workflow that
+        # publishes each. Existence of these files proves nothing about gating, so the
+        # assertions below read what each workflow actually does.
         publish_yml = {
             "crates_io": "release.yml",
             "github_release": "release.yml",
             **{n: f"{n}-publish.yml" for n in ("pypi", "homebrew", "winget", "scoop")},
         }
+        workflows = ROOT / ".github" / "workflows"
+        runner = "run-consumer-preflight.sh"
         for name in sorted(paths):
             with self.subTest(publish_path=name):
-                self.assertTrue((ROOT / ".github" / "workflows" / publish_yml[name]).is_file())
-        # The kit gates every path with the one Release Preflight workflow (a
-        # dispatched gate that runs before the root release workflow, not a `needs`
-        # edge). It must run the installed consumer runner and record its outcome
-        # in the final deny summary, so a failing check blocks the whole gate.
-        preflight = (ROOT / ".github" / "workflows" / "release-preflight.yml").read_text(encoding="utf-8")
+                text = (workflows / publish_yml[name]).read_text(encoding="utf-8")
+                self.assertRegex(text, r"(?m)^on:\n  workflow_dispatch:", "publication is a raw workflow_dispatch entrypoint")
+                # Known limitation of the existing sc-publish seam, recorded as a
+                # phase-end decision (not a pass): no publication workflow runs the
+                # consumer runner or needs a job that does. Adding such a gate would
+                # change shared-kit code, which the user rejected (sc-publish PR 159).
+                self.assertNotIn(runner, text, f"{publish_yml[name]} now references the runner: update this test and the phase-end decision")
+        # The one real consumer entrypoint is the dispatched Release Preflight
+        # workflow: it is the only workflow that runs the runner, and it is
+        # workflow_dispatch-only, so no publication workflow can `needs` it. It
+        # runs the installed consumer runner and records the outcome in the final
+        # deny summary, so a failing check blocks that gate's verdict.
+        referencing = sorted(f.name for f in workflows.glob("*.yml") if runner in f.read_text(encoding="utf-8"))
+        self.assertEqual(referencing, ["release-preflight.yml"])
+        preflight = (workflows / "release-preflight.yml").read_text(encoding="utf-8")
+        self.assertRegex(preflight, r"(?m)^on:\n  workflow_dispatch:\n    inputs:")
+        self.assertNotRegex(preflight, r"(?m)^  (push|pull_request|workflow_call|schedule):")
         self.assertIn("id: consumer_preflight", preflight)
         self.assertIn("run: bash .github/scripts/run-consumer-preflight.sh", preflight)
         self.assertIn('record consumer-preflight "${CONSUMER_PREFLIGHT}"', preflight)
