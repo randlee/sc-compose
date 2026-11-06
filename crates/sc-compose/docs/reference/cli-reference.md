@@ -27,78 +27,120 @@ Usage: sc-compose bead <COMMAND>
 Render, validate, and persist authorized Beads graph attachment
 
 ```text
-Usage: sc-compose bead attach [OPTIONS] --request <JSON>
+Usage: sc-compose bead attach [OPTIONS] [FORMULA]
 ```
+
+**Arguments:**
+
+- `formula` — Formula template path or registry name for direct pour
 
 **Options:**
 
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
-- `--request <JSON>` *(required)* — Complete sc-compose/beads/v1 request file
+- `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
+- `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead pour`
 
 Render, validate, and persist an authorized Beads formula pour
 
 ```text
-Usage: sc-compose bead pour [OPTIONS] --request <JSON>
+Usage: sc-compose bead pour [OPTIONS] [FORMULA]
 ```
+
+**Arguments:**
+
+- `formula` — Formula template path or registry name for direct pour
 
 **Options:**
 
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
-- `--request <JSON>` *(required)* — Complete sc-compose/beads/v1 request file
+- `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
+- `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead preview-attach`
 
 Render, validate, and preview Beads graph attachment
 
 ```text
-Usage: sc-compose bead preview-attach [OPTIONS] --request <JSON>
+Usage: sc-compose bead preview-attach [OPTIONS] [FORMULA]
 ```
+
+**Arguments:**
+
+- `formula` — Formula template path or registry name for direct pour
 
 **Options:**
 
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
-- `--request <JSON>` *(required)* — Complete sc-compose/beads/v1 request file
+- `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
+- `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead preview-pour`
 
 Render, validate, and preview a Beads formula pour
 
 ```text
-Usage: sc-compose bead preview-pour [OPTIONS] --request <JSON>
+Usage: sc-compose bead preview-pour [OPTIONS] [FORMULA]
 ```
+
+**Arguments:**
+
+- `formula` — Formula template path or registry name for direct pour
 
 **Options:**
 
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
-- `--request <JSON>` *(required)* — Complete sc-compose/beads/v1 request file
+- `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
+- `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead render`
 
 Render a Beads formula request without invoking bd
 
 ```text
-Usage: sc-compose bead render [OPTIONS] --request <JSON>
+Usage: sc-compose bead render [OPTIONS] [FORMULA]
 ```
+
+**Arguments:**
+
+- `formula` — Formula template path or registry name for direct pour
 
 **Options:**
 
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
-- `--request <JSON>` *(required)* — Complete sc-compose/beads/v1 request file
+- `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
+- `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead validate`
 
 Render and validate a Beads formula request
 
 ```text
-Usage: sc-compose bead validate [OPTIONS] --request <JSON>
+Usage: sc-compose bead validate [OPTIONS] [FORMULA]
 ```
+
+**Arguments:**
+
+- `formula` — Formula template path or registry name for direct pour
 
 **Options:**
 
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
-- `--request <JSON>` *(required)* — Complete sc-compose/beads/v1 request file
+- `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
+- `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--var <VARS>` — Supply a direct pour variable as key=value
 
 ### `sc-compose examples`
 
