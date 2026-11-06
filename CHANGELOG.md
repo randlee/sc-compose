@@ -4,8 +4,63 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Candidate for 1.8.0. Workspace crates and Python packages carry version
+1.8.0. The release is not published, and production publishing happens after
+Phase V. The qualifying full platform matrix and the supported release
+preflight have not yet run on the final candidate. The platform and wheel
+entries below describe declared and locally checked configuration, not
+qualified deliverables.
+
+### Added
+
+- `sc-compose bead --render-by <sc-compose|bd>` selects the formula renderer
+  on every `bead` subcommand. The Rust crate and Python package offer the same
+  selection: Python `render_by=` keyword, Rust `BeadRenderBy` with the
+  `execute_bead_request_with_options*` functions. The existing request layouts
+  are unchanged.
+  - The default, `sc-compose`, renders both `{{ name }}` and `{{{ name }}}`
+    once; caller values that contain delimiters stay data.
+  - `--render-by bd` keeps the 1.7.0 behaviour: triple braces are sc-compose
+    expressions, and double braces are left for bd.
+- `sc-compose bead pour FORMULA [--var KEY=VALUE ...]`: a direct pour form that
+  takes a formula path or registry name. The command supplies
+  `CreatePersistentBeads` itself. The JSON request form still requires
+  `pour_authorization` explicitly.
+- `--strict` (Python `strict=`) turns on undeclared-variable validation for
+  templates that declare a schema. It is off by default. Templates without
+  frontmatter or a schema render as in 1.7.0, and there is no strict-only
+  default (#783).
+- Advanced-renderer graph beads record stable provenance, which ownership
+  checks use on re-runs.
+- `sc-sha-go` declares six native target coordinates and canonical release
+  staging. The windows/amd64 and windows/arm64 GNU cross-checks run through
+  `cargo xwin` as a compile-time check only, not an MSVC validation.
+- Python wheels are declared for six runner coordinates for each of
+  `sc-compose`, `sc-composer-beads` and `sc-sha`. The wheels are abi3-py39
+  with `requires-python >=3.9`; Windows ARM64 requires 3.11+.
+- `sc-compose reference [--json]` exports the live CLI reference model.
+  Routine CI checks that the generated CLI reference is up to date.
+
+### Known limitations
+
+- **Mixed graph updates are refused.** With the default renderer, `pour` and
+  `attach` refuse a run that would combine planned additions with
+  already-existing operation-owned beads, or add edges to an otherwise
+  unchanged graph. The refusal is `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`, and
+  it happens before any write, because no atomic bd update with ownership
+  preconditions is qualified. Fresh creates and exact replays are unaffected.
+  Automatic declared-edge additions between existing beads are therefore not
+  delivered in this candidate.
+- sc-compose does not serialize concurrent pours or attaches. Under a race, bd
+  decides the committed state.
+- Full-platform qualification (30 cells) is pending the single V7 run. Go
+  linking and running on the six coordinates is a manual preflight step.
+
 ### Fixed
 
+- Bead identifiers that contain control characters are refused with
+  `BEADS_GRAPH_ID_INVALID`. This covers constructors, the request `parent`,
+  and `bead:` relation endpoints.
 - Python wheel render entry points now reject malformed JSON output in line
   with the CLI (#787). Callers that previously received malformed JSON from
   `compose`, `compose_file`, or `render_loaded_template` now receive
