@@ -68,6 +68,11 @@ qualified deliverables.
 
 ### Changed
 
+- The existing Rust `execute_bead_request` entrypoint now defaults to
+  `BeadRenderBy::ScCompose` instead of v1.7.0's bd-owned rendering. To retain
+  the v1.7.0 behavior, use an existing `execute_bead_request_with_options*`
+  entrypoint with `BeadExecutionOptions { render_by: BeadRenderBy::Bd,
+  strict: false }`. Request layouts remain unchanged.
 - Replaced archived `serde_yaml` 0.9 (RUSTSEC-2024-0449) with the maintained
   `yaml_serde` 0.10.7 fork under the same `serde_yaml` alias. Parsed values,
   errors, and re-serialization were verified identical on a 2,056-case
