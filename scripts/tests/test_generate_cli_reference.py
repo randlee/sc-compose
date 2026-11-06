@@ -142,6 +142,20 @@ class ConsumerPreflightTests(unittest.TestCase):
     RUNNER = ROOT / ".github" / "scripts" / "run-consumer-preflight.sh"
     MANIFEST = ROOT / "release" / "publish-preflight.toml"
     WRAPPER_CHECK = "python3 scripts/generate_cli_reference.py --check --install-docli"
+    # Every configured consumer preflight check, in declaration order: the docli
+    # wrapper first, then the four checks PR941 restored from the pre-PR866
+    # release preflight (also pinned by test_publish_preflight_checks.py).
+    EXPECTED_CHECKS = [
+        ("cli-reference-fresh", WRAPPER_CHECK),
+        ("workspace-fmt", "cargo fmt --all --check"),
+        ("workspace-clippy", "cargo clippy --workspace --all-targets --all-features -- -D warnings"),
+        ("workspace-tests", "cargo test --workspace"),
+        (
+            "go-native-version-lockstep",
+            "python3 .github/scripts/go_native_module.py verify-version-lockstep "
+            "--config release/go-native-module.toml --workspace-toml Cargo.toml",
+        ),
+    ]
 
     def test_publish_families_and_consumer_preflight_entrypoint(self):
         scripts = ROOT / ".github" / "scripts"
@@ -193,11 +207,12 @@ class ConsumerPreflightTests(unittest.TestCase):
         self.assertIn("run: bash .github/scripts/run-consumer-preflight.sh", preflight)
         self.assertIn('record consumer-preflight "${CONSUMER_PREFLIGHT}"', preflight)
         self.assertIn("CONSUMER_PREFLIGHT: ${{ steps.consumer_preflight.outcome }}", preflight)
-        # The check itself is declared once, through preflight_checks.
+        # Each check is declared once, through preflight_checks, and the rendered
+        # manifest carries exactly the same ordered checks as the install input.
         manifest = tomllib.loads(self.MANIFEST.read_text(encoding="utf-8"))
-        self.assertEqual({c["id"]: c["run"] for c in manifest["checks"]}, {"cli-reference-fresh": self.WRAPPER_CHECK})
+        self.assertEqual([(c["id"], c["run"]) for c in manifest["checks"]], self.EXPECTED_CHECKS)
         install = json.loads((ROOT / "release" / "sc-publish-install.json").read_text(encoding="utf-8"))
-        self.assertEqual([c["run"] for c in install["preflight_checks"]], [self.WRAPPER_CHECK])
+        self.assertEqual([(c["id"], c["run"]) for c in install["preflight_checks"]], self.EXPECTED_CHECKS)
         # The kit's optional docli object is intentionally unused: docli runs
         # through preflight_checks so the wrapper owns pin enforcement.
         self.assertNotIn("docli", manifest)
@@ -219,8 +234,11 @@ class ConsumerPreflightTests(unittest.TestCase):
             (stage / "release").mkdir()
             shutil.copy(self.RUNNER, stage / ".github" / "scripts" / "run-consumer-preflight.sh")
             declared = tomllib.loads(self.MANIFEST.read_text(encoding="utf-8"))["checks"]
-            self.assertEqual([c["run"] for c in declared], [self.WRAPPER_CHECK])
-            # Same declared check, pointed at controlled model and outputs.
+            self.assertEqual([(c["id"], c["run"]) for c in declared], self.EXPECTED_CHECKS)
+            # Only the declared docli check, pointed at controlled model and
+            # outputs: the stale-reference refusal is what this test exercises,
+            # and the restored cargo/Go checks are covered by
+            # test_publish_preflight_checks.py.
             command = (
                 f"{sys.executable} {SCRIPT} --check --output-dir {out} --model-json {MODEL}"
             )
