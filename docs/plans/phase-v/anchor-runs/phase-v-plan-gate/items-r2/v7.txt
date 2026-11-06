@@ -1,0 +1,27 @@
+# v-7: final-recovery-validation
+
+## Description
+
+Agent level: normal.
+### Deliverables
+1. Compose/audit the completed candidate and resolve only owned final integration issues. Route an out-of-fence defect to its owning sprint or amend the fence before edits. V3 closes Beads behavior, V4 the migrated/lint-fixed baseline, V5 ABI adapters, V8 reusable external tooling, V9 Go adapter, and V6 real artifact/tool composition.
+2. Run final workspace/cross-platform checks, the same v1.7.0 byte command and preserved Beads fuzz/isolated-bd cases. Map every required historical input honestly; missing cases do not count as coverage. Keep deterministic inputs and unchanged assertions.
+3. Qualify the final candidate through V6's implemented full matrix/preflight under the phase root's single evidence-validity rule. Verify trusted run identity and retained files against the exact staged candidate.
+4. Audit original PR outcomes and replacement ancestry/retained behavior against the final candidate under the phase root's single disposition rule. Resolve outstanding gaps without a new ledger.
+5. Update release notes for actual net behavior and perform the one all-change phase-ending review and authorized atomic phase landing. Production publication remains separate.
+Final regression scope includes every applicable V3 FR-24.13–36 acceptance case, both real orchestration formulas with stored-field readback, legacy error/argv/byte compatibility, and the exact 229-template corpus through validate, render and render-with-variables without --strict. Verify the historical fuzz map (including missing FUZZ-171-10 as a blocker) and only approved D7 diagnostic exceptions. Release notes prepare 1.8.0; do not publish.
+FR-28 version preparation owner: before obtaining the qualifying final run, set workspace/package/distribution release versions to 1.8.0, refresh lockfile and supported rendered manifests, and verify Go version lockstep. Own Cargo.toml, all crate/binding Cargo.toml manifests, the three binding pyproject.toml files, release/go-native-module.toml and consumer publish inputs/manifests. Versionless Go config remains versionless; no unsupported version key is added. Generated manifest changes use the canonical installer. No production publish is performed.
+
+## Acceptance criteria
+
+The exact final candidate passes all required validation and the qualifying full matrix/preflight after its last change. Artifact/version/HEAD and digests agree at staging with no rebuild. All named retained regressions have honest results. Every scoped original PR has a completed, truthful disposition and its retained behavior/commit survives in the final candidate; unresolved integration/QA blocks closure. One whole-phase review passes before authorized landing.
+
+### Required Validation
+cargo build --workspace; cargo test --workspace; cargo clippy --all-targets --all-features -- -D warnings; cargo fmt --all -- --check.
+- just check xwin; just clippy xwin (all configured scopes); require Linux/macOS/Windows and declared ARM64 CI on the final head, not historical layer results.
+- python3 scripts/check_render_regressions.py --baseline-ref f4fda4b9 --check; python3 scripts/generate_cli_reference.py --check.
+- BD_EXECUTABLE="$(command -v bd)" cargo test -p sc-composer-beads --test graph_bd; run the mapped FUZZ-171/T/D/include-default cases through V3's existing tests.
+- When the root evidence rule requires a run, dispatch: gh workflow run release-preflight.yml --ref "$CANDIDATE_BRANCH" -f version="$VERSION" -f run_by_agent=publisher, AFTER recording the final SHA; require V6's real 30-cell matrix, consumer preflight and trusted digest results on that SHA. 
+- For each retained source-PR replacement: git merge-base --is-ancestor "$REPLACEMENT_COMMIT" "$FINAL_CANDIDATE_SHA" and review final retained behavior/tests. Apply the root disposition rule to a failed check.
+The final regression run executes the owned V3 behavioral suites, the named FUZZ-171/T/D/include-default cases and 229-template differential. Missing required inputs or zero executed tests block a complete-coverage claim. Whole-phase requirements include FR-24.36 and the complete carry-forward table; unrelated implementation obligations are not duplicated in this closing audit.
+Validation prerequisites: V3 creates scripts/check_render_regressions.py and fixed goldens/corpus fixtures; V8 creates scripts/generate_cli_reference.py and real preflight tests; V4 repairs/configures the existing just check xwin / just clippy xwin targets; V6 extends the existing .github/workflows/release-preflight.yml with the full manual matrix. Missing predecessor deliverables block this sprint, not successful command claims. Keep ANC-033's manual-only integration restriction when editing ci.yml. The exact 229-template input (150 atm-core, 79 sc-compose) must be recovered/pinned by V1, committed as V3 corpus fixtures and rerun here. /tmp/sc-u3-j2-parity/driver.py and j2res.json are only candidate recovery evidence: the current counts are 154+79, not the required 150+79, so they do not establish the exact original corpus. A missing exact corpus or FUZZ-171-10 is an unresolved input and blocks full-coverage acceptance; no missing case counts as a passing result. Confirm all package versions are 1.8.0 via cargo metadata --no-deps --format-version 1, each pyproject.toml and the existing version-lockstep helper before recording the final candidate SHA and qualifying run.

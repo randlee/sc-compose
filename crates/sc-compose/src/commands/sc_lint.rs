@@ -396,6 +396,7 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
     let findings = payload_findings(payload)
         .and_then(Value::as_array)
         .map_or(0, Vec::len);
+<<<<<<< HEAD
     let reported_finding_failure = findings > 0
         && ((payload.get("ok").and_then(Value::as_bool) == Some(true) && exit_status == Some(10))
             || (exit_status == Some(5)
@@ -405,6 +406,12 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
                     .and_then(Value::as_str)
                     == Some("fail")));
     if reported_finding_failure {
+=======
+    if findings > 0
+        && payload_status(payload) == Some("fail")
+        && matches!(exit_status, Some(5 | 10))
+    {
+>>>>>>> origin/develop
         return ScLintOutcome::Findings;
     }
     if payload.get("ok").and_then(Value::as_bool) == Some(true) && exit_status == Some(0) {
@@ -419,6 +426,7 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
 }
 
 fn payload_findings(payload: &Value) -> Option<&Value> {
+<<<<<<< HEAD
     payload.pointer("/data/findings").or_else(|| {
         (payload.pointer("/error/code").and_then(Value::as_str) == Some("CLI.BACKEND_EXEC_FAILURE")
             && payload
@@ -428,6 +436,30 @@ fn payload_findings(payload: &Value) -> Option<&Value> {
         .then(|| payload.pointer("/error/details/findings"))
         .flatten()
     })
+=======
+    payload
+        .get("data")
+        .and_then(|data| data.get("findings"))
+        .or_else(|| {
+            payload
+                .get("error")
+                .and_then(|error| error.get("details"))
+                .and_then(|details| details.get("findings"))
+        })
+}
+
+fn payload_status(payload: &Value) -> Option<&str> {
+    payload
+        .get("data")
+        .and_then(|data| data.get("status"))
+        .or_else(|| {
+            payload
+                .get("error")
+                .and_then(|error| error.get("details"))
+                .and_then(|details| details.get("status"))
+        })
+        .and_then(Value::as_str)
+>>>>>>> origin/develop
 }
 
 fn normalize_diagnostics(mut diagnostics: Value, outcome: ScLintOutcome) -> Value {
@@ -577,6 +609,54 @@ mod tests {
                 Some(6)
             ),
             ScLintOutcome::ConfigError
+        );
+    }
+
+    #[test]
+    fn outcome_classifies_current_sc_lint_findings_exit() {
+        let payload = json!({
+            "ok": true,
+            "command": "lint.sc-boundary",
+            "data": {
+                "version": "0.8.6",
+                "status": "fail",
+                "findings": [{"rule_id": "SCB-DEPENDENCY-001"}]
+            }
+        });
+        assert_eq!(
+            classify_outcome(&payload, Some(10)),
+            ScLintOutcome::Findings
+        );
+        assert_eq!(
+            payload_findings(&payload)
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn outcome_classifies_findings_in_backend_error_details() {
+        let payload = json!({
+            "ok": false,
+            "error": {
+                "code": "CLI.BACKEND_EXEC_FAILURE",
+                "details": {
+                    "status": "fail",
+                    "findings": [{"rule_id": "SCB-DEPENDENCY-001"}]
+                }
+            }
+        });
+        assert_eq!(classify_outcome(&payload, Some(5)), ScLintOutcome::Findings);
+        assert_eq!(
+            payload_findings(&payload)
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            1
         );
     }
 

@@ -1,6 +1,6 @@
 ---
 name: jev-api
-version: 0.8.7
+version: 0.9.1
 description: How jev_judge.py talks to TypeSafe's Jev - endpoint, auth, request and response shape, validation, limits, the retry and context-shortening policy, every error code and flag, model pinning, and the committed allow_remote_judge setting that gates every call.
 ---
 
@@ -126,6 +126,7 @@ A tool failure is the only nonzero exit. Exit 0 means the command ran (`success:
 | `add` | `data.added`; a refusal is `added: false` with `data.refused` `{code, message, recoverable, suggested_action}` (`ANCHOR.DUPLICATE`, `ANCHOR.LINT`, `ANCHOR.DUPLICATE_CANDIDATE`, `ANCHOR.NOT_TESTABLE`, or `VALIDATION.INPUT` when the statement repeats the quote) and nothing written |
 | `update` | `data.updated`; a `--strict` refusal is `updated: false` with `data.refused.code: ANCHOR.LINT`; nothing to change is `updated: false, changed: false` |
 | `retire`, `exclude --remove` | `data.changed` (false when the anchor is already retired, or there was no exclusion to remove) |
+| `exclude --from` | `data.applied` (one entry per line), `data.count`, `data.changed` (lines that changed the record) |
 | `report`, `coverage`, `diff` | `data.pass`; `data.uncovered_anchors`; `data.pass_after`, `data.regressions` |
 
 Exit 2 covers bad arguments, missing or unreadable files, invalid settings, `POLICY.REMOTE_JUDGE_DISABLED`, credential failure, any Jev call left without an answer, a missing dependency, and `SCRIPT.INTERNAL`. Exit 130 (`CANCELED`, `recoverable: true`) is an interrupt.
@@ -148,6 +149,8 @@ Exit 2 covers bad arguments, missing or unreadable files, invalid settings, `POL
 | `--threshold` | 0.6 | Confidence gate (`verdict-gating.md`) |
 | `--questions` | `assets/questions/<gate>.json` | Alternative question-set file |
 | `--overrides-file` | none | Per-anchor overrides read from the question beads |
+| `--extra-questions` | none | Repeatable JSONL file of consumer questions, one `{id, type, instructions, criteria}` per line. Added to the set for every cell, answered and recorded in `results[].answers`, listed with path, sha256 and ids in the run's `extra_questions`; never gating. An id already in the set, or a role mapped to an extra question, is refused before any call |
+| `--no-triage-questions` | off | Skip the default triage questions. Without it, `judge --gate plan` adds `.sc/plan-anchor/triage/plan-questions.jsonl` next to the nearest `settings.yaml` (from `--repository-root`), else the shipped `assets/triage/plan-questions.jsonl`. Extra answers are optional: an answer missing from the response or fixture is skipped, and when the body exceeds `--max-request-bytes` the extras are dropped (`extra_questions_dropped`) rather than the item refused. `questions_sha256` covers the gate questions only; `extra_questions_sha256` covers the extras |
 | `--max-item-chars` | 24,000 | Development gate: truncate the evidence to this. Planning gate: refuse a larger bead with `PLAN.TOO_LARGE` |
 | `--max-request-bytes` | 24,000 plan / 64,000 dev | Pre-flight cap on the serialised request (planning gate: refuse; development gate: shorten) |
 | `--confirm-near-threshold` | on | Re-ask once when a required-role confidence is within 0.10 of the threshold; disagreement makes the cell `underspecified` with `unstable: true` (`--no-confirm` turns it off) |

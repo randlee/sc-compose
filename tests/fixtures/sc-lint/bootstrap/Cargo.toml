@@ -1,20 +1,2 @@
 [package]
 name = "sc-lint-bootstrap-fixture"
-version.workspace = true
-authors.workspace = true
-edition.workspace = true
-homepage.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
-
-[workspace]
-
-[workspace.package]
-version = "0.1.0"
-authors = ["sc-compose"]
-edition = "2024"
-homepage = "https://example.invalid"
-license = "MIT"
-repository = "https://example.invalid/repository"
-rust-version = "1.85"

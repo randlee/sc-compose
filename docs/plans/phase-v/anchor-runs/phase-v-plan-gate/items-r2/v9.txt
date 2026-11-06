@@ -1,0 +1,22 @@
+# v-9: go-native-adapter
+
+## Description
+
+Agent level: frontier.
+### Deliverables
+1. Consume V2's actual UniFFI/scaffolding baseline and implement the Go adapter's six-platform target/loader/archive contract in its own boundary: macOS/Windows/Linux x64 and arm64. This is working source/native packaging, not another manifest row.
+2. Update canonical Go-peer consumer installer inputs through the supported immutable installer; generated helper/tests stay byte-identical upstream outputs. Do not add Go commands to the closed core publish schema/helper or fork peer code.
+3. Implement source/native conformance and deterministic layout/loader tests for the expanded target contract; retain existing supported variants. V6 consumes this working adapter with V5 wheels and V8 core tooling for actual all-platform install/publisher composition. Infeasible required targets are blockers, never omissions.
+Repair the existing just prepare-sc-sha-go-native recipe: remove the nonexistent scripts/release_artifacts.py install-go-native-library call and consume the supported canonical Go-peer stage/install interface (currently .github/scripts/go_native_module.py stage). Resolve actual static-library naming and loader destination for all six supported OS/architecture coordinates, retaining applicable Windows toolchains; do not keep the three-host hardcoded allowlist. Adopt missing canonical peer capability upstream, never edit the installed helper locally.
+
+## Acceptance criteria
+
+The Go adapter side compiles and passes conformance/layout/loader validation with explicit contracts for all six required coordinates. No placeholder loader or manifest-only completion, no unsupported target hidden, and no upstream peer fork. Native host execution and controlled target-layout checks pass; actual cross-platform external-consumer outcomes remain V6 acceptance.
+
+### Required Validation
+- cargo build -p sc-sha-go; cargo test -p sc-sha-go --test conformance.
+- just generate-sc-sha-rust check; just generate-sc-sha-go check; just prepare-sc-sha-go-native; (cd bindings/sc-sha-go && go test ./...).
+- python3 bindings/sc-sha-go/tests/test_release_layout.py; python3 -m unittest discover -s .github/scripts/tests -p test_go_native_module.py.
+- python3 .github/scripts/go_native_module.py target-matrix --manifest release/publish-artifacts.toml --config release/go-native-module.toml; python3 .github/scripts/go_native_module.py verify-version-lockstep --config release/go-native-module.toml --workspace-toml Cargo.toml. If V8's final manifest is not yet linked, use the declared six-target fixture for this boundary check; V6 must run the real combined manifest.
+- Exercise supported host-native import plus six-target archive/loader fixtures. Missing target/toolchain evidence is explicit; no full-platform install PASS is claimed here.
+FR-29/30: all layout/loader/argv/error cases use controlled deterministic fixtures, without sleeps/races/load. Windows x64 and ARM64 cross-build/check commands use cargo xwin build/check with explicit target; exercise both targets. Host-native source Go tests run only on the matching host, while deterministic six-target fixtures cover foreign archive layouts. The repaired Justfile recipe must use a real supported peer subcommand with valid required arguments and prepare the loader’s actual destination before go test ./... runs.

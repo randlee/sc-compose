@@ -1,0 +1,188 @@
+{
+  "success": true,
+  "data": {
+    "threshold": 0.6,
+    "dry_run": false,
+    "fixture": false,
+    "path": "docs/plans/phase-u/anchors.json",
+    "anchors": [
+      {
+        "id": "FR-24.19a",
+        "statement": "In advanced pour (the default mode: `--render-by sc-compose`, or no `--render-by`), every field of each bead that sc-compose creates, including its labels, must hold the rendered value when that bead is read back from bd.",
+        "quote": "Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.",
+        "scope": "advanced bead pour in sc-composer-beads and the sc-compose bead commands",
+        "verdict": "inconclusive",
+        "failing": [
+          "self_contained"
+        ],
+        "answers": {
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.77,
+            "probabilities": {
+              "no": 0.15,
+              "unclear": 0.0,
+              "yes": 0.85
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.94,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.02,
+              "yes": 0.96
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 1.0,
+            "probabilities": {
+              "no": 0.0,
+              "unclear": 0.0,
+              "yes": 1.0
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.52,
+            "probabilities": {
+              "no": 0.31,
+              "unclear": 0.01,
+              "yes": 0.68
+            }
+          },
+          "single_constraint": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.97,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.0,
+              "yes": 0.98
+            }
+          }
+        },
+        "lint": {
+          "warnings": [],
+          "errors": []
+        },
+        "answers_second": {
+          "faithful": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.73,
+            "probabilities": {
+              "no": 0.18,
+              "unclear": 0.0,
+              "yes": 0.82
+            }
+          },
+          "observable": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.92,
+            "probabilities": {
+              "no": 0.03,
+              "unclear": 0.02,
+              "yes": 0.95
+            }
+          },
+          "scoped": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 1.0,
+            "probabilities": {
+              "no": 0.0,
+              "unclear": 0.0,
+              "yes": 1.0
+            }
+          },
+          "self_contained": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.52,
+            "probabilities": {
+              "no": 0.31,
+              "unclear": 0.01,
+              "yes": 0.68
+            }
+          },
+          "single_constraint": {
+            "type": "choice",
+            "choice": "yes",
+            "confidence": 0.97,
+            "probabilities": {
+              "no": 0.02,
+              "unclear": 0.0,
+              "yes": 0.98
+            }
+          }
+        },
+        "attempts": 2,
+        "confirmations": {
+          "verdict": "inconclusive",
+          "failing": [
+            "self_contained"
+          ],
+          "low_confidence": [
+            "self_contained"
+          ],
+          "unstable": [],
+          "initial_disagreements": [],
+          "resolved": {
+            "faithful": {
+              "choice": "yes",
+              "confidence": 0.73,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "observable": {
+              "choice": "yes",
+              "confidence": 0.92,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "scoped": {
+              "choice": "yes",
+              "confidence": 1.0,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "self_contained": {
+              "choice": "yes",
+              "confidence": 0.52,
+              "matching_calls": [
+                1,
+                2
+              ]
+            },
+            "single_constraint": {
+              "choice": "yes",
+              "confidence": 0.97,
+              "matching_calls": [
+                1,
+                2
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "needs_work": [
+      "FR-24.19a"
+    ],
+    "pass": false
+  },
+  "error": null
+}

@@ -1,3 +1,5 @@
+version = "0.8.6"
+
 [line_counts]
 max_production_lines = 1000
 
@@ -95,3 +97,7 @@ env = { "PYO3_CROSS_PYTHON_VERSION" = "3.11" }
 [[tool.sc-lint.test]]
 name = "workspace"
 command = ["cargo", "test", "--workspace"]
+
+[artifacts]
+root = "reports/latest/sc-lint"
+raw_json = "reports/latest/sc-lint/raw"

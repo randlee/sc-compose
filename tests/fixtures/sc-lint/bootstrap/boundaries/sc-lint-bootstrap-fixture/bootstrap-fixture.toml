@@ -1,6 +1,6 @@
 boundary_id = "BOUNDARY-BootstrapFixture"
 owner_package = "sc-lint-bootstrap-fixture"
-owner_crate_path = "sc_lint_bootstrap_fixture"
+owner_crate_path = "bootstrap_native"
 name = "BootstrapFixture"
 
 [public]
@@ -8,7 +8,7 @@ facade = "fixture"
 
 [implementation]
 type = "fixture_library"
-module = "sc_lint_bootstrap_fixture"
+module = "bootstrap_native"
 visibility = "public"
 constructor = "none"
 
