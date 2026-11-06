@@ -94,70 +94,75 @@ pub(crate) fn discover_delimited_tokens(
             match delimiter {
                 Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
                 Delimiter::Statement => {
-                    if let Some(loop_scope) = parse_for_loop_scope(expression, &scopes, &mut tokens)
-                    {
-                        scopes.push(loop_scope.scope);
-                        scope_kinds.push(ScopeKind::For);
-                    } else if expression.starts_with("endfor") {
-                        pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::For);
-                    } else if let Some(names) = parse_set_scope(expression, &scopes, &mut tokens) {
-                        if let Some(scope) = scopes.last_mut() {
-                            scope.bound_names.extend(names);
-                        }
-                    } else if let Some(scope) = parse_with_scope(expression, &scopes, &mut tokens) {
-                        scopes.push(scope);
-                        scope_kinds.push(ScopeKind::With);
-                    } else if expression.starts_with("endwith") {
-                        pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::With);
-                    } else if let Some((name, scope)) =
-                        parse_macro_scope(expression, &scopes, &mut tokens)
-                    {
-                        if let Some(current_scope) = scopes.last_mut() {
-                            current_scope.bound_names.insert(name);
-                        }
-                        scopes.push(scope);
-                        scope_kinds.push(ScopeKind::Macro);
-                    } else if expression.starts_with("endmacro") {
-                        pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::Macro);
-                    } else if matches!(statement_name(expression), Some("call")) {
-                        let arguments = statement_arguments(expression);
-                        collect_identifiers(
-                            &mask_leading_identifier(arguments),
-                            &scopes,
-                            &mut tokens,
-                        );
-                        scopes.push(LoopScope {
-                            bound_names: ["caller".to_owned()].into(),
-                        });
-                        scope_kinds.push(ScopeKind::Call);
-                    } else if expression.starts_with("endcall") {
-                        pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::Call);
-                    } else if matches!(statement_name(expression), Some("block")) {
-                        scopes.push(LoopScope::default());
-                        scope_kinds.push(ScopeKind::Block);
-                    } else if expression.starts_with("endblock") {
-                        pop_scope(&mut scopes, &mut scope_kinds, ScopeKind::Block);
-                    } else if !strict {
-                        // v1.7.0 default scan: the whole statement is scanned, tag name included.
-                        collect_identifiers(expression, &scopes, &mut tokens);
-                    } else {
-                        let arguments = statement_arguments(expression);
-                        if matches!(statement_name(expression), Some("filter" | "call")) {
-                            collect_identifiers(
-                                &mask_leading_identifier(arguments),
-                                &scopes,
-                                &mut tokens,
-                            );
-                        } else {
-                            collect_identifiers(arguments, &scopes, &mut tokens);
-                        }
-                    }
+                    discover_statement(
+                        expression,
+                        strict,
+                        &mut scopes,
+                        &mut scope_kinds,
+                        &mut tokens,
+                    );
                 }
             }
             false
         },
     );
     tokens
+}
+
+fn discover_statement(
+    expression: &str,
+    strict: bool,
+    scopes: &mut Vec<LoopScope>,
+    scope_kinds: &mut Vec<ScopeKind>,
+    tokens: &mut BTreeSet<VariableName>,
+) {
+    if let Some(loop_scope) = parse_for_loop_scope(expression, scopes, tokens) {
+        scopes.push(loop_scope.scope);
+        scope_kinds.push(ScopeKind::For);
+    } else if expression.starts_with("endfor") {
+        pop_scope(scopes, scope_kinds, ScopeKind::For);
+    } else if let Some(names) = parse_set_scope(expression, scopes, tokens) {
+        if let Some(scope) = scopes.last_mut() {
+            scope.bound_names.extend(names);
+        }
+    } else if let Some(scope) = parse_with_scope(expression, scopes, tokens) {
+        scopes.push(scope);
+        scope_kinds.push(ScopeKind::With);
+    } else if expression.starts_with("endwith") {
+        pop_scope(scopes, scope_kinds, ScopeKind::With);
+    } else if let Some((name, scope)) = parse_macro_scope(expression, scopes, tokens) {
+        if let Some(current_scope) = scopes.last_mut() {
+            current_scope.bound_names.insert(name);
+        }
+        scopes.push(scope);
+        scope_kinds.push(ScopeKind::Macro);
+    } else if expression.starts_with("endmacro") {
+        pop_scope(scopes, scope_kinds, ScopeKind::Macro);
+    } else if matches!(statement_name(expression), Some("call")) {
+        let arguments = statement_arguments(expression);
+        collect_identifiers(&mask_leading_identifier(arguments), scopes, tokens);
+        scopes.push(LoopScope {
+            bound_names: ["caller".to_owned()].into(),
+        });
+        scope_kinds.push(ScopeKind::Call);
+    } else if expression.starts_with("endcall") {
+        pop_scope(scopes, scope_kinds, ScopeKind::Call);
+    } else if matches!(statement_name(expression), Some("block")) {
+        scopes.push(LoopScope::default());
+        scope_kinds.push(ScopeKind::Block);
+    } else if expression.starts_with("endblock") {
+        pop_scope(scopes, scope_kinds, ScopeKind::Block);
+    } else if !strict {
+        // v1.7.0 default scan: the whole statement is scanned, tag name included.
+        collect_identifiers(expression, scopes, tokens);
+    } else {
+        let arguments = statement_arguments(expression);
+        if matches!(statement_name(expression), Some("filter" | "call")) {
+            collect_identifiers(&mask_leading_identifier(arguments), scopes, tokens);
+        } else {
+            collect_identifiers(arguments, scopes, tokens);
+        }
+    }
 }
 
 fn pop_scope(scopes: &mut Vec<LoopScope>, scope_kinds: &mut Vec<ScopeKind>, expected: ScopeKind) {
@@ -636,5 +641,60 @@ mod tests {
             tokens.get(&2).cloned().unwrap_or_default(),
             [crate::VariableName::new("outer").unwrap()].into()
         );
+    }
+
+    fn names(tokens: &std::collections::BTreeSet<crate::VariableName>) -> Vec<String> {
+        tokens
+            .iter()
+            .map(|token| token.as_str().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn closing_delimiter_advancement_keeps_later_expressions_discoverable() {
+        // A `}}}` run is not a closing delimiter for a `{{` expression, so
+        // scanning must advance past it and still reach the next expression.
+        for strict in [false, true] {
+            let found = names(&discover_tokens_for("x{{ a }}} y {{ b }}", 2, strict));
+
+            assert!(
+                found.contains(&"a".to_owned()),
+                "strict={strict}: {found:?}"
+            );
+            assert!(
+                found.contains(&"b".to_owned()),
+                "strict={strict}: {found:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn closing_delimiter_inside_string_literal_does_not_end_the_expression() {
+        for strict in [false, true] {
+            let found = names(&discover_tokens_for(r#"{{ "}}" ~ a }}{{ b }}"#, 2, strict));
+
+            assert_eq!(found, ["a", "b"], "strict={strict}");
+        }
+    }
+
+    #[test]
+    fn unterminated_expression_yields_no_tokens_and_does_not_hang() {
+        for strict in [false, true] {
+            assert!(
+                discover_tokens_for("{{ a ", 2, strict).is_empty(),
+                "strict={strict}"
+            );
+        }
+    }
+
+    #[test]
+    fn strict_flag_changes_only_comment_and_raw_handling() {
+        let text = "{# {{ c }} #}{% raw %}{{ r }}{% endraw %}{{ v }}";
+
+        assert_eq!(names(&discover_tokens_for(text, 2, true)), ["v"]);
+        let default = names(&discover_tokens_for(text, 2, false));
+        for expected in ["c", "r", "v"] {
+            assert!(default.contains(&expected.to_owned()), "{default:?}");
+        }
     }
 }
