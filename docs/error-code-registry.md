@@ -31,9 +31,10 @@ sc-composer library and are normalized by the shared lint runner.
 | Code | Error family | Severity | Trigger condition | Expected primary emitter |
 | --- | --- | --- | --- | --- |
 | `ERR_RESOLVE_NOT_FOUND` | `ResolveError` | error | no matching template/profile found | `resolve_profile()`, CLI `resolve`, CLI `render` |
+| `ERR_RESOLVE_ESCAPE` | `ResolveError` | error | template path or its resolved target lies outside the allowed roots; reported in preference to not-found (ADR-0026 D1) | `resolve_profile()`, CLI `resolve`, CLI `render`, CLI `validate` |
 | `ERR_RESOLVE_AMBIGUOUS` | `ResolveError` | error | multiple candidates found without a disambiguating runtime | `resolve_profile()`, CLI `resolve`, CLI `render` |
 | `ERR_INCLUDE_NOT_FOUND` | `IncludeError` | error | include target cannot be resolved within the allowed roots | include engine |
-| `ERR_INCLUDE_ESCAPE` | `IncludeError` | error | include path escapes confinement root | include engine |
+| `ERR_INCLUDE_ESCAPE` | `IncludeError` | error | include path, or the target it resolves to (including a dangling symlink target), lies outside the confinement root; reported in preference to not-found (ADR-0026 D1) | include engine |
 | `ERR_INCLUDE_CYCLE` | `IncludeError` | error | include graph revisits a file already on the active include stack | include engine |
 | `ERR_INCLUDE_DEPTH` | `IncludeError` | error | include depth exceeds configured maximum | include engine |
 | `ERR_INCLUDE_DYNAMIC_UNRESOLVED` | `IncludeError` | error | include target cannot be exhaustively enumerated as a static dependency | include engine |
@@ -64,6 +65,7 @@ sc-composer library and are normalized by the shared lint runner.
 | `SC_SHA_UNKNOWN_EDGE_ENDPOINT` | `CompositionError` | error | an include edge references no node in the resolved manifest | `sc_sha::calculate_composition_hash()` |
 | `ERR_RENDER_STDIN_DOUBLE_READ` | `RenderError` | error | CLI attempts to consume stdin twice for guidance/prompt inputs | CLI input layer |
 | `ERR_RENDER_WRITE` | `RenderError` | error | output write or output-target materialization failure | CLI output layer |
+| `ERR_RENDER_TEMPLATE` | `RenderError` | error | template syntax or engine evaluation error; never reported as `ERR_RENDER_WRITE` (ADR-0026 D2) | render engine, CLI `render`, CLI `validate` |
 | `ERR_RENDER_APPEND_NOT_OBJECT` | `RenderError` | error | JSON Lines append rendered a non-object JSON value | CLI output layer |
 | `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` | `RenderError` | error | JSON Lines append target has no final newline | CLI output layer |
 | `ERR_CONFIG_READONLY` | `ConfigError` | error | frontmatter rewrite or workspace update refused on read-only target | `frontmatter_init()`, `init_workspace()` |

@@ -1060,7 +1060,7 @@ Command-specific rules:
   - accepts `file` mode and `profile` mode,
   - requires `--file <path>` in file mode,
   - accepts optional guidance and user prompt blocks,
-  - writes to stdout by default unless an output path is chosen.
+  - writes to stdout by default unless an output path is chosen; with an output path nothing is written to stdout (ADR-0026 D4).
 - `resolve`
   - is defined for `profile` mode only,
   - fails for `file` mode.
@@ -1806,9 +1806,10 @@ Canonical failures must map to stable error families and stable codes.
 | Failure condition | Error type | Stable code |
 | --- | --- | --- |
 | Template not found | `ResolveError` | `ERR_RESOLVE_NOT_FOUND` |
+| Template path outside the allowed roots | `ResolveError` | `ERR_RESOLVE_ESCAPE` |
 | Ambiguous template match | `ResolveError` | `ERR_RESOLVE_AMBIGUOUS` |
 | Include target not found | `IncludeError` | `ERR_INCLUDE_NOT_FOUND` |
-| Include path escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
+| Include path or its resolved target (including a dangling symlink target) escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
 | Include cycle detected | `IncludeError` | `ERR_INCLUDE_CYCLE` |
 | Include depth exceeds limit | `IncludeError` | `ERR_INCLUDE_DEPTH` |
 | Include target cannot be exhaustively enumerated as a static dependency | `IncludeError` | `ERR_INCLUDE_DYNAMIC_UNRESOLVED` |
@@ -1821,6 +1822,7 @@ Canonical failures must map to stable error families and stable codes.
 | Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
+| Template syntax or engine evaluation error | `RenderError` | `ERR_RENDER_TEMPLATE` |
 | JSON Lines append rendered a non-object value | `RenderError` | `ERR_RENDER_APPEND_NOT_OBJECT` |
 | JSON Lines append target has no final newline | `RenderError` | `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |

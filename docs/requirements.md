@@ -149,6 +149,9 @@ Schema rules:
 - If no frontmatter block exists at all, the file is treated as having no
   declarations and no defaults.
 - `required_variables` values must be unique variable names.
+- A duplicate key in any frontmatter mapping, at any nesting level and whether
+  or not the key is recognized, fails with `ERR_CONFIG_PARSE`, as FR-12
+  requires for var-files ([ADR-0026](adrs/0026-fuzz-contract-decisions.md) D3).
 - `defaults` supplies optional values that become part of the render context
   unless overridden by environment-derived or explicit input values.
 - If both `defaults` and `input_defaults` appear in the same frontmatter
@@ -308,6 +311,10 @@ HTML-Report follow-on design track:
 - `validate` and `render --dry-run` must emit an informational diagnostic when
   a referenced or required variable is satisfied by a default value rather than
   explicit caller input.
+- Within explicit input variables, an inline `--var` value overrides the same
+  key loaded from `--var-file`, regardless of argument order. For repeated
+  `--var` arguments with one key the last wins; for several `--var-file`
+  arguments a later file wins ([ADR-0026](adrs/0026-fuzz-contract-decisions.md) D7).
 - Explicit CLI `--var key=value` inputs are always strings.
 - This string-only behavior is intentional: CLI text inputs are not coerced
   based on their spelling. Callers that need numeric, boolean, null, object,
@@ -407,6 +414,25 @@ Referenced-but-unbound tokens are a separate axis from undeclared tokens:
   to a file.
 - Include failures must produce actionable diagnostics with include-chain
   context.
+- A render or validation error raised from included content must name the
+  included file and its own line number, plus the include chain, not a line in
+  the expanded parent (ADR-0026 D10).
+- An include target outside the allowed roots fails with `ERR_INCLUDE_ESCAPE`,
+  including a target reached through the root fallback or through a symlink
+  whose destination is outside the roots, even when that destination does not
+  exist. A boundary violation is reported in preference to not-found
+  (ADR-0026 D1).
+- Include layout (ADR-0026 D8):
+  - the directive line is replaced by the included content, and the
+    replacement always ends the line; when the included content has no final
+    line break, the parent's line break follows it;
+  - line endings outside the included content are never changed, and the
+    included content keeps its own;
+  - indentation in front of a directive is not applied to the included lines;
+  - include directives expand before Jinja evaluation, so a directive inside
+    `{% raw %}` or a false `{% if %}` block is still expanded and validated.
+- An include target that is not readable as valid text fails with
+  `ERR_CONFIG_READ` (ADR-0026 D12).
 
 ### FR-3a: Frontmatter Across Includes
 
@@ -428,7 +454,13 @@ Referenced-but-unbound tokens are a separate axis from undeclared tokens:
 ### FR-4: Safety Constraints
 
 - File reads must be confined to a configured root by default.
-- Path traversal outside the allowed root set must fail.
+- Path traversal outside the allowed root set must fail. A template path
+  outside the allowed roots fails with `ERR_RESOLVE_ESCAPE`, not
+  `ERR_RESOLVE_NOT_FOUND`, and the text and JSON messages name the same cause
+  (ADR-0026 D1).
+- Confinement covers reads. `render --output` and `--append` may write to any
+  path the caller names. Beads request outputs keep their own confinement
+  under `working_directory` (ADR-0021; ADR-0026 D5).
 - Callers may optionally provide additional allowed roots.
 - Template rendering must not execute arbitrary host code.
 
@@ -585,7 +617,11 @@ Command behavior:
 - `render`
   - renders one resolved template or profile,
   - writes to stdout by default,
-  - may write to a file when requested,
+  - may write to a file when requested; with `--output` it writes nothing to
+    stdout in text mode (ADR-0026 D4),
+  - reports a template syntax or engine evaluation error as
+    `ERR_RENDER_TEMPLATE`, never `ERR_RENDER_WRITE`, in text and JSON output
+    (ADR-0026 D2),
   - must honor validation and strictness policy,
   - accepts optional guidance and user prompt blocks,
   - with `--append <path>`, renders and validates first, requires the output
@@ -715,7 +751,11 @@ Pack root policy:
 
 ### FR-7a: Variable File Rules
 
-- `--var-file` accepts a JSON or YAML object.
+- `--var-file` accepts a JSON or YAML object, detected by content: text that
+  is not valid JSON but is valid YAML is read as YAML, whatever the file
+  extension (ADR-0026 D11).
+- A YAML scalar of digits with a leading zero, such as `012`, is the string
+  `"012"`. Non-finite YAML numbers (`.inf`, `.nan`) are rejected.
 - Variable-file keys must be strings.
 - Variable-file values must be supported render-context value types.
 - Object/map values with string keys are valid per FR-12.
@@ -755,6 +795,10 @@ arrays), `ERR_RENDER_APPEND_NOT_OBJECT` (JSON but not one object),
 
 The template engine must enable `trim_blocks` and `lstrip_blocks` by default.
 Authors may opt out for a specific block with the standard Jinja `+` modifier.
+
+Every pass of a multi-pass template (ADR-0002) follows the same whitespace
+rules. An expression at the end of a line keeps its line break in every pass
+(ADR-0026 D9).
 
 ### FR-8: Determinism and Diagnostics
 
@@ -1430,6 +1474,11 @@ and `bd` argv are unchanged, except that `bd cook` reads a private
 `.sc-compose-input-*` snapshot of the rendered text instead of the requested
 path (same command and flags; receipts and diagnostics show the public path;
 see ADR-0023 Errata).
+
+Request keys: the `sc-compose/beads/v1` request accepts and ignores unknown
+top-level keys in every mode, so callers may carry their own annotations. The
+template path suffix is not enforced; only the `rendered_formula` extension is
+checked ([ADR-0026](adrs/0026-fuzz-contract-decisions.md) D6).
 
 - **FR-23.1 Rendered formulas are final.** For the graph operations below,
   structure and values come from the sc-compose template (loops, conditionals,
