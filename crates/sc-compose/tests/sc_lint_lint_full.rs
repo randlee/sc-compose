@@ -230,7 +230,6 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
     );
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
         let bin = root.join("fake-bin");
 
         let python = bin.join("python3");
@@ -248,12 +247,7 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
                 "1",
             ),
         };
-        fs::write(&python, format!("#!/bin/sh\n{body}\nexit {exit_code}\n")).expect("fake python");
-        let mut permissions = fs::metadata(&python)
-            .expect("fake python metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(python, permissions).expect("fake python permissions");
+        support::fake_exec::install(&python, &format!("#!/bin/sh\n{body}\nexit {exit_code}\n"));
     }
 
     #[cfg(windows)]
