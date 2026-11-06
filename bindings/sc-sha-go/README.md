@@ -86,10 +86,13 @@ matrix instead. Released modules need only Go and the matching CGo compiler.
 
 The peer installer input remains `release/go-native-module-install.json`
 (package `0.1.0`). It was reinstalled and checked byte-for-byte using upstream
-`sc-publish` merge revision `92b2e88c31b0c4b4b903dcd886e34fd9e544c4b1`
-(randlee/sc-publish#161, which writes the staged `VERSION` as exact LF bytes).
-The core kit pin in `release/sc-publish-pin.toml` is unchanged: only the peer
-package files differ between that pin and this revision:
+`sc-publish` merge revision `2497ac5a5f426876893387cc3a11dc1307036ac4`
+(randlee/sc-publish#165, which lets a Go-only native triple use the runner and
+archive of the core release rows for the same Go OS/architecture, so
+`aarch64-pc-windows-gnullvm` needs no Rust CLI build row; #161's exact-LF
+`VERSION` staging is included). The core kit pin in
+`release/sc-publish-pin.toml` is unchanged: #165 changes only the peer package
+files (helper, its tests and README) relative to the pinned kit:
 
 ```sh
 python3 <pinned-sc-publish>/plugins/go-native-module/install.py \

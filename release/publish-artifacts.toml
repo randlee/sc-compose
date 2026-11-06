@@ -38,10 +38,6 @@ archive = "zip"
 target = "aarch64-pc-windows-msvc"
 os = "windows-11-arm"
 archive = "zip"
-[[release_targets]]
-target = "aarch64-pc-windows-gnullvm"
-os = "windows-11-arm"
-archive = "zip"
 
 [[crates]]
 artifact = "sc-sha"

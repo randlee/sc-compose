@@ -16,8 +16,7 @@
     {"target": "x86_64-apple-darwin", "os": "macos-15-intel", "archive": "tar.gz"},
     {"target": "x86_64-pc-windows-msvc", "os": "windows-latest", "archive": "zip"},
     {"target": "x86_64-pc-windows-gnu", "os": "windows-latest", "archive": "zip"},
-    {"target": "aarch64-pc-windows-msvc", "os": "windows-11-arm", "archive": "zip"},
-    {"target": "aarch64-pc-windows-gnullvm", "os": "windows-11-arm", "archive": "zip"}
+    {"target": "aarch64-pc-windows-msvc", "os": "windows-11-arm", "archive": "zip"}
   ],
   "crates": [
     {"artifact": "sc-sha", "package": "sc-sha", "cargo_toml": "crates/sc-sha/Cargo.toml", "required": true, "publish": true, "publish_order": 1, "preflight_check": "locked", "wait_after_publish_seconds": 30, "verify_install": false},
