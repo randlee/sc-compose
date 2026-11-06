@@ -21,7 +21,19 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
     };
 
     let mut passes = Vec::with_capacity(frontmatter_texts.len());
-    for frontmatter_text in frontmatter_texts {
+    for (frontmatter_text, block_line) in frontmatter_texts {
+        if let Err(error) = serde_yaml::from_str::<serde_yaml::Value>(frontmatter_text) {
+            // Value decoding detects duplicate keys even in unknown fields. Other
+            // parse errors retain the established typed frontmatter diagnostic.
+            if error.to_string().contains("duplicate entry") {
+                return Err(ConfigError::new(
+                    DiagnosticCode::ErrConfigParse,
+                    format!("failed to parse YAML frontmatter block starting at line {block_line}: {error}"),
+                )
+                .with_source(error)
+                .into());
+            }
+        }
         let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
             ConfigError::new(
                 DiagnosticCode::ErrConfigParse,
@@ -45,7 +57,9 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
     })
 }
 
-fn split_frontmatter(input: &str) -> Result<Option<(Vec<&str>, &str)>, ComposeError> {
+type FrontmatterSplit<'a> = (Vec<(&'a str, usize)>, &'a str);
+
+fn split_frontmatter(input: &str) -> Result<Option<FrontmatterSplit<'_>>, ComposeError> {
     let mut cursor = 0usize;
     let mut headers = Vec::new();
 
@@ -88,7 +102,12 @@ fn split_frontmatter(input: &str) -> Result<Option<(Vec<&str>, &str)>, ComposeEr
             break;
         }
 
-        headers.push(candidate);
+        let block_line = input[..content_start]
+            .bytes()
+            .filter(|byte| *byte == b'\n')
+            .count()
+            + 1;
+        headers.push((candidate, block_line));
         cursor = after_close;
     }
 
@@ -108,14 +127,12 @@ fn is_recognized_frontmatter(content: &str) -> bool {
         return true;
     }
 
-    let Ok(value) = serde_yaml::from_str::<serde_yaml::Value>(content) else {
+    // Read just the root keys here: a duplicate nested key must not make a
+    // genuine stacked configuration block look like rendered YAML body.
+    let Ok(HeaderKeys(keys)) = serde_yaml::from_str::<HeaderKeys>(content) else {
         return false;
     };
-    let serde_yaml::Value::Mapping(mapping) = value else {
-        return false;
-    };
-
-    mapping.keys().all(|key| {
+    keys.iter().all(|key| {
         let serde_yaml::Value::String(key) = key else {
             return false;
         };
@@ -130,6 +147,34 @@ fn is_recognized_frontmatter(content: &str) -> bool {
                 | "json_escape_mode"
         )
     })
+}
+
+struct HeaderKeys(Vec<serde_yaml::Value>);
+
+impl<'de> serde::Deserialize<'de> for HeaderKeys {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct KeysVisitor;
+        impl<'de> serde::de::Visitor<'de> for KeysVisitor {
+            type Value = HeaderKeys;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("a frontmatter mapping")
+            }
+
+            fn visit_map<M: serde::de::MapAccess<'de>>(
+                self,
+                mut map: M,
+            ) -> Result<Self::Value, M::Error> {
+                let mut keys = Vec::new();
+                while let Some(key) = map.next_key::<serde_yaml::Value>()? {
+                    map.next_value::<serde::de::IgnoredAny>()?;
+                    keys.push(key);
+                }
+                Ok(HeaderKeys(keys))
+            }
+        }
+        deserializer.deserialize_map(KeysVisitor)
+    }
 }
 
 fn opening_delimiter_len(input: &str, cursor: usize) -> Option<usize> {
