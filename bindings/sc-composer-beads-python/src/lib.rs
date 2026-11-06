@@ -1,10 +1,11 @@
 //! Typed Python adapter for the versioned `sc-composer-beads` contract.
 
 use std::collections::BTreeMap;
+use std::ffi::CString;
 use std::path::PathBuf;
 
-use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
+use pyo3::sync::PyOnceLock;
 use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
 #[cfg(test)]
 use sc_composer_beads::execute_bead_request;
@@ -19,40 +20,26 @@ const REQUEST_STAGE: &str = "request";
 const RECEIPT_STAGE: &str = "receipt";
 const OUTPUT_STAGE: &str = "output";
 
-#[pyclass(extends = PyException, name = "BeadComposeError")]
-#[derive(Debug)]
-struct PyBeadComposeError {
-    #[pyo3(get)]
-    code: String,
-    #[pyo3(get)]
-    stage: Option<String>,
-    #[pyo3(get)]
-    message: String,
-    #[pyo3(get)]
-    details: Option<BTreeMap<String, String>>,
-}
+static BEAD_ERROR_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
 
-#[pymethods]
-impl PyBeadComposeError {
-    #[new]
-    #[pyo3(signature = (code, message, stage=None, details=None))]
-    fn new(
-        code: String,
-        message: String,
-        stage: Option<String>,
-        details: Option<BTreeMap<String, String>>,
-    ) -> Self {
-        Self {
-            code,
-            stage,
-            message,
-            details,
-        }
-    }
-
-    fn __str__(&self) -> &str {
-        &self.message
-    }
+fn bead_error_type(py: Python<'_>) -> PyResult<Bound<'_, PyType>> {
+    let class = BEAD_ERROR_TYPE.get_or_try_init(py, || {
+        let source = CString::new(include_str!("exception.py"))
+            .expect("embedded exception source has no NUL bytes");
+        let helpers = PyModule::from_code(
+            py,
+            &source,
+            c"<sc-composer-beads-exception>",
+            c"sc_composer_beads._exception_helpers",
+        )?;
+        Ok::<_, PyErr>(
+            helpers
+                .getattr("BeadComposeError")?
+                .cast_into::<PyType>()?
+                .unbind(),
+        )
+    })?;
+    Ok(class.bind(py).clone())
 }
 
 fn error(
@@ -61,10 +48,13 @@ fn error(
     stage: Option<&str>,
     message: impl Into<String>,
 ) -> PyErr {
-    PyErr::from_type(
-        py.get_type::<PyBeadComposeError>(),
-        (code.into(), message.into(), stage.map(str::to_owned)),
-    )
+    match bead_error_type(py) {
+        Ok(class) => PyErr::from_type(
+            class,
+            (code.into(), message.into(), stage.map(str::to_owned)),
+        ),
+        Err(error) => error,
+    }
 }
 
 fn request_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
@@ -105,15 +95,18 @@ fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyE
             ("value".to_owned(), path.to_string_lossy().into_owned()),
             ("rule".to_owned(), rule.clone()),
         ]);
-        return PyErr::from_type(
-            py.get_type::<PyBeadComposeError>(),
-            (
-                error_kind.code(),
-                error_kind.to_string(),
-                rust_error_stage(error_kind),
-                details,
+        return match bead_error_type(py) {
+            Ok(class) => PyErr::from_type(
+                class,
+                (
+                    error_kind.code(),
+                    error_kind.to_string(),
+                    rust_error_stage(error_kind),
+                    details,
+                ),
             ),
-        );
+            Err(error) => error,
+        };
     }
     if let RustBeadComposeError::GraphIdInvalid { field, value } = error_kind {
         let details = BTreeMap::from([
@@ -121,15 +114,18 @@ fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyE
             ("value".to_owned(), value.clone()),
             ("rule".to_owned(), field.rule().to_owned()),
         ]);
-        return PyErr::from_type(
-            py.get_type::<PyBeadComposeError>(),
-            (
-                error_kind.code(),
-                error_kind.to_string(),
-                rust_error_stage(error_kind),
-                details,
+        return match bead_error_type(py) {
+            Ok(class) => PyErr::from_type(
+                class,
+                (
+                    error_kind.code(),
+                    error_kind.to_string(),
+                    rust_error_stage(error_kind),
+                    details,
+                ),
             ),
-        );
+            Err(error) => error,
+        };
     }
     error(
         py,
@@ -749,7 +745,7 @@ fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     for &code in RustBeadComposeError::GRAPH_CODES {
         module.add(code, code)?;
     }
-    module.add_class::<PyBeadComposeError>()?;
+    module.add("BeadComposeError", bead_error_type(module.py())?)?;
     module.add_class::<PyBeadOperation>()?;
     module.add_class::<PyPourAuthorization>()?;
     module.add_class::<PyBeadStage>()?;

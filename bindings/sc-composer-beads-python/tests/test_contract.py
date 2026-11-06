@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+import inspect
 import json
 import os
 import shutil
@@ -105,6 +106,26 @@ def test_import_surface_exposes_versioned_beads_contract() -> None:
         "BEADS_GRAPH_APPLY_FAILED": "BEADS_GRAPH_APPLY_FAILED",
         "BEADS_GRAPH_APPLY_UNCONFIRMED": "BEADS_GRAPH_APPLY_UNCONFIRMED",
     }
+
+
+def test_bead_exception_constructor_preserves_native_contract() -> None:
+    error = beads.BeadComposeError("CODE", "message", "render", {"b": "2", "a": "1"})
+    assert isinstance(error, Exception)
+    assert error.args == ("CODE", "message", "render", {"b": "2", "a": "1"})
+    assert str(error) == "message"
+    assert (error.code, error.message, error.stage, error.details) == (
+        "CODE", "message", "render", {"a": "1", "b": "2"}
+    )
+    assert str(inspect.signature(beads.BeadComposeError)) == "(code, message, stage=None, details=None)"
+    for attribute in ("code", "message", "stage", "details"):
+        with pytest.raises(AttributeError):
+            setattr(error, attribute, "changed")
+    with pytest.raises(TypeError):
+        beads.BeadComposeError(code="CODE", message="message")
+    with pytest.raises(TypeError):
+        beads.BeadComposeError("CODE", "message", None, {"bad": 1})
+    with pytest.raises(TypeError):
+        type("Derived", (beads.BeadComposeError,), {})
 
 
 @pytest.mark.parametrize(

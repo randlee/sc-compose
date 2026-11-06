@@ -46,6 +46,7 @@ def test_sdist_includes_the_typing_marker_and_stub() -> None:
     with tarfile.open(archives[0], "r:gz") as archive:
         names = set(archive.getnames())
 
-    package_root = "bindings/sc-composer-beads-python/python/sc_composer_beads"
+    package_root = "python/sc_composer_beads"
     assert any(name.endswith(f"{package_root}/py.typed") for name in names)
     assert any(name.endswith(f"{package_root}/_native.pyi") for name in names)
+    assert any(name.endswith("bindings/sc-composer-beads-python/src/exception.py") for name in names)
