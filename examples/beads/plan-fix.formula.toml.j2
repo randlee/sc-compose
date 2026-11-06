@@ -1,0 +1,25 @@
+---
+required_variables:
+  - plan
+  - finding
+  - literal
+---
+formula = "plan-fix"
+description = "Review and fix {{ finding }} in {{ plan }}"
+version = 1
+type = "workflow"
+
+[[steps]]
+id = "review"
+title = "Review {{ finding }}"
+description = "Plan {{ plan }}; literal evidence: {{ literal }}"
+type = "task"
+labels = ["plan-{{ plan }}", "review"]
+
+[[steps]]
+id = "fix"
+title = "Fix {{ finding }}"
+description = "Implement the reviewed fix for {{ plan }}"
+type = "task"
+labels = ["plan-{{ plan }}", "fix"]
+needs = ["review"]

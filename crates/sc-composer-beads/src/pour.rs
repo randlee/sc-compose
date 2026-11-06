@@ -218,8 +218,9 @@ fn refuse_registry_relations(
 
 #[cfg(test)]
 mod tests {
-    use crate::execute::execute_bead_request_with_runner;
-    use crate::execute::tests::{FakeRunner, request, success, where_output, workspace};
+    use crate::execute::tests::{
+        FakeRunner, execute_bead_request_with_runner, request, success, where_output, workspace,
+    };
     use crate::paths::public_path_display;
     use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
     use crate::{BeadComposeError, BeadOperation, BeadOutcome, BeadStage, PourAuthorization};

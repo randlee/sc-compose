@@ -12,6 +12,25 @@ use crate::error::{BeadComposeError, GraphIdField};
 /// Stable schema identifier for the Beads composition protocol.
 pub const BEADS_SCHEMA_V1: &str = "sc-compose/beads/v1";
 
+/// Selects which program evaluates ordinary Beads variable expressions.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum BeadRenderBy {
+    /// Evaluate the full template in sc-compose before invoking bd.
+    #[default]
+    ScCompose,
+    /// Preserve the v1.7.0 bd-owned substitution path.
+    Bd,
+}
+
+/// Additive execution options; the request wire layout remains unchanged.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct BeadExecutionOptions {
+    /// Owner of ordinary formula expression rendering.
+    pub render_by: BeadRenderBy,
+    /// Enable schema-scoped undeclared-variable validation.
+    pub strict: bool,
+}
+
 /// Requested Beads composition operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

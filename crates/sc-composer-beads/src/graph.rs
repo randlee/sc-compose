@@ -50,7 +50,13 @@ pub(crate) fn execute(
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
     };
-    let result = run(request, &mut runtime, formula_input, stage);
+    let result = run(
+        request,
+        normalized.advanced,
+        &mut runtime,
+        formula_input,
+        stage,
+    );
     let missing_edges = match &result {
         Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
         _ => Vec::new(),
@@ -127,6 +133,7 @@ fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
 
 fn run(
     request: &BeadComposeRequest,
+    advanced: bool,
     runtime: &mut Runtime<'_>,
     formula_input: &InputSnapshot,
     stage: BeadStage,
@@ -166,11 +173,42 @@ fn run(
     };
     let validated = validate::validate(request, cooked, &rendered, mode)?;
     runtime.stage = stage;
-    match plan::plan(&validated, runtime)? {
-        GraphPlan::Noop(graph) => Ok(graph),
+    let plan = plan::plan(&validated, advanced, runtime)?;
+    execute_plan(request.operation, advanced, plan, runtime)
+}
+
+fn execute_plan(
+    operation: BeadOperation,
+    advanced: bool,
+    plan: GraphPlan,
+    runtime: &mut Runtime<'_>,
+) -> Result<BeadGraph, BeadComposeError> {
+    match plan {
+        GraphPlan::Noop(graph) => {
+            if advanced
+                && matches!(operation, BeadOperation::Attach | BeadOperation::Pour)
+                && graph
+                    .edges
+                    .iter()
+                    .any(|edge| edge.action == BeadEdgeAction::Add)
+            {
+                return Err(BeadComposeError::GraphAtomicUpdateUnavailable);
+            }
+            Ok(graph)
+        }
         GraphPlan::Create(pending) => {
+            if advanced
+                && matches!(operation, BeadOperation::Attach | BeadOperation::Pour)
+                && pending
+                    .graph
+                    .nodes
+                    .iter()
+                    .any(|node| node.action == BeadNodeAction::Existing)
+            {
+                return Err(BeadComposeError::GraphAtomicUpdateUnavailable);
+            }
             if matches!(
-                request.operation,
+                operation,
                 BeadOperation::PreviewAttach | BeadOperation::PreviewPour
             ) {
                 pending.preview(runtime)
@@ -612,6 +650,7 @@ mod presentation_tests {
             working_directory: "/work".into(),
             template: "/work/sample.formula.toml.j2".into(),
             rendered_formula: "/work/sample.formula.toml".into(),
+            advanced: false,
         };
         let mut runtime = Runtime {
             runner: &Response,
@@ -658,6 +697,7 @@ mod presentation_tests {
             working_directory: "/work".into(),
             template: "/work/sample.formula.toml.j2".into(),
             rendered_formula: "/work/sample.formula.toml".into(),
+            advanced: false,
         };
         let mut runtime = Runtime {
             runner: &ArgumentFailure,
