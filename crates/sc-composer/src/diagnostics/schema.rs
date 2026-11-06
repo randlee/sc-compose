@@ -97,6 +97,8 @@ pub enum DiagnosticCode {
     InfoValDefaultUsed,
     /// The CLI attempted to read stdin twice for incompatible inputs.
     ErrRenderStdinDoubleRead,
+    /// Template syntax or engine evaluation failed.
+    ErrRenderTemplate,
     /// Output writing or materialization failed.
     ErrRenderWrite,
     /// JSON Lines append requires one JSON object.
@@ -241,6 +243,7 @@ impl DiagnosticCode {
             Self::ErrValUnboundVariable => "ERR_VAL_UNBOUND_VARIABLE",
             Self::InfoValDefaultUsed => "INFO_VAL_DEFAULT_USED",
             Self::ErrRenderStdinDoubleRead => "ERR_RENDER_STDIN_DOUBLE_READ",
+            Self::ErrRenderTemplate => "ERR_RENDER_TEMPLATE",
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
             Self::ErrRenderAppendNotObject => "ERR_RENDER_APPEND_NOT_OBJECT",
             Self::ErrRenderAppendNoFinalNewline => "ERR_RENDER_APPEND_NO_FINAL_NEWLINE",
@@ -379,6 +382,7 @@ mod tests {
             (ErrValUnboundVariable, "ERR_VAL_UNBOUND_VARIABLE"),
             (InfoValDefaultUsed, "INFO_VAL_DEFAULT_USED"),
             (ErrRenderStdinDoubleRead, "ERR_RENDER_STDIN_DOUBLE_READ"),
+            (ErrRenderTemplate, "ERR_RENDER_TEMPLATE"),
             (ErrRenderWrite, "ERR_RENDER_WRITE"),
             (ErrRenderAppendNotObject, "ERR_RENDER_APPEND_NOT_OBJECT"),
             (
@@ -494,7 +498,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 84);
+        assert_eq!(codes.len(), 85);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(
