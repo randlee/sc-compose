@@ -121,59 +121,13 @@ fn compose_expanded(
     observer.on_validation_outcome(&validation_outcome);
     fail_if_invalid(validation_outcome.errors)?;
 
-    let parsed = parsed_root_template(&expanded, &validation_report.resolve_result.resolved_path);
-    let template_name = resolved_template_name(&validation_report.resolve_result.resolved_path);
-    let resolved_path = validation_report.resolve_result.resolved_path.clone();
-    let locate = |error: crate::RenderError| {
-        error.located_in(&expanded, &resolved_path, &request.root, &request.policy)
-    };
-    let (rendered_text, failing_pass) = if parsed.passes().len() > 1 {
-        let contexts = build_pass_contexts(
-            parsed.passes(),
-            &request.policy.passes,
-            &mut validation_state,
-            &validation_report.resolve_result.resolved_path,
-        );
-        let rendered = render_all_with_observer(
-            &parsed,
-            &contexts,
-            &template_name,
-            observer,
-            &locate,
-            crate::resolve_json_escape_mode(
-                request.policy.json_escape_mode,
-                parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
-            ),
-            Some(OutputFormat::from_template_path(
-                &validation_report.resolve_result.resolved_path,
-            )),
-        )?;
-        (rendered.body, rendered.failing_pass)
-    } else {
-        let renderer = Renderer::with_json_escape_mode(crate::resolve_json_escape_mode(
-            request.policy.json_escape_mode,
-            parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
-        ));
-        (
-            renderer
-                .render_named(
-                    &template_name,
-                    &expanded.text,
-                    build_render_context(
-                        &mut validation_state,
-                        &validation_report.resolve_result.resolved_path,
-                    ),
-                )
-                .map_err(locate)
-                .inspect_err(|error| {
-                    observer.on_render_outcome(&RenderOutcomeEvent {
-                        rendered_bytes: None,
-                        code: error.code(),
-                    });
-                })?,
-            None,
-        )
-    };
+    let (rendered_text, failing_pass) = render_expanded(
+        request,
+        observer,
+        &expanded,
+        &mut validation_state,
+        &validation_report.resolve_result.resolved_path,
+    )?;
     report_rendered_bytes(observer, rendered_text.len());
     let rendered_text = assemble_output(
         &rendered_text,
@@ -190,6 +144,66 @@ fn compose_expanded(
         warnings: validation_outcome.warnings,
         composition_fingerprint: expanded.composition_fingerprint,
     })
+}
+
+/// Render the expanded template: every stacked pass, or the single body.
+/// Engine errors are located in their source file (ADR-0026 D10); only the
+/// first rendered pass sees the expanded source text.
+fn render_expanded(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+    expanded: &crate::ExpandedTemplate,
+    validation_state: &mut crate::validation::ValidationState,
+    resolved_path: &Path,
+) -> Result<(String, Option<u8>), ComposeError> {
+    let parsed = parsed_root_template(expanded, resolved_path);
+    let template_name = resolved_template_name(resolved_path);
+    let locate = |error: crate::RenderError| {
+        error.located_in(expanded, resolved_path, &request.root, &request.policy)
+    };
+    let rendered = if parsed.passes().len() > 1 {
+        let contexts = build_pass_contexts(
+            parsed.passes(),
+            &request.policy.passes,
+            validation_state,
+            resolved_path,
+        );
+        let passes = render_all_with_observer(
+            &parsed,
+            &contexts,
+            &template_name,
+            observer,
+            &locate,
+            crate::resolve_json_escape_mode(
+                request.policy.json_escape_mode,
+                parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
+            ),
+            Some(OutputFormat::from_template_path(resolved_path)),
+        )?;
+        (passes.body, passes.failing_pass)
+    } else {
+        let renderer = Renderer::with_json_escape_mode(crate::resolve_json_escape_mode(
+            request.policy.json_escape_mode,
+            parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
+        ));
+        (
+            renderer
+                .render_named(
+                    &template_name,
+                    &expanded.text,
+                    build_render_context(validation_state, resolved_path),
+                )
+                .map_err(locate)
+                .inspect_err(|error| {
+                    observer.on_render_outcome(&RenderOutcomeEvent {
+                        rendered_bytes: None,
+                        code: error.code(),
+                    });
+                })?,
+            None,
+        )
+    };
+    Ok(rendered)
 }
 
 fn report_rendered_bytes(observer: &mut dyn CompositionObserver, count: usize) {

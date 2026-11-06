@@ -102,6 +102,34 @@ pub(super) fn execute_custom_delimiter_render(
         return Err(validation_report_error(report.errors));
     }
     let resolve_result = report.resolve_result;
+    let rendered_text = render_with_custom_delimiters(
+        request,
+        observer,
+        &expanded,
+        &resolve_result,
+        &open,
+        &close,
+    )?;
+    finish_custom_render(
+        request,
+        &args.render,
+        &resolve_result.resolved_path,
+        &expanded,
+        &rendered_text,
+        report.warnings,
+    )
+}
+
+/// Render the validated expanded body with the caller's delimiters, locating
+/// engine errors in their source file (ADR-0026 D10).
+fn render_with_custom_delimiters(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+    expanded: &ExpandedTemplate,
+    resolve_result: &ResolveResult,
+    open: &str,
+    close: &str,
+) -> Result<String, CommandError> {
     let root_passes = expanded
         .frontmatters
         .iter()
@@ -122,7 +150,7 @@ pub(super) fn execute_custom_delimiter_render(
             .and_then(sc_composer::Frontmatter::json_escape_mode),
     );
     let rendered_text =
-        Renderer::with_delimiters_and_json_escape_mode(&open, &close, json_escape_mode)
+        Renderer::with_delimiters_and_json_escape_mode(open, close, json_escape_mode)
             .map_err(|error| {
                 CommandError::usage_with_code(
                     anyhow!(error),
@@ -136,7 +164,7 @@ pub(super) fn execute_custom_delimiter_render(
             )
             .map_err(|error| {
                 error.located_in(
-                    &expanded,
+                    expanded,
                     &resolve_result.resolved_path,
                     &request.root,
                     &request.policy,
@@ -158,14 +186,7 @@ pub(super) fn execute_custom_delimiter_render(
         rendered_bytes: Some(rendered_text.len()),
         code: None,
     });
-    finish_custom_render(
-        request,
-        &args.render,
-        &resolve_result.resolved_path,
-        &expanded,
-        &rendered_text,
-        report.warnings,
-    )
+    Ok(rendered_text)
 }
 
 fn finish_custom_render(
