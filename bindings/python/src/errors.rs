@@ -1,6 +1,7 @@
-use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
+use pyo3::sync::PyOnceLock;
+use pyo3::types::PyType;
 use sc_composer::{
     ComposeError, ConfigError, DiagnosticCode, ExtractError, IncludeError, OutputCheckError,
     RecoveryHintKind, RenderError, ResolveError, ValidationError,
@@ -14,232 +15,117 @@ struct ExceptionDetails {
     diagnostic_occurrence: Option<usize>,
 }
 
-fn exception_details(
-    recovery_hints: Option<Vec<String>>,
-    diagnostic_kind: Option<String>,
-    diagnostic_message: Option<String>,
-    diagnostic_occurrence: Option<usize>,
-) -> ExceptionDetails {
-    ExceptionDetails {
-        recovery_hints: recovery_hints.unwrap_or_default(),
-        diagnostic_kind,
-        diagnostic_message,
-        diagnostic_occurrence,
+trait ExceptionType {
+    fn class(py: Python<'_>) -> PyResult<Bound<'_, PyType>>;
+    fn install(py: Python<'_>, class: Bound<'_, PyType>) -> PyResult<()>;
+}
+
+static SC_COMPOSE_ERROR_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static SC_RENDER_ERROR_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static SC_VALIDATION_ERROR_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static SC_RESOLVE_ERROR_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static SC_INCLUDE_ERROR_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static SC_CONFIG_ERROR_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static EXCEPTION_TYPES_INITIALIZED: PyOnceLock<()> = PyOnceLock::new();
+
+struct ScComposeError;
+struct ScRenderError;
+struct ScValidationError;
+struct ScResolveError;
+struct ScIncludeError;
+struct ScConfigError;
+
+impl ExceptionType for ScComposeError {
+    fn class(py: Python<'_>) -> PyResult<Bound<'_, PyType>> {
+        ensure_exception_types(py)?;
+        Ok(SC_COMPOSE_ERROR_TYPE
+            .get(py)
+            .ok_or_else(|| PyException::new_err("ScComposeError is not registered"))?
+            .bind(py)
+            .clone())
+    }
+    fn install(py: Python<'_>, class: Bound<'_, PyType>) -> PyResult<()> {
+        SC_COMPOSE_ERROR_TYPE
+            .set(py, class.unbind())
+            .map_err(|_error| PyException::new_err("ScComposeError registered more than once"))
     }
 }
-
-#[pyclass(extends=PyException, subclass, name = "ScComposeError")]
-#[derive(Debug)]
-pub(crate) struct ScComposeError {
-    #[pyo3(get)]
-    message: String,
-    #[pyo3(get)]
-    code: Option<String>,
-    #[pyo3(get)]
-    recovery_hints: Vec<String>,
-    #[pyo3(get)]
-    diagnostic_kind: Option<String>,
-    #[pyo3(get)]
-    diagnostic_message: Option<String>,
-    #[pyo3(get)]
-    diagnostic_occurrence: Option<usize>,
-}
-
-impl ScComposeError {
-    fn new_inner(message: String, code: Option<String>, details: ExceptionDetails) -> Self {
-        Self {
-            message,
-            code,
-            recovery_hints: details.recovery_hints,
-            diagnostic_kind: details.diagnostic_kind,
-            diagnostic_message: details.diagnostic_message,
-            diagnostic_occurrence: details.diagnostic_occurrence,
+macro_rules! register_exception_type {
+    ($ty:ty, $cell:ident, $label:literal) => {
+        impl ExceptionType for $ty {
+            fn class(py: Python<'_>) -> PyResult<Bound<'_, PyType>> {
+                ensure_exception_types(py)?;
+                Ok($cell
+                    .get(py)
+                    .ok_or_else(|| PyException::new_err(concat!($label, " is not registered")))?
+                    .bind(py)
+                    .clone())
+            }
+            fn install(py: Python<'_>, class: Bound<'_, PyType>) -> PyResult<()> {
+                $cell.set(py, class.unbind()).map_err(|_error| {
+                    PyException::new_err(concat!($label, " registered more than once"))
+                })
+            }
         }
-    }
+    };
 }
-
-#[pymethods]
-impl ScComposeError {
-    #[new]
-    #[pyo3(signature = (message, code=None, recovery_hints=None, diagnostic_kind=None, diagnostic_message=None, diagnostic_occurrence=None))]
-    fn new(
-        message: String,
-        code: Option<String>,
-        recovery_hints: Option<Vec<String>>,
-        diagnostic_kind: Option<String>,
-        diagnostic_message: Option<String>,
-        diagnostic_occurrence: Option<usize>,
-    ) -> Self {
-        Self::new_inner(
-            message,
-            code,
-            exception_details(
-                recovery_hints,
-                diagnostic_kind,
-                diagnostic_message,
-                diagnostic_occurrence,
-            ),
-        )
-    }
-}
-
-#[pyclass(extends=ScComposeError, name = "ScRenderError")]
-#[derive(Debug)]
-pub(crate) struct ScRenderError;
-
-#[pymethods]
-impl ScRenderError {
-    #[new]
-    #[pyo3(signature = (message, code=None, recovery_hints=None, diagnostic_kind=None, diagnostic_message=None, diagnostic_occurrence=None))]
-    fn new(
-        message: String,
-        code: Option<String>,
-        recovery_hints: Option<Vec<String>>,
-        diagnostic_kind: Option<String>,
-        diagnostic_message: Option<String>,
-        diagnostic_occurrence: Option<usize>,
-    ) -> PyClassInitializer<Self> {
-        PyClassInitializer::from(ScComposeError::new_inner(
-            message,
-            code,
-            exception_details(
-                recovery_hints,
-                diagnostic_kind,
-                diagnostic_message,
-                diagnostic_occurrence,
-            ),
-        ))
-        .add_subclass(Self)
-    }
-}
-
-#[pyclass(extends=ScComposeError, name = "ScValidationError")]
-#[derive(Debug)]
-pub(crate) struct ScValidationError;
-
-#[pymethods]
-impl ScValidationError {
-    #[new]
-    #[pyo3(signature = (message, code=None, recovery_hints=None, diagnostic_kind=None, diagnostic_message=None, diagnostic_occurrence=None))]
-    fn new(
-        message: String,
-        code: Option<String>,
-        recovery_hints: Option<Vec<String>>,
-        diagnostic_kind: Option<String>,
-        diagnostic_message: Option<String>,
-        diagnostic_occurrence: Option<usize>,
-    ) -> PyClassInitializer<Self> {
-        PyClassInitializer::from(ScComposeError::new_inner(
-            message,
-            code,
-            exception_details(
-                recovery_hints,
-                diagnostic_kind,
-                diagnostic_message,
-                diagnostic_occurrence,
-            ),
-        ))
-        .add_subclass(Self)
-    }
-}
-
-#[pyclass(extends=ScComposeError, name = "ScResolveError")]
-#[derive(Debug)]
-pub(crate) struct ScResolveError;
-
-#[pymethods]
-impl ScResolveError {
-    #[new]
-    #[pyo3(signature = (message, code=None, recovery_hints=None, diagnostic_kind=None, diagnostic_message=None, diagnostic_occurrence=None))]
-    fn new(
-        message: String,
-        code: Option<String>,
-        recovery_hints: Option<Vec<String>>,
-        diagnostic_kind: Option<String>,
-        diagnostic_message: Option<String>,
-        diagnostic_occurrence: Option<usize>,
-    ) -> PyClassInitializer<Self> {
-        PyClassInitializer::from(ScComposeError::new_inner(
-            message,
-            code,
-            exception_details(
-                recovery_hints,
-                diagnostic_kind,
-                diagnostic_message,
-                diagnostic_occurrence,
-            ),
-        ))
-        .add_subclass(Self)
-    }
-}
-
-#[pyclass(extends=ScComposeError, name = "ScIncludeError")]
-#[derive(Debug)]
-pub(crate) struct ScIncludeError;
-
-#[pymethods]
-impl ScIncludeError {
-    #[new]
-    #[pyo3(signature = (message, code=None, recovery_hints=None, diagnostic_kind=None, diagnostic_message=None, diagnostic_occurrence=None))]
-    fn new(
-        message: String,
-        code: Option<String>,
-        recovery_hints: Option<Vec<String>>,
-        diagnostic_kind: Option<String>,
-        diagnostic_message: Option<String>,
-        diagnostic_occurrence: Option<usize>,
-    ) -> PyClassInitializer<Self> {
-        PyClassInitializer::from(ScComposeError::new_inner(
-            message,
-            code,
-            exception_details(
-                recovery_hints,
-                diagnostic_kind,
-                diagnostic_message,
-                diagnostic_occurrence,
-            ),
-        ))
-        .add_subclass(Self)
-    }
-}
-
-#[pyclass(extends=ScComposeError, name = "ScConfigError")]
-#[derive(Debug)]
-pub(crate) struct ScConfigError;
-
-#[pymethods]
-impl ScConfigError {
-    #[new]
-    #[pyo3(signature = (message, code=None, recovery_hints=None, diagnostic_kind=None, diagnostic_message=None, diagnostic_occurrence=None))]
-    fn new(
-        message: String,
-        code: Option<String>,
-        recovery_hints: Option<Vec<String>>,
-        diagnostic_kind: Option<String>,
-        diagnostic_message: Option<String>,
-        diagnostic_occurrence: Option<usize>,
-    ) -> PyClassInitializer<Self> {
-        PyClassInitializer::from(ScComposeError::new_inner(
-            message,
-            code,
-            exception_details(
-                recovery_hints,
-                diagnostic_kind,
-                diagnostic_message,
-                diagnostic_occurrence,
-            ),
-        ))
-        .add_subclass(Self)
-    }
-}
+register_exception_type!(ScRenderError, SC_RENDER_ERROR_TYPE, "ScRenderError");
+register_exception_type!(
+    ScValidationError,
+    SC_VALIDATION_ERROR_TYPE,
+    "ScValidationError"
+);
+register_exception_type!(ScResolveError, SC_RESOLVE_ERROR_TYPE, "ScResolveError");
+register_exception_type!(ScIncludeError, SC_INCLUDE_ERROR_TYPE, "ScIncludeError");
+register_exception_type!(ScConfigError, SC_CONFIG_ERROR_TYPE, "ScConfigError");
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
-    module.add_class::<ScComposeError>()?;
-    module.add_class::<ScRenderError>()?;
-    module.add_class::<ScValidationError>()?;
-    module.add_class::<ScResolveError>()?;
-    module.add_class::<ScIncludeError>()?;
-    module.add_class::<ScConfigError>()?;
+    Python::attach(|py| -> PyResult<()> {
+        ensure_exception_types(py)?;
+        for (name, class) in [
+            ("ScComposeError", ScComposeError::class(py)?),
+            ("ScRenderError", ScRenderError::class(py)?),
+            ("ScValidationError", ScValidationError::class(py)?),
+            ("ScResolveError", ScResolveError::class(py)?),
+            ("ScIncludeError", ScIncludeError::class(py)?),
+            ("ScConfigError", ScConfigError::class(py)?),
+        ] {
+            module.add(name, class)?;
+        }
+        Ok(())
+    })
+}
+
+fn ensure_exception_types(py: Python<'_>) -> PyResult<()> {
+    EXCEPTION_TYPES_INITIALIZED.get_or_try_init(py, || -> PyResult<()> {
+        let helpers = PyModule::from_code(
+            py,
+            c"def _sc_compose_error_init(self, *args, **kwargs):\n    if kwargs:\n        raise TypeError(f'{type(self).__name__}() takes no keyword arguments')\n    if not 1 <= len(args) <= 6:\n        raise TypeError(f'{type(self).__name__}() takes from 1 to 6 positional arguments')\n    message = args[0]\n    code = args[1] if len(args) > 1 else None\n    recovery_hints = args[2] if len(args) > 2 else None\n    diagnostic_kind = args[3] if len(args) > 3 else None\n    diagnostic_message = args[4] if len(args) > 4 else None\n    diagnostic_occurrence = args[5] if len(args) > 5 else None\n    if not isinstance(message, str) or (code is not None and not isinstance(code, str)):\n        raise TypeError('message and code must be strings')\n    if recovery_hints is not None and (not isinstance(recovery_hints, list) or not all(isinstance(hint, str) for hint in recovery_hints)):\n        raise TypeError('recovery_hints must be a list of strings or None')\n    if any(value is not None and not isinstance(value, str) for value in (diagnostic_kind, diagnostic_message)):\n        raise TypeError('diagnostic fields must be strings or None')\n    if diagnostic_occurrence is not None and (not isinstance(diagnostic_occurrence, int) or diagnostic_occurrence < 0):\n        raise TypeError('diagnostic_occurrence must be a non-negative integer or None')\n    Exception.__init__(self, *args)\n    self.message = message\n    self.code = code\n    self.recovery_hints = recovery_hints or []\n    self.diagnostic_kind = diagnostic_kind\n    self.diagnostic_message = diagnostic_message\n    self.diagnostic_occurrence = diagnostic_occurrence\nimport inspect as _inspect\n_sc_compose_error_init.__signature__ = _inspect.Signature([_inspect.Parameter('self', _inspect.Parameter.POSITIONAL_OR_KEYWORD), _inspect.Parameter('message', _inspect.Parameter.POSITIONAL_OR_KEYWORD), *[_inspect.Parameter(name, _inspect.Parameter.POSITIONAL_OR_KEYWORD, default=None) for name in ('code', 'recovery_hints', 'diagnostic_kind', 'diagnostic_message', 'diagnostic_occurrence')]])\nScComposeError = type('ScComposeError', (Exception,), {'__module__': 'builtins', '__init__': _sc_compose_error_init})\nScRenderError = type('ScRenderError', (ScComposeError,), {'__module__': 'builtins'})\nScValidationError = type('ScValidationError', (ScComposeError,), {'__module__': 'builtins'})\nScResolveError = type('ScResolveError', (ScComposeError,), {'__module__': 'builtins'})\nScIncludeError = type('ScIncludeError', (ScComposeError,), {'__module__': 'builtins'})\nScConfigError = type('ScConfigError', (ScComposeError,), {'__module__': 'builtins'})\n",
+            c"<sc-compose-exceptions>",
+            c"sc_compose._native_exception_helpers",
+        )?;
+        for name in [
+            "ScComposeError",
+            "ScRenderError",
+            "ScValidationError",
+            "ScResolveError",
+            "ScIncludeError",
+            "ScConfigError",
+        ] {
+            let class = helpers.getattr(name)?.cast_into::<PyType>()?;
+            match name {
+                "ScComposeError" => ScComposeError::install(py, class.clone())?,
+                "ScRenderError" => ScRenderError::install(py, class.clone())?,
+                "ScValidationError" => ScValidationError::install(py, class.clone())?,
+                "ScResolveError" => ScResolveError::install(py, class.clone())?,
+                "ScIncludeError" => ScIncludeError::install(py, class.clone())?,
+                "ScConfigError" => ScConfigError::install(py, class.clone())?,
+                _ => unreachable!(),
+            }
+            let _ = class;
+        }
+        Ok(())
+    })?;
     Ok(())
 }
 
@@ -373,19 +259,17 @@ pub(crate) fn extract_error_to_pyerr(error: ExtractError) -> PyErr {
     )
 }
 
-fn exception_with_attrs<T>(message: &str, code: Option<&str>) -> PyErr
-where
-    T: PyTypeInfo,
-{
+fn exception_with_attrs<T: ExceptionType>(message: &str, code: Option<&str>) -> PyErr {
     exception_with_details::<T>(message, code, ExceptionDetails::default())
 }
 
-fn exception_with_details<T>(message: &str, code: Option<&str>, details: ExceptionDetails) -> PyErr
-where
-    T: PyTypeInfo,
-{
+fn exception_with_details<T: ExceptionType>(
+    message: &str,
+    code: Option<&str>,
+    details: ExceptionDetails,
+) -> PyErr {
     Python::attach(|py| {
-        let instance = py.get_type::<T>().call1((
+        let instance = T::class(py)?.call1((
             message,
             code.map(str::to_owned),
             details.recovery_hints,
@@ -393,13 +277,15 @@ where
             details.diagnostic_message,
             details.diagnostic_occurrence,
         ));
-        match instance {
-            Ok(instance) => PyErr::from_value(instance.into_any()),
-            Err(construction_error) => PyException::new_err(format!(
-                "{message} (typed exception construction failed: {construction_error})"
-            )),
-        }
+        instance
+            .map(|instance| PyErr::from_value(instance.into_any()))
+            .map_err(|construction_error| {
+                PyException::new_err(format!(
+                    "{message} (typed exception construction failed: {construction_error})"
+                ))
+            })
     })
+    .unwrap_or_else(|error| error)
 }
 
 fn extract_error_message(error: &ExtractError) -> String {
@@ -442,24 +328,21 @@ fn recovery_hint_description(hint: &sc_composer::RecoveryHint) -> String {
 mod tests {
     use std::collections::BTreeMap;
     use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     use sc_composer::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
 
     use super::*;
 
     fn unique_missing_template() -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        std::env::temp_dir().join(format!("sc-compose-missing-{nanos}.md.j2"))
+        std::env::temp_dir().join(format!("sc-compose-missing-{}.md.j2", std::process::id()))
     }
 
     #[test]
     fn helper_errors_expose_message_and_code_attributes() {
         Python::initialize();
         Python::attach(|py| {
+            let module = PyModule::new(py, "_native").unwrap();
+            register(&module).unwrap();
             let err = validation_error("bad input".to_owned(), Some("ERR_VAL_EMPTY"));
             let exc = err.value(py);
             assert_eq!(exc.get_type().name().unwrap(), "ScValidationError");
@@ -485,29 +368,21 @@ mod tests {
                     .unwrap(),
                 Some("ERR_CONFIG_PARSE".to_owned())
             );
-        });
-    }
-
-    #[test]
-    fn compose_error_to_pyerr_maps_resolve_errors_to_scresolveerror() {
-        let root_path = std::env::temp_dir();
-        let request = ComposeRequest {
-            runtime: None,
-            mode: ComposeMode::File {
-                template_path: unique_missing_template(),
-            },
-            root: ConfiningRoot::new(&root_path).unwrap(),
-            vars_input: BTreeMap::new(),
-            vars_env: BTreeMap::new(),
-            vars_defaults: BTreeMap::new(),
-            guidance_block: None,
-            user_prompt: None,
-            policy: ComposePolicy::default(),
-        };
-
-        let err = sc_composer::resolve_template_path(&request).unwrap_err();
-        Python::initialize();
-        Python::attach(|py| {
+            let root_path = std::env::temp_dir();
+            let request = ComposeRequest {
+                runtime: None,
+                mode: ComposeMode::File {
+                    template_path: unique_missing_template(),
+                },
+                root: ConfiningRoot::new(&root_path).unwrap(),
+                vars_input: BTreeMap::new(),
+                vars_env: BTreeMap::new(),
+                vars_defaults: BTreeMap::new(),
+                guidance_block: None,
+                user_prompt: None,
+                policy: ComposePolicy::default(),
+            };
+            let err = sc_composer::resolve_template_path(&request).unwrap_err();
             let pyerr = compose_error_to_pyerr(err);
             let exc = pyerr.value(py);
             assert_eq!(exc.get_type().name().unwrap(), "ScResolveError");

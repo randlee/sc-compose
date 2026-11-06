@@ -23,7 +23,7 @@ TEAM_LEAD_SENDER = (FIXTURE_ROOT / "team-lead-sender.txt").read_text(
 
 def write(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(textwrap.dedent(contents), encoding="utf-8", newline="\n")
+    path.write_text(textwrap.dedent(contents), encoding="utf-8")
 
 
 def make_file_request(root: Path, name: str, **kwargs: object) -> sc_compose.ComposeRequest:
@@ -1194,6 +1194,36 @@ def test_exception_surface_exposes_message_and_code(
     assert isinstance(error.message, str)
     assert error.message
     assert error.code == expected_code
+
+
+def test_exception_classes_preserve_constructor_contract() -> None:
+    classes = (
+        sc_compose.ScComposeError,
+        sc_compose.ScRenderError,
+        sc_compose.ScValidationError,
+        sc_compose.ScResolveError,
+        sc_compose.ScIncludeError,
+        sc_compose.ScConfigError,
+    )
+    for exc_type in classes:
+        assert exc_type is getattr(sc_compose._native, exc_type.__name__)
+        error = exc_type("message", "CODE", ["hint"], "kind", "diagnostic", 3)
+        assert error.args == ("message", "CODE", ["hint"], "kind", "diagnostic", 3)
+        assert str(error) == str(error.args)
+        assert error.message == "message"
+        assert error.code == "CODE"
+        assert error.recovery_hints == ["hint"]
+        assert error.diagnostic_kind == "kind"
+        assert error.diagnostic_message == "diagnostic"
+        assert error.diagnostic_occurrence == 3
+        assert issubclass(exc_type, sc_compose.ScComposeError)
+        with pytest.raises(TypeError, match="no keyword arguments"):
+            exc_type("message", code="CODE")
+
+
+def test_python_binding_keeps_non_strict_render_default() -> None:
+    assert sc_compose.ComposePolicy().strict_undeclared_variables is False
+    assert sc_compose.render_template("hello {{ missing_value }}", {}) == "hello "
 
 
 def test_compose_rejects_malformed_json_output_like_the_cli(tmp_path: Path) -> None:
