@@ -125,7 +125,7 @@ pub(crate) fn render_formula_with_options(
     let rendered = sc_composer::Renderer::with_delimiters_and_escape_mode(
         OPEN_DELIMITER,
         CLOSE_DELIMITER,
-        escape_mode(template),
+        escape_mode(template, advanced),
     )
     // A composition variable with no caller value and no frontmatter default
     // would otherwise render as `""` or `"null"` and reach bd as a valid
@@ -318,16 +318,16 @@ fn render_error(error: &std::io::Error) -> BeadComposeError {
     }
 }
 
-fn escape_mode(template: &Path) -> sc_composer::TemplateEscapeMode {
+fn escape_mode(template: &Path, advanced: bool) -> sc_composer::TemplateEscapeMode {
     if template.to_string_lossy().ends_with(".formula.json.j2")
-        || template.to_string_lossy().ends_with(".formula.json")
+        || (advanced && template.to_string_lossy().ends_with(".formula.json"))
     {
         // Formula templates retain their literal JSON quotes.  This mirrors
         // the documented sc-compose legacy JSON shape while the deliberately
         // distinct triple braces preserve Beads runtime placeholders.
         sc_composer::TemplateEscapeMode::Json(sc_composer::JsonEscapeMode::Legacy)
     } else if template.to_string_lossy().ends_with(".formula.toml.j2")
-        || template.to_string_lossy().ends_with(".formula.toml")
+        || (advanced && template.to_string_lossy().ends_with(".formula.toml"))
     {
         sc_composer::TemplateEscapeMode::Toml
     } else {
