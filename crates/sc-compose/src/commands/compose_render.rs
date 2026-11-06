@@ -134,6 +134,14 @@ pub(super) fn execute_custom_delimiter_render(
                 parsed.body(),
                 build_custom_render_context(request, &resolve_result.resolved_path, &root_passes),
             )
+            .map_err(|error| {
+                error.located_in(
+                    &expanded,
+                    &resolve_result.resolved_path,
+                    &request.root,
+                    &request.policy,
+                )
+            })
             .inspect_err(|error| {
                 observer.on_render_outcome(&RenderOutcomeEvent {
                     rendered_bytes: None,
