@@ -676,6 +676,62 @@ mod tests {
         );
     }
 
+    fn mentions_missing(report: &crate::ValidationReport, name: &str) -> bool {
+        report
+            .errors
+            .iter()
+            .chain(report.warnings.iter())
+            .any(|diagnostic| diagnostic.message.contains(name))
+    }
+
+    #[test]
+    fn schemaless_validation_discovers_comment_and_raw_tokens_unless_strict() {
+        let root = temp_root("validation_schemaless_comment_raw");
+        write_file(
+            &root.join("template.md.j2"),
+            "{# {{ commented }} #}{% raw %}{{ raw_var }}{% endraw %}{{ live }}\n",
+        );
+
+        let default_report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+        let strict_report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        ))
+        .unwrap();
+
+        // Default (v1.7.0-compatible) keeps scanning comments and raw blocks.
+        assert!(
+            mentions_missing(&default_report, "commented"),
+            "{default_report:?}"
+        );
+        assert!(
+            mentions_missing(&default_report, "raw_var"),
+            "{default_report:?}"
+        );
+        // Strict skips them but still sees live expressions.
+        assert!(
+            !mentions_missing(&strict_report, "commented"),
+            "{strict_report:?}"
+        );
+        assert!(
+            !mentions_missing(&strict_report, "raw_var"),
+            "{strict_report:?}"
+        );
+        assert!(
+            mentions_missing(&strict_report, "live"),
+            "{strict_report:?}"
+        );
+    }
+
     fn request_for_file(root: &Path, file: &str, policy: ComposePolicy) -> ComposeRequest {
         ComposeRequest {
             runtime: None,
