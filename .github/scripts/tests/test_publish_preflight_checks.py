@@ -13,8 +13,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 RESTORED = {
-    "workspace-fmt": "cargo fmt --all --check",
-    "workspace-clippy": "cargo clippy --workspace --all-targets --all-features -- -D warnings",
+    "workspace-fmt": "rustup component add rustfmt && cargo fmt --all --check",
+    "workspace-clippy": "rustup component add clippy && cargo clippy --workspace --all-targets --all-features -- -D warnings",
     "workspace-tests": "cargo test --workspace",
     "go-native-version-lockstep": (
         "python3 .github/scripts/go_native_module.py verify-version-lockstep "
@@ -51,6 +51,42 @@ class RestoredPreflightChecks(unittest.TestCase):
     def test_go_lockstep_check_passes_on_the_repository_contract(self):
         result = subprocess.run(RESTORED["go-native-version-lockstep"].split(), cwd=ROOT, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipIf(sys.platform == "win32", "the consumer preflight runs these commands with POSIX sh on Linux")
+    def test_component_checks_provision_before_running_and_fail_closed(self):
+        # The preflight toolchain uses the minimal profile, so rustfmt/clippy
+        # must be added before their checks. Fake rustup/cargo record their
+        # argv; the declared command runs through the same shell=True path.
+        import os
+        import tempfile
+
+        cases = {
+            "workspace-fmt": ("rustfmt", ["fmt", "--all", "--check"]),
+            "workspace-clippy": (
+                "clippy",
+                ["clippy", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"],
+            ),
+        }
+        for check_id, (component, cargo_args) in cases.items():
+            for rustup_exit, cargo_exit in ((0, 0), (0, 1), (1, 0)):
+                with self.subTest(check=check_id, rustup=rustup_exit, cargo=cargo_exit), tempfile.TemporaryDirectory() as tmp:
+                    bin_dir = Path(tmp)
+                    calls = bin_dir / "calls"
+                    for tool, code in (("rustup", rustup_exit), ("cargo", cargo_exit)):
+                        fake = bin_dir / tool
+                        fake.symlink_to(ROOT / "crates/test-support/fake-exec")
+                        fake.with_name(fake.name + ".sh").write_text(
+                            f'echo "{tool} $*" >> "{calls}"\nexit {code}\n', encoding="utf-8"
+                        )
+                        self.assertEqual(fake.resolve(), (ROOT / "crates/test-support/fake-exec").resolve())
+                    env = dict(os.environ, PATH=f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+                    result = subprocess.run(RESTORED[check_id], shell=True, cwd=ROOT, env=env)
+                    recorded = calls.read_text(encoding="utf-8").splitlines()
+                    expected = [f"rustup component add {component}"]
+                    if rustup_exit == 0:
+                        expected.append("cargo " + " ".join(cargo_args))
+                    self.assertEqual(recorded, expected)
+                    self.assertEqual(result.returncode != 0, bool(rustup_exit or cargo_exit))
 
     def test_go_lockstep_check_rejects_a_workspace_without_a_release_version(self):
         import tempfile

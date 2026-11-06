@@ -73,6 +73,12 @@ This JSON publishes crates.io and a GitHub Release carrying the `example` binary
 - Each `release_binaries` name must be a Cargo `[[bin]]` name.
 - The GitHub Release needs at least one asset: a binary, a wheel or sdist, or an npm package. A crates-only manifest (`"release_binaries": []` with no Python or npm packages) fails at `release.yml` "Collect archives", because nothing was uploaded and `artifacts/` does not exist. This is a kit gap.
 - Crates publish in `publish_order`. A crate with `"publish": false` takes `"publish_order": 0`.
+- A crate may opt in to `"verify_registry_visibility": true`. After uploading that exact
+  version, both the first-publish and retry workflows confirm its contract-derived
+  registry lookup reports published before continuing to dependent crates. An
+  absent or indeterminate result stops the run; use the existing release/channel
+  retry once visibility is established. Omit the field (or use `false`) to retain
+  the existing behavior. The optional wait interval is not used as visibility proof.
 
 ```json
 {

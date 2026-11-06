@@ -11,11 +11,11 @@ run = "python3 scripts/generate_cli_reference.py --check --install-docli"
 [[checks]]
 id = "workspace-fmt"
 description = "Workspace is rustfmt-clean (restored from the pre-PR866 release preflight)"
-run = "cargo fmt --all --check"
+run = "rustup component add rustfmt && cargo fmt --all --check"
 [[checks]]
 id = "workspace-clippy"
 description = "Workspace is clippy-clean with warnings denied (restored from the pre-PR866 release preflight)"
-run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
+run = "rustup component add clippy && cargo clippy --workspace --all-targets --all-features -- -D warnings"
 [[checks]]
 id = "workspace-tests"
 description = "Workspace tests pass (restored from the pre-PR866 release preflight)"

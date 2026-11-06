@@ -146,6 +146,32 @@ class InstallValuesTests(unittest.TestCase):
             },
         }
 
+    def test_optional_registry_visibility_round_trips_without_changing_default(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for declared in (None, False, True):
+                values = self.valid_values()
+                if declared is not None:
+                    values["crates"][0]["verify_registry_visibility"] = declared
+                source = root / "install.json"
+                source.write_text(json.dumps(values))
+                loaded = INSTALL.load_install_values(source)
+                rendered = root / "artifacts.toml"
+                INSTALL.render_template(Path("release/publish-artifacts.toml.j2"), loaded, rendered)
+                crate = tomllib.loads(rendered.read_text())["crates"][0]
+                self.assertEqual(crate.get("verify_registry_visibility"), declared)
+                self.assertEqual("verify_registry_visibility" in crate, declared is not None)
+
+    def test_registry_visibility_rejects_nonboolean_install_input(self) -> None:
+        for value in ("true", 1, None):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as directory:
+                values = self.valid_values()
+                values["crates"][0]["verify_registry_visibility"] = value
+                source = Path(directory) / "install.json"
+                source.write_text(json.dumps(values))
+                with self.assertRaisesRegex(Exception, "verify_registry_visibility"):
+                    INSTALL.load_install_values(source)
+
     def test_help_explains_the_explicit_install_workflow(self) -> None:
         result = subprocess.run(
             [sys.executable, "-S", str(INSTALLER), "--help"],
@@ -165,7 +191,7 @@ class InstallValuesTests(unittest.TestCase):
             values = self.valid_values()
             path.write_text(json.dumps(values), encoding="utf-8")
             loaded = INSTALL.load_install_values(path)
-        expected = {**values, "preflight_checks": [], "docli": None}
+        expected = {**values, "preflight_checks": [], "docli": None, "preflight_workflows": []}
         self.assertEqual(loaded, expected)
         self.assertEqual(set(loaded["channels"]), set(INSTALL.CHANNEL_NAMES) - {"npm"})
         self.assertEqual(loaded["python_distributions"][1]["build_system"], "setuptools")
@@ -688,6 +714,180 @@ class InstallValuesTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(gate_check.returncode, 0, gate_check.stderr)
+
+
+
+class PreflightWorkflowTests(unittest.TestCase):
+    """Optional consumer-owned reusable workflows called by Release Preflight."""
+
+    KIT_WORKFLOW = INSTALLER.parent / ".github" / "workflows" / "release-preflight.yml"
+    DECLARED = [
+        {
+            "id": "install-matrix",
+            "description": "Consumer install matrix",
+            "uses": "./.github/workflows/install-matrix.yml",
+            "with": {"profile": "release", "strict": True, "attempts": 2},
+        },
+        {
+            "id": "artifact_verify",
+            "description": "Consumer artifact verification",
+            "uses": "./.github/workflows/artifact-verify.yml",
+        },
+    ]
+    EXPECTED_JOBS = """
+  consumer_workflow_install-matrix:
+    name: "Consumer install matrix"
+    uses: "./.github/workflows/install-matrix.yml"
+    with:
+      version: ${{ inputs.version }}
+      candidate_sha: ${{ github.sha }}
+      profile: "release"
+      strict: true
+      attempts: 2
+
+  consumer_workflow_artifact_verify:
+    name: "Consumer artifact verification"
+    uses: "./.github/workflows/artifact-verify.yml"
+    with:
+      version: ${{ inputs.version }}
+      candidate_sha: ${{ github.sha }}
+
+  consumer_workflows:
+    name: Record consumer preflight workflow outcomes
+    if: ${{ always() }}
+    needs: [consumer_workflow_install-matrix, consumer_workflow_artifact_verify]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deny release unless every consumer preflight workflow succeeded
+        shell: bash
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+"""
+
+    @staticmethod
+    def load(values: dict[str, object]) -> dict[str, object]:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_text(json.dumps(values), encoding="utf-8")
+            return INSTALL.load_install_values(path)
+
+    def install(self, values: dict[str, object]) -> bytes:
+        """Run a real install into a temporary consumer and return its preflight workflow."""
+        if not (INSTALLER.parent / ".sc-publish-source-root").is_file():
+            self.skipTest("installed consumers do not re-run the package source installer")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            consumer = root / "consumer"
+            consumer.mkdir()
+            input_path = root / "install.json"
+            input_path.write_text(json.dumps(values), encoding="utf-8")
+
+            def render_empty_toml(_template: Path, _values: dict[str, object], output: Path) -> None:
+                output.write_text("schema_version = 1\n", encoding="utf-8")
+
+            with patch.object(INSTALL, "render_template", side_effect=render_empty_toml):
+                with patch.object(sys, "argv", [str(INSTALLER), "--input", str(input_path), str(consumer)]):
+                    self.assertEqual(INSTALL.main(), 0)
+                with patch.object(
+                    sys, "argv", [str(INSTALLER), "--dry-run", "--input", str(input_path), str(consumer)]
+                ):
+                    self.assertEqual(INSTALL.main(), 0, "a repeat install must be in sync")
+            return (consumer / INSTALL.PREFLIGHT_WORKFLOW).read_bytes()
+
+    def test_absent_or_empty_option_installs_the_kit_workflow_byte_for_byte(self) -> None:
+        kit = self.KIT_WORKFLOW.read_bytes()
+        values = InstallValuesTests.valid_values()
+        self.assertNotIn("preflight_workflows", values)
+        self.assertEqual(self.load(values)["preflight_workflows"], [])
+        self.assertEqual(INSTALL.preflight_workflow_jobs([]), "")
+        self.assertEqual(self.install(values), kit)
+        values["preflight_workflows"] = []
+        self.assertEqual(self.install(values), kit)
+
+    def test_declared_workflows_append_exact_call_and_outcome_jobs(self) -> None:
+        loaded = self.load({**InstallValuesTests.valid_values(), "preflight_workflows": self.DECLARED})
+        jobs = INSTALL.preflight_workflow_jobs(loaded["preflight_workflows"])
+        self.assertTrue(jobs.startswith(self.EXPECTED_JOBS), jobs)
+        self.assertEqual(jobs, INSTALL.preflight_workflow_jobs(loaded["preflight_workflows"]))
+
+        kit = self.KIT_WORKFLOW.read_bytes()
+        installed = self.install({**InstallValuesTests.valid_values(), "preflight_workflows": self.DECLARED})
+        self.assertEqual(installed, kit + jobs.encode("utf-8"))
+
+        import yaml
+
+        before = yaml.safe_load(kit)
+        after = yaml.safe_load(installed)
+        # Trigger, inputs, permissions and the kit's own preflight job are unchanged.
+        self.assertEqual({key: value for key, value in after.items() if key != "jobs"},
+                         {key: value for key, value in before.items() if key != "jobs"})
+        self.assertEqual(after["permissions"], "read-all")
+        self.assertEqual(after["jobs"]["preflight"], before["jobs"]["preflight"])
+        self.assertEqual(
+            list(after["jobs"]),
+            ["preflight", "consumer_workflow_install-matrix", "consumer_workflow_artifact_verify",
+             "consumer_workflows"],
+        )
+        matrix = after["jobs"]["consumer_workflow_install-matrix"]
+        self.assertEqual(matrix["uses"], "./.github/workflows/install-matrix.yml")
+        self.assertEqual(
+            matrix["with"],
+            {"version": "${{ inputs.version }}", "candidate_sha": "${{ github.sha }}",
+             "profile": "release", "strict": True, "attempts": 2},
+        )
+        for job_id in ("consumer_workflow_install-matrix", "consumer_workflow_artifact_verify"):
+            self.assertNotIn("secrets", after["jobs"][job_id])
+            self.assertNotIn("permissions", after["jobs"][job_id])
+        outcome = after["jobs"]["consumer_workflows"]
+        self.assertEqual(outcome["if"], "${{ always() }}")
+        self.assertEqual(outcome["needs"], ["consumer_workflow_install-matrix", "consumer_workflow_artifact_verify"])
+
+    def test_outcome_job_denies_unless_every_declared_call_succeeded(self) -> None:
+        import yaml
+
+        loaded = self.load({**InstallValuesTests.valid_values(), "preflight_workflows": self.DECLARED})
+        jobs = yaml.safe_load("jobs:\n" + INSTALL.preflight_workflow_jobs(loaded["preflight_workflows"]))
+        script = jobs["jobs"]["consumer_workflows"]["steps"][0]["run"]
+        cases = {
+            "success": ({"a": "success", "b": "success"}, 0),
+            "failure": ({"a": "success", "b": "failure"}, 1),
+            "skipped": ({"a": "skipped", "b": "success"}, 1),
+            "cancelled": ({"a": "cancelled", "b": "success"}, 1),
+        }
+        for label, (results, expected) in cases.items():
+            with self.subTest(label), tempfile.TemporaryDirectory() as directory:
+                summary = Path(directory) / "summary.md"
+                needs = {job: {"result": result, "outputs": {}} for job, result in results.items()}
+                completed = subprocess.run(
+                    ["bash", "-c", script],
+                    env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin",
+                         "NEEDS": json.dumps(needs), "GITHUB_STEP_SUMMARY": str(summary)},
+                    capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(completed.returncode, expected, completed.stderr)
+                for job, result in results.items():
+                    self.assertIn(f"| {job} | {result} |", summary.read_text(encoding="utf-8"))
+                if expected:
+                    failed = ", ".join(job for job, result in sorted(results.items()) if result != "success")
+                    self.assertIn(f"did not succeed: {failed}", completed.stderr)
+
+    def test_invalid_declarations_are_refused_before_install(self) -> None:
+        base = dict(self.DECLARED[1])
+        cases = {
+            "must match": {**base, "id": "Bad Id"},
+            "with.version must be": {**base, "with": {"version": "1.0.0"}},
+            "with.candidate_sha must be": {**base, "with": {"candidate_sha": "abc"}},
+            "with.bad name must be": {**base, "with": {"bad name": "x"}},
+            "must be a string, boolean or integer": {**base, "with": {"items": ["x"]}},
+            "unknown field": {**base, "secrets": "inherit"},
+            "uses": {key: value for key, value in base.items() if key != "uses"},
+        }
+        for message, entry in cases.items():
+            with self.subTest(message), self.assertRaisesRegex(argparse.ArgumentTypeError, message):
+                self.load({**InstallValuesTests.valid_values(), "preflight_workflows": [entry]})
+        with self.assertRaisesRegex(argparse.ArgumentTypeError, "ids must be unique"):
+            self.load({**InstallValuesTests.valid_values(), "preflight_workflows": [base, base]})
 
 
 if __name__ == "__main__":

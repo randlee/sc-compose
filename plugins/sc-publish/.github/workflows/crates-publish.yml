@@ -99,6 +99,7 @@ jobs:
             local crate="$1"
             local wait_seconds="${2:-0}"
             local cargo_manifest="$3"
+            local verify_visibility="${4:-false}"
             if crate_exists "$crate" "$version"; then
               echo "${crate} ${version} already published; skipping"
               return 0
@@ -107,8 +108,12 @@ jobs:
             if [[ "$wait_seconds" != "0" ]]; then
               sleep "$wait_seconds"
             fi
+            if [[ "$verify_visibility" == "true" ]] && ! crate_exists "$crate" "$version"; then
+              echo "${crate}@${version} is not visible after upload; stopping before dependent crates" >&2
+              exit 1
+            fi
           }
 
-          while IFS='|' read -r package wait_secs cargo_manifest; do
-            publish_if_missing "$package" "${wait_secs:-0}" "$cargo_manifest"
-          done < <(python3 .github/scripts/release_artifacts.py list-publish-plan --include-manifest --manifest "${RELEASE_ARTIFACT_MANIFEST}")
+          while IFS='|' read -r package wait_secs cargo_manifest verify_visibility; do
+            publish_if_missing "$package" "${wait_secs:-0}" "$cargo_manifest" "${verify_visibility:-false}"
+          done < <(python3 .github/scripts/release_artifacts.py list-publish-plan --include-manifest --include-visibility --manifest "${RELEASE_ARTIFACT_MANIFEST}")

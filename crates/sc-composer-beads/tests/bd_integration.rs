@@ -11,6 +11,10 @@ use std::sync::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(unix)]
+#[path = "../../test-support/fake_exec.rs"]
+mod fake_exec;
+
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeRequest, BeadExecutionOptions, BeadOperation, BeadOutcome,
     BeadRenderBy, PourAuthorization, execute_bead_request_with_options,
@@ -179,24 +183,63 @@ fn cleanup_does_not_depend_on_lock_release_timing() {
     assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
 }
 
+// FTQ-001: a fork on another libtest thread can inherit a just-written
+// script's write descriptor. Holding such a descriptor open reproduces that
+// interleaving deterministically instead of waiting for it.
 #[cfg(unix)]
-fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
+#[test]
+fn fake_executable_runs_while_its_written_script_is_held_open_for_writing() {
+    let root = temporary_workspace();
+    let fake = root.join("fake-bd");
+    fake_exec::install(&fake, "printf '%s' \"ran:$1\"\n");
+    let _inherited_writer = fs::OpenOptions::new()
+        .append(true)
+        .open(root.join("fake-bd.sh"))
+        .expect("hold the script's write descriptor open");
+    let output = Command::new(&fake)
+        .arg("cook")
+        .output()
+        .expect("spawn fake executable");
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(output.stdout, b"ran:cook");
+    remove_temporary_workspace(&root).expect("remove temporary workspace");
+}
+
+// Control for the test above: the replaced write-then-exec pattern fails with
+// ETXTBSY under the same held descriptor. Linux enforces ETXTBSY on exec;
+// macOS does not, so the control runs on Linux only.
+#[cfg(target_os = "linux")]
+#[test]
+fn exec_of_a_script_held_open_for_writing_fails_with_etxtbsy() {
+    use std::io::Write;
     use std::os::unix::fs::PermissionsExt;
 
+    const ETXTBSY: i32 = 26;
+    let root = temporary_workspace();
+    let script = root.join("written-then-exec");
+    let mut writer = fs::File::create(&script).expect("create script");
+    writer
+        .write_all(b"#!/bin/sh\nexit 0\n")
+        .expect("write script");
+    fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).expect("chmod script");
+    let error = Command::new(&script)
+        .status()
+        .expect_err("exec must fail while a write descriptor is open");
+    assert_eq!(error.raw_os_error(), Some(ETXTBSY), "{error}");
+    drop(writer);
+    remove_temporary_workspace(&root).expect("remove temporary workspace");
+}
+
+#[cfg(unix)]
+fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
     let wrapper = root.join("bd-no-daemon");
-    fs::write(
+    fake_exec::install(
         &wrapper,
-        format!(
+        &format!(
             "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexec {} \"$@\"\n",
             shell_quote(bd)
         ),
-    )
-    .expect("write no-daemon Beads wrapper");
-    let mut permissions = fs::metadata(&wrapper)
-        .expect("no-daemon wrapper metadata")
-        .permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&wrapper, permissions).expect("make no-daemon wrapper executable");
+    );
     wrapper
 }
 
@@ -236,21 +279,15 @@ fn unauthorized_pour_does_not_start_the_pinned_beads_binary(root: &Path, bd: &Pa
 
 #[cfg(unix)]
 fn process_probe(root: &Path, bd: &Path, marker: &Path) -> PathBuf {
-    use std::os::unix::fs::PermissionsExt;
-
     let probe = root.join("bd-process-probe");
-    fs::write(
+    fake_exec::install(
         &probe,
-        format!(
+        &format!(
             "#!/bin/sh\nprintf 'started\\n' > {}\nexec {} \"$@\"\n",
             shell_quote(marker),
             shell_quote(bd)
         ),
-    )
-    .expect("write process probe");
-    let mut permissions = fs::metadata(&probe).expect("probe metadata").permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&probe, permissions).expect("make process probe executable");
+    );
     probe
 }
 

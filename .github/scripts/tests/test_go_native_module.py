@@ -149,6 +149,90 @@ class GoNativeModuleTests(unittest.TestCase):
             with self.assertRaisesRegex(MODULE.ContractError, "runner/archive"):
                 MODULE.target_matrix(manifest2, config2)
 
+    @staticmethod
+    def _with_go_only_windows_arm64(root: Path, core_rows: list[tuple[str, str, str]]) -> tuple[Path, Path]:
+        """Fixture whose Go adapter adds aarch64-pc-windows-gnullvm while the core manifest declares core_rows."""
+        config, manifest, _workspace = write_consumer(root)
+        targets = root / "bindings" / "sc-sha-go" / "native" / "targets.toml"
+        targets.write_text(
+            targets.read_text(encoding="utf-8")
+            + '\n[[targets]]\nrust_target = "aarch64-pc-windows-gnullvm"\ngoos = "windows"\ngoarch = "arm64"\n'
+            + 'library = "libsc_sha_go.a"\n',
+            encoding="utf-8",
+        )
+        manifest.write_text(
+            manifest.read_text(encoding="utf-8")
+            + "".join(
+                f'\n[[release_targets]]\ntarget = "{target}"\nos = "{os_name}"\narchive = "{archive}"\n'
+                for target, os_name, archive in core_rows
+            ),
+            encoding="utf-8",
+        )
+        return config, manifest
+
+    def test_go_only_target_uses_the_runner_of_its_coordinate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config, manifest = self._with_go_only_windows_arm64(
+                Path(directory), [("aarch64-pc-windows-msvc", "windows-11-arm", "zip")]
+            )
+            include = MODULE.target_matrix(manifest, config)["include"]
+            self.assertEqual([row["target"] for row in include], [t[0] for t in TARGETS] + ["aarch64-pc-windows-gnullvm"])
+            go_only = include[-1]
+            self.assertEqual(
+                (go_only["target"], go_only["os"], go_only["archive"], go_only["goos"], go_only["goarch"]),
+                ("aarch64-pc-windows-gnullvm", "windows-11-arm", "zip", "windows", "arm64"),
+            )
+
+    def test_exact_release_target_still_wins_over_its_coordinate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config, manifest = self._with_go_only_windows_arm64(
+                Path(directory),
+                [
+                    ("aarch64-pc-windows-msvc", "windows-11-arm", "zip"),
+                    ("aarch64-pc-windows-gnullvm", "windows-2025-arm-custom", "zip"),
+                ],
+            )
+            self.assertEqual(MODULE.target_matrix(manifest, config)["include"][-1]["os"], "windows-2025-arm-custom")
+
+    def test_coordinate_rows_that_disagree_fail_closed_without_stdout(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config, manifest = self._with_go_only_windows_arm64(
+                Path(directory),
+                [
+                    ("aarch64-pc-windows-msvc", "windows-11-arm", "zip"),
+                    ("aarch64-uwp-windows-msvc", "windows-11-arm-large", "zip"),
+                ],
+            )
+            with self.assertRaisesRegex(MODULE.ContractError, "disagree on runner/archive"):
+                MODULE.target_matrix(manifest, config)
+            command = [sys.executable, str(HELPER), "target-matrix", "--manifest", str(manifest), "--config", str(config)]
+            result = subprocess.run(command, text=True, capture_output=True, check=False)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, "")
+
+    def test_go_only_target_without_any_coordinate_row_keeps_the_existing_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config, manifest = self._with_go_only_windows_arm64(Path(directory), [])
+            with self.assertRaisesRegex(MODULE.ContractError, "lacks a generic release target: aarch64-pc-windows-gnullvm"):
+                MODULE.target_matrix(manifest, config)
+
+    def test_coordinate_rows_on_one_runner_are_not_ambiguous(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config, manifest, _workspace = write_consumer(root)
+            targets = root / "bindings" / "sc-sha-go" / "native" / "targets.toml"
+            targets.write_text(
+                targets.read_text(encoding="utf-8").replace("x86_64-pc-windows-gnu", "x86_64-pc-windows-gnullvm"),
+                encoding="utf-8",
+            )
+            manifest.write_text(
+                manifest.read_text(encoding="utf-8")
+                + '\n[[release_targets]]\ntarget = "x86_64-pc-windows-msvc"\nos = "windows-latest"\narchive = "zip"\n',
+                encoding="utf-8",
+            )
+            row = MODULE.target_matrix(manifest, config)["include"][-1]
+            self.assertEqual((row["target"], row["os"], row["archive"]), ("x86_64-pc-windows-gnullvm", "windows-latest", "zip"))
+
     def test_matrix_rejects_duplicate_or_malformed_binding_targets_without_stdout(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

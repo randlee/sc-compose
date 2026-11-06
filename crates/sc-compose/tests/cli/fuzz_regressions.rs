@@ -2,6 +2,9 @@
 
 use super::support::{parse_stdout, sc_compose, temp_root, write_file};
 
+#[cfg(unix)]
+use crate::support::fake_exec;
+
 /// Writes a `bead render` request for `template` and returns its absolute path.
 fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::path::PathBuf {
     let request = root.join("request.json");
@@ -68,17 +71,15 @@ fn fuzz_039_human_preview_attach_prints_parent_refusal_reason() {
 
 #[cfg(unix)]
 fn human_graph_request(label: &str, stdout: &str, stderr: &str, status: i32) -> std::path::PathBuf {
-    use std::os::unix::fs::PermissionsExt;
     let root = temp_root(label);
     let bd = root.join("fake-bd");
     let cooked = r#"{"formula":"m","type":"workflow","steps":[{"id":"a","title":"A"}]}"#;
-    write_file(
+    fake_exec::install(
         &bd,
         &format!(
             "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{cooked}' ;;\n show) printf '%s' '{stdout}'; printf '%s' '{stderr}' >&2; exit {status} ;;\nesac\n"
         ),
     );
-    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
     write_file(&root.join("m.formula.toml.j2"), "formula = \"m\"\n");
     let request = root.join("request.json");
     write_file(&request, &serde_json::json!({"schema":"sc-compose/beads/v1","operation":"preview_attach","working_directory":root,"template":"m.formula.toml.j2","rendered_formula":root.join("out.formula.toml"),"compose_variables":{},"bead_variables":{},"parent":"nosuch","ref":"r","bd_executable":bd}).to_string());
@@ -142,17 +143,15 @@ fn fuzz_039_human_receipts_preserve_conflict_id_and_read_cause() {
 #[cfg(unix)]
 #[test]
 fn fuzz_053_human_preview_attach_suppresses_successful_stage_stderr() {
-    use std::os::unix::fs::PermissionsExt;
     let root = temp_root("fuzz-053-human-success-stderr");
     let bd = root.join("fake-bd");
     let cooked = r#"{"formula":"m","type":"workflow","steps":[{"id":"a","title":"A"}]}"#;
-    write_file(
+    fake_exec::install(
         &bd,
         &format!(
             "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{cooked}' ;;\n show) printf '%s' '[{{\"id\":\"proj-1\"}}]'; printf '%s' 'Hint: harmless' >&2 ;;\nesac\n"
         ),
     );
-    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
     write_file(
         &root.join("m.formula.toml.j2"),
         "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
@@ -347,15 +346,12 @@ fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
 #[cfg(unix)]
 #[test]
 fn fuzz_040_human_attach_refusals_escape_identifier_controls_without_changing_json() {
-    use std::os::unix::fs::PermissionsExt;
-
     let root = temp_root("fuzz-040-human-identifier-controls");
     let bd = root.join("fake-bd");
-    write_file(
+    fake_exec::install(
         &bd,
         "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{\"formula\":\"m\",\"type\":\"workflow\",\"steps\":[{\"id\":\"a\",\"title\":\"A\"}]}' ;;\n show) if [ \"$4\" = proj-1 ]; then printf '%s' '[{\"id\":\"proj-1\"}]'; else printf '%s' '[]'; fi ;;\nesac\n",
     );
-    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
     write_file(
         &root.join("m.formula.toml.j2"),
         "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
@@ -787,11 +783,13 @@ fn fuzz_021_cooked_step_refusal_has_canonical_error_and_legacy_receipt() {
         input["operation"] = serde_json::json!(command.replace('-', "_"));
         input["pour_authorization"] = serde_json::json!("CreatePersistentBeads");
         write_file(&request, &input.to_string());
-        let bd = std::path::Path::new(input["bd_executable"].as_str().unwrap());
-        let script = std::fs::read_to_string(bd)
+        let bd = fake_exec::script_path(std::path::Path::new(
+            input["bd_executable"].as_str().unwrap(),
+        ));
+        let script = std::fs::read_to_string(&bd)
             .unwrap()
             .replace("\"id\":\"a\"", "\"id\":\"bad-step\"");
-        write_file(bd, &script);
+        write_file(&bd, &script);
         for json in [true, false] {
             let mut process = sc_compose();
             process.args(["bead", command, "--request"]).arg(&request);

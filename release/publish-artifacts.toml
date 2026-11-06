@@ -38,10 +38,6 @@ archive = "zip"
 target = "aarch64-pc-windows-msvc"
 os = "windows-11-arm"
 archive = "zip"
-[[release_targets]]
-target = "aarch64-pc-windows-gnullvm"
-os = "windows-11-arm"
-archive = "zip"
 
 [[crates]]
 artifact = "sc-sha"
@@ -101,21 +97,21 @@ source = "bindings/sc-sha-python"
 cargo_manifest = "bindings/sc-sha-python/Cargo.toml"
 module_path = "bindings/sc-sha-python/python/sc_sha"
 sdist = true
-wheels = ["ubuntu-latest", "macos-latest", "windows-latest", "windows-11-arm"]
+wheels = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]
 [[python_distributions]]
 name = "sc-compose"
 source = "bindings/python"
 cargo_manifest = "bindings/python/Cargo.toml"
 module_path = "bindings/python/python/sc_compose"
 sdist = true
-wheels = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "windows-latest", "windows-11-arm"]
+wheels = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]
 [[python_distributions]]
 name = "sc-composer-beads"
 source = "bindings/sc-composer-beads-python"
 cargo_manifest = "bindings/sc-composer-beads-python/Cargo.toml"
 module_path = "bindings/sc-composer-beads-python/python/sc_composer_beads"
 sdist = true
-wheels = ["ubuntu-latest", "macos-latest", "windows-latest", "windows-11-arm"]
+wheels = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]
 
 [channels.pypi]
 workflow = "pypi-publish.yml"

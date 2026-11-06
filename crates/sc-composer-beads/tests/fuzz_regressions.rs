@@ -12,6 +12,10 @@ use std::sync::{
 };
 use std::time::Duration;
 
+#[cfg(unix)]
+#[path = "../../test-support/fake_exec.rs"]
+mod fake_exec;
+
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COOKED: &str =
     r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#;
@@ -438,8 +442,6 @@ fn fuzz_015_later_issue_batch_failure_stops_before_graph_apply() {
 
 #[cfg(unix)]
 fn scalable_attach_roundtrip(count: usize, apply: bool) {
-    use std::os::unix::fs::PermissionsExt;
-
     let mut w = Workspace::new();
     if apply {
         w.req.operation = BeadOperation::Attach;
@@ -471,7 +473,6 @@ fn scalable_attach_roundtrip(count: usize, apply: bool) {
     fs::write(&shown, r#"[{"id":"proj-1"}]"#).expect("show");
     let bd = w.root.join("fake-bd");
     write_scalable_fake_bd(&bd, &cooked, &created, &shown);
-    fs::set_permissions(&bd, fs::Permissions::from_mode(0o755)).expect("chmod");
     w.req.bd_executable = Some(bd);
     let first = execute_bead_request(&w.req).expect("first preview");
     assert_eq!(first.outcome, BeadOutcome::Succeeded, "{first:#?}");
@@ -554,7 +555,15 @@ else:
         "SHOWN_PATH",
         &serde_json::to_string(shown).expect("UTF-8 fixture path"),
     );
-    fs::write(bd, script).expect("fake bd");
+    let program = bd.with_extension("py");
+    fs::write(&program, script).expect("fake bd program");
+    fake_exec::install(
+        bd,
+        &format!(
+            "exec python3 '{}' \"$@\"\n",
+            program.display().to_string().replace('\'', "'\\''")
+        ),
+    );
 }
 
 const OPTION_LIKE_IDS: [&str; 3] = ["--db=/elsewhere", "--json", "-q"];
@@ -850,7 +859,6 @@ fn fuzz_041_parent_self_relation_reports_self_edge() {
 #[test]
 fn graph_capture_overflow_reports_the_actual_stream_limit() {
     use sc_composer_beads::runner::{GRAPH_OUTPUT_LIMIT_BYTES, PROCESS_OUTPUT_LIMIT_BYTES};
-    use std::os::unix::fs::PermissionsExt;
     for (limit, redirect) in [
         (GRAPH_OUTPUT_LIMIT_BYTES, ""),
         (PROCESS_OUTPUT_LIMIT_BYTES, " >&2"),
@@ -859,15 +867,13 @@ fn graph_capture_overflow_reports_the_actual_stream_limit() {
         let output = w.root.join("oversized-output");
         fs::write(&output, vec![b'x'; limit + 1]).unwrap();
         let bd = w.root.join("fake-bd");
-        fs::write(
+        fake_exec::install(
             &bd,
-            format!(
+            &format!(
                 "#!/bin/sh\ncat '{}'{redirect}\nsleep 60\n",
                 output.display()
             ),
-        )
-        .unwrap();
-        fs::set_permissions(&bd, fs::Permissions::from_mode(0o755)).unwrap();
+        );
         w.req.bd_executable = Some(bd);
         let error = execute_bead_request(&w.req).unwrap_err();
         assert_eq!(error.code(), "BEADS_PROCESS_OUTPUT_LIMIT");

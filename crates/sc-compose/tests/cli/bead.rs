@@ -7,6 +7,9 @@ use serde_json::json;
 
 use crate::support::{TempFixture, sc_compose, write_file};
 
+#[cfg(unix)]
+use crate::support::fake_exec;
+
 const BEADS_SCHEMA: &str = "sc-compose/beads/v1";
 
 #[test]
@@ -120,24 +123,16 @@ fn initialize_beads_workspace(root: &Path, bd: &Path) {
 
 #[cfg(unix)]
 fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathBuf) {
-    use std::os::unix::fs::PermissionsExt;
-
     let trace = root.join("bd.trace");
     let executable = root.join("fake-bd");
-    fs::write(
+    fake_exec::install(
         &executable,
-        format!(
+        &format!(
             "#!/bin/sh\nprintf '%s\\n' \"$1\" >> '{}'\nif [ \"$1\" = cook ]; then exit {cook_exit}; fi\nif [ \"$1\" = where ]; then printf '%s' '{{\"path\":\"{}\"}}'; fi\nif [ \"$1\" = mol ]; then exit {pour_exit}; fi\nexit 0\n",
             trace.display(),
             root.join(".beads").display()
         ),
-    )
-    .expect("write fake bd");
-    let mut permissions = fs::metadata(&executable)
-        .expect("fake bd metadata")
-        .permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&executable, permissions).expect("make fake bd executable");
+    );
     (executable, trace)
 }
 
@@ -1078,6 +1073,22 @@ fn direct_pour_rejects_duplicate_mixed_and_missing_sources_before_staging() {
         assert!(!output.status.success(), "{args:?}: {output:?}");
         assert_eq!(fs::read_dir(&root.path).unwrap().count(), 0, "{args:?}");
     }
+}
+
+#[test]
+fn missing_direct_formula_reports_typed_source_failure() {
+    let root = TempFixture::new("direct-pour-missing-source");
+    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args(["bead", "pour", "missing.formula.toml", "--json"])
+        .current_dir(&root.path)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.contains("BEADS_DIRECT_SOURCE_FAILED"), "{text}");
+    assert!(text.contains("missing.formula.toml"), "{text}");
+    assert!(text.contains("recovery"), "{text}");
+    assert_eq!(fs::read_dir(&root.path).unwrap().count(), 0);
 }
 
 /// Every path a receipt prints must exist after the command returns, or be

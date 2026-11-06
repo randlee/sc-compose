@@ -1009,7 +1009,7 @@ fn graph_plan_symlink_is_refused_without_touching_target() {
         let runner = FakeRunner::new([]);
         refused(
             &w.run(&runner),
-            "BEADS_OUTPUT_PATH_SYMLINK",
+            "BEADS_OUTPUT_PATH_INVALID",
             BeadStage::PreviewAttach,
         );
         assert_eq!(fs::read_to_string(target).expect("target"), "unchanged");

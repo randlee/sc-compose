@@ -1,0 +1,4 @@
+# Job names from .github/workflows/release-preflight.yml at
+# c406d5a9b78f982a66f63b0becfffff8baa3ffc1, before matrix adoption.
+jobs:
+  preflight: {}
