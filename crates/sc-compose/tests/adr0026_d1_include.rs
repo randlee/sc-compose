@@ -39,7 +39,10 @@ fn include_dangling_symlink_boundary_precedes_not_found_across_commands() {
         ("../outside/missing.md", "ERR_INCLUDE_ESCAPE"),
     ] {
         write_file(&root.join("template.md.j2"), &format!("@<{target}>\n"));
-        for command in ["render", "validate", "verify"] {
+        for (command, json) in ["render", "validate", "verify"]
+            .into_iter()
+            .flat_map(|command| [(command, false), (command, true)])
+        {
             let mut cli = sc_compose();
             cli.args([command, "--mode", "file", "--root"]).arg(&root);
             if command == "verify" {
@@ -48,14 +51,24 @@ fn include_dangling_symlink_boundary_precedes_not_found_across_commands() {
             } else {
                 cli.args(["--file", "template.md.j2"]);
             }
+            if json {
+                cli.arg("--json");
+            }
             let output = cli.output().unwrap();
             let text = format!(
                 "{}{}",
                 String::from_utf8_lossy(&output.stdout),
                 String::from_utf8_lossy(&output.stderr)
             );
-            assert_eq!(output.status.code(), Some(2), "{command} {target}: {text}");
-            assert!(text.contains(expected), "{command} {target}: {text}");
+            assert_eq!(
+                output.status.code(),
+                Some(2),
+                "{command} {target} json={json}: {text}"
+            );
+            assert!(
+                text.contains(expected),
+                "{command} {target} json={json}: {text}"
+            );
         }
     }
 }
