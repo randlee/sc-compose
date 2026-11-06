@@ -130,6 +130,9 @@ jobs:
       - name: Run publish-kit regression tests
         run: python3 -m pytest .github/scripts/tests
 
+      - name: Run vendored publish-plugin regression tests
+        run: python3 -m pytest plugins/sc-publish/.github/scripts/tests -k 'not runtime_renderer_paths_use_the_bootstrapped_exact_pin'
+
       - name: Run CLI reference and consumer preflight tests
         run: python3 -m unittest discover -s scripts/tests -p test_generate_cli_reference.py
 
