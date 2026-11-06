@@ -4,6 +4,6 @@
 {"sprint": "v-8"}
 {"sprint": "v-3", "depends_on": ["v-1", "v-2"]}
 {"sprint": "v-9", "depends_on": ["v-2"]}
-{"sprint": "v-5", "depends_on": ["v-3"]}
-{"sprint": "v-6", "depends_on": ["v-5", "v-8", "v-9"]}
+{"sprint": "v-5"}
+{"sprint": "v-6", "depends_on": ["v-8", "v-9"]}
 {"sprint": "v-7", "depends_on": ["v-6"]}
