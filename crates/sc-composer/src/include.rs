@@ -125,7 +125,12 @@ pub fn expand_includes(
 }
 
 #[cfg(test)]
+#[path = "include/d12_binary_target_test.rs"]
+mod d12_binary_target_test;
+
+#[cfg(test)]
 mod tests {
+
     use std::fs;
     use std::ops::Deref;
     use std::path::{Path, PathBuf};
