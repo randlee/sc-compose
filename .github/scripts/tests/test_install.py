@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import json
 import re
@@ -164,9 +165,56 @@ class InstallValuesTests(unittest.TestCase):
             values = self.valid_values()
             path.write_text(json.dumps(values), encoding="utf-8")
             loaded = INSTALL.load_install_values(path)
-        self.assertEqual(loaded, values)
-        self.assertEqual(set(loaded["channels"]), set(INSTALL.CHANNEL_NAMES))
+        expected = {**values, "preflight_checks": [], "docli": None}
+        self.assertEqual(loaded, expected)
+        self.assertEqual(set(loaded["channels"]), set(INSTALL.CHANNEL_NAMES) - {"npm"})
         self.assertEqual(loaded["python_distributions"][1]["build_system"], "setuptools")
+
+    def test_source_revision_rejects_floating_or_malformed_refs(self) -> None:
+        for revision in ("main", "v0.6.0", "abc123", "a" * 39, "g" * 40, "a" * 40 + "\n", ""):
+            with self.subTest(revision=revision), tempfile.TemporaryDirectory() as directory:
+                values = self.valid_values()
+                values["project"]["sc_lint_source_revision"] = revision
+                path = Path(directory) / "input.json"
+                path.write_text(json.dumps(values))
+                with self.assertRaisesRegex(Exception, "sc_lint_source_revision"):
+                    INSTALL.load_install_values(path)
+
+    def test_optional_source_revision_round_trips_without_changing_default(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for revision in (None, "a" * 40):
+                values = self.valid_values()
+                if revision:
+                    values["project"]["sc_lint_source_revision"] = revision
+                source = root / "install.json"
+                source.write_text(json.dumps(values))
+                loaded = INSTALL.load_install_values(source)
+                rendered = root / "artifacts.toml"
+                INSTALL.render_template(Path("release/publish-artifacts.toml.j2"), loaded, rendered)
+                project = tomllib.loads(rendered.read_text())["project"]
+                self.assertEqual(project.get("sc_lint_source_revision"), revision)
+
+    def test_installed_consumer_resolves_its_rendered_immutable_source(self) -> None:
+        if not (INSTALLER.parent / ".sc-publish-source-root").is_file():
+            self.skipTest("source installer integration")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            consumer = root / "consumer"
+            consumer.mkdir()
+            values = self.valid_values()
+            values["project"]["sc_lint_source_revision"] = "a" * 40
+            contract = root / "install.json"
+            contract.write_text(json.dumps(values))
+            subprocess.run([sys.executable, INSTALLER, "--input", contract, consumer], check=True, capture_output=True)
+            result = subprocess.run([sys.executable, INSTALLER, "--dry-run", "--input", contract, consumer], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            import os
+            env = dict(os.environ, GITHUB_WORKSPACE=str(consumer), GITHUB_ENV=str(root / "env"), SC_LINT_SOURCE_REVISION_INPUT="")
+            helper = consumer / ".github/scripts/setup_sc_lint_source.py"
+            result = subprocess.run([sys.executable, helper, "resolve"], env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((root / "env").read_text(), "SC_LINT_SOURCE_REVISION=" + "a" * 40 + "\n")
 
     def test_load_install_values_rejects_invalid_publish_orders(self) -> None:
         cases = {
@@ -218,7 +266,7 @@ class InstallValuesTests(unittest.TestCase):
 
     def test_load_install_values_rejects_unknown_channel_names(self) -> None:
         values = self.valid_values()
-        values["channels"]["npm"] = {"workflow": "npm.yml", "dispatch_inputs": {}}
+        values["channels"]["unsupported"] = {"workflow": "unsupported.yml", "dispatch_inputs": {}}
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "input.json"
             path.write_text(json.dumps(values), encoding="utf-8")
@@ -250,6 +298,99 @@ class InstallValuesTests(unittest.TestCase):
         )
         self.assertNotIn("renderer_archive_path", manifest["project"])
 
+    def test_render_round_trips_declared_prerelease_manifest(self) -> None:
+        try:
+            import sc_compose  # noqa: F401
+        except ModuleNotFoundError:
+            self.skipTest("sc-compose bindings are not provisioned in this environment")
+        values = self.valid_values()
+        values["prerelease"] = {
+            "tag_prefix": "prerelease/v",
+            "tag_script": ".just/prerelease_tag.py",
+            "install_root": "~/.example-builds",
+            "binaries": ["example"],
+            "protected_branches": ["trunk", "release"],
+            "selector_dir": {
+                "darwin": "/opt/homebrew/bin",
+                "linux": "~/.local/bin",
+                "windows": r"%LOCALAPPDATA%\Programs\Example",
+            },
+            "post_install": "python3 scripts/activate.py --version {version} --stage {stage_dir}",
+            "verify": "example --version",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_text(json.dumps(values), encoding="utf-8")
+            loaded = INSTALL.load_install_values(path)
+            template = INSTALL.template_values(loaded)
+            output = Path(directory) / "publish-artifacts.toml"
+            INSTALL.render_template(
+                Path("release/publish-artifacts.toml.j2"), loaded, output
+            )
+            manifest = tomllib.loads(output.read_text(encoding="utf-8"))
+        self.assertTrue(template["has_prerelease"])
+        self.assertEqual(manifest["prerelease"], values["prerelease"])
+
+    @staticmethod
+    def wheels_only_prerelease(values: dict[str, object]) -> dict[str, object]:
+        """The beads-cache shape: no release binaries, Python wheels and an sdist only."""
+        values["release_binaries"] = []
+        values["channels"] = {"pypi": values["channels"]["pypi"]}  # type: ignore[index]
+        values["prerelease"] = {
+            "tag_prefix": "prerelease/v",
+            "tag_script": "scripts/prerelease_tag.py",
+            "install_root": "~/.example-builds",
+            "binaries": [],
+            "protected_branches": ["develop", "main"],
+            "selector_dir": {
+                "darwin": "~/.example-builds/selectors/darwin",
+                "linux": "~/.example-builds/selectors/linux",
+                "windows": r"%LOCALAPPDATA%\Example\prerelease-selectors",
+            },
+            "post_install": "{python} -m pip install --force-reinstall {wheels}",
+            "verify": "{python} -m pip show example",
+        }
+        return values
+
+    def test_render_round_trips_a_wheels_only_prerelease_manifest(self) -> None:
+        try:
+            import sc_compose  # noqa: F401
+        except ModuleNotFoundError:
+            self.skipTest("sc-compose bindings are not provisioned in this environment")
+        for omit_binaries in (False, True):
+            with self.subTest(omit_binaries=omit_binaries):
+                values = self.wheels_only_prerelease(self.valid_values())
+                if omit_binaries:
+                    del values["prerelease"]["binaries"]  # type: ignore[index]
+                with tempfile.TemporaryDirectory() as directory:
+                    path = Path(directory) / "input.json"
+                    path.write_text(json.dumps(values), encoding="utf-8")
+                    loaded = INSTALL.load_install_values(path)
+                    output = Path(directory) / "publish-artifacts.toml"
+                    INSTALL.render_template(Path("release/publish-artifacts.toml.j2"), loaded, output)
+                    manifest = tomllib.loads(output.read_text(encoding="utf-8"))
+                self.assertEqual(manifest["prerelease"]["binaries"], [])
+                self.assertEqual(
+                    {key: value for key, value in manifest["prerelease"].items() if key != "binaries"},
+                    {key: value for key, value in values["prerelease"].items() if key != "binaries"},  # type: ignore[union-attr]
+                )
+                self.assertNotIn("release_binaries", manifest)
+
+    def test_load_install_values_rejects_inconsistent_prerelease_binaries(self) -> None:
+        values = self.wheels_only_prerelease(self.valid_values())
+        values["python_distributions"] = [
+            {**entry, "wheels": []} for entry in values["python_distributions"]  # type: ignore[union-attr]
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_text(json.dumps(values), encoding="utf-8")
+            with self.assertRaisesRegex(argparse.ArgumentTypeError, "prerelease installs nothing"):
+                INSTALL.load_install_values(path)
+            values["prerelease"]["binaries"] = ["ghost"]  # type: ignore[index]
+            path.write_text(json.dumps(values), encoding="utf-8")
+            with self.assertRaisesRegex(argparse.ArgumentTypeError, "undeclared release binary\\(s\\): ghost"):
+                INSTALL.load_install_values(path)
+
     def test_load_install_values_rejects_ambiguous_python_distribution(self) -> None:
         values = self.valid_values()
         values["python_distributions"][0]["build_system"] = "setuptools"
@@ -258,6 +399,110 @@ class InstallValuesTests(unittest.TestCase):
             path.write_text(json.dumps(values), encoding="utf-8")
             with self.assertRaisesRegex(Exception, "must not set both"):
                 INSTALL.load_install_values(path)
+
+    def test_load_install_values_accepts_preflight_checks_and_docli(self) -> None:
+        values = self.valid_values()
+        values["preflight_checks"] = [
+            {
+                "id": "example-gate",
+                "description": "Example repository check",
+                "run": "bash scripts/example-preflight.sh",
+            }
+        ]
+        values["docli"] = {
+            "enabled": True,
+            "generate_script": "scripts/generate-cli-docs.sh",
+            "drift_paths": ["fixtures/cli/model.json", "site/cli/"],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_text(json.dumps(values), encoding="utf-8")
+            loaded = INSTALL.load_install_values(path)
+        self.assertEqual(len(loaded["preflight_checks"]), 1)
+        self.assertEqual(loaded["docli"]["generate_script"], "scripts/generate-cli-docs.sh")
+        template = INSTALL.template_values(loaded)
+        self.assertTrue(template["has_docli"])
+        self.assertEqual(len(template["preflight_checks"]), 1)
+
+    def test_load_install_values_rejects_empty_docli_drift_paths(self) -> None:
+        values = self.valid_values()
+        values["docli"] = {
+            "enabled": True,
+            "generate_script": "scripts/generate-cli-docs.sh",
+            "drift_paths": [],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_text(json.dumps(values), encoding="utf-8")
+            with self.assertRaisesRegex(Exception, "must not be empty"):
+                INSTALL.load_install_values(path)
+
+    def test_render_publish_preflight_includes_docli_and_custom_checks(self) -> None:
+        try:
+            import sc_compose  # noqa: F401
+        except ModuleNotFoundError:
+            self.skipTest("sc-compose bindings are not provisioned in this environment")
+        values = self.valid_values()
+        for name in ("homebrew", "winget", "scoop"):
+            del values["channels"][name]
+        del values["project"]["renderer_archive_path"]
+        values["preflight_checks"] = [
+            {
+                "id": "example-gate",
+                "description": "Example repository check",
+                "run": "bash scripts/example-preflight.sh",
+            }
+        ]
+        values["docli"] = {
+            "enabled": True,
+            "generate_script": "scripts/generate-cli-docs.sh",
+            "drift_paths": ["fixtures/cli/model.json"],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_text(json.dumps(values), encoding="utf-8")
+            loaded = INSTALL.load_install_values(path)
+            output = Path(directory) / "publish-preflight.toml"
+            INSTALL.render_template(Path("release/publish-preflight.toml.j2"), loaded, output)
+            manifest = tomllib.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["schema_version"], 1)
+        self.assertEqual(manifest["docli"]["generate_script"], "scripts/generate-cli-docs.sh")
+        check_ids = [check["id"] for check in manifest["checks"]]
+        self.assertEqual(check_ids, ["docli-cli-html", "example-gate"])
+
+    def test_package_inventory_excludes_sprint_history_and_keeps_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("docs/sprints/nested/history.md", "docs/guide.md", "README.md"):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(name, encoding="utf-8")
+            with patch.object(INSTALL, "PACKAGE_ROOT", root):
+                destinations = [dest for _, dest in INSTALL.install_inventory(root / "consumer")]
+            self.assertIn(Path("docs/guide.md"), destinations)
+            self.assertIn(Path("README.sc-publish.md"), destinations)
+            self.assertNotIn(Path("docs/sprints/nested/history.md"), destinations)
+
+    def test_inventory_rejects_unsafe_and_symlink_destinations(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package, consumer = root / "package", root / "consumer"
+            package.mkdir()
+            consumer.mkdir()
+            (package / "asset").write_text("asset", encoding="utf-8")
+            with patch.object(INSTALL, "PACKAGE_ROOT", package):
+                with patch.object(INSTALL, "RENAMED_FILES", {Path("asset"): Path("../escape")}):
+                    with self.assertRaisesRegex(ValueError, "unsafe installer destination"):
+                        INSTALL.install_inventory(consumer)
+                with patch.object(INSTALL, "RENAMED_FILES", {Path("asset"): Path("C:\\escape")}):
+                    with self.assertRaisesRegex(ValueError, "unsafe installer destination"):
+                        INSTALL.install_inventory(consumer)
+                (consumer / "asset").symlink_to(root / "outside")
+                with self.assertRaisesRegex(ValueError, "symlink in installer destination"):
+                    INSTALL.install_inventory(consumer)
+                (package / "linked").symlink_to(package / "asset")
+                with self.assertRaisesRegex(ValueError, "package contains symlink"):
+                    INSTALL.install_inventory(consumer)
 
     def test_install_places_executable_release_helpers_at_every_workflow_path(self) -> None:
         """The byte-exact overlay keeps helpers under .github/scripts/.
@@ -307,9 +552,21 @@ class InstallValuesTests(unittest.TestCase):
             self.assertIn(".cursor/", readme_text)
             self.assertIn("idempotent", readme_text)
 
+            claude_skill = consumer / ".claude" / "skills" / "prerelease"
+            codex_skill = consumer / ".codex" / "skills" / "prerelease" / "SKILL.md"
+            self.assertTrue((claude_skill / "SKILL.md").is_file())
+            self.assertTrue(codex_skill.is_file())
+            self.assertIn(
+                "../../../.claude/skills/prerelease/SKILL.md",
+                codex_skill.read_text(encoding="utf-8"),
+            )
+            for mode in ("list.md", "install.md", "publish.md"):
+                self.assertTrue((claude_skill / mode).is_file())
+
             workflows = (
                 "release.yml",
                 "release-preflight.yml",
+                "prerelease-archive.yml",
                 "pypi-publish.yml",
                 "homebrew-publish.yml",
                 "scoop-publish.yml",
@@ -328,7 +585,8 @@ class InstallValuesTests(unittest.TestCase):
             )
             self.assertIn(".github/scripts/release_gate.sh", release)
             self.assertNotIn("run: scripts/release_gate.sh", release)
-            self.assertIn('git tag -a "${candidate_tag}" origin/develop', release_candidate)
+            self.assertIn('tag -a "${candidate_tag}" origin/develop', release_candidate)
+            self.assertIn('-c user.name="github-actions[bot]"', release_candidate)
             self.assertIn(".github/scripts/release_artifacts.py validate-publish-order", preflight)
             self.assertNotIn("scripts/ci/validate_publish_order.sh", preflight)
             self.assertNotIn("docs/publishing-agent.md", preflight)

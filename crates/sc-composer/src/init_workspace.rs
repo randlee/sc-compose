@@ -62,18 +62,30 @@ pub fn init_workspace(root: impl AsRef<Path>, dry_run: bool) -> Result<InitResul
         })?;
     }
 
+    let (recommendations, validation_passed) = validate_templates(&templates, &canonical_root);
+
+    Ok(InitResult {
+        prompts_dir,
+        gitignore_updated,
+        scanned_templates: templates,
+        recommendations,
+        validation_passed,
+    })
+}
+
+fn validate_templates(templates: &[PathBuf], canonical_root: &Path) -> (Vec<Diagnostic>, bool) {
     let mut recommendations = Vec::new();
     let mut validation_passed = true;
-    for template in &templates {
+    for template in templates {
         let request = ComposeRequest {
             runtime: None,
             mode: ComposeMode::File {
                 template_path: template
-                    .strip_prefix(&canonical_root)
+                    .strip_prefix(canonical_root)
                     .unwrap_or(template)
                     .to_path_buf(),
             },
-            root: ConfiningRoot::from_path_buf(canonical_root.clone()),
+            root: ConfiningRoot::from_path_buf(canonical_root.to_path_buf()),
             vars_input: BTreeMap::default(),
             vars_env: BTreeMap::default(),
             vars_defaults: BTreeMap::default(),
@@ -97,13 +109,7 @@ pub fn init_workspace(root: impl AsRef<Path>, dry_run: bool) -> Result<InitResul
         }
     }
 
-    Ok(InitResult {
-        prompts_dir,
-        gitignore_updated,
-        scanned_templates: templates,
-        recommendations,
-        validation_passed,
-    })
+    (recommendations, validation_passed)
 }
 
 /// Read an optional text file, treating `NotFound` as an empty string.

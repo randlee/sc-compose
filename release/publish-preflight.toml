@@ -1,0 +1,10 @@
+# Consumer publish preflight checks. Executed from release-preflight.yml via
+# .github/scripts/run-consumer-preflight.sh (fail-closed before release dispatch).
+
+schema_version = 1
+
+
+[[checks]]
+id = "cli-reference-fresh"
+description = "Generated CLI reference matches the live sc-compose model (docli)"
+run = "python3 scripts/generate_cli_reference.py --check --install-docli"

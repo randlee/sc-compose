@@ -11,27 +11,6 @@ use crate::types::{
 use super::model::{Frontmatter, RawFrontmatter};
 
 pub(super) fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeError> {
-    let parse_default_entry = |section_name: &str,
-                               name: String,
-                               value: serde_yaml::Value|
-     -> Result<(VariableName, InputValue), ComposeError> {
-        let variable = VariableName::new(name).map_err(|error| {
-            ConfigError::new(
-                DiagnosticCode::ErrConfigParse,
-                format!("invalid frontmatter {section_name} variable name: {error}"),
-            )
-            .with_recovery_hint(RecoveryHint::new(
-                RecoveryHintKind::ReviewConfiguration {
-                    key: section_name.to_owned(),
-                },
-            ))
-        })?;
-        let input_value = input_value_from_yaml(value).map_err(|error| {
-            ValidationError::invalid_input_value(error.code(), error.to_string())
-        })?;
-        Ok((variable, input_value))
-    };
-
     let RawFrontmatter {
         pass,
         required_variables: raw_required_variables,
@@ -110,6 +89,25 @@ pub(super) fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, 
         json_escape_mode,
         diagnostics,
     })
+}
+
+fn parse_default_entry(
+    section_name: &str,
+    name: String,
+    value: serde_yaml::Value,
+) -> Result<(VariableName, InputValue), ComposeError> {
+    let variable = VariableName::new(name).map_err(|error| {
+        ConfigError::new(
+            DiagnosticCode::ErrConfigParse,
+            format!("invalid frontmatter {section_name} variable name: {error}"),
+        )
+        .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+            key: section_name.to_owned(),
+        }))
+    })?;
+    let input_value = input_value_from_yaml(value)
+        .map_err(|error| ValidationError::invalid_input_value(error.code(), error.to_string()))?;
+    Ok((variable, input_value))
 }
 
 pub(super) fn validate_explicit_pass_numbers(passes: &[Frontmatter]) -> Result<(), ComposeError> {

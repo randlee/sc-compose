@@ -35,7 +35,7 @@ jobs:
       pypi_config: ${{ steps.config.outputs.config }}
       python_upload_tool: ${{ steps.config.outputs.python_upload_tool }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.tag }}
       - uses: ./.github/actions/verify-published-release
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.target == 'production' && 'pypi' || 'testpypi' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.tag }}
       - name: Download Python assets from the published GitHub Release
@@ -94,7 +94,7 @@ jobs:
           key = "test_repository" if os.environ["PUBLISH_TARGET"] == "testpypi" else "production_repository"
           print(f"PYPI_REPOSITORY={config[key]}")
           PY
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install maturin

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from release_python import cmd_python_wheel_matrix, wheel_targets, verify_platforms, explicit_asset_patterns
+
 import re
 import shutil
 import tarfile
@@ -35,8 +37,10 @@ from release_manifest import (
     manifest_rust_toolchain,
     manifest_workspace_toml,
     package_name,
+    cmd_package_check_plan,
     workspace_members,
     workspace_version,
+    validate_prerelease,
     validate_publish_order,
 )
 from release_registry import cmd_check_version_unpublished, cmd_registry_status
@@ -192,6 +196,8 @@ def cmd_public_registry_check_plan(args: argparse.Namespace) -> int:
                 manifest["channel_contracts"], "pypi", distribution["name"], args.version
             )
         )
+    for package in manifest.get("npm_packages", []):
+        checks.extend(_public_registry_checks(manifest["channel_contracts"], "npm", package["name"], args.version))
     print(json.dumps({"checks": checks}, separators=(",", ":")))
     return 0
 
@@ -235,8 +241,6 @@ def _release_asset_pattern(project: dict, target: dict) -> str:
 
 def _release_binaries(manifest: dict) -> list[dict]:
     binaries = manifest["release_binaries"]
-    if not binaries:
-        raise SystemExit("manifest must define [[release_binaries]]")
     for index, binary in enumerate(binaries, start=1):
         _require_keys(binary, ("name",), f"[[release_binaries]] #{index}")
         for bundle in binary.get("bundled_paths", []):
@@ -314,6 +318,9 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
     _require_project(manifest)
     _release_targets_by_name(manifest)
     binaries = _release_binaries(manifest)
+    from npm_release import packages as npm_packages
+    npm_packages(manifest)
+    validate_prerelease(manifest)
     channel_names = _channel_names(manifest)
     for channel_name in channel_names:
         _channel_dispatch_config(manifest, channel_name)
@@ -343,7 +350,7 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
         members = workspace_members(Path(args.workspace_toml))
         missing = []
         for crate in manifest["crates"]:
-            if crate["cargo_toml"].removesuffix("/Cargo.toml") not in members:
+            if crate["cargo_toml"].removesuffix("/Cargo.toml") not in members and "workspace" not in tomllib.loads(Path(crate["cargo_toml"]).read_text()):
                 missing.append(crate["cargo_toml"])
         if missing:
             raise SystemExit(f"manifest references non-member crates: {', '.join(missing)}")
@@ -395,8 +402,7 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
         if not isinstance(distribution["sdist"], bool):
             raise SystemExit(f"[[python_distributions]] #{index}: sdist must be a boolean")
         wheels = distribution["wheels"]
-        if not isinstance(wheels, list) or not all(isinstance(entry, str) for entry in wheels):
-            raise SystemExit(f"[[python_distributions]] #{index}: wheels must be a list of strings")
+        wheel_targets(distribution)
         cargo_manifest = distribution.get("cargo_manifest")
         if cargo_manifest and not (Path(cargo_manifest)).is_file():
             raise SystemExit(
@@ -408,8 +414,7 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
             raise SystemExit(
                 f"[[python_distributions]] #{index}: Python module path does not exist: {module_root}"
             )
-    # Resolves each distribution's build system; a missing or unsupported
-    # build_system is a manifest validation failure.
+    # A missing or unsupported distribution build_system is a validation failure.
     _python_distribution_entries(manifest)
     print("manifest validation passed")
     return 0
@@ -418,7 +423,7 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
 def cmd_list_publish_plan(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest))
     for crate in manifest["crates"]:
-        print(f"{crate['package']}|{crate['wait_after_publish_seconds']}")
+        print(f"{crate['package']}|{crate['wait_after_publish_seconds']}" + (f"|{crate['cargo_toml']}" if args.include_manifest else ""))
     return 0
 
 
@@ -431,19 +436,6 @@ def _python_matrix_entry(distribution: dict) -> dict[str, str]:
         "cargo_manifest": distribution["cargo_manifest"] or "",
         "build_system": distribution["build_system"],
     }
-
-
-def cmd_python_wheel_matrix(args: argparse.Namespace) -> int:
-    manifest = load_manifest(Path(args.manifest))
-    # An empty matrix is valid: Rust-only consumers build no Python wheels,
-    # and release.yml skips the wheel jobs when the matrix is empty.
-    include = [
-        {**_python_matrix_entry(distribution), "os": os_name}
-        for distribution in _python_distribution_entries(manifest)
-        for os_name in distribution["wheels"]
-    ]
-    print(json.dumps({"include": include}, separators=(",", ":")))
-    return 0
 
 
 def cmd_python_sdist_matrix(args: argparse.Namespace) -> int:
@@ -463,6 +455,7 @@ def cmd_build_plan(args: argparse.Namespace) -> int:
     entries = _python_distribution_entries(manifest)
     plan = {
         "has_crates": bool(manifest["crates"]),
+        "has_release_binaries": bool(manifest["release_binaries"]),
         "has_python_wheels": any(entry["wheels"] for entry in entries),
         "has_python_sdists": any(entry["sdist"] for entry in entries),
         "python_upload_tool": manifest_python_upload_tool(manifest),
@@ -477,8 +470,13 @@ def cmd_release_asset_patterns(args: argparse.Namespace) -> int:
     """Print one required-asset regex per manifest release target."""
     manifest = load_manifest(Path(args.manifest))
     project = _require_project(manifest)
-    for target in _release_targets_by_name(manifest).values():
-        print(_release_asset_pattern(project, target))
+    if manifest["release_binaries"]:
+        for target in _release_targets_by_name(manifest).values():
+            print(_release_asset_pattern(project, target))
+    for pattern in explicit_asset_patterns(manifest):
+        print(pattern)
+    for package in manifest.get("npm_packages", []):
+        print("^" + re.escape(package["name"].replace("@", "").replace("/", "-")) + r"-[0-9].*\.tgz$")
     return 0
 
 
@@ -591,8 +589,7 @@ def cmd_preflight_secret_plan(args: argparse.Namespace) -> int:
         )
         post_release_channels.append({"name": channel_name, **channel_preflight})
 
-    # Workflow-consumed GitHub environments are contract-declared so the
-    # preflight can verify they exist before any release dispatch.
+    # Preflight verifies workflow GitHub environments before release dispatch.
     github_environments: list[str] = []
     contracts = manifest["channel_contracts"]
     for contract_name in ("crates_io", "github_release", *channel_names):
@@ -655,6 +652,7 @@ def cmd_verify_python_release_assets(args: argparse.Namespace) -> int:
         raise SystemExit(f"Python asset directory does not exist: {asset_dir}")
     expected = _python_distribution_expectations(manifest)
     found = {name: {"wheel": 0, "sdist": 0} for name in expected}
+    wheel_paths = {name: [] for name in expected}
     destination = Path(args.copy_to) if args.copy_to else None
     if destination:
         destination.mkdir(parents=True, exist_ok=True)
@@ -665,6 +663,7 @@ def cmd_verify_python_release_assets(args: argparse.Namespace) -> int:
         if asset.suffix == ".whl":
             name = _python_distribution_name_from_wheel(asset, set(expected))
             found[name]["wheel"] += 1
+            wheel_paths[name].append(asset)
         elif asset.name.endswith(".tar.gz"):
             name = _python_distribution_name_from_sdist(asset, set(expected))
             if name is None:
@@ -680,6 +679,8 @@ def cmd_verify_python_release_assets(args: argparse.Namespace) -> int:
             "published GitHub Release Python assets mismatch: "
             f"expected {expected}, found {found}"
         )
+    for distribution in _python_distribution_entries(manifest):
+        verify_platforms(distribution, wheel_paths[distribution["name"]])
     print(f"verified Python release assets: {expected}")
     return 0
 
@@ -733,6 +734,8 @@ def cmd_verify_version_lockstep(args: argparse.Namespace) -> int:
             version,
             cargo_manifest=distribution["cargo_manifest"] if distribution else None,
         )
+    from npm_release import validate_sources
+    validate_sources(manifest, version)
     print("version lockstep verification passed")
     return 0
 
@@ -865,8 +868,15 @@ def main() -> int:
     p.set_defaults(func=validate_publish_order)
 
     p = sub.add_parser("list-publish-plan")
+    p.add_argument("--include-manifest", action="store_true")
     p.add_argument("--manifest", required=True)
     p.set_defaults(func=cmd_list_publish_plan)
+
+    p = sub.add_parser("package-check-plan")
+    p.add_argument("--include-manifest", action="store_true")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--workspace-toml", required=True)
+    p.set_defaults(func=cmd_package_check_plan)
 
     p = sub.add_parser("python-wheel-matrix")
     p.add_argument("--manifest", required=True)

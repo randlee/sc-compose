@@ -11,6 +11,7 @@ import tempfile
 import tomllib
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -174,6 +175,22 @@ class GoNativeModuleTests(unittest.TestCase):
             with self.assertRaisesRegex(MODULE.ContractError, "goarch"):
                 MODULE.target_matrix(manifest2, config2)
 
+    def test_stage_writes_version_as_exact_lf_bytes_under_windows_text_mode(self) -> None:
+        # Windows text mode turns "\n" into "\r\n" in Path.write_text. Simulate that
+        # translation on any host so the regression is deterministic everywhere.
+        def windows_write_text(path, data, encoding=None, errors=None, newline=None):
+            self.assertIsNone(newline)
+            return path.write_bytes(data.replace("\n", "\r\n").encode(encoding or "utf-8"))
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config, _manifest, _workspace = write_consumer(root)
+            library = root / "libsc_sha_go.a"
+            library.write_bytes(b"archive")
+            with mock.patch.object(Path, "write_text", windows_write_text):
+                output = MODULE.stage(config, TARGETS[0][0], library, root / "module", "1.5.0")
+            self.assertEqual((output / "VERSION").read_bytes(), b"1.5.0\n")
+
     def test_stage_is_complete_and_rejects_invalid_inputs_without_partial_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -184,6 +201,9 @@ class GoNativeModuleTests(unittest.TestCase):
             staged = MODULE.stage(config, TARGETS[0][0], library, output, "1.6.0")
             self.assertEqual(staged, output.resolve())
             self.assertEqual((output / "VERSION").read_text(encoding="utf-8"), "1.6.0\n")
+            # read_text() translates CRLF back to LF, so it cannot see a Windows
+            # newline: the on-disk contract is the exact bytes.
+            self.assertEqual((output / "VERSION").read_bytes(), b"1.6.0\n")
             self.assertTrue((output / "go" / "sc_sha_go" / "sc_sha_go.go").is_file())
             self.assertTrue((output / "testdata" / "conformance.json").is_file())
             self.assertTrue((output / "native" / TARGETS[0][0] / "libsc_sha_go.a").is_file())

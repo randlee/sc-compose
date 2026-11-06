@@ -17,6 +17,26 @@ fn run_sc_boundary(fixture: &TempFixture) -> std::process::Output {
         .expect("run sc-compose lint sc-boundary")
 }
 
+fn assert_graph_discovers_owner(fixture: &TempFixture, package: &str, target: &str) {
+    let output = std::process::Command::new("sc-lint-boundary")
+        .args(["export-graph", "--root"])
+        .arg(&fixture.path)
+        .output()
+        .expect("run released boundary graph exporter");
+    assert!(output.status.success(), "graph export failed: {output:?}");
+    let graph: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(
+        graph["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|node| node["kind"] == "crate"
+                && node["package"] == package
+                && node["target"] == target),
+        "native owner missing from graph: {package}/{target}"
+    );
+}
+
 #[test]
 fn boundary_pass_uses_shared_runner_and_materializes_evidence() {
     let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
@@ -76,10 +96,8 @@ fn boundary_dependency_violation_stays_non_pass_with_structured_finding() {
         String::from_utf8_lossy(&output.stderr),
         String::from_utf8_lossy(&output.stdout)
     );
-    assert_eq!(
-        payload["exit_status"].as_i64(),
-        output.status.code().map(i64::from)
-    );
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(payload["exit_status"], 10);
     assert_eq!(payload["raw_payload"]["command"], "lint.sc-boundary");
     assert_eq!(payload["raw_payload"]["data"]["status"], "fail");
     assert_eq!(payload["findings_count"], 1);
@@ -106,12 +124,40 @@ fn boundary_dependency_violation_stays_non_pass_with_structured_finding() {
 }
 
 #[test]
+fn boundary_invalid_configuration_is_distinct_from_native_findings() {
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-boundary",
+        name: "sc-sha-dependency-violation",
+        target: "sc-boundary",
+    });
+    let boundary = fixture.path.join("boundaries/sc-sha/boundary.toml");
+    let config = fs::read_to_string(&boundary).unwrap().replace(
+        "allowed_dependencies = []",
+        "allowed_dependencies = [\"missing-workspace-package\"]",
+    );
+    fs::write(boundary, config).unwrap();
+    let output = run_sc_boundary(&fixture);
+    let envelope = parse_stdout(&output);
+    let payload = &envelope["payload"];
+    assert_eq!(output.status.code(), Some(3));
+    assert_eq!(payload["outcome"], "config_error");
+    assert_eq!(payload["raw_payload"]["error"]["code"], "CLI.CONFIG_ERROR");
+    assert!(
+        payload["raw_payload"]["error"]["cause"]
+            .as_str()
+            .unwrap()
+            .contains("missing-workspace-package")
+    );
+}
+
+#[test]
 fn sc_sha_python_boundary_rejects_all_forbidden_dependency_classes() {
     let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
         group: "sc-boundary",
         name: "sc-sha-python-dependency-violation",
         target: "sc-boundary",
     });
+    assert_graph_discovers_owner(&fixture, "sc-sha-python", "sc_sha_native");
     let output = run_sc_boundary(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
@@ -147,6 +193,7 @@ fn sc_sha_boundary_rejects_renderer_dependency() {
         name: "sc-sha-dependency-violation",
         target: "sc-boundary",
     });
+    assert_graph_discovers_owner(&fixture, "sc-sha", "sc_sha");
     let output = run_sc_boundary(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
@@ -184,6 +231,7 @@ fn sc_sha_go_boundary_rejects_non_adapter_dependencies() {
         name: "sc-sha-go-forbidden-edge",
         target: "sc-boundary",
     });
+    assert_graph_discovers_owner(&fixture, "sc-sha-go", "sc_sha_go");
     let output = run_sc_boundary(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
@@ -221,6 +269,7 @@ fn sc_composer_beads_boundary_rejects_host_coupling_and_non_contract_dependencie
         name: "sc-composer-beads-forbidden-edge",
         target: "sc-boundary",
     });
+    assert_graph_discovers_owner(&fixture, "sc-composer-beads", "sc_composer_beads");
     let output = run_sc_boundary(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];

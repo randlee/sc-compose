@@ -25,6 +25,16 @@ use crate::observer_impl::{
 
 pub(crate) fn run(cli: Cli, observer: &mut CliObserver) -> Result<i32, CommandError> {
     match cli.command {
+        Command::Reference(args) => {
+            observe_command(observer, "reference", args.json, |_observer| {
+                crate::print_json(
+                    serde_json::json!({"model": crate::cli_reference::model()}),
+                    Vec::new(),
+                )
+                .map_err(CommandError::usage)?;
+                Ok(0)
+            })
+        }
         Command::Lint(args) => observe_command(observer, "lint", args.json, |_observer| {
             run_sc_lint_command(&args)
         }),

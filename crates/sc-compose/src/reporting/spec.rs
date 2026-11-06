@@ -164,31 +164,7 @@ pub(crate) fn run_render_spec_report(
             DiagnosticCode::ErrConfigParse,
         )
     })?;
-    let absolute_spec_path = resolve_relative_path(&workspace_root, spec_path)?;
-    let raw_source = std::fs::read_to_string(&absolute_spec_path).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context(format!(
-                "failed to read semantic spec {}",
-                absolute_spec_path.display()
-            )),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?;
-    let Some(spec) = parse_report_spec(&raw_source).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context(format!(
-                "failed to parse semantic spec {}",
-                absolute_spec_path.display()
-            )),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?
-    else {
-        return Err(CommandError::usage_with_code(
-            anyhow!("semantic spec must define [spec] with supported kind"),
-            DiagnosticCode::ErrConfigParse,
-        ));
-    };
+    let (absolute_spec_path, spec) = load_report_spec(&workspace_root, spec_path)?;
 
     let mermaid = render_mermaid(&spec).map_err(|error| {
         CommandError::usage_with_code(
@@ -254,6 +230,39 @@ pub(crate) fn run_render_spec_report(
         archived_artifacts: materialized.archived_artifacts,
         warnings: Vec::new(),
     })
+}
+
+fn load_report_spec(
+    workspace_root: &Path,
+    spec_path: &Path,
+) -> Result<(PathBuf, ReportSpec), CommandError> {
+    let absolute_spec_path = resolve_relative_path(workspace_root, spec_path)?;
+    let raw_source = std::fs::read_to_string(&absolute_spec_path).map_err(|error| {
+        CommandError::usage_with_code(
+            anyhow!(error).context(format!(
+                "failed to read semantic spec {}",
+                absolute_spec_path.display()
+            )),
+            DiagnosticCode::ErrConfigParse,
+        )
+    })?;
+    let Some(spec) = parse_report_spec(&raw_source).map_err(|error| {
+        CommandError::usage_with_code(
+            anyhow!(error).context(format!(
+                "failed to parse semantic spec {}",
+                absolute_spec_path.display()
+            )),
+            DiagnosticCode::ErrConfigParse,
+        )
+    })?
+    else {
+        return Err(CommandError::usage_with_code(
+            anyhow!("semantic spec must define [spec] with supported kind"),
+            DiagnosticCode::ErrConfigParse,
+        ));
+    };
+
+    Ok((absolute_spec_path, spec))
 }
 
 impl ReportSpec {

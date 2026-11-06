@@ -1651,11 +1651,21 @@ The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/f
 
 #### FR-24.31 — Approved item 23
 
-The closing regression exercise reruns FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 on the final candidate. Recovery commits and the case-to-test mapping must be verified; the previously cited single_pass_render.rs path does not exist on rebuild/from-main@c089c8a3. Missing cases, including FUZZ-171-10, remain explicit unresolved inputs rather than claimed recovered tests.
+V3 builds bounded, deterministic regressions for the current approved Beads
+contract, pairing rejected inputs with permitted inputs where the contract
+requires both. V7 reruns the applicable regressions on the final candidate.
+The abandoned FUZZ-171 recovery is historical evidence, not a prerequisite
+for these tests; unavailable historical cases are not claimed as recovered or
+passed.
 
 #### FR-24.32 — Approved item 24
 
-The 229-template corpus that passed the v1.7.0 comparison (QA report 01M6HZR22HZXX4HDW1CMFHHA86: 150 atm-core and 79 sc-compose `.j2` templates) is rerun on the final candidate, without `--strict`, through validate, render and render with variables. Any template that 1.7.0 accepted and the candidate rejects fails the check. The only allowed differences are the false-positive diagnostics already approved under D7 (`ERR_VAL_UNDECLARED_TOKEN` no longer reported for True/False/None literals, filter and call targets, Jinja test and block-tag names, and comment and raw bodies).
+V3 verifies compatible validation and rendering with a bounded, controlled
+set of current-contract templates, including accepted inputs and relevant
+refusals. V7 reruns the applicable checks on the final candidate. The prior
+229-template comparison is historical evidence; its unavailable exact corpus
+and source mapping are not a prerequisite for the current tests and are not
+represented as a passing rerun.
 
 #### FR-24.33 — Plan-fix pour with caller variables
 
@@ -1730,6 +1740,14 @@ FR-24.11 (source-compatible APIs) to FR-24.25–26;
 FR-24.12 (documentation/regressions) to FR-24.30–32. They do not retain the
 superseded legacy-default assumption.
 
+Additional retained contract details are: bead render emits the rendered body
+only and removes frontmatter (historical issue #785); variable validation
+counts only selected brace expressions and does not treat comments, raw bodies,
+Jinja syntax names, or literal data as input variables; JSON/TOML escaping is
+applied once, while expression results and nested values remain data and are
+not reparsed as template source. These are current contract details for V1 to
+pin and V3 to implement, not additional historical corpus or fuzz gates.
+
 #### Design contract and unresolved evidence
 
 ADR-0024 records the additive Rust options/runner signatures, Python keyword
@@ -1737,13 +1755,20 @@ mapping, direct-CLI request mapping, duplicate/conflict policy and scoped
 default precedence. These are the V1 contract consumed by V3, not choices
 silently deferred to implementation. Public request layouts remain unchanged.
 FR-24.34–35 fix additive existing-node edges and conditional elements;
-ADR-0023 records the atomic-write and provenance contract. The FR-24.24 byte comparison, exact 229-template
-corpus revision and FUZZ-171 case-to-test mapping remain evidence inputs to
-pin. Missing evidence never counts as a final regression PASS.
+ADR-0023 records the atomic-write and provenance contract. The FR-24.24 byte
+comparison remains an evidence input to pin. The user ruling recorded in the
+`comp-phase-v` bead notes on 2026-11-05
+replaces abandoned historical fuzz/corpus recovery with bounded deterministic
+regressions of the current intended contract. Historical FUZZ-171 cases and
+the 229-template corpus were not rerun, recovered, or passed; they are not
+prerequisites for the replacement work. V1 qualifies available inputs, V3
+implements the bounded current-contract regressions, and V7 owns applicable
+final reruns.
 
-The unmerged PR #848 anchor records contain stale opt-in wording and
-incomplete testability evidence. Reconcile those records with the approved
-default as requirements maintenance; do not start an anchor-tuning project.
+The Phase V source anchor records include superseded wording for the legacy
+render default and historical FUZZ/corpus reruns. Their assigned anchor owner
+handles record dispositions through the normal anchor process; this V1
+requirements carry-forward does not edit those separate anchor records.
 
 #### bd variable semantics — observed evidence and limits
 
@@ -1819,15 +1844,34 @@ User-directed docli behavior is also recorded in anchors ANC-014–016.
 The producer is sc-compose reference --json; consumers extract payload.model.
 Use sc-docli as an external CLI-documentation tool, never a workspace crate
 dependency or a competing in-process documentation engine. Generate and check
-references from the actual Clap model. Every publish path invokes the tool
-through supported sc-publish preflight checks; stale CLI references block
-publication. Adopt canonical kit inputs and installed helpers without local
-forks. A deterministic stale-reference case and a real consumer preflight
-invocation verify the integration; installer capability alone is insufficient.
+references from the actual Clap model. Register the freshness check through the
+existing sc-publish consumer-preflight extension/config; when Release Preflight
+runs it, stale references fail the preflight. Adopt canonical kit inputs and
+installed helpers without local forks. A deterministic stale-reference case
+and a real consumer-preflight invocation verify the integration; installer
+capability alone is insufficient.
+
+The approved scope is the existing shared sc-publish extension/config and its
+declared consumer-preflight check. It does not require a new shared kit gate or
+rolling workflow changes across eight channels in ten repositories; this follows
+the owner-directed withdrawal of expanded sc-publish proposal #159 before any
+publication or consumer rollout.
+In this repository, the declared check runs
+`scripts/generate_cli_reference.py --check --install-docli` through
+`.github/scripts/run-consumer-preflight.sh` from the Release Preflight workflow.
+It verifies the pinned docli is available and that the generated CLI reference
+matches the current `payload.model`; the controlled consumer test passes with
+fresh outputs and fails on stale outputs without rewriting them. The configured
+publish plan enumerates six active paths and the tests verify those entries,
+the shared Release Preflight runner, and the declared check. These facts do not
+show that each individual publish workflow is gated: direct manual dispatch of
+an individual publish workflow does not inherit a `needs` dependency on Release
+Preflight. FR-26 therefore makes no universal mechanical-enforcement claim for
+that path.
 
 ### FR-27: Released Analyzer Migration and Existing Violations
 
-Phase V starts from current develop and migrates to released sc-lint 0.8.5.
+Phase V starts from current develop and migrates to released sc-lint 0.8.6.
 Verify the installed version and retain the real boundary owners, including
 sc_compose_native. Run the migrated analyzer on the unchanged product baseline,
 then fix the existing violations it reports without suppressing rules or
@@ -2447,8 +2491,9 @@ All 87 entries are accounted for below. “Proposed” anchor status does not
 remove its underlying requirement. Anchor judge confidence is review evidence,
 not proof of implementation or a reason to discard a requirement.
 The user corrections override stale source copies: advanced rendering is the
-default, Python starts at 3.9 (Windows ARM64 3.11), and historical recovery
-paths/cases require verification. Literal delimiter-bearing values remain
+default, Python starts at 3.9 (Windows ARM64 3.11), and abandoned historical
+fuzz/corpus recovery is replaced by bounded deterministic current-contract
+regressions. Literal delimiter-bearing values remain
 literal data; “no template expression” means no executable expression delegated
 to bd, not a ban on those data bytes. The old Phase U sprint order is replaced
 by the Phase V Beads graph; its product obligations are retained.
@@ -2466,8 +2511,8 @@ review round or duplicate implementation obligation.
 | ANC-003 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
 | ANC-004 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
 | ANC-014 | FR-26 | V8 | Carried: V4 supplies the live model exporter; V8 supplies the external docli generator. |
-| ANC-015 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. |
-| ANC-016 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. |
+| ANC-015 | FR-26 | V8 | Carried: V8 owns the declared consumer-preflight check, run by Release Preflight through the existing sc-publish extension, and its current/stale tests; individual publish workflows are not mechanically gated; V6 consumes them on final references. |
+| ANC-016 | FR-26 | V8 | Carried: V8 owns the declared consumer-preflight check, run by Release Preflight through the existing sc-publish extension, and its current/stale tests; individual publish workflows are not mechanically gated; V6 consumes them on final references. |
 | ANC-023 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
 | ANC-031 | FR-27 | V4 | Carried: codespell passes; legitimate project terms attributed/allowlisted. |
 | ANC-033 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
@@ -2510,8 +2555,8 @@ review round or duplicate implementation obligation.
 | FR-24.8d | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
 | FR-24.24b | FR-24.24 | V3 | Carried; V7 reruns the applicable final regressions. |
 | FR-24.30a | FR-24.30 | V3 | Carried; V7 reruns the applicable final regressions. |
-| FR-24.31a | FR-24.31 | V7 | Carried: V1 qualifies inputs, V3 recovers/maps cases and fixtures; V7 owns final reruns. |
-| FR-24.32a | FR-24.32 | V7 | Carried: V1 qualifies inputs, V3 recovers/maps cases and fixtures; V7 owns final reruns. |
+| FR-24.31a | FR-24.31 | V7 | Historical FUZZ-171 recovery is superseded by the 2026-11-05 `comp-phase-v` user ruling; historical cases were not recovered or passed. V3 supplies bounded deterministic current-contract regressions; V7 owns final reruns. |
+| FR-24.32a | FR-24.32 | V7 | Historical 229-template corpus recovery is superseded by the 2026-11-05 `comp-phase-v` user ruling; corpus was not recovered or passed. V3 supplies bounded deterministic current-contract regressions; V7 owns final reruns. |
 | FR-24.24c | FR-24.24 | V3 | Carried; V7 reruns the applicable final regressions. |
 | FR-24.29a | FR-24.29 | V3 | Carried; V7 reruns the applicable final regressions. |
 | ANC-005 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
@@ -2526,7 +2571,7 @@ review round or duplicate implementation obligation.
 | ANC-021 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
 | ANC-022 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
 | ANC-024 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
-| ANC-025 | FR-24.31–32 | V7 | Carried: V1 qualifies inputs, V3 recovers/maps cases; V7 owns final fuzz/corpus reruns. |
+| ANC-025 | FR-24.31–32 | V7 | Its historical fuzz/corpus rerun wording is superseded by the 2026-11-05 `comp-phase-v` user ruling; no historical recovery/pass is claimed. V3 covers current-contract regressions; V7 owns final reruns. Anchor-record disposition remains with its owner. |
 | ANC-026 | FR-24.30 | V3 | Carried: canonical requirements/ADR plus worked bead manual examples. |
 | ANC-027 | FR-28 | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
 | ANC-028 | FR-28 | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
@@ -2547,4 +2592,8 @@ review round or duplicate implementation obligation.
 | ANC-047 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
 | ANC-048 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
 | FR-24.24 | FR-24.13, FR-24.24 | V3 | Superseded default wording: exact v1.7.0 compatibility is selected with --render-by bd. |
-| FR-24.32 | FR-24.32 | V7 | Carried: V1 qualifies inputs, V3 recovers/maps cases and fixtures; V7 owns final reruns. |
+| FR-24.32 | FR-24.32 | V7 | Historical corpus recovery is superseded by the 2026-11-05 `comp-phase-v` user ruling; no historical recovery/pass is claimed. V3 covers bounded deterministic current-contract regressions; V7 owns final reruns. |
+
+Phase V update (2026-11-05): the owner selected the final v0.8.6 release
+(tag commit `6142682313171a7a714edee99942146415329f11`), superseding
+the earlier 0.8.5 migration pin. Analyzer and reporting obligations remain.

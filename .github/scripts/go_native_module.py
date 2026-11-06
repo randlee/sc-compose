@@ -266,7 +266,8 @@ def stage(config_path: Path, target_name: str, native_library: Path, output: Pat
         native_destination = temporary / "native" / target_name
         native_destination.mkdir()
         shutil.copy2(library, native_destination / target["library"])
-        (temporary / "VERSION").write_text(f"{version}\n", encoding="utf-8")
+        # Exact bytes, not text mode: write_text would turn "\n" into "\r\n" on Windows.
+        (temporary / "VERSION").write_bytes(f"{version}\n".encode("utf-8"))
         temporary.rename(destination)
     except Exception:
         shutil.rmtree(temporary, ignore_errors=True)

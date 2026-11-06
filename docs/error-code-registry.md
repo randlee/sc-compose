@@ -243,6 +243,7 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 | `BEADS_GRAPH_APPLY_FAILED` | execution | `bd create --graph` failed; nothing was written | graph apply |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | execution | `bd create --graph` exited 0 but its response cannot be consumed, so beads may exist; reconcile with `bd show` before pouring again | graph apply |
 | `BEADS_RECEIPT_DESERIALIZATION_FAILED` | adapter | a receipt document cannot be parsed back; an adapter-level code (`BeadComposeError::RECEIPT_DESERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
+| `BEADS_OUTPUT_SERIALIZATION_FAILED` | adapter | a value the adapter returns to its caller (receipt, graph, relations) cannot be serialized; reported with stage `output`; an adapter-level code (`BeadComposeError::OUTPUT_SERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
 
 ### Phase V planned graph capability refusal
 

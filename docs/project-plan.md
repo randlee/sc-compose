@@ -2200,6 +2200,28 @@ Quality-mgr reviews all 17 dependency-stack contributions, including code
 already in develop. Each original PR closes when review and any retained
 integration are complete, with its disposition recorded in the existing PR.
 
+### V1 source-planning PR dispositions
+
+The V1 D4 content comparison used the existing inventory at
+`/Users/randlee/.codex/reports/post-1.7.0-inventory/inventory-and-recovery-plan.md`
+and the detailed comparison at
+`/Users/randlee/.codex/reports/phase-v-crash-recovery/comp-v-planning-dispositions-report.md`.
+All three source PRs are closed as superseded; their approved content remains
+in the destinations below. These dispositions do not claim historical test
+runs passed or unavailable inputs were recovered.
+
+| Source PR | Disposition | Retained content and evidence |
+| --- | --- | --- |
+| [#848](https://github.com/randlee/sc-compose/pull/848) | CLOSED, superseded by merged #854 and the V1 carry-forward in #912/#917 ([closure comment](https://github.com/randlee/sc-compose/pull/848#issuecomment-6675851570)). | The current Phase V anchor and intent records are in #854; the 86 non-retired source requirements and retired-ID replacements are represented in the V1 carry-forward table. Raw runs and scores remain available in #848 history; none is copied or declared rerun. |
+| [#849](https://github.com/randlee/sc-compose/pull/849) | CLOSED, superseded by the consolidated develop documents and V1 continuation #912/#917 ([closure comment](https://github.com/randlee/sc-compose/pull/849#issuecomment-6675852072)). | Requirements, ADR-0024/0025 and the ADR index are retained from the reviewed develop content, then updated by V1 for current user rulings. The Phase V Beads graph replaces the Phase U index and DAG. |
+| [#850](https://github.com/randlee/sc-compose/pull/850) | CLOSED, superseded by FR-24.28/.29 and ADR-0024 on the current develop baseline ([closure comment](https://github.com/randlee/sc-compose/pull/850#issuecomment-6675852704)). | The global-strict reversal and explicit legacy selector `--render-by bd` are retained; the old revert/merge route is superseded by recovery from current develop. Issue #783 is already closed as completed. |
+
+The current user ruling replaces abandoned FUZZ-171 and 229-template corpus
+recovery with bounded deterministic regressions of the current intended
+contract, owned by V3. Those historical inputs were not recovered, rerun, or
+passed. This disposition does not add a test project, evidence archive, or
+second planning ledger.
+
 Phase V now has nine real sprints. V1 contract verification and V4 migrated/
 lint-fixed baseline start independently. V2 dependencies and V8 tooling use
 the V4 baseline; V3 Beads uses V1/V2 and V9 Go adapter uses V2. V5 ABI adapters use V3;

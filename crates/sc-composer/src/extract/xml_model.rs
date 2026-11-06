@@ -38,9 +38,7 @@ impl XmlDocument {
 }
 
 pub(super) fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
-    let mut reader = Reader::from_str(source);
-    reader.config_mut().trim_text(false);
-    reader.config_mut().check_end_names = true;
+    let mut reader = configured_reader(source);
     let mut stack: Vec<(String, BTreeMap<String, String>, Vec<XmlNode>)> = Vec::new();
     let mut root = None;
     let mut elements = Vec::new();
@@ -98,18 +96,7 @@ pub(super) fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                 attach_text(&mut stack, decode_xml_cdata(text.as_ref())?)?;
             }
             Event::GeneralRef(reference) => {
-                let name = reference
-                    .decode()
-                    .map_err(|error| {
-                        super::malformed_with_source(format!("invalid XML entity: {error}"), error)
-                    })?
-                    .into_owned();
-                let value = unescape(&format!("&{name};"))
-                    .map_err(|error| {
-                        super::malformed_with_source(format!("invalid XML entity: {error}"), error)
-                    })?
-                    .into_owned();
-                attach_text(&mut stack, value)?;
+                attach_text(&mut stack, decode_reference(&reference)?)?;
             }
             Event::Decl(_) | Event::Comment(_) | Event::PI(_) => {
                 reject_post_root_content(root, &stack)?;
@@ -123,13 +110,43 @@ pub(super) fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
         }
     }
 
-    if !stack.is_empty() {
+    finish_document(!stack.is_empty(), root, elements)
+}
+
+fn finish_document(
+    has_open_elements: bool,
+    root: Option<XmlElementId>,
+    elements: Vec<XmlElement>,
+) -> Result<XmlDocument, ExtractError> {
+    if has_open_elements {
         return Err(super::malformed(
             "XML input ended before all elements closed".to_owned(),
         ));
     }
     let root = root.ok_or_else(|| super::malformed("XML input has no root element".to_owned()))?;
     Ok(XmlDocument { root, elements })
+}
+
+fn configured_reader(source: &str) -> Reader<&[u8]> {
+    let mut reader = Reader::from_str(source);
+    reader.config_mut().trim_text(false);
+    reader.config_mut().check_end_names = true;
+    reader
+}
+
+fn decode_reference(reference: &quick_xml::events::BytesRef<'_>) -> Result<String, ExtractError> {
+    let name = reference
+        .decode()
+        .map_err(|error| {
+            super::malformed_with_source(format!("invalid XML entity: {error}"), error)
+        })?
+        .into_owned();
+    let value = unescape(&format!("&{name};"))
+        .map_err(|error| {
+            super::malformed_with_source(format!("invalid XML entity: {error}"), error)
+        })?
+        .into_owned();
+    Ok(value)
 }
 
 fn decode_xml_text(bytes: &[u8]) -> Result<String, ExtractError> {

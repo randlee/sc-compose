@@ -146,6 +146,12 @@ pub(crate) fn extract_xml(
         });
     }
 
+    let confidence = report_confidence(&evidence, &mut diagnostics);
+
+    XmlExtractionReport::new(values, occurrences, confidence, diagnostics)
+}
+
+fn report_confidence(evidence: &Evidence, diagnostics: &mut Vec<ExtractionDiagnostic>) -> f64 {
     let evidence_total = evidence.expected_structural + evidence.expected_static;
     let matched_evidence = evidence.structural_matches + evidence.static_matches;
     let confidence = if evidence_total == 0 {
@@ -162,7 +168,7 @@ pub(crate) fn extract_xml(
         ));
     }
 
-    XmlExtractionReport::new(values, occurrences, confidence, diagnostics)
+    confidence
 }
 
 fn evidence_confidence(matched: usize, total: usize) -> f64 {

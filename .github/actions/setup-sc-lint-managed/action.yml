@@ -1,0 +1,21 @@
+name: Setup sc-lint (managed)
+description: Install the release selected by the repository sc-lint configuration.
+inputs:
+  repository:
+    description: Supported sc-lint release repository.
+    required: false
+    default: "randlee/sc-lint"
+runs:
+  using: composite
+  steps:
+    - name: Validate release repository
+      shell: python
+      env:
+        SC_LINT_REPOSITORY: ${{ inputs.repository }}
+      run: |
+        import os
+        if os.environ['SC_LINT_REPOSITORY'] != 'randlee/sc-lint':
+            raise SystemExit('The managed sc-lint installer supports only randlee/sc-lint')
+    - name: Install verified sc-lint release
+      shell: python
+      run: __import__('runpy').run_path('.github/scripts/setup_sc_lint_managed.py', run_name='__main__')

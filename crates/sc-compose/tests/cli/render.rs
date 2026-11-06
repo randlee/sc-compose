@@ -697,6 +697,7 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
     "source_glob": "share/quoted\"component/examples/*"
   }],
   "binary": "sc-compose",
+  "test_binary": "sc-compose",
   "test_command": "--help",
   "test_output": "A \"quoted\" result"
 }"#,
@@ -726,6 +727,7 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
     assert!(formula.contains("desc \"A \\\"quoted\\\" description\""));
     assert!(formula.contains("assert_match \"A \\\"quoted\\\" result\""));
     assert!(formula.contains("bin.install \"bin/sc-compose\""));
+    assert!(formula.contains("shell_output(\"#{bin}/\" + \"sc-compose\" + \" \" + \"--help\")"));
     // Windows-latest currently includes Ruby, but this cross-platform Rust
     // suite does not declare it as a toolchain dependency. The top-level
     // Python regression owns execution of this multi-component expression.

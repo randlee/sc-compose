@@ -1,14 +1,16 @@
 package sc_sha_go
 
 /*
-#cgo linux,amd64 LDFLAGS: ${SRCDIR}/../../native/x86_64-unknown-linux-gnu/libsc_sha_go.a -ldl -lm
+#cgo linux,amd64 LDFLAGS: ${SRCDIR}/../../native/x86_64-unknown-linux-gnu/libsc_sha_go.a -ldl -lm -lpthread
+#cgo linux,arm64 LDFLAGS: ${SRCDIR}/../../native/aarch64-unknown-linux-gnu/libsc_sha_go.a -ldl -lm -lpthread
+#cgo darwin,amd64 LDFLAGS: ${SRCDIR}/../../native/x86_64-apple-darwin/libsc_sha_go.a
 #cgo darwin,arm64 LDFLAGS: ${SRCDIR}/../../native/aarch64-apple-darwin/libsc_sha_go.a
 #cgo windows,amd64 LDFLAGS: ${SRCDIR}/../../native/x86_64-pc-windows-gnu/libsc_sha_go.a -lws2_32 -lntdll -lbcrypt -luserenv
+#cgo windows,arm64 LDFLAGS: ${SRCDIR}/../../native/aarch64-pc-windows-gnullvm/libsc_sha_go.a -lws2_32 -lntdll -lbcrypt -luserenv
 
-#if !((defined(__linux__) && defined(__x86_64__)) || \
-      (defined(__APPLE__) && defined(__aarch64__)) || \
-      (defined(_WIN32) && defined(_M_X64)))
-#error "sc-sha-go: unsupported native target; install a release bundle for linux/amd64, darwin/arm64, or windows/amd64"
+#if !((defined(__linux__) || defined(__APPLE__) || defined(_WIN32)) && \
+      (defined(__x86_64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64)))
+#error "sc-sha-go: unsupported native target; supported: linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64, windows/arm64"
 #endif
 */
 import "C"

@@ -57,8 +57,8 @@ fn sc_lint_version_is_pinned_to_the_bootstrap_contract() {
     );
     let value: Value = serde_json::from_slice(&output.stdout).expect("version JSON");
     assert_eq!(value["ok"], true);
-    assert_eq!(value["data"]["contract_schema"], "v1");
-    assert_eq!(value["data"]["crate_version"], "0.4.0");
+    assert_eq!(value["data"]["contract_schema"], "sc-lint-version-v1");
+    assert_eq!(value["data"]["version"], "0.8.6");
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn sc_lint_discovers_repository_and_fixture_roots_without_config_error() {
             value["error"]["code"], "CLI.CONFIG_ERROR",
             "root discovery must not fail configuration: {value}"
         );
-        assert_eq!(value["data"]["version"], "0.4.0");
+        assert_eq!(value["data"]["version"], "0.8.6");
         assert!(value["data"]["scanned_crates"].as_u64().is_some());
     }
 
@@ -203,7 +203,12 @@ fn repo_keeps_standalone_boundary_rules() {
 }
 
 fn assert_source_boundary_rules(root: &Path, violations: &mut Vec<String>) {
-    let forbidden_env = concat!("ATM", "_HOME");
+    let policy: serde_json::Value =
+        serde_json::from_str(include_str!("../../../.sc-lint/install.json"))
+            .expect("identity policy");
+    let forbidden_env = policy["identities"]["forbidden_literals"][7]
+        .as_str()
+        .expect("forbidden environment name");
     let forbidden_atm_import = concat!("use ", "atm", "_");
     let forbidden_agent_import = concat!("use ", "agent_", "team_", "mail::");
     let forbidden_research_refs = [concat!("reverse", "_extract")];

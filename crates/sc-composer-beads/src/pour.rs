@@ -96,6 +96,17 @@ pub(crate) fn execute_pour(
         formula_input.publish_copy(&normalized.rendered_formula)?;
     }
 
+    run_registry_pour(request, runner, normalized, bd, stages, formula_name)
+}
+
+fn run_registry_pour(
+    request: &BeadComposeRequest,
+    runner: &dyn ProcessRunner,
+    normalized: NormalizedRequest,
+    bd: PathBuf,
+    mut stages: Vec<BeadStageReceipt>,
+    formula_name: &crate::FormulaName,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
     let preview = request.operation == BeadOperation::PreviewPour;
     let pour = CommandSpec {
         executable: bd,

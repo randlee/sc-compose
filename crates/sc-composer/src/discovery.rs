@@ -250,6 +250,34 @@ mod tests {
     }
 
     #[test]
+    fn numeric_subscripts_preserve_following_attribute_paths() {
+        for (template, expected) in [
+            ("{{ o[0].k }}", "o.k"),
+            ("{{ report.rows[1].name }}", "report.rows.name"),
+            ("{{ items[0] }}", "items"),
+            ("{{ o.k }}", "o.k"),
+        ] {
+            assert_eq!(
+                discover_tokens(template),
+                [crate::VariableName::new(expected).unwrap()].into(),
+                "{template}"
+            );
+        }
+    }
+
+    #[test]
+    fn indexed_attributes_keep_loop_scope_and_malformed_prefix_behavior() {
+        assert_eq!(
+            discover_tokens("{% for item in items %}{{ item[0].k }}{% endfor %}"),
+            [crate::VariableName::new("items").unwrap()].into()
+        );
+        assert_eq!(
+            discover_tokens("{{ 1[0].k }}"),
+            [crate::VariableName::new(".k").unwrap()].into()
+        );
+    }
+
+    #[test]
     fn loop_builtins_are_not_discovered_inside_a_loop() {
         let tokens = discover_tokens("{% for it in items %}{{ it }}{{ loop.index0 }}{% endfor %}");
 

@@ -139,6 +139,11 @@ impl ScComposeCommand {
         self
     }
 
+    pub fn env_remove<K: AsRef<OsStr>>(&mut self, key: K) -> &mut Self {
+        self.command.env_remove(key);
+        self
+    }
+
     pub fn stdin(&mut self, cfg: Stdio) -> &mut Self {
         self.command.stdin(cfg);
         self
@@ -163,6 +168,92 @@ pub fn sc_compose() -> ScComposeCommand {
     let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
     command.env("SC_LOG_ROOT", &log_root.path);
     ScComposeCommand { command, log_root }
+}
+
+/// Put the verified release binary and installed wheel interpreter on PATH.
+pub fn installed_sc_lint_path(prefix: Option<&Path>) -> std::ffi::OsString {
+    let scripts =
+        repo_root()
+            .join(".sc-lint/venv")
+            .join(if cfg!(windows) { "Scripts" } else { "bin" });
+    let python = scripts.join(if cfg!(windows) {
+        "python.exe"
+    } else {
+        "python3"
+    });
+    assert!(
+        python.is_file(),
+        "run just setup to install the pinned sc-lint wheel: {}",
+        python.display()
+    );
+    let install: Value = serde_json::from_slice(
+        &fs::read(repo_root().join(".sc-lint/install.json")).expect("sc-lint install input"),
+    )
+    .expect("sc-lint install input JSON");
+    let version = install["minimum_version"]
+        .as_str()
+        .expect("configured sc-lint version");
+    let result = Command::new(&python)
+        .env_remove("PYTHONPATH")
+        .args([
+            "-I",
+            "-c",
+            "import importlib.metadata, sys; assert importlib.metadata.version('sc-lint') == sys.argv[1]",
+            version,
+        ])
+        .output()
+        .expect("run the managed sc-lint interpreter");
+    assert!(
+        result.status.success(),
+        "the managed interpreter must contain sc-lint {version}: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let binary_name = if cfg!(windows) {
+        "sc-lint.exe"
+    } else {
+        "sc-lint"
+    };
+    let binary = std::env::var_os("SC_LINT_BIN")
+        .map(PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("PATH").and_then(|path| {
+                std::env::split_paths(&path)
+                    .map(|directory| directory.join(binary_name))
+                    .find(|candidate| candidate.is_file())
+            })
+        })
+        .expect("set SC_LINT_BIN or put the pinned sc-lint executable on PATH");
+    let result = Command::new(&binary)
+        .arg("--version")
+        .output()
+        .unwrap_or_else(|error| {
+            panic!(
+                "cannot run sc-lint executable {}: {error}",
+                binary.display()
+            )
+        });
+    assert!(
+        result.status.success()
+            && String::from_utf8_lossy(&result.stdout).trim() == format!("sc-lint {version}"),
+        "the selected sc-lint executable {} must be version {version}; got {}",
+        binary.display(),
+        String::from_utf8_lossy(&result.stdout).trim()
+    );
+    let mut paths = Vec::new();
+    if let Some(prefix) = prefix {
+        paths.push(prefix.to_path_buf());
+    }
+    paths.push(
+        binary
+            .parent()
+            .expect("sc-lint binary directory")
+            .to_path_buf(),
+    );
+    paths.push(scripts);
+    if let Some(existing) = std::env::var_os("PATH") {
+        paths.extend(std::env::split_paths(&existing));
+    }
+    std::env::join_paths(paths).expect("managed sc-lint PATH")
 }
 
 pub fn sc_lint_just_root(required_files: &[&str]) -> PathBuf {
@@ -309,6 +400,28 @@ pub fn write_fake_cargo(root: &Path, options: FakeCargoOptions) {
         assert!(status.success(), "fake cargo compilation failed: {status}");
         fs::remove_file(source).expect("remove fake cargo source");
     }
+}
+
+#[cfg(windows)]
+pub fn write_fake_windows_python(root: &Path, stdout: &str, stderr: &str, exit_code: i32) {
+    let bin = root.join("fake-bin");
+    fs::create_dir_all(&bin).unwrap();
+    let source = bin.join("fake-python.rs");
+    let executable = bin.join("python.exe");
+    let program = format!(
+        "fn main() {{ print!(\"{{}}\", {stdout:?}); eprint!(\"{{}}\", {stderr:?}); std::process::exit({exit_code}); }}"
+    );
+    fs::write(&source, program).unwrap();
+    let status = Command::new("rustc")
+        .args(["--edition", "2021"])
+        .arg(&source)
+        .arg("-o")
+        .arg(&executable)
+        .status()
+        .unwrap();
+    assert!(status.success(), "fake Python compilation failed: {status}");
+    fs::copy(&executable, bin.join("python3.exe")).unwrap();
+    fs::remove_file(source).unwrap();
 }
 
 pub fn write_fake_cargo_deny(root: &Path) {
