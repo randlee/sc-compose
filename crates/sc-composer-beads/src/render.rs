@@ -436,7 +436,11 @@ mod tests {
         let root = temporary_directory();
         let template = root.join("condition.formula.toml.j2");
         let output = root.join("condition.formula.toml");
-        fs::write(&template, "{% if enabled == 'true' %}selected = true\n{% else %}selected = false\n{% endif %}").unwrap();
+        fs::write(
+            &template,
+            "{% if enabled == 'true' %}selected = true\n{% else %}selected = false\n{% endif %}",
+        )
+        .unwrap();
         for (value, expected) in [("true", "selected = true"), ("false", "selected = false")] {
             let vars = Map::from_iter([("enabled".into(), json!(value))]);
             render_formula_with_options(&template, &output, &vars, &root, true, false).unwrap();
