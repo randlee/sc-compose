@@ -1806,7 +1806,7 @@ Canonical failures must map to stable error families and stable codes.
 | Failure condition | Error type | Stable code |
 | --- | --- | --- |
 | Template not found | `ResolveError` | `ERR_RESOLVE_NOT_FOUND` |
-| Template path outside the allowed roots | `ResolveError` | `ERR_RESOLVE_ESCAPE` |
+| Template path outside the allowed roots (ADR-0026 D1, implementation pending) | `ResolveError` | `ERR_RESOLVE_ESCAPE` |
 | Ambiguous template match | `ResolveError` | `ERR_RESOLVE_AMBIGUOUS` |
 | Include target not found | `IncludeError` | `ERR_INCLUDE_NOT_FOUND` |
 | Include path or its resolved target (including a dangling symlink target) escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
@@ -1822,7 +1822,7 @@ Canonical failures must map to stable error families and stable codes.
 | Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
-| Template syntax or engine evaluation error | `RenderError` | `ERR_RENDER_TEMPLATE` |
+| Template syntax or engine evaluation error (ADR-0026 D2, implementation pending) | `RenderError` | `ERR_RENDER_TEMPLATE` |
 | JSON Lines append rendered a non-object value | `RenderError` | `ERR_RENDER_APPEND_NOT_OBJECT` |
 | JSON Lines append target has no final newline | `RenderError` | `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |

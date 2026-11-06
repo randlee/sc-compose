@@ -2,9 +2,35 @@
 
 ## Status
 
-Accepted (2026-11-06). Decisions D3, D7, D8 and D9 were approved explicitly
-by the user on 2026-11-06. The user also directed that every other finding be
-decided and either fixed or documented. Implementation is pending.
+Accepted (2026-11-06). Implementation is pending for every decision. No fix
+has landed, and the two new error codes are not emitted yet.
+
+## Approval provenance
+
+All references are user messages in the team-lead Claude Code session
+`9ec5e645-3303-4b01-b48f-a3583fb75424`. The transcript is
+`~/.claude/projects/-Users-randlee-github-sc-compose/9ec5e645-3303-4b01-b48f-a3583fb75424.jsonl`.
+Each message is cited by its uuid and UTC time.
+
+| Decision | Kind | Reference |
+|---|---|---|
+| b059 (part of D1): include escape is the correct error | explicit user ruling | `60cfdb6b`, 2026-11-06T22:02:39Z: "escape sounds like the correct error to return" |
+| D1 rule: a boundary violation is reported in preference to not-found | explicit user ruling | `8251bf87`, 2026-11-06T22:08:22Z: "a boundary violation is a more specific error than what the agent expected" |
+| D3, D7, D8 (parent line endings) | explicit user approval | `610cd975`, 2026-11-06T22:11:59Z: "agree" to each |
+| D9 | explicit user approval | `610cd975`: "bug --> Multi-pass" |
+| D2, D4, D5, D6, D10, D11, D12, and the D8 points other than line endings | delegated contract decision | `8251bf87`: "We need to make appropriate decisions, create req/adr to cover any ambiguity and fix any issues"; `7bf5ef58`, 2026-11-06T22:06:35Z: "There should be no inconclusive results" |
+
+Approval of the FR-24.2 exceptions:
+
+- **D7, D8 line endings, D9:** the user explicitly approved each behaviour
+  change. That approval is recorded as the exception approval.
+- **D4 (`--output` no longer echoes to stdout):** this is a delegated
+  decision. The user has not explicitly approved its FR-24.2 exception, and
+  FR-24.2 says adding an entry requires user approval. The D4 fix must not add
+  its `approved-exceptions.json` entry until that explicit approval is
+  recorded.
+- **D8 trailing-line-break point:** it changes output, and its exception
+  approval is likewise still pending.
 
 ## Context
 
@@ -129,13 +155,56 @@ the line in the expanded parent.
 An include target that cannot be read as valid text fails with
 `ERR_CONFIG_READ`, as the architecture taxonomy already defines.
 
+## Exception receipt format
+
+No `approved-exceptions.json` exists yet. The Phase V plan names its location
+as `tests/fixtures/render-regressions/approved-exceptions.json`. Every fix
+owner uses this single format, so entries compose: a JSON object holding one
+`exceptions` array, sorted by `id`.
+
+```json
+{
+  "exceptions": [
+    {
+      "id": "ADR-0026-D7",
+      "decision": "inline --var overrides --var-file regardless of argument order",
+      "issue": "https://github.com/randlee/sc-compose/issues/<n>",
+      "approval": {
+        "kind": "explicit-user",
+        "reference": "session 9ec5e645 message 610cd975",
+        "date": "2026-11-06"
+      },
+      "case": "tests/fixtures/render-regressions/cases/<case-dir>",
+      "before": { "exit": 0, "stdout_sha256": "<v1.7.0 bytes>", "code": null },
+      "after": { "exit": 0, "stdout_sha256": "<fixed bytes>", "code": null },
+      "regression_test": "<crate>/tests/<file>.rs::<test name>"
+    }
+  ]
+}
+```
+
+Rules for the format:
+
+- `issue` names the linked GitHub issue. Reuse an existing issue when one
+  matches; otherwise create one.
+- `approval.kind` is `explicit-user`. A delegated decision cannot supply an
+  entry.
+- `before` is the v1.7.0 golden. It is never regenerated from candidate
+  output.
+- `after` is the fixed output.
+- `regression_test` is deterministic and uses controlled inputs.
+
+The first fix to land creates the file.
+
 ## Consequences
 
 - D1, D2: two new registry codes, `ERR_RESOLVE_ESCAPE` and
   `ERR_RENDER_TEMPLATE`. Callers matching `ERR_RESOLVE_NOT_FOUND` or
   `ERR_RENDER_WRITE` for these causes must update. Release notes list both.
-- D4, D7, D8, D9 change schema-less output. Each fix PR adds its
-  `approved-exceptions.json` entry with the linked issue, and a regression
-  test with controlled inputs.
+- D4, D7, D8 and D9 change schema-less output. Each fix PR adds an
+  `approved-exceptions.json` entry in the format above, with its linked issue,
+  and a regression test with controlled inputs. For D4 and the D8
+  trailing-line-break point, the entry waits for explicit user approval (see
+  Approval provenance).
 - D5, D6, D11, D12 need no code change, only requirement text and pinning
   tests where none exist.
