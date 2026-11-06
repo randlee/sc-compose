@@ -655,6 +655,11 @@ fn direct_plan_fix_pour_persists_values_and_declared_dependency() {
         .unwrap();
     assert!(output.status.success(), "{output:?}");
     let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    // This first pour creates beads, so its staged graph plan is reported.
+    assert_eq!(
+        assert_receipt_paths_exist_or_are_ephemeral(&envelope["payload"]),
+        ["rendered_formula", "graph.plan_path"]
+    );
     let graph = &envelope["payload"]["graph"];
     let review = graph["ids"]["review"].as_str().expect("review id");
     let fix = graph["ids"]["fix"].as_str().expect("fix id");
@@ -715,6 +720,7 @@ fn assert_plan_fix_path_matches(
         .unwrap();
     assert!(output.status.success(), "{output:?}");
     let receipt: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_receipt_paths_exist_or_are_ephemeral(&receipt["payload"]);
     for (step, expected) in [("review", review), ("fix", fix)] {
         let id = receipt["payload"]["graph"]["ids"][step].as_str().unwrap();
         let row = workspace.bd_json(&["show", id, "--json"]);
@@ -1030,6 +1036,107 @@ fn direct_pour_rejects_duplicate_mixed_and_missing_sources_before_staging() {
         assert!(!output.status.success(), "{args:?}: {output:?}");
         assert_eq!(fs::read_dir(&root.path).unwrap().count(), 0, "{args:?}");
     }
+}
+
+/// Every path a receipt prints must exist after the command returns, or be
+/// listed in `ephemeral_paths` because the command removed it.
+fn assert_receipt_paths_exist_or_are_ephemeral(payload: &serde_json::Value) -> Vec<String> {
+    let ephemeral: Vec<String> = payload
+        .get("ephemeral_paths")
+        .map(|fields| serde_json::from_value(fields.clone()).expect("ephemeral_paths"))
+        .unwrap_or_default();
+    for (field, path) in [
+        ("rendered_formula", &payload["rendered_formula"]),
+        ("graph.plan_path", &payload["graph"]["plan_path"]),
+    ] {
+        if let Some(path) = path.as_str() {
+            assert!(
+                Path::new(path).exists() || ephemeral.iter().any(|name| name == field),
+                "{field} names a missing file without flagging it: {payload}"
+            );
+        }
+    }
+    ephemeral
+}
+
+// Direct pour resolves `bd` from PATH, and only Unix finds a script there.
+#[cfg(unix)]
+#[test]
+fn direct_pour_receipt_flags_staged_paths_removed_on_exit() {
+    let fixture = TempFixture::new("direct-pour-receipt-paths");
+    let root = &fixture.path;
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/beads/plan-fix.formula.toml.j2"),
+        root.join("plan-fix.formula.toml.j2"),
+    )
+    .expect("copy plan-fix example");
+    // A failing cook stops the pour after the formula is rendered and staged.
+    let (fake_bd, _trace) = write_fake_bd(root, 1, 0);
+    fs::create_dir(root.join("fake-bin")).expect("fake-bin");
+    fs::copy(&fake_bd, root.join("fake-bin/bd")).expect("install fake bd on PATH");
+    let pour = |json: bool| {
+        let mut command = sc_compose();
+        command
+            .args(["bead", "pour", "plan-fix.formula.toml.j2"])
+            .args(["--var", "plan=p", "--var", "finding=F", "--var"])
+            .arg("literal={{ x }}")
+            .current_dir(root)
+            .env("PATH", fixture.path_with_fake_tools());
+        if json {
+            command.arg("--json");
+        }
+        let output = command.output().expect("run direct pour");
+        assert_eq!(output.status.code(), Some(2), "{output:?}");
+        output
+    };
+
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&pour(true).stdout).expect("receipt envelope");
+    let payload = &envelope["payload"];
+    assert_eq!(payload["outcome"]["failed"]["code"], "BEADS_COOK_FAILED");
+    let staged = payload["rendered_formula"]
+        .as_str()
+        .expect("rendered_formula");
+    assert!(staged.contains(".sc-compose-pour-"), "{payload}");
+    assert!(!Path::new(staged).exists(), "staging is removed on exit");
+    assert_eq!(
+        assert_receipt_paths_exist_or_are_ephemeral(payload),
+        ["rendered_formula"]
+    );
+
+    let human = String::from_utf8(pour(false).stdout).expect("human receipt");
+    let line = human
+        .lines()
+        .find(|line| line.starts_with("rendered_formula: "))
+        .expect("rendered_formula line");
+    assert!(
+        line.ends_with(" (ephemeral: removed when this command exited)"),
+        "{line}"
+    );
+    assert!(
+        fs::read_dir(root).unwrap().all(|entry| !entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .starts_with(".sc-compose-pour-")),
+        "no staging directory is left behind"
+    );
+
+    // A request names its own output, which is kept and never flagged.
+    let template = copy_canonical_template(root, "toml-workflow.formula.toml.j2");
+    let output = root.join("build/workflow.formula.toml");
+    fs::create_dir_all(output.parent().unwrap()).unwrap();
+    let request = write_request(root, &template, &output, &fake_bd, None);
+    let rendered = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(&request)
+        .arg("--json")
+        .output()
+        .expect("run request render");
+    assert!(rendered.status.success(), "{rendered:?}");
+    let envelope: serde_json::Value = serde_json::from_slice(&rendered.stdout).expect("envelope");
+    assert!(envelope["payload"].get("ephemeral_paths").is_none());
+    assert!(assert_receipt_paths_exist_or_are_ephemeral(&envelope["payload"]).is_empty());
 }
 
 #[test]
