@@ -151,7 +151,7 @@ fn render_with_custom_delimiters(
             .first()
             .and_then(sc_composer::Frontmatter::json_escape_mode),
     );
-    let template_body = custom_template_body(parsed.body(), &expanded);
+    let template_body = custom_template_body(parsed.body(), expanded);
     let rendered_text =
         Renderer::with_delimiters_and_json_escape_mode(open, close, json_escape_mode)
             .map_err(|error| {
