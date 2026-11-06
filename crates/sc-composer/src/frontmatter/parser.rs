@@ -22,7 +22,9 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
 
     let mut passes = Vec::with_capacity(frontmatter_texts.len());
     for (frontmatter_text, block_line) in frontmatter_texts {
-        if let Err(error) = serde_yaml::from_str::<serde_yaml::Value>(frontmatter_text) {
+        if let Err(error) =
+            serde_yaml::from_str::<super::duplicates::CheckedValue>(frontmatter_text)
+        {
             // Value decoding detects duplicate keys even in unknown fields. Other
             // parse errors retain the established typed frontmatter diagnostic.
             if error.to_string().contains("duplicate entry") {
