@@ -742,15 +742,57 @@ fn graph_plan_symlink_is_refused_without_touching_target() {
             w.req.rendered_formula.with_extension("toml.graph.json"),
         )
         .expect("symlink");
-        let runner = FakeRunner::new([ok(COOKED), parent()]);
+        let runner = FakeRunner::new([]);
         refused(
             &w.run(&runner),
-            "BEADS_OUTPUT_PATH_SYMLINK",
+            "BEADS_OUTPUT_PATH_INVALID",
             BeadStage::PreviewAttach,
         );
         assert_eq!(fs::read_to_string(target).expect("target"), "unchanged");
-        assert_read_only(&runner);
+        assert!(runner.calls().is_empty());
     }
+}
+
+#[test]
+fn graph_plan_directory_is_refused_before_bd() {
+    let w = Workspace::new();
+    let plan = w.req.rendered_formula.with_extension("toml.graph.json");
+    fs::create_dir(&plan).expect("blocked graph plan");
+    let runner = FakeRunner::new([]);
+    let receipt = w.run(&runner);
+    refused(
+        &receipt,
+        "BEADS_OUTPUT_PATH_INVALID",
+        BeadStage::PreviewAttach,
+    );
+    assert!(
+        receipt
+            .stages
+            .last()
+            .unwrap()
+            .stderr_excerpt
+            .contains("graph plan")
+    );
+    assert!(plan.is_dir());
+    assert!(runner.calls().is_empty());
+}
+
+#[test]
+fn output_diagnostics_distinguish_graph_plan_from_rendered_formula() {
+    let path = PathBuf::from("example.graph.json");
+    let graph = BeadComposeError::GraphPlanPathInvalid {
+        path: path.clone(),
+        rule: "blocked".into(),
+    };
+    let rendered = BeadComposeError::OutputPathInvalid {
+        path,
+        rule: "blocked".into(),
+    };
+    let graph_json = serde_json::to_value(&graph).unwrap();
+    let rendered_json = serde_json::to_value(&rendered).unwrap();
+    assert_eq!(graph_json["details"]["field"], "graph_plan");
+    assert_eq!(rendered_json["details"]["field"], "rendered_formula");
+    assert_eq!(graph.code(), rendered.code());
 }
 
 #[test]
