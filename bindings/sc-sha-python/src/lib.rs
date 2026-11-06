@@ -2,38 +2,83 @@
 
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict, PyList};
+use pyo3::sync::PyOnceLock;
+use pyo3::types::{PyBytes, PyDict, PyList, PyType};
 use sc_sha::{
     CanonicalSource, CanonicalSourceUrl, CanonicalTemplatePath, CompositionError, HashInput,
     ManifestSchemaError, ManifestSchemaVersion, ResolvedIncludeEdge, ResolvedTemplateManifest,
     ResolvedTemplateNode, TemplateSha256, calculate_composition_hash, calculate_hash,
 };
 
-#[pyclass(extends = PyException, name = "ScShaError")]
-#[derive(Debug)]
-struct ScShaError {
-    #[pyo3(get)]
-    code: String,
-    #[pyo3(get)]
-    message: String,
+const SC_SHA_ERROR_HELPERS: &str = r"def _sc_sha_error_init(self, *args, **kwargs):
+    if kwargs:
+        raise TypeError('builtins.ScShaError() takes no keyword arguments')
+    if len(args) != 2:
+        raise TypeError(f'ScShaError() takes exactly 2 positional arguments ({len(args)} given)')
+    code, message = args
+    if not isinstance(code, str) or not isinstance(message, str):
+        raise TypeError('code and message must be strings')
+    Exception.__init__(self, *args)
+    self.code = code
+    self.message = message
+
+def _sc_sha_error_str(self):
+    return self.message
+
+import inspect as _inspect
+_sc_sha_error_init.__signature__ = _inspect.Signature([
+    _inspect.Parameter('self', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    _inspect.Parameter('code', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    _inspect.Parameter('message', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+])
+ScShaError = type(
+    'ScShaError',
+    (Exception,),
+    {
+        '__module__': 'builtins',
+        '__init__': _sc_sha_error_init,
+        '__str__': _sc_sha_error_str,
+    },
+)
+";
+
+static SC_SHA_ERROR_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+
+fn sc_sha_error_type(py: Python<'_>) -> PyResult<Bound<'_, PyType>> {
+    if let Some(error_type) = SC_SHA_ERROR_TYPE.get(py) {
+        return Ok(error_type.bind(py).clone());
+    }
+
+    let source = std::ffi::CString::new(SC_SHA_ERROR_HELPERS)
+        .expect("static sc-sha exception helper source contains no null bytes");
+    let helpers = PyModule::from_code(
+        py,
+        source.as_c_str(),
+        c"<sc-sha-exceptions>",
+        c"sc_sha._native_exception_helpers",
+    )?;
+    let error_type = helpers.getattr("ScShaError")?.cast_into::<PyType>()?;
+    let _ = SC_SHA_ERROR_TYPE.set(py, error_type.clone().unbind());
+    Ok(SC_SHA_ERROR_TYPE
+        .get(py)
+        .expect("ScShaError initialized")
+        .bind(py)
+        .clone())
 }
 
-#[pymethods]
-impl ScShaError {
-    #[new]
-    fn new(code: String, message: String) -> Self {
-        Self { code, message }
-    }
-
-    fn __str__(&self) -> &str {
-        &self.message
-    }
+fn register_error_type(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add("ScShaError", sc_sha_error_type(py)?)
 }
 
 fn error(py: Python<'_>, code: impl Into<String>, message: impl Into<String>) -> PyErr {
     let code = code.into();
     let message = message.into();
-    PyErr::from_type(py.get_type::<ScShaError>(), (code, message))
+    match sc_sha_error_type(py) {
+        Ok(error_type) => PyErr::from_type(error_type, (code, message)),
+        Err(error) => PyException::new_err(format!(
+            "{message} (typed exception construction failed: {error})"
+        )),
+    }
 }
 
 fn input_dict<'py>(py: Python<'py>, input: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyDict>> {
@@ -269,8 +314,8 @@ fn calculate_composition_hash_py<'py>(
 
 #[pymodule]
 #[pyo3(name = "_native")]
-fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
-    module.add_class::<ScShaError>()?;
+fn native(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
+    register_error_type(py, module)?;
     module.add_function(wrap_pyfunction!(calculate_hash_py, module)?)?;
     module.add_function(wrap_pyfunction!(calculate_composition_hash_py, module)?)?;
     Ok(())
