@@ -74,8 +74,11 @@ class RestoredPreflightChecks(unittest.TestCase):
                     calls = bin_dir / "calls"
                     for tool, code in (("rustup", rustup_exit), ("cargo", cargo_exit)):
                         fake = bin_dir / tool
-                        fake.write_text(f'#!/bin/sh\necho "{tool} $*" >> "{calls}"\nexit {code}\n', encoding="utf-8")
-                        fake.chmod(0o755)
+                        fake.symlink_to(ROOT / "crates/test-support/fake-exec")
+                        fake.with_name(fake.name + ".sh").write_text(
+                            f'echo "{tool} $*" >> "{calls}"\nexit {code}\n', encoding="utf-8"
+                        )
+                        self.assertEqual(fake.resolve(), (ROOT / "crates/test-support/fake-exec").resolve())
                     env = dict(os.environ, PATH=f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
                     result = subprocess.run(RESTORED[check_id], shell=True, cwd=ROOT, env=env)
                     recorded = calls.read_text(encoding="utf-8").splitlines()

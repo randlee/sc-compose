@@ -84,8 +84,8 @@ class GenerateCliReferenceTests(unittest.TestCase):
 
 def fake_tool(directory: Path, name: str, body: str) -> Path:
     path = directory / name
-    path.write_text("#!/bin/sh\n" + body, encoding="utf-8")
-    path.chmod(0o755)
+    path.symlink_to(ROOT / "crates/test-support/fake-exec")
+    path.with_name(path.name + ".sh").write_text(body, encoding="utf-8")
     return path
 
 
@@ -106,6 +106,15 @@ class DocliProvisioningTests(unittest.TestCase):
             check=False,
             env=env,
         )
+
+    def test_fake_tool_executes_committed_launcher_and_reads_open_data(self):
+        path = fake_tool(self.bin, "probe", 'printf "%s\\n" "$1"\n')
+        self.assertEqual(path.resolve(), (ROOT / "crates/test-support/fake-exec").resolve())
+        data = path.with_name(path.name + ".sh")
+        with data.open("a", encoding="utf-8"):
+            result = subprocess.run([str(path), "controlled"], capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "controlled\n")
 
     def test_wrong_docli_version_fails_closed_before_generating(self):
         fake_tool(self.bin, "docli", 'echo "docli 0.1.9"\n')
