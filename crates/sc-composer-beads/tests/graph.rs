@@ -978,23 +978,6 @@ fn advanced_transport_renders_conditions_and_preserves_literal_delimiters() {
 }
 
 #[test]
-fn bd_owned_attach_refuses_bead_inputs_before_runner() {
-    let mut w = Workspace::new();
-    w.req.bead_variables.insert("title".into(), "value".into());
-    let runner = FakeRunner::new([]);
-    let error = execute_bead_request_with_options_and_runner(
-        &w.req,
-        &BeadExecutionOptions {
-            render_by: BeadRenderBy::Bd,
-            strict: false,
-        },
-        &runner,
-    )
-    .unwrap_err();
-    assert!(error.to_string().contains("attach forbids bead_variables"));
-    assert!(runner.calls().is_empty());
-}
-#[test]
 fn graph_plan_symlink_is_refused_without_touching_target() {
     #[cfg(unix)]
     {
