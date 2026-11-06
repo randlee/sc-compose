@@ -71,6 +71,21 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
         self.assertLess(names.index("Package manifest-declared release archive"), smoke)
         self.assertLess(smoke, upload)
 
+    def test_collect_records_the_post_run_verifier_invocation(self):
+        step = next(s for s in self.jobs["matrix-collect"]["steps"] if s.get("name", "").startswith("Record the post-run V7"))
+        run = step["run"]
+        for needle in ("producer-side only", "scripts/check_install_matrix.py", "--run", "--artifacts", "--checksums", "--staging", "--candidate-sha", "--version", "--workflow .github/workflows/go-native-preflight.yml"):
+            self.assertIn(needle, run)
+        # No in-run identity assertion: the collect job never calls the verifier itself.
+        for other in self.jobs["matrix-collect"]["steps"]:
+            if other is not step:
+                self.assertNotIn("check_install_matrix.py", other.get("run", ""))
+
+    def test_cli_smoke_runs_version_help_and_a_render(self):
+        step = next(s for s in self.jobs["matrix-rust"]["steps"] if s.get("name", "").startswith("Extract the exact archive"))
+        for needle in ("--version", "--help", '"render"'):
+            self.assertIn(needle, step["run"])
+
     def test_collect_waits_for_every_cell_producer(self):
         self.assertEqual(
             set(self.jobs["matrix-collect"]["needs"]),
