@@ -732,6 +732,91 @@ mod tests {
         );
     }
 
+    fn expanded_validation(
+        root: &Path,
+        policy: ComposePolicy,
+    ) -> (
+        crate::ValidationReport,
+        crate::ExpandedTemplate,
+        crate::ComposeRequest,
+    ) {
+        let request = request_for_file(root, "template.md.j2", policy);
+        let (report, expanded) = crate::validate_with_observer_and_delimiters_with_expansion(
+            &request,
+            &mut crate::NoopObserver,
+            Some(("{{", "}}")),
+        )
+        .unwrap();
+        (report, expanded, request)
+    }
+
+    #[test]
+    fn declared_variables_drive_expanded_context_and_strict_discovery() {
+        let root = temp_root("validation_declared_context");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  greeting: hello\nvariables:\n  greeting: {}\n  who:\n    required: true\n---\n{# {{ commented }} #}{{ greeting }} {{ who }}\n",
+        );
+
+        let (report, expanded, request) = expanded_validation(
+            &root,
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        );
+
+        // The frontmatter schema is what declares variables.
+        let declared: Vec<String> = expanded
+            .frontmatters
+            .iter()
+            .flat_map(|(_, passes)| passes.iter())
+            .flat_map(|pass| pass.declared_variables().iter())
+            .map(|name| name.as_str().to_owned())
+            .collect();
+        assert_eq!(declared, ["greeting", "who"]);
+
+        let (reported, context) = crate::validate_expanded_with_context(
+            &request,
+            &expanded,
+            report.resolve_result.clone(),
+            ("{{", "}}"),
+        );
+
+        // Declared default reaches the context; the missing required input is
+        // diagnosed; the strict comment skip means `commented` is not.
+        assert_eq!(context.get("greeting"), Some(&json!("hello")));
+        assert!(mentions_missing(&reported, "who"), "{reported:?}");
+        assert!(!mentions_missing(&reported, "commented"), "{reported:?}");
+        assert!(
+            reported
+                .errors
+                .iter()
+                .all(|diagnostic| !diagnostic.message.contains("greeting")),
+            "{reported:?}"
+        );
+    }
+
+    #[test]
+    fn expanded_context_non_strict_reports_commented_token_as_v170_did() {
+        let root = temp_root("validation_declared_context_default");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  greeting: hello\nvariables:\n  greeting: {}\n---\n{# {{ commented }} #}{{ greeting }}\n",
+        );
+
+        let (report, expanded, request) = expanded_validation(&root, ComposePolicy::default());
+        let (reported, context) = crate::validate_expanded_with_context(
+            &request,
+            &expanded,
+            report.resolve_result.clone(),
+            ("{{", "}}"),
+        );
+
+        assert_eq!(context.get("greeting"), Some(&json!("hello")));
+        assert!(mentions_missing(&reported, "commented"), "{reported:?}");
+    }
+
     fn request_for_file(root: &Path, file: &str, policy: ComposePolicy) -> ComposeRequest {
         ComposeRequest {
             runtime: None,
