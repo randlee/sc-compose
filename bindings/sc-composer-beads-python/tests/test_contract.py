@@ -266,8 +266,8 @@ def test_graph_receipt_conversion_failures_raise_bead_compose_error(
     with pytest.raises(beads.BeadComposeError) as raised:
         beads.BeadComposeReceipt.from_json(wire)
 
-    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
-    assert raised.value.stage == "request"
+    assert raised.value.code == "BEADS_OUTPUT_SERIALIZATION_FAILED"
+    assert raised.value.stage == "output"
     assert message in raised.value.message
 
 
