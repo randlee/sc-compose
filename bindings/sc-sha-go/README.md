@@ -86,7 +86,10 @@ matrix instead. Released modules need only Go and the matching CGo compiler.
 
 The peer installer input remains `release/go-native-module-install.json`
 (package `0.1.0`). It was reinstalled and checked byte-for-byte using upstream
-`sc-publish` revision `209681d096bd8bbfbddef51339b9323e0be5681a`:
+`sc-publish` merge revision `92b2e88c31b0c4b4b903dcd886e34fd9e544c4b1`
+(randlee/sc-publish#161, which writes the staged `VERSION` as exact LF bytes).
+The core kit pin in `release/sc-publish-pin.toml` is unchanged: only the peer
+package files differ between that pin and this revision:
 
 ```sh
 python3 <pinned-sc-publish>/plugins/go-native-module/install.py \
