@@ -1344,9 +1344,14 @@ fn bd_owned_graph_and_attach_retain_input_refusals() {
 #[test]
 fn advanced_transport_renders_source_and_preserves_literal_data() {
     let mut fixture = AdvancedFixture::new(
-        "formula = \"sample\"\n{% for item in items %}title = \"{{ item }} {{ value }}\"\n{% endfor %}{# note #}",
+        "formula = \"sample\"\n@<part.j2>\n{% for item in items %}title = \"{{ item }} {{ value }}\"\n{% endfor %}{# note #}",
         BeadOperation::PreviewAttach,
     );
+    std::fs::write(
+        fixture.root.join("part.j2"),
+        "---\ndefaults:\n  fallback: '{{ still_data }}'\n---\ndescription = \"{{ fallback }}\"\n",
+    )
+    .unwrap();
     fixture
         .request
         .compose_variables
@@ -1361,6 +1366,8 @@ fn advanced_transport_renders_source_and_preserves_literal_data() {
     assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
     let formula = runner.formula.lock().unwrap();
     assert!(formula.contains("one {{ literal }}") && formula.contains("two {{ literal }}"));
+    assert!(formula.contains("{{ still_data }}"));
+    assert!(!formula.contains("@<part.j2>"));
     assert!(!formula.contains("{% for") && !formula.contains("{# note"));
 }
 
@@ -1424,4 +1431,22 @@ fn recovered_port_preserves_non_strict_default() {
             .unwrap()
             .contains("value")
     );
+}
+
+#[test]
+fn rendered_destination_equal_to_source_is_refused_before_writes() {
+    let mut fixture = AdvancedFixture::new("formula = \"sample\"\n", BeadOperation::Render);
+    let source = fixture.root.join("same.formula.toml");
+    std::fs::write(&source, "formula = \"sample\"\n").unwrap();
+    fixture.request.template = source.clone();
+    fixture.request.rendered_formula = source.clone();
+    let runner = AdvancedRunner::default();
+    let error =
+        sc_composer_beads::execute_bead_request_with_runner(&fixture.request, &runner).unwrap_err();
+    assert_eq!(error.code(), "BEADS_OUTPUT_PATH_INVALID");
+    assert_eq!(
+        std::fs::read_to_string(&source).unwrap(),
+        "formula = \"sample\"\n"
+    );
+    assert!(runner.calls.lock().unwrap().is_empty());
 }

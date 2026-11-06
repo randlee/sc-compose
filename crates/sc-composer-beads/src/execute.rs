@@ -383,6 +383,14 @@ fn validate_request(
         });
     }
     validate_output_destination(&rendered_formula)?;
+    if rendered_formula == template
+        || fs::canonicalize(&rendered_formula).is_ok_and(|destination| destination == template)
+    {
+        return Err(BeadComposeError::OutputPathInvalid {
+            path: public_path_buf(&rendered_formula),
+            rule: "destination must differ from the input template".into(),
+        });
+    }
     Ok(NormalizedRequest {
         working_directory,
         template,

@@ -653,7 +653,7 @@ fn refusals_preserve_beads_and_edges() {
 fn advanced_transport_renders_source_and_preserves_literal_data() {
     with_workspace(|w| {
         let template = w.root.join("release.formula.toml.j2");
-        fs::write(&template, "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n{% for item in items %}[[steps]]\nid = \"{{ item }}\"\ntitle = \"{{ item }} {{ literal }}\"\nlabels = [\"label-{{ item }}\"]\n{% endfor %}").unwrap();
+        fs::write(&template, "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n{% for item in items %}[[steps]]\nid = \"{{ item }}\"\ntitle = \"{{ item }} {{ literal }}\"\ndescription = \"{{ value | lower }}:{{ value | length }}:{{ value[:3] }}\"\nlabels = [\"label-{{ item }}\"]\n{% endfor %}").unwrap();
         let parent = w.parent();
         let mut request = w.request(BeadOperation::Attach, Some(parent));
         request
@@ -662,6 +662,7 @@ fn advanced_transport_renders_source_and_preserves_literal_data() {
         request
             .bead_variables
             .insert("literal".into(), "{{ data }}".into());
+        request.bead_variables.insert("value".into(), "A{BC".into());
         let receipt = sc_composer_beads::execute_bead_request(&request).expect("advanced request");
         assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
         assert!(
@@ -675,6 +676,7 @@ fn advanced_transport_renders_source_and_preserves_literal_data() {
             let id = &graph.ids[&sc_composer_beads::StepId::new(name).unwrap()];
             let shown = w.json(&["show", id.as_str(), "--json"]);
             assert_eq!(shown[0]["title"], format!("{name} {}", "{{ data }}"));
+            assert_eq!(shown[0]["description"], "a{bc:4:A{B");
             assert!(
                 shown[0]["labels"]
                     .as_array()

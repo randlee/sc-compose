@@ -68,7 +68,8 @@ The advanced renderer produces a review titled `Review EDGE-1`, a fix titled
 For an existing registry formula using bd's own `[vars]` declarations, use
 `sc-compose bead pour --request request.json --render-by bd`; a request with
 `bead_variables: {"release_name":"1.5.0"}` passes `--var release_name=1.5.0`
-to bd, so a title `Release {{ release_name }}` is evaluated by bd.
+to bd. The installed bd version determines native substitution; bd 1.3.1
+retains the padded `Release {{ release_name }}` title in this example.
 
 ## The request
 

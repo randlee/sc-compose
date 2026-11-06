@@ -1031,3 +1031,61 @@ fn direct_pour_rejects_duplicate_mixed_and_missing_sources_before_staging() {
         assert_eq!(fs::read_dir(&root.path).unwrap().count(), 0, "{args:?}");
     }
 }
+
+#[test]
+fn direct_bd_owned_registry_pour_passes_variables_to_bd() {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        eprintln!("skipping direct bd-owned integration: BD_EXECUTABLE is not configured");
+        return;
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let registry = root.join(".beads/formulas");
+    fs::create_dir_all(&registry).unwrap();
+    fs::write(registry.join("legacy.formula.toml.j2"), "formula = \"legacy\"\nversion = 1\ntype = \"workflow\"\n[vars.release]\nrequired = true\n[[steps]]\nid = \"build\"\ntitle = \"Release {{ release }}\"\n").unwrap();
+    fs::create_dir(root.join("fake-bin")).unwrap();
+    fs::copy(
+        &workspace.bd,
+        root.join("fake-bin")
+            .join(if cfg!(windows) { "bd.exe" } else { "bd" }),
+    )
+    .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args([
+            "bead",
+            "pour",
+            "legacy",
+            "--render-by",
+            "bd",
+            "--var",
+            "release=2.0",
+            "--json",
+        ])
+        .current_dir(root)
+        .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let receipt: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let stages = receipt["payload"]["stages"].as_array().unwrap();
+    let pour = stages
+        .iter()
+        .find(|stage| stage["stage"] == "pour")
+        .unwrap();
+    let argv = pour["argv"].as_array().unwrap();
+    assert!(
+        argv.windows(2)
+            .any(|pair| pair[0] == "--var" && pair[1] == "release=2.0")
+    );
+    let listed = workspace.bd_json(&["list", "--all", "-n", "0", "--json"]);
+    assert!(
+        listed
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|row| row["title"] == "Release {{ release }}"),
+        "{listed}"
+    );
+}

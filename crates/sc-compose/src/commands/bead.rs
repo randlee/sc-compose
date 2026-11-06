@@ -161,12 +161,22 @@ fn direct_pour_request(
     } else {
         "toml"
     };
+    let staged_output = dir.join(format!("{name}.formula.{extension}"));
+    let rendered_formula = if matches!(args.render_by, BeadRenderByArg::Bd) {
+        active_formulas(&root)
+            .filter(|registry| source.parent() == Some(registry.as_path()))
+            .map_or(staged_output, |registry| {
+                registry.join(format!("{name}.formula.{extension}"))
+            })
+    } else {
+        staged_output
+    };
     let request = BeadComposeRequest {
         schema: BEADS_SCHEMA_V1.into(),
         operation,
         working_directory: root,
         template: source,
-        rendered_formula: dir.join(format!("{name}.formula.{extension}")),
+        rendered_formula,
         compose_variables: serde_json::Map::new(),
         formula_name: Some(formula_name),
         bead_variables: variables,
@@ -177,6 +187,23 @@ fn direct_pour_request(
         relations: Vec::new(),
     };
     Ok((request, DirectStaging(dir)))
+}
+
+fn active_formulas(root: &Path) -> Option<PathBuf> {
+    std::process::Command::new("bd")
+        .args(["where", "--json"])
+        .current_dir(root)
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .and_then(|output| serde_json::from_slice::<serde_json::Value>(&output.stdout).ok())
+        .and_then(|value| {
+            value
+                .get("path")
+                .and_then(serde_json::Value::as_str)
+                .map(PathBuf::from)
+        })
+        .map(|path| path.join("formulas"))
 }
 
 fn resolve_direct_formula(root: &Path, operand: &str) -> Option<PathBuf> {
@@ -192,20 +219,7 @@ fn resolve_direct_formula(root: &Path, operand: &str) -> Option<PathBuf> {
     if operand.contains(['/', '\\']) {
         return None;
     }
-    let active = std::process::Command::new("bd")
-        .args(["where", "--json"])
-        .current_dir(root)
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .and_then(|output| serde_json::from_slice::<serde_json::Value>(&output.stdout).ok())
-        .and_then(|value| {
-            value
-                .get("path")
-                .and_then(serde_json::Value::as_str)
-                .map(PathBuf::from)
-        })
-        .map(|path| path.join("formulas"));
+    let active = active_formulas(root);
     let mut directories = Vec::new();
     if let Some(active) = active {
         directories.push(active);
