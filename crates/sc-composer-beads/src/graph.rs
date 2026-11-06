@@ -29,7 +29,6 @@ pub(crate) fn is_attach(operation: BeadOperation) -> bool {
 
 pub(crate) fn execute(
     request: &BeadComposeRequest,
-    advanced: bool,
     runner: &dyn ProcessRunner,
     normalized: &NormalizedRequest,
     formula_input: &InputSnapshot,
@@ -51,7 +50,13 @@ pub(crate) fn execute(
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
     };
-    let result = run(request, advanced, &mut runtime, formula_input, stage);
+    let result = run(
+        request,
+        normalized.advanced,
+        &mut runtime,
+        formula_input,
+        stage,
+    );
     let missing_edges = match &result {
         Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
         _ => Vec::new(),
@@ -168,15 +173,23 @@ fn run(
     };
     let validated = validate::validate(request, cooked, &rendered, mode)?;
     runtime.stage = stage;
-    let plan = plan::plan(&validated, runtime).map_err(|error| {
-        if advanced && matches!(error, BeadComposeError::GraphEdgeMissing { .. }) {
-            BeadComposeError::GraphAtomicUpdateUnavailable
-        } else {
-            error
-        }
-    })?;
+    let plan = plan::plan(&validated, advanced, runtime)?;
     match plan {
-        GraphPlan::Noop(graph) => Ok(graph),
+        GraphPlan::Noop(graph) => {
+            if advanced
+                && matches!(
+                    request.operation,
+                    BeadOperation::Attach | BeadOperation::Pour
+                )
+                && graph
+                    .edges
+                    .iter()
+                    .any(|edge| edge.action == BeadEdgeAction::Add)
+            {
+                return Err(BeadComposeError::GraphAtomicUpdateUnavailable);
+            }
+            Ok(graph)
+        }
         GraphPlan::Create(pending) => {
             if advanced
                 && matches!(
@@ -634,6 +647,7 @@ mod presentation_tests {
             working_directory: "/work".into(),
             template: "/work/sample.formula.toml.j2".into(),
             rendered_formula: "/work/sample.formula.toml".into(),
+            advanced: false,
         };
         let mut runtime = Runtime {
             runner: &Response,
@@ -680,6 +694,7 @@ mod presentation_tests {
             working_directory: "/work".into(),
             template: "/work/sample.formula.toml.j2".into(),
             rendered_formula: "/work/sample.formula.toml".into(),
+            advanced: false,
         };
         let mut runtime = Runtime {
             runner: &ArgumentFailure,

@@ -129,7 +129,7 @@ fn execute_with_options_runner_and_diagnostics(
         } else {
             validate_formula_shape
         };
-        validate_request_preamble(request, shape)?;
+        validate_request_preamble(request, shape, false)?;
         for (key, value) in &request.bead_variables {
             if effective.compose_variables.contains_key(key) {
                 return Err(BeadComposeError::BeadVariableKeyDuplicate { key: key.clone() });
@@ -155,7 +155,8 @@ fn execute_attach(
     runner: &dyn ProcessRunner,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
-    let normalized = validate_request(request, validate_attach_shape)?;
+    let mut normalized = validate_request(request, validate_attach_shape)?;
+    normalized.advanced = options.render_by == BeadRenderBy::ScCompose;
     let (formula_input, stages) =
         match render_stage(request, options, &normalized, crate::snapshot::output_error) {
             Ok(rendered) => rendered,
@@ -163,7 +164,6 @@ fn execute_attach(
         };
     crate::graph::execute(
         request,
-        options.render_by == BeadRenderBy::ScCompose,
         runner,
         &normalized,
         &formula_input,
@@ -180,7 +180,8 @@ fn execute_formula(
     runner: &dyn ProcessRunner,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
-    let normalized = validate_request(request, validate_formula_shape)?;
+    let mut normalized = validate_request(request, validate_formula_shape)?;
+    normalized.advanced = options.render_by == BeadRenderBy::ScCompose;
     let (formula_input, mut stages) =
         match render_stage(request, options, &normalized, |_destination, error| error) {
             Ok(rendered) => rendered,
@@ -231,7 +232,6 @@ fn execute_formula(
 
     crate::pour::execute_pour(
         request,
-        options.render_by == BeadRenderBy::ScCompose,
         runner,
         normalized,
         &formula_input,
@@ -321,13 +321,14 @@ pub(crate) struct NormalizedRequest {
     pub(crate) working_directory: PathBuf,
     pub(crate) template: PathBuf,
     pub(crate) rendered_formula: PathBuf,
+    pub(crate) advanced: bool,
 }
 
 fn validate_request(
     request: &BeadComposeRequest,
     validate_shape: fn(&BeadComposeRequest) -> Result<(), BeadComposeError>,
 ) -> Result<NormalizedRequest, BeadComposeError> {
-    validate_request_preamble(request, validate_shape)?;
+    validate_request_preamble(request, validate_shape, true)?;
     let working_directory = fs::canonicalize(&request.working_directory).map_err(|_error| {
         BeadComposeError::TemplatePathInvalid {
             path: request.working_directory.clone(),
@@ -386,12 +387,14 @@ fn validate_request(
         working_directory,
         template,
         rendered_formula,
+        advanced: false,
     })
 }
 
 fn validate_request_preamble(
     request: &BeadComposeRequest,
     validate_shape: fn(&BeadComposeRequest) -> Result<(), BeadComposeError>,
+    values_passed_to_bd: bool,
 ) -> Result<(), BeadComposeError> {
     if request.schema != BEADS_SCHEMA_V1 {
         return Err(BeadComposeError::UnknownSchema {
@@ -419,7 +422,7 @@ fn validate_request_preamble(
         }
     }
     for (key, value) in &request.bead_variables {
-        if value.contains('\0') {
+        if values_passed_to_bd && value.contains('\0') {
             return Err(BeadComposeError::BeadVariableValueInvalid {
                 key: key.clone(),
                 value: value.clone(),

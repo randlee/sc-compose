@@ -17,7 +17,6 @@ use std::path::{Path, PathBuf};
 
 pub(crate) fn execute_pour(
     request: &BeadComposeRequest,
-    advanced: bool,
     runner: &dyn ProcessRunner,
     normalized: NormalizedRequest,
     formula_input: &InputSnapshot,
@@ -70,7 +69,6 @@ pub(crate) fn execute_pour(
         }
         return crate::graph::execute(
             request,
-            advanced,
             runner,
             &normalized,
             formula_input,

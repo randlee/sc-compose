@@ -379,6 +379,50 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[test]
+    fn advanced_filters_and_included_defaults_are_literal_safe() {
+        let root = temporary_directory();
+        let template = root.join("filters.formula.toml.j2");
+        let include = root.join("part.j2");
+        let output = root.join("filters.formula.toml");
+        fs::write(&include, "---\ndefaults:\n  fallback: '{{ not_a_template }}'\n---\ndefault = \"{{ fallback }}\"\n").unwrap();
+        fs::write(&template, "@<part.j2>\nlower = \"{{ value | lower }}\"\nlength = {{ value | length }}\nslice = \"{{ value[:3] }}\"\n").unwrap();
+        let vars = Map::from_iter([("value".into(), json!("A{BC"))]);
+        render_formula_with_options(&template, &output, &vars, &root, true, false).unwrap();
+        let rendered = fs::read_to_string(output).unwrap();
+        assert!(
+            rendered.contains("default = \"{{ not_a_template }}\""),
+            "{rendered}"
+        );
+        assert!(rendered.contains("lower = \"a{bc\""));
+        assert!(rendered.contains("length = 4"));
+        assert!(rendered.contains("slice = \"A{B\""));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn advanced_locals_shadow_inputs_and_values_are_not_reparsed() {
+        let root = temporary_directory();
+        let template = root.join("locals.formula.toml.j2");
+        let output = root.join("locals.formula.toml");
+        fs::write(
+            &template,
+            "{% set name = 'local' %}title = \"{{ name }} {{ value }}\"\n",
+        )
+        .unwrap();
+        let vars = Map::from_iter([
+            ("name".into(), json!("caller")),
+            ("value".into(), json!("{{{ nested }}}")),
+        ]);
+        render_formula_with_options(&template, &output, &vars, &root, true, false).unwrap();
+        assert!(
+            fs::read_to_string(output)
+                .unwrap()
+                .contains("local {{{ nested }}}")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
     // TMPL5-02: a template that declares a required input must refuse when the
     // input is absent instead of rendering a successful but incorrect formula.
     #[test]

@@ -23,7 +23,7 @@ pub enum BeadRenderBy {
 }
 
 /// Additive execution options; the request wire layout remains unchanged.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct BeadExecutionOptions {
     /// Owner of ordinary formula expression rendering.
     pub render_by: BeadRenderBy,

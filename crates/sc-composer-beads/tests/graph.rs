@@ -455,6 +455,22 @@ fn existing(w: &Workspace) -> String {
     let metadata = w.plan()["nodes"][0]["metadata"].clone();
     json!([{"id":"proj-1"},{"id":"proj-1.chain-build","status":"closed","notes":"keep","metadata":metadata}]).to_string()
 }
+
+fn existing_bd_owned(w: &Workspace) -> String {
+    let preview = FakeRunner::new([ok(COOKED), parent(), ok("{}")]);
+    let receipt = execute_bead_request_with_options_and_runner(
+        &w.req,
+        &BeadExecutionOptions {
+            render_by: BeadRenderBy::Bd,
+            strict: false,
+        },
+        &preview,
+    )
+    .unwrap();
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    let metadata = w.plan()["nodes"][0]["metadata"].clone();
+    json!([{"id":"proj-1"},{"id":"proj-1.chain-build","status":"closed","notes":"keep","metadata":metadata}]).to_string()
+}
 #[test]
 fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
     for (deps, code) in [
@@ -469,7 +485,7 @@ fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
         ),
     ] {
         let w = Workspace::new();
-        let rows = existing(&w);
+        let rows = existing_bd_owned(&w);
         let before = w.plan();
         let mut dependencies = ok(deps);
         dependencies.stderr = "unrelated bd dep add forged source --type blocks".into();
@@ -514,6 +530,18 @@ fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
 fn advanced_missing_edge_refuses_unqualified_atomic_update_without_writes() {
     let mut w = Workspace::new();
     let rows = existing(&w);
+    let preview_runner = FakeRunner::new([ok(COOKED), ok(&rows), ok("[]")]);
+    let preview = w.run(&preview_runner);
+    assert_eq!(preview.outcome, BeadOutcome::Succeeded);
+    assert!(
+        preview
+            .graph
+            .unwrap()
+            .edges
+            .iter()
+            .any(|edge| edge.action == BeadEdgeAction::Add)
+    );
+    assert_read_only(&preview_runner);
     w.req.operation = BeadOperation::Attach;
     let runner = FakeRunner::new([ok(COOKED), ok(&rows), ok("[]")]);
     let receipt = w.run(&runner);
@@ -524,6 +552,110 @@ fn advanced_missing_edge_refuses_unqualified_atomic_update_without_writes() {
         }
     );
     assert_read_only(&runner);
+}
+
+#[test]
+fn advanced_provenance_v2_ignores_graph_revision_but_rejects_changed_node() {
+    let w = Workspace::new();
+    let rows = existing(&w);
+    let metadata = w.plan()["nodes"][0]["metadata"][PROVENANCE_KEY].clone();
+    assert_eq!(metadata["v"], 2);
+    assert!(metadata["node_definition"].as_str().is_some());
+    fs::write(
+        &w.req.template,
+        "formula = \"sample\"\n# changed graph source\n",
+    )
+    .unwrap();
+    let runner = FakeRunner::new([
+        ok(COOKED),
+        ok(&rows),
+        ok(r#"[{"id":"proj-1","dependency_type":"parent-child"}]"#),
+    ]);
+    let replay = w.run(&runner);
+    assert_eq!(replay.outcome, BeadOutcome::Succeeded, "{replay:#?}");
+    assert_read_only(&runner);
+
+    let changed =
+        r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Changed"}]}"#;
+    let runner = FakeRunner::new([ok(changed), ok(&rows)]);
+    let refused = w.run(&runner);
+    assert_eq!(
+        refused.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_CONFLICT".into()
+        }
+    );
+    assert_read_only(&runner);
+}
+
+#[test]
+fn advanced_v1_ownership_without_creation_proof_refuses_before_mutation() {
+    let mut w = Workspace::new();
+    let rows = existing_bd_owned(&w);
+    w.req.operation = BeadOperation::Attach;
+    let runner = FakeRunner::new([ok(COOKED), ok(&rows)]);
+    let receipt = w.run(&runner);
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_CONFLICT".into()
+        }
+    );
+    assert!(
+        receipt
+            .stages
+            .last()
+            .unwrap()
+            .stderr_excerpt
+            .contains("migration_proof_missing")
+    );
+    assert_read_only(&runner);
+}
+
+#[test]
+fn advanced_new_optional_node_previews_but_never_applies_without_atomic_capability() {
+    let mut w = Workspace::new();
+    let rows = existing(&w);
+    fs::write(
+        &w.req.template,
+        "formula = \"sample\"\n# optional node enabled\n",
+    )
+    .unwrap();
+    let enabled = r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"},{"id":"verify","title":"Verify","needs":["build"]}]}"#;
+    let parent_edge = r#"[{"id":"proj-1","dependency_type":"parent-child"}]"#;
+    let preview_runner = FakeRunner::new([ok(enabled), ok(&rows), ok(parent_edge), ok("{}")]);
+    let preview = w.run(&preview_runner);
+    assert_eq!(preview.outcome, BeadOutcome::Succeeded, "{preview:#?}");
+    let graph = preview.graph.unwrap();
+    assert!(graph.nodes.iter().any(|node| {
+        node.step
+            .as_ref()
+            .is_some_and(|step| step.as_str() == "build")
+            && node.action == BeadNodeAction::Existing
+    }));
+    assert!(graph.nodes.iter().any(|node| {
+        node.step
+            .as_ref()
+            .is_some_and(|step| step.as_str() == "verify")
+            && node.action == BeadNodeAction::Create
+    }));
+    assert!(
+        preview_runner
+            .calls()
+            .iter()
+            .all(|call| call.args[0] != "create" || call.args.iter().any(|arg| arg == "--dry-run"))
+    );
+
+    w.req.operation = BeadOperation::Attach;
+    let apply_runner = FakeRunner::new([ok(enabled), ok(&rows), ok(parent_edge)]);
+    let receipt = w.run(&apply_runner);
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE".into()
+        }
+    );
+    assert_read_only(&apply_runner);
 }
 #[test]
 fn apply_failure_is_failed_at_the_apply_stage() {
@@ -805,11 +937,11 @@ fn advanced_transport_renders_source_and_preserves_literal_data() {
         formula: Mutex<String>,
     }
     impl ProcessRunner for Capture<'_> {
-        fn run(&self, command: &CommandSpec) -> io::Result<ProcessOutput> {
-            if command.args.first().is_some_and(|arg| arg == "cook") {
-                *self.formula.lock().unwrap() = fs::read_to_string(&command.args[1])?;
+        fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+            if spec.args.first().is_some_and(|arg| arg == "cook") {
+                *self.formula.lock().unwrap() = fs::read_to_string(&spec.args[1])?;
             }
-            self.inner.run(command)
+            self.inner.run(spec)
         }
     }
     let mut w = Workspace::new();

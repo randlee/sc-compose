@@ -1,7 +1,7 @@
 //! Production bd graph use cases from ADR-0023; opt in with `BD_EXECUTABLE`.
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadGraphMode, BeadId, BeadNodeAction,
-    BeadExecutionOptions, BeadOperation, BeadOutcome, BeadPourMode, BeadRenderBy, BeadStage,
+    BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadExecutionOptions, BeadGraphMode,
+    BeadId, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadRenderBy, BeadStage,
     GraphRef, PourAuthorization, execute_bead_request_with_options,
 };
 use serde_json::{Value, json};
@@ -108,8 +108,12 @@ impl Workspace {
         assert_eq!(req.working_directory, self.root);
         execute_bead_request_with_options(
             req,
-            &BeadExecutionOptions { render_by: BeadRenderBy::Bd, strict: false },
-        ).expect("valid request")
+            &BeadExecutionOptions {
+                render_by: BeadRenderBy::Bd,
+                strict: false,
+            },
+        )
+        .expect("valid request")
     }
     fn success(&self, req: &BeadComposeRequest) -> BeadComposeReceipt {
         let receipt = self.run(req);
@@ -642,5 +646,65 @@ fn refusals_preserve_beads_and_edges() {
             r#"{"sc_compose_graph":null}"#,
         ]);
         w.refuse(&r, "BEADS_GRAPH_CONFLICT");
+    });
+}
+
+#[test]
+fn advanced_transport_renders_source_and_preserves_literal_data() {
+    with_workspace(|w| {
+        let template = w.root.join("release.formula.toml.j2");
+        fs::write(&template, "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n{% for item in items %}[[steps]]\nid = \"{{ item }}\"\ntitle = \"{{ item }} {{ literal }}\"\nlabels = [\"label-{{ item }}\"]\n{% endfor %}").unwrap();
+        let parent = w.parent();
+        let mut request = w.request(BeadOperation::Attach, Some(parent));
+        request
+            .compose_variables
+            .insert("items".into(), json!(["one", "two"]));
+        request
+            .bead_variables
+            .insert("literal".into(), "{{ data }}".into());
+        let receipt = sc_composer_beads::execute_bead_request(&request).expect("advanced request");
+        assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+        assert!(
+            receipt
+                .stages
+                .iter()
+                .all(|stage| !stage.argv.iter().any(|arg| arg == "--var"))
+        );
+        let graph = receipt.graph.expect("graph");
+        for name in ["one", "two"] {
+            let id = &graph.ids[&sc_composer_beads::StepId::new(name).unwrap()];
+            let shown = w.json(&["show", id.as_str(), "--json"]);
+            assert_eq!(shown[0]["title"], format!("{name} {}", "{{ data }}"));
+            assert!(
+                shown[0]["labels"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|label| label == &format!("label-{name}"))
+            );
+        }
+        let first = graph.ids[&sc_composer_beads::StepId::new("one").unwrap()].as_str();
+        w.command(&[
+            "update",
+            first,
+            "--status",
+            "in_progress",
+            "--notes",
+            "keep this",
+            "--assignee",
+            "reviewer",
+        ]);
+        let before = w.snapshot();
+        let replay = sc_composer_beads::execute_bead_request(&request).unwrap();
+        assert_eq!(replay.outcome, BeadOutcome::Succeeded, "{replay:#?}");
+        assert_eq!(
+            w.snapshot(),
+            before,
+            "replay must preserve all stored state"
+        );
+        let shown = w.json(&["show", first, "--json"]);
+        assert_eq!(shown[0]["status"], "in_progress");
+        assert_eq!(shown[0]["notes"], "keep this");
+        assert_eq!(shown[0]["assignee"], "reviewer");
     });
 }

@@ -751,6 +751,8 @@ pub enum GraphConflictReason {
     NotOwned,
     /// The `provenance_differs` refusal reason.
     ProvenanceDiffers,
+    /// A v1 node lacks verifiable creation history for migration.
+    MigrationProofMissing,
 }
 
 impl std::fmt::Display for GraphConflictReason {
@@ -758,6 +760,7 @@ impl std::fmt::Display for GraphConflictReason {
         f.write_str(match self {
             Self::NotOwned => "not_owned",
             Self::ProvenanceDiffers => "provenance_differs",
+            Self::MigrationProofMissing => "migration_proof_missing",
         })
     }
 }

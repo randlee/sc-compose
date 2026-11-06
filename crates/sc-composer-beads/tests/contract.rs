@@ -1164,3 +1164,264 @@ fn malformed_endpoint_prefixes_have_a_stable_request_code() {
         }
     }
 }
+
+struct AdvancedFixture {
+    root: std::path::PathBuf,
+    request: sc_composer_beads::BeadComposeRequest,
+}
+
+impl AdvancedFixture {
+    fn new(body: &str, operation: BeadOperation) -> Self {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        let root = std::env::temp_dir().join(format!(
+            "bead-contract-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        let template = root.join("sample.formula.toml.j2");
+        std::fs::write(&template, body).unwrap();
+        let attach = matches!(
+            operation,
+            BeadOperation::PreviewAttach | BeadOperation::Attach
+        );
+        let request = sc_composer_beads::BeadComposeRequest {
+            schema: BEADS_SCHEMA_V1.into(),
+            operation,
+            working_directory: root.clone(),
+            template,
+            rendered_formula: root.join("sample.formula.toml"),
+            compose_variables: serde_json::Map::new(),
+            formula_name: Some(FormulaName::new("sample").unwrap()),
+            bead_variables: std::collections::BTreeMap::new(),
+            bd_executable: Some("fake-bd".into()),
+            pour_authorization: None,
+            parent: attach.then(|| BeadId::new("proj-1").unwrap()),
+            ref_: attach.then(|| GraphRef::new("contract").unwrap()),
+            relations: Vec::new(),
+        };
+        Self { root, request }
+    }
+}
+impl Drop for AdvancedFixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.root);
+    }
+}
+
+#[derive(Default)]
+struct AdvancedRunner {
+    calls: std::sync::Mutex<Vec<sc_composer_beads::CommandSpec>>,
+    formula: std::sync::Mutex<String>,
+}
+impl sc_composer_beads::ProcessRunner for AdvancedRunner {
+    fn run(
+        &self,
+        spec: &sc_composer_beads::CommandSpec,
+    ) -> std::io::Result<sc_composer_beads::ProcessOutput> {
+        self.calls.lock().unwrap().push(spec.clone());
+        let stdout = match spec.args[0].as_str() {
+            "cook" => {
+                *self.formula.lock().unwrap() = std::fs::read_to_string(&spec.args[1])?;
+                r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#
+                    .to_owned()
+            }
+            "show" => r#"[{"id":"proj-1"}]"#.to_owned(),
+            "create" => "{}".to_owned(),
+            "where" => {
+                serde_json::json!({"path": spec.working_directory.join(".beads")}).to_string()
+            }
+            _ => panic!("unexpected command: {:?}", spec.args),
+        };
+        Ok(sc_composer_beads::ProcessOutput {
+            exit_status: Some(0),
+            stdout,
+            stderr: String::new(),
+            elapsed: std::time::Duration::ZERO,
+        })
+    }
+}
+
+#[test]
+fn advanced_graph_and_attach_accept_bead_inputs() {
+    let mut fixture = AdvancedFixture::new(
+        "formula = \"sample\"\ntitle = \"{{ value }}\"\n",
+        BeadOperation::PreviewAttach,
+    );
+    fixture
+        .request
+        .bead_variables
+        .insert("value".into(), "ready".into());
+    let runner = AdvancedRunner::default();
+    let receipt =
+        sc_composer_beads::execute_bead_request_with_runner(&fixture.request, &runner).unwrap();
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    assert!(runner.formula.lock().unwrap().contains("ready"));
+    assert!(
+        runner
+            .calls
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|call| !call.args.iter().any(|arg| arg == "--var"))
+    );
+
+    std::fs::create_dir(fixture.root.join(".beads")).unwrap();
+    fixture.request.operation = BeadOperation::PreviewPour;
+    fixture.request.parent = None;
+    fixture.request.ref_ = None;
+    let runner = AdvancedRunner::default();
+    let receipt =
+        sc_composer_beads::execute_bead_request_with_runner(&fixture.request, &runner).unwrap();
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+    assert!(
+        runner
+            .calls
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|call| !call.args.iter().any(|arg| arg == "--var"))
+    );
+}
+
+#[test]
+fn bd_owned_graph_and_attach_retain_input_refusals() {
+    let mut fixture = AdvancedFixture::new("formula = \"sample\"\n", BeadOperation::PreviewAttach);
+    fixture
+        .request
+        .bead_variables
+        .insert("value".into(), "ready".into());
+    let runner = AdvancedRunner::default();
+    let options = sc_composer_beads::BeadExecutionOptions {
+        render_by: sc_composer_beads::BeadRenderBy::Bd,
+        strict: false,
+    };
+    let error = sc_composer_beads::execute_bead_request_with_options_and_runner(
+        &fixture.request,
+        &options,
+        &runner,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("attach forbids bead_variables"));
+    assert!(runner.calls.lock().unwrap().is_empty());
+
+    std::fs::create_dir(fixture.root.join(".beads")).unwrap();
+    fixture.request.operation = BeadOperation::PreviewPour;
+    fixture.request.parent = None;
+    fixture.request.ref_ = None;
+    let receipt = sc_composer_beads::execute_bead_request_with_options_and_runner(
+        &fixture.request,
+        &options,
+        &runner,
+    )
+    .unwrap();
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_FORMULA_UNSUPPORTED".into()
+        }
+    );
+    assert!(
+        receipt
+            .stages
+            .last()
+            .unwrap()
+            .stderr_excerpt
+            .contains("bead_variables_set")
+    );
+    assert!(
+        runner
+            .calls
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|call| call.args[0] != "create")
+    );
+}
+
+#[test]
+fn advanced_transport_renders_source_and_preserves_literal_data() {
+    let mut fixture = AdvancedFixture::new(
+        "formula = \"sample\"\n{% for item in items %}title = \"{{ item }} {{ value }}\"\n{% endfor %}{# note #}",
+        BeadOperation::PreviewAttach,
+    );
+    fixture
+        .request
+        .compose_variables
+        .insert("items".into(), serde_json::json!(["one", "two"]));
+    fixture
+        .request
+        .bead_variables
+        .insert("value".into(), "{{ literal }}".into());
+    let runner = AdvancedRunner::default();
+    let receipt =
+        sc_composer_beads::execute_bead_request_with_runner(&fixture.request, &runner).unwrap();
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    let formula = runner.formula.lock().unwrap();
+    assert!(formula.contains("one {{ literal }}") && formula.contains("two {{ literal }}"));
+    assert!(!formula.contains("{% for") && !formula.contains("{# note"));
+}
+
+#[test]
+fn strict_checks_require_explicit_policy_and_schema() {
+    let mut fixture = AdvancedFixture::new(
+        "---\nrequired_variables:\n  - declared\n---\ntitle = \"{{ extra }}\"\n",
+        BeadOperation::Render,
+    );
+    fixture
+        .request
+        .compose_variables
+        .insert("declared".into(), serde_json::json!("yes"));
+    fixture
+        .request
+        .compose_variables
+        .insert("extra".into(), serde_json::json!("value"));
+    let runner = AdvancedRunner::default();
+    let options = sc_composer_beads::BeadExecutionOptions {
+        render_by: sc_composer_beads::BeadRenderBy::ScCompose,
+        strict: true,
+    };
+    let strict = sc_composer_beads::execute_bead_request_with_options_and_runner(
+        &fixture.request,
+        &options,
+        &runner,
+    )
+    .unwrap();
+    assert!(matches!(strict.outcome, BeadOutcome::Failed { .. }));
+    std::fs::write(&fixture.request.template, "title = \"{{ extra }}\"\n").unwrap();
+    let schema_less = sc_composer_beads::execute_bead_request_with_options_and_runner(
+        &fixture.request,
+        &options,
+        &runner,
+    )
+    .unwrap();
+    assert_eq!(schema_less.outcome, BeadOutcome::Succeeded);
+    assert!(runner.calls.lock().unwrap().is_empty());
+}
+
+#[test]
+fn recovered_port_preserves_non_strict_default() {
+    let mut fixture = AdvancedFixture::new(
+        "---\nrequired_variables:\n  - declared\n---\ntitle = \"{{ extra }}\"\n",
+        BeadOperation::Render,
+    );
+    fixture
+        .request
+        .compose_variables
+        .insert("declared".into(), serde_json::json!("yes"));
+    fixture
+        .request
+        .compose_variables
+        .insert("extra".into(), serde_json::json!("value"));
+    let runner = AdvancedRunner::default();
+    let receipt =
+        sc_composer_beads::execute_bead_request_with_runner(&fixture.request, &runner).unwrap();
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    assert!(
+        std::fs::read_to_string(&fixture.request.rendered_formula)
+            .unwrap()
+            .contains("value")
+    );
+}

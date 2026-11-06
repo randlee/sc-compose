@@ -651,3 +651,27 @@ def test_python_render_modes_keep_literal_values_and_bd_placeholders(tmp_path: P
     assert legacy.outcome.kind == "succeeded"
     assert "{{ release_name }}" in Path(legacy.rendered_formula).read_text(encoding="utf-8")
     assert not trace.exists()
+
+
+def test_advanced_attach_authorization_and_variable_conflicts_write_nothing(tmp_path: Path) -> None:
+    executable, trace = _write_fake_bd(tmp_path)
+    template = tmp_path / "release.formula.toml.j2"
+    template.write_text('formula = "release"\n', encoding="utf-8")
+    destination = tmp_path / "release.formula.toml"
+    unauthorized = beads.BeadComposeRequest(
+        tmp_path, template, destination, {}, operation="attach", parent="proj-1", ref="release",
+        bd_executable=executable,
+    )
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.attach(unauthorized)
+    assert raised.value.code == "BEADS_POUR_AUTH_REQUIRED"
+    assert not destination.exists() and not trace.exists()
+
+    duplicate = beads.BeadComposeRequest(
+        tmp_path, template, destination, {"name": "first"}, operation="preview_attach",
+        parent="proj-1", ref="release", bead_variables={"name": "second"}, bd_executable=executable,
+    )
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.preview_attach(duplicate)
+    assert raised.value.code == "BEADS_VARIABLE_KEY_DUPLICATE"
+    assert not destination.exists() and not trace.exists()

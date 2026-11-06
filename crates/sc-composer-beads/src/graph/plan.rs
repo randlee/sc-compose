@@ -1,6 +1,6 @@
 //! Read-only conflict planning; only a pending create can reach the writer.
 
-use super::validate::ValidatedGraph;
+use super::validate::{ProvenanceV2, ValidatedGraph};
 use crate::contract::{
     BeadDependencyType, BeadEdgeAction, BeadEndpoint, BeadGraph, BeadGraphEdge, BeadGraphMode,
     BeadGraphNode, BeadGraphProvenance, BeadId, BeadNodeAction, GraphDependencyType, GraphEndpoint,
@@ -119,6 +119,7 @@ fn endpoint(
 
 pub(super) fn plan(
     v: &ValidatedGraph,
+    advanced: bool,
     reader: &mut impl GraphReader,
 ) -> Result<GraphPlan, BeadComposeError> {
     let attach = v.mode == BeadGraphMode::Attach;
@@ -163,9 +164,9 @@ pub(super) fn plan(
             }
         }
     }
-    let missing = check_ownership(v, &ids, &found)?;
-    let mut pending = create_nodes(v, &ids, &missing, attach);
-    let edges = plan_edges(v, &ids, &missing, attach, reader, &mut pending)?;
+    let missing = check_ownership(v, advanced, &ids, &found)?;
+    let mut pending = create_nodes(v, advanced, &ids, &missing, attach)?;
+    let edges = plan_edges(v, &ids, &missing, attach, advanced, reader, &mut pending)?;
     if let Some(payload) = pending.payload.as_object_mut() {
         payload.insert("edges".into(), json!(edges));
     }
@@ -178,6 +179,7 @@ pub(super) fn plan(
 
 fn check_ownership(
     v: &ValidatedGraph,
+    advanced: bool,
     ids: &BTreeMap<StepId, BeadId>,
     found: &BTreeMap<BeadId, Value>,
 ) -> Result<BTreeSet<StepId>, BeadComposeError> {
@@ -190,6 +192,29 @@ fn check_ownership(
             let provenance = bead.get("metadata").and_then(|m| m.get(PROVENANCE_KEY));
             let reason = match provenance {
                 None => Some(GraphConflictReason::NotOwned),
+                Some(raw) if advanced => {
+                    match serde_json::from_value::<ProvenanceV2>(raw.clone()) {
+                        Ok(actual) => {
+                            let expected = v.provenance_v2(Some(step))?;
+                            if actual.v == 2
+                                && actual.mode == expected.mode
+                                && actual.formula == expected.formula
+                                && actual.parent == expected.parent
+                                && actual.reference == expected.reference
+                                && actual.step == expected.step
+                                && actual.node_definition == expected.node_definition
+                            {
+                                None
+                            } else {
+                                Some(GraphConflictReason::ProvenanceDiffers)
+                            }
+                        }
+                        Err(_) if raw.get("v").and_then(Value::as_u64) == Some(1) => {
+                            Some(GraphConflictReason::MigrationProofMissing)
+                        }
+                        Err(_) => Some(GraphConflictReason::ProvenanceDiffers),
+                    }
+                }
                 Some(raw) => match serde_json::from_value::<BeadGraphProvenance>(raw.clone()) {
                     Ok(actual) if actual == v.provenance(Some(step.id.clone())) => None,
                     _ => Some(GraphConflictReason::ProvenanceDiffers),
@@ -210,10 +235,11 @@ fn check_ownership(
 
 fn create_nodes(
     v: &ValidatedGraph,
+    advanced: bool,
     ids: &BTreeMap<StepId, BeadId>,
     missing: &BTreeSet<StepId>,
     attach: bool,
-) -> PendingCreate {
+) -> Result<PendingCreate, BeadComposeError> {
     let mut graph = BeadGraph {
         mode: v.mode,
         parent: v.parent.clone(),
@@ -229,7 +255,12 @@ fn create_nodes(
     let mut keys = BTreeMap::new();
     if !attach {
         let root_key = PlanKey::root();
-        nodes.push(json!({"key":root_key.as_str(),"type":"molecule","title":v.formula,"description":v.description,"metadata":{PROVENANCE_KEY:v.provenance(None)}}));
+        let provenance = if advanced {
+            json!(v.provenance_v2(None)?)
+        } else {
+            json!(v.provenance(None))
+        };
+        nodes.push(json!({"key":root_key.as_str(),"type":"molecule","title":v.formula,"description":v.description,"metadata":{PROVENANCE_KEY:provenance}}));
         keys.insert(root_key, None);
         graph.nodes.push(BeadGraphNode {
             step: None,
@@ -263,7 +294,11 @@ fn create_nodes(
             let metadata = fields
                 .entry("metadata")
                 .or_insert_with(|| Value::Object(Map::default()));
-            let provenance = json!(v.provenance(Some(step.id.clone())));
+            let provenance = if advanced {
+                json!(v.provenance_v2(Some(step))?)
+            } else {
+                json!(v.provenance(Some(step.id.clone())))
+            };
             match metadata {
                 Value::Object(metadata) => {
                     metadata.insert(PROVENANCE_KEY.into(), provenance);
@@ -278,12 +313,12 @@ fn create_nodes(
             keys.insert(key, Some(step.id.clone()));
         }
     }
-    PendingCreate {
+    Ok(PendingCreate {
         graph,
         payload: json!({"nodes": nodes}),
         endpoints: Vec::new(),
         keys,
-    }
+    })
 }
 
 fn plan_edges(
@@ -291,6 +326,7 @@ fn plan_edges(
     ids: &BTreeMap<StepId, BeadId>,
     missing: &BTreeSet<StepId>,
     attach: bool,
+    advanced: bool,
     reader: &mut impl GraphReader,
     pending: &mut PendingCreate,
 ) -> Result<Vec<Value>, BeadComposeError> {
@@ -363,7 +399,11 @@ fn plan_edges(
             },
         });
     }
-    finish_edges(absent, edges)
+    if advanced {
+        Ok(edges)
+    } else {
+        finish_edges(absent, edges)
+    }
 }
 
 fn finish_edges(
