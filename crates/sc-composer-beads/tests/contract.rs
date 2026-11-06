@@ -601,6 +601,49 @@ fn identifier_validation_rejects_bad_values_at_rust_and_json_boundaries() {
 }
 
 #[test]
+fn bead_ids_reject_control_characters_in_constructors_and_requests() {
+    use serde_json::{Value, json};
+    let original: Value =
+        serde_json::from_str(include_str!("fixtures/beads/request.json")).unwrap();
+    for control in ['\0', '\u{7}', '\u{1b}', '\u{7f}'] {
+        let id = format!("project{control}42");
+        let check = |error: BeadComposeError| {
+            assert_eq!(error.code(), "BEADS_GRAPH_ID_INVALID");
+            assert!(matches!(error, BeadComposeError::GraphIdInvalid {
+                field: GraphIdField::Bead, value
+            } if value == id));
+        };
+        check(BeadId::new(&id).unwrap_err());
+        let mut request = original.clone();
+        request["parent"] = json!(id);
+        check(parse_request(&request.to_string()).unwrap_err());
+        request["parent"] = json!("valid");
+        request["relations"] =
+            json!([{"from": format!("bead:{id}"), "to":"step:build", "type":"blocks"}]);
+        check(parse_request(&request.to_string()).unwrap_err());
+        request["parent"] = json!(id);
+        request.as_object_mut().unwrap().remove("template");
+        assert_eq!(
+            parse_request(&request.to_string()).unwrap_err().code(),
+            "BEADS_REQUEST_DESERIALIZATION_FAILED"
+        );
+    }
+    for valid in ["proj-42", "--option-like", "unicode-é"] {
+        assert_eq!(BeadId::new(valid).unwrap().as_str(), valid);
+        let mut request = original.clone();
+        request["parent"] = json!(valid);
+        assert_eq!(
+            parse_request(&request.to_string())
+                .unwrap()
+                .parent
+                .unwrap()
+                .as_str(),
+            valid
+        );
+    }
+}
+
+#[test]
 fn invalid_identifier_messages_name_only_the_failing_fields_rule() {
     let cases = [
         (
