@@ -147,8 +147,8 @@ class ConsumerPreflightTests(unittest.TestCase):
     # release preflight (also pinned by test_publish_preflight_checks.py).
     EXPECTED_CHECKS = [
         ("cli-reference-fresh", WRAPPER_CHECK),
-        ("workspace-fmt", "cargo fmt --all --check"),
-        ("workspace-clippy", "cargo clippy --workspace --all-targets --all-features -- -D warnings"),
+        ("workspace-fmt", "rustup component add rustfmt && cargo fmt --all --check"),
+        ("workspace-clippy", "rustup component add clippy && cargo clippy --workspace --all-targets --all-features -- -D warnings"),
         ("workspace-tests", "cargo test --workspace"),
         (
             "go-native-version-lockstep",

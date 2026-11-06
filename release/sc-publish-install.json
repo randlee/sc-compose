@@ -53,8 +53,8 @@
   ],
   "preflight_checks": [
     {"id": "cli-reference-fresh", "description": "Generated CLI reference matches the live sc-compose model (docli)", "run": "python3 scripts/generate_cli_reference.py --check --install-docli"},
-    {"id": "workspace-fmt", "description": "Workspace is rustfmt-clean (restored from the pre-PR866 release preflight)", "run": "cargo fmt --all --check"},
-    {"id": "workspace-clippy", "description": "Workspace is clippy-clean with warnings denied (restored from the pre-PR866 release preflight)", "run": "cargo clippy --workspace --all-targets --all-features -- -D warnings"},
+    {"id": "workspace-fmt", "description": "Workspace is rustfmt-clean (restored from the pre-PR866 release preflight)", "run": "rustup component add rustfmt && cargo fmt --all --check"},
+    {"id": "workspace-clippy", "description": "Workspace is clippy-clean with warnings denied (restored from the pre-PR866 release preflight)", "run": "rustup component add clippy && cargo clippy --workspace --all-targets --all-features -- -D warnings"},
     {"id": "workspace-tests", "description": "Workspace tests pass (restored from the pre-PR866 release preflight)", "run": "cargo test --workspace"},
     {"id": "go-native-version-lockstep", "description": "Go native peer version follows the workspace release version (restored from the pre-PR866 release paths)", "run": "python3 .github/scripts/go_native_module.py verify-version-lockstep --config release/go-native-module.toml --workspace-toml Cargo.toml"}
   ]
