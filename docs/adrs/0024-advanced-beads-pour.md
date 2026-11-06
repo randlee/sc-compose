@@ -150,6 +150,8 @@ Jinja. FR-24.34–35 and the ADR-0023 Phase V amendment govern provenance v2,
 state preservation, conditional selection and one atomic apply. V1 must
 verify/pin the bd transaction capability before V3's affected apply work;
 that is an implementation dependency, not an unresolved product decision.
+An unsupported capability is recorded on `comp-v-1-bd-ownership` for phase-end
+discussion and blocks only the affected apply acceptance, as ADR-0023 states.
 
 The FUZZ-171 cases and the 229-template corpus are unavailable historical
 evidence. They are never counted as recovered, rerun or passing, and their

@@ -727,6 +727,12 @@ BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE, exit 2, before any mutation. V1 records
 the exact supported command/schema/version in the existing implementation PR once verified;
 V3 cannot dispatch this apply path against an unspecified protocol.
 
+V1 is contract verification only. Qualifying the bd ownership capability for
+pure-edge and mixed node-edge apply is not implemented by V1. An unsupported
+capability is recorded on the bead `comp-v-1-bd-ownership` for phase-end
+discussion. It blocks only the affected apply acceptance, never V1 or
+independent downstream development, and adds no new ledger.
+
 ### Conditional graph and required cases
 
 Jinja renders the source before graph validation. Optional beads and edges
