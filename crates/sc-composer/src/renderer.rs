@@ -475,10 +475,10 @@ impl Renderer {
         let template = self
             .env
             .template_from_named_str(template_name, template)
-            .map_err(RenderError::render)?;
+            .map_err(template_render_error)?;
         template.render(context).map_err(|error| {
             if error.kind() != minijinja::ErrorKind::UndefinedError {
-                return RenderError::render(error);
+                return template_render_error(error);
             }
             // Name the expression that printed the undefined value.
             let expression = error
@@ -495,6 +495,11 @@ impl Renderer {
             RenderError::with_code(error, DiagnosticCode::ErrValUnboundVariable, message)
         })
     }
+}
+
+fn template_render_error(error: minijinja::Error) -> RenderError {
+    let message = error.to_string();
+    RenderError::with_code(error, DiagnosticCode::ErrRenderTemplate, message)
 }
 
 impl Default for Renderer {
@@ -544,15 +549,15 @@ pub fn render_loaded_template_with_json_escape_mode(
     configure_environment(&mut env, TemplateEscapeMode::Json(json_escape_mode));
     for asset in request.supporting_templates {
         env.add_template_owned(asset.template_name, asset.template_text)
-            .map_err(RenderError::render)?;
+            .map_err(template_render_error)?;
     }
     env.add_template_owned(request.template_name.clone(), request.template_text.clone())
-        .map_err(RenderError::render)?;
+        .map_err(template_render_error)?;
     let rendered = env
         .get_template(&request.template_name)
-        .map_err(RenderError::render)?
+        .map_err(template_render_error)?
         .render(&request.context)
-        .map_err(RenderError::render)?;
+        .map_err(template_render_error)?;
     Ok(RenderedArtifact {
         rendered,
         template_name: request.template_name,
@@ -1362,6 +1367,7 @@ mod tests {
         })
         .unwrap_err();
 
+        assert_eq!(error.code(), Some(crate::DiagnosticCode::ErrRenderTemplate));
         let source = error.source().map(ToString::to_string).unwrap_or_default();
         assert!(
             source.contains("unexpected end of input"),

@@ -74,7 +74,7 @@ fn request_template_suffix_is_not_enforced_when_rendered_extension_is_supported(
     let parsed =
         parse_request(&request.to_string()).expect("request with unconventional template suffix");
 
-    let receipt = execute_bead_request_with_runner(&parsed, &StdProcessRunner::default())
+    let receipt = execute_bead_request_with_runner(&parsed, &StdProcessRunner)
         .expect("render with a caller-selected template suffix");
 
     assert_eq!(receipt.outcome, sc_composer_beads::BeadOutcome::Succeeded);
