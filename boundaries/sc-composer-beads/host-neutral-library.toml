@@ -13,7 +13,7 @@ visibility = "public"
 constructor = "none"
 
 [composition]
-roots = ["execute_bead_request"]
+roots = ["execute_bead_request", "execute_bead_request_with_options", "execute_bead_request_with_options_and_runner"]
 
 [dependencies]
 allowed_dependents = ["sc-compose", "sc-composer-beads-python"]

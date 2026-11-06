@@ -5,12 +5,12 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use crate::contract::{
-    BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage,
-    BeadStageOutcome, BeadStageReceipt, PourAuthorization,
+    BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadExecutionOptions, BeadOperation,
+    BeadOutcome, BeadRenderBy, BeadStage, BeadStageOutcome, BeadStageReceipt, PourAuthorization,
 };
 use crate::error::{BeadComposeError, short_cause};
 use crate::paths::{public_path_buf, public_path_display};
-use crate::render::{render_formula_in_root, validate_output_destination};
+use crate::render::{render_formula_with_options, validate_output_destination};
 use crate::runner::{
     CommandSpec, PROCESS_OUTPUT_LIMIT_BYTES, ProcessOutput, ProcessRunner, StdProcessRunner,
     is_process_output_limit_error,
@@ -43,7 +43,12 @@ pub fn execute_bead_request_with_diagnostics(
     request: &BeadComposeRequest,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
-    execute_with_runner_and_diagnostics(request, &StdProcessRunner, diagnostics)
+    execute_with_options_runner_and_diagnostics(
+        request,
+        &BeadExecutionOptions::default(),
+        &StdProcessRunner,
+        diagnostics,
+    )
 }
 
 /// Execute a Beads request through an injected direct process runner.
@@ -56,30 +61,88 @@ pub fn execute_bead_request_with_runner(
     request: &BeadComposeRequest,
     runner: &dyn ProcessRunner,
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
-    execute_with_runner_and_diagnostics(request, runner, &mut |_| {})
+    execute_bead_request_with_options_and_runner(request, &BeadExecutionOptions::default(), runner)
 }
 
+/// Execute with explicit rendering options through the production runner.
+///
+/// # Errors
+/// Returns the same request and process errors as [`execute_bead_request`].
+pub fn execute_bead_request_with_options(
+    request: &BeadComposeRequest,
+    options: &BeadExecutionOptions,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_bead_request_with_options_and_runner(request, options, &StdProcessRunner)
+}
+
+/// Execute with explicit options and an injected process runner.
+///
+/// # Errors
+/// Returns the same request and process errors as [`execute_bead_request`].
+pub fn execute_bead_request_with_options_and_runner(
+    request: &BeadComposeRequest,
+    options: &BeadExecutionOptions,
+    runner: &dyn ProcessRunner,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_with_options_runner_and_diagnostics(request, options, runner, &mut |_| {})
+}
+
+#[cfg(test)]
 fn execute_with_runner_and_diagnostics(
     request: &BeadComposeRequest,
     runner: &dyn ProcessRunner,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_with_options_runner_and_diagnostics(
+        request,
+        &BeadExecutionOptions::default(),
+        runner,
+        diagnostics,
+    )
+}
+
+fn execute_with_options_runner_and_diagnostics(
+    request: &BeadComposeRequest,
+    options: &BeadExecutionOptions,
+    runner: &dyn ProcessRunner,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    let mut effective = request.clone();
+    if options.render_by == BeadRenderBy::ScCompose {
+        let shape = if crate::graph::is_attach(request.operation) {
+            validate_attach_shape_advanced
+        } else {
+            validate_formula_shape
+        };
+        validate_request_preamble(request, shape)?;
+        for (key, value) in &request.bead_variables {
+            if effective.compose_variables.contains_key(key) {
+                return Err(BeadComposeError::BeadVariableKeyDuplicate { key: key.clone() });
+            }
+            effective
+                .compose_variables
+                .insert(key.clone(), serde_json::Value::String(value.clone()));
+        }
+        effective.bead_variables.clear();
+    }
+    let request = &effective;
     if crate::graph::is_attach(request.operation) {
-        execute_attach(request, runner, diagnostics)
+        execute_attach(request, options, runner, diagnostics)
     } else {
-        execute_formula(request, runner, diagnostics)
+        execute_formula(request, options, runner, diagnostics)
     }
 }
 
 /// `preview-attach` and `attach`: render, then build the graph.
 fn execute_attach(
     request: &BeadComposeRequest,
+    options: &BeadExecutionOptions,
     runner: &dyn ProcessRunner,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     let normalized = validate_request(request, validate_attach_shape)?;
     let (formula_input, stages) =
-        match render_stage(request, &normalized, crate::snapshot::output_error) {
+        match render_stage(request, options, &normalized, crate::snapshot::output_error) {
             Ok(rendered) => rendered,
             Err(failed) => return Ok(*failed),
         };
@@ -97,12 +160,13 @@ fn execute_attach(
 /// `render`, `validate`, `preview-pour` and `pour`.
 fn execute_formula(
     request: &BeadComposeRequest,
+    options: &BeadExecutionOptions,
     runner: &dyn ProcessRunner,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     let normalized = validate_request(request, validate_formula_shape)?;
     let (formula_input, mut stages) =
-        match render_stage(request, &normalized, |_destination, error| error) {
+        match render_stage(request, options, &normalized, |_destination, error| error) {
             Ok(rendered) => rendered,
             Err(failed) => return Ok(*failed),
         };
@@ -167,6 +231,7 @@ fn execute_formula(
 /// is returned as the finished failed receipt.
 fn render_stage(
     request: &BeadComposeRequest,
+    options: &BeadExecutionOptions,
     normalized: &NormalizedRequest,
     reserve_error: fn(&Path, BeadComposeError) -> BeadComposeError,
 ) -> Result<(InputSnapshot, Vec<BeadStageReceipt>), Box<BeadComposeReceipt>> {
@@ -174,11 +239,13 @@ fn render_stage(
     let rendered = (|| {
         let input = InputSnapshot::reserve(&normalized.rendered_formula)
             .map_err(|error| reserve_error(&normalized.rendered_formula, error))?;
-        render_formula_in_root(
+        render_formula_with_options(
             &normalized.template,
             input.path(),
             &request.compose_variables,
             &normalized.working_directory,
+            options.render_by == BeadRenderBy::ScCompose,
+            options.strict,
         )?;
         // Every operation writes the rendered formula exactly once and keeps
         // the private input until bd has read it. A pour destination outside
@@ -356,6 +423,16 @@ fn validate_attach_shape(request: &BeadComposeRequest) -> Result<(), BeadCompose
         None
     };
     shape_result(shape_error)
+}
+
+fn validate_attach_shape_advanced(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {
+    if request.parent.is_none() {
+        shape_result(Some("attach requires parent"))
+    } else if request.ref_.is_none() {
+        shape_result(Some("attach requires ref"))
+    } else {
+        Ok(())
+    }
 }
 
 fn validate_formula_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {

@@ -6,10 +6,12 @@ use std::path::PathBuf;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
+#[cfg(test)]
+use sc_composer_beads::execute_bead_request;
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
-    BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome, BeadStageReceipt,
-    PourAuthorization, execute_bead_request,
+    BeadComposeRequest, BeadExecutionOptions, BeadOperation, BeadOutcome, BeadRenderBy, BeadStage,
+    BeadStageOutcome, BeadStageReceipt, PourAuthorization, execute_bead_request_with_options,
 };
 use serde_json::Value;
 
@@ -600,18 +602,26 @@ fn execute_with_operation(
     py: Python<'_>,
     request: &PyBeadComposeRequest,
     operation: Option<BeadOperation>,
+    render_by: &str,
+    strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
+    let render_by = match render_by {
+        "sc-compose" => BeadRenderBy::ScCompose,
+        "bd" => BeadRenderBy::Bd,
+        _ => return Err(request_error(py, "render_by must be sc-compose or bd")),
+    };
+    let options = BeadExecutionOptions { render_by, strict };
     let mut request = request.inner.clone();
     if let Some(operation) = operation {
         request.operation = operation;
     }
     let receipt = py
-        .detach(|| execute_bead_request(&request))
+        .detach(|| execute_bead_request_with_options(&request, &options))
         .map_err(|error_kind| rust_error_to_pyerr(py, &error_kind))?;
     PyBeadComposeReceipt::from_rust(py, receipt)
 }
 
-#[pyfunction]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -619,11 +629,19 @@ fn execute_with_operation(
 fn execute(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(py, &request, Some(request.inner.operation))
+    execute_with_operation(
+        py,
+        &request,
+        Some(request.inner.operation),
+        render_by,
+        strict,
+    )
 }
 
-#[pyfunction]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -631,11 +649,13 @@ fn execute(
 fn render(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(py, &request, Some(BeadOperation::Render))
+    execute_with_operation(py, &request, Some(BeadOperation::Render), render_by, strict)
 }
 
-#[pyfunction]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -643,11 +663,19 @@ fn render(
 fn validate(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(py, &request, Some(BeadOperation::Validate))
+    execute_with_operation(
+        py,
+        &request,
+        Some(BeadOperation::Validate),
+        render_by,
+        strict,
+    )
 }
 
-#[pyfunction]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -655,11 +683,19 @@ fn validate(
 fn preview_pour(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(py, &request, Some(BeadOperation::PreviewPour))
+    execute_with_operation(
+        py,
+        &request,
+        Some(BeadOperation::PreviewPour),
+        render_by,
+        strict,
+    )
 }
 
-#[pyfunction]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -667,11 +703,13 @@ fn preview_pour(
 fn pour(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(py, &request, Some(BeadOperation::Pour))
+    execute_with_operation(py, &request, Some(BeadOperation::Pour), render_by, strict)
 }
 
-#[pyfunction]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -679,10 +717,18 @@ fn pour(
 fn preview_attach(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(py, &request, Some(BeadOperation::PreviewAttach))
+    execute_with_operation(
+        py,
+        &request,
+        Some(BeadOperation::PreviewAttach),
+        render_by,
+        strict,
+    )
 }
-#[pyfunction]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -690,8 +736,10 @@ fn preview_attach(
 fn attach(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(py, &request, Some(BeadOperation::Attach))
+    execute_with_operation(py, &request, Some(BeadOperation::Attach), render_by, strict)
 }
 
 #[pymodule]
@@ -816,6 +864,8 @@ mod tests {
                     inner: request.clone(),
                 },
                 Some(BeadOperation::Render),
+                "sc-compose",
+                false,
             )
             .expect("Python adapter render must succeed");
 

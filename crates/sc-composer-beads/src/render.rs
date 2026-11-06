@@ -49,6 +49,24 @@ pub(crate) fn render_formula_in_root(
     compose_variables: &Map<String, serde_json::Value>,
     working_directory: &Path,
 ) -> Result<(), BeadComposeError> {
+    render_formula_with_options(
+        template,
+        rendered_formula,
+        compose_variables,
+        working_directory,
+        false,
+        false,
+    )
+}
+
+pub(crate) fn render_formula_with_options(
+    template: &Path,
+    rendered_formula: &Path,
+    compose_variables: &Map<String, serde_json::Value>,
+    working_directory: &Path,
+    advanced: bool,
+    strict: bool,
+) -> Result<(), BeadComposeError> {
     let root =
         sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
     let request = sc_composer::ComposeRequest {
@@ -69,11 +87,14 @@ pub(crate) fn render_formula_in_root(
         vars_defaults: BTreeMap::new(),
         guidance_block: None,
         user_prompt: None,
-        policy: sc_composer::ComposePolicy::default(),
+        policy: sc_composer::ComposePolicy {
+            strict_undeclared_variables: strict,
+            ..sc_composer::ComposePolicy::default()
+        },
     };
     // Reuse the library validation path so frontmatter `required_variables`
     // and `defaults` have the same meaning here as in `sc-composer` render.
-    let (report, expanded) = sc_composer::validate_with_observer_and_delimiters_with_expansion(
+    let (report, mut expanded) = sc_composer::validate_with_observer_and_delimiters_with_expansion(
         &request,
         &mut sc_composer::NoopObserver,
         Some((OPEN_DELIMITER, CLOSE_DELIMITER)),
@@ -81,6 +102,34 @@ pub(crate) fn render_formula_in_root(
     .map_err(|error| BeadComposeError::RenderFailed {
         message: error.to_string(),
     })?;
+    if advanced {
+        expanded.text = crate::expressions::fold_bead_expressions(&expanded.text);
+    }
+    let (report, context) = if advanced || strict {
+        sc_composer::validate_expanded_with_context(
+            &request,
+            &expanded,
+            report.resolve_result,
+            (OPEN_DELIMITER, CLOSE_DELIMITER),
+        )
+    } else {
+        let mut context = BTreeMap::new();
+        if let Some(frontmatter) = expanded.frontmatters.iter().find_map(|(path, passes)| {
+            (path == &report.resolve_result.resolved_path)
+                .then(|| passes.first())
+                .flatten()
+        }) {
+            for (name, value) in frontmatter.defaults() {
+                context.insert(name.to_string(), value.clone());
+            }
+        }
+        context.extend(
+            compose_variables
+                .iter()
+                .map(|(name, value)| (name.clone(), value.clone())),
+        );
+        (report, context)
+    };
     if !report.ok {
         return Err(BeadComposeError::RenderFailed {
             message: report
@@ -90,19 +139,6 @@ pub(crate) fn render_formula_in_root(
                 .collect::<Vec<_>>()
                 .join("; "),
         });
-    }
-    let mut context = BTreeMap::new();
-    if let Some(frontmatter) = expanded.frontmatters.iter().find_map(|(path, passes)| {
-        (path == &report.resolve_result.resolved_path)
-            .then(|| passes.first())
-            .flatten()
-    }) {
-        for (name, value) in frontmatter.defaults() {
-            context.insert(name.to_string(), value.clone());
-        }
-    }
-    for (name, value) in compose_variables {
-        context.insert(name.clone(), value.clone());
     }
     let rendered = sc_composer::Renderer::with_delimiters_and_escape_mode(
         OPEN_DELIMITER,
@@ -292,7 +328,26 @@ mod tests {
 
     use serde_json::{Map, json};
 
-    use super::{render_formula, render_formula_in_root};
+    use super::{render_formula, render_formula_in_root, render_formula_with_options};
+
+    #[test]
+    fn advanced_render_resolves_source_once_and_keeps_literal_values() {
+        let root = temporary_directory();
+        let template = root.join("advanced.formula.toml.j2");
+        let output = root.join("advanced.formula.toml");
+        fs::write(&template, "title = \"{{ value }}\"\n{% for item in items %}[[steps]]\ntitle = \"{{ item }}\"\n{% endfor %}").unwrap();
+        let vars = Map::from_iter([
+            ("value".into(), json!("{{ literal }} {% raw %}")),
+            ("items".into(), json!(["first", "second"])),
+        ]);
+        render_formula_with_options(&template, &output, &vars, &root, true, false).unwrap();
+        let rendered = fs::read_to_string(&output).unwrap();
+        assert!(rendered.contains("{{ literal }} {% raw %}"));
+        assert!(rendered.contains("title = \"first\""));
+        assert!(rendered.contains("title = \"second\""));
+        assert!(!rendered.contains("{% for"));
+        fs::remove_dir_all(root).unwrap();
+    }
 
     // TMPL5-02: a template that declares a required input must refuse when the
     // input is absent instead of rendering a successful but incorrect formula.

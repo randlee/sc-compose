@@ -130,8 +130,8 @@ pub use types::{
 };
 #[doc(inline)]
 pub use validate::{
-    validate, validate_with_observer, validate_with_observer_and_delimiters,
-    validate_with_observer_and_delimiters_with_expansion,
+    validate, validate_expanded_with_context, validate_with_observer,
+    validate_with_observer_and_delimiters, validate_with_observer_and_delimiters_with_expansion,
 };
 pub use validation::BUILTIN_VARIABLE_NAMES;
 #[doc(inline)]
