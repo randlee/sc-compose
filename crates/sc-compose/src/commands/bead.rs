@@ -133,21 +133,33 @@ const PLAN_PATH_FIELD: &str = "graph.plan_path";
 /// Private staging directory of a direct pour, removed when the command ends.
 struct DirectStaging {
     path: PathBuf,
-    canonical: Option<PathBuf>,
+    /// Every spelling a receipt path inside this directory can take: the
+    /// requested path and its canonical form, each without a Windows verbatim
+    /// prefix. The engine canonicalizes the output parent and prints it through
+    /// its public display, so on Windows a receipt names the canonical long path
+    /// without `\\?\`, which neither the raw (possibly 8.3) path nor the raw
+    /// canonical (`\\?\`-prefixed) path matches.
+    spellings: Vec<String>,
 }
 
 impl DirectStaging {
-    fn new(path: PathBuf) -> Self {
-        let canonical = fs::canonicalize(&path).ok();
-        Self { path, canonical }
+    /// Takes ownership of an already created staging directory; it is removed
+    /// on drop even when resolving its canonical spelling fails.
+    fn new(path: PathBuf) -> std::io::Result<Self> {
+        let mut staging = Self {
+            path,
+            spellings: Vec::new(),
+        };
+        let canonical = fs::canonicalize(&staging.path)?;
+        staging.spellings = [staging.path.as_path(), canonical.as_path()]
+            .into_iter()
+            .map(|spelling| without_verbatim_prefix(&spelling.to_string_lossy()).into_owned())
+            .collect();
+        Ok(staging)
     }
 
     fn contains(&self, path: &Path) -> bool {
-        path.starts_with(&self.path)
-            || self
-                .canonical
-                .as_deref()
-                .is_some_and(|canonical| path.starts_with(canonical))
+        path.starts_with(&self.path) || staging_contains(&self.spellings, path)
     }
 
     /// Receipt fields whose paths are removed with this staging directory.
@@ -166,6 +178,39 @@ impl DirectStaging {
         .into_iter()
         .filter_map(|(field, path)| path.filter(|path| self.contains(path)).map(|_| field))
         .collect()
+    }
+}
+
+/// Whether `path`, compared without a Windows verbatim prefix, is one of the
+/// staging `spellings` or lies beneath one. Pure string comparison so the
+/// Windows spellings are exercised identically on every host.
+fn staging_contains(spellings: &[String], path: &Path) -> bool {
+    let text = path.to_string_lossy();
+    let candidate = without_verbatim_prefix(&text);
+    spellings.iter().any(|spelling| {
+        let dir = spelling.trim_end_matches(['/', '\\']);
+        !dir.is_empty()
+            && candidate
+                .strip_prefix(dir)
+                .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '\\']))
+    })
+}
+
+/// The spelling the engine's public path display gives a canonical Windows
+/// path: `\\?\C:\x` becomes `C:\x` and `\\?\UNC\server\share\x` becomes
+/// `\\server\share\x`; every other spelling is unchanged.
+fn without_verbatim_prefix(text: &str) -> std::borrow::Cow<'_, str> {
+    if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+        return std::borrow::Cow::Owned(format!(r"\\{rest}"));
+    }
+    match text.strip_prefix(r"\\?\") {
+        Some(rest)
+            if rest.as_bytes().first().is_some_and(u8::is_ascii_alphabetic)
+                && rest.as_bytes().get(1) == Some(&b':') =>
+        {
+            std::borrow::Cow::Borrowed(rest)
+        }
+        _ => std::borrow::Cow::Borrowed(text),
     }
 }
 
@@ -211,7 +256,11 @@ fn direct_pour_request(
             "cannot create private formula staging directory: {error}"
         ))
     })?;
-    let staging = DirectStaging::new(dir.clone());
+    let staging = DirectStaging::new(dir.clone()).map_err(|error| {
+        bad(format!(
+            "cannot resolve private formula staging directory: {error}"
+        ))
+    })?;
     if let Some((source_root, files)) = external_snapshot {
         source = write_source_snapshot(&dir, &source_root, &original_source, files)?;
     }
@@ -632,12 +681,172 @@ fn missing_edge_recovery_commands(
 
 #[cfg(test)]
 mod tests {
-    use super::{human_bead_error, missing_edge_recovery_commands};
+    use super::{
+        DirectStaging, PLAN_PATH_FIELD, RENDERED_FORMULA_FIELD, human_bead_error,
+        missing_edge_recovery_commands, staging_contains, without_verbatim_prefix,
+    };
     use sc_composer_beads::{
         BeadComposeError, BeadComposeReceipt, BeadId, GraphConflictReason, GraphDependencyType,
         GraphIdField, MissingEdge,
     };
     use serde_json::json;
+    use std::path::{Path, PathBuf};
+
+    /// Staging directory spelling of the hosted Windows failure (PR954 run
+    /// 42196008975): `fs::canonicalize` returns the verbatim form.
+    const WINDOWS_CANONICAL_STAGING: &str = r"\\?\C:\Users\runneradmin\AppData\Local\Temp\sc-compose-fixture-bead-graph-e2e-6748-1793958490840348900-11\.sc-compose-pour-212-0";
+    /// The engine's receipt spelling of a file in that directory.
+    const WINDOWS_RECEIPT_FORMULA: &str = r"C:\Users\runneradmin\AppData\Local\Temp\sc-compose-fixture-bead-graph-e2e-6748-1793958490840348900-11\.sc-compose-pour-212-0\plan-fix.formula.toml";
+
+    /// Staging spellings as `DirectStaging::new` derives them from a raw path
+    /// and its canonical form.
+    fn spellings(raw: &str, canonical: &str) -> Vec<String> {
+        [raw, canonical]
+            .into_iter()
+            .map(|spelling| without_verbatim_prefix(spelling).into_owned())
+            .collect()
+    }
+
+    /// A staging value with controlled spellings whose drop touches nothing:
+    /// its own path names a directory this test never creates.
+    fn controlled_staging(raw: &str, canonical: &str) -> DirectStaging {
+        DirectStaging {
+            path: std::env::temp_dir().join(format!(
+                "sc-compose-never-created-staging-{}",
+                std::process::id()
+            )),
+            spellings: spellings(raw, canonical),
+        }
+    }
+
+    #[test]
+    fn verbatim_prefix_is_removed_like_the_engine_public_display() {
+        for (input, expected) in [
+            (r"\\?\C:\Users\a\b", r"C:\Users\a\b"),
+            (r"\\?\d:\x", r"d:\x"),
+            (r"\\?\UNC\server\share\x", r"\\server\share\x"),
+            (r"C:\Users\a", r"C:\Users\a"),
+            (r"\\server\share\x", r"\\server\share\x"),
+            (r"\\?\Volume{0000}\x", r"\\?\Volume{0000}\x"),
+            ("/tmp/x", "/tmp/x"),
+        ] {
+            assert_eq!(without_verbatim_prefix(input), expected, "{input}");
+        }
+    }
+
+    #[test]
+    fn windows_receipt_spelling_inside_verbatim_canonical_staging_is_contained() {
+        // The raw spelling is the 8.3 TEMP form; only the canonical one names
+        // the long path the engine prints.
+        let staging = spellings(
+            r"C:\Users\RUNNER~1\AppData\Local\Temp\sc-compose-fixture-bead-graph-e2e-6748-1793958490840348900-11\.sc-compose-pour-212-0",
+            WINDOWS_CANONICAL_STAGING,
+        );
+        for receipt in [
+            WINDOWS_RECEIPT_FORMULA,
+            &format!("{WINDOWS_RECEIPT_FORMULA}.graph.json"),
+            &format!(r"\\?\{WINDOWS_RECEIPT_FORMULA}"),
+            &WINDOWS_CANONICAL_STAGING[4..],
+        ] {
+            assert!(staging_contains(&staging, Path::new(receipt)), "{receipt}");
+        }
+    }
+
+    #[test]
+    fn verbatim_unc_staging_contains_unc_receipt_spelling() {
+        let staging = spellings(
+            r"\\server\share\ws\.sc-compose-pour-1-0",
+            r"\\?\UNC\server\share\ws\.sc-compose-pour-1-0",
+        );
+        assert!(staging_contains(
+            &staging,
+            Path::new(r"\\server\share\ws\.sc-compose-pour-1-0\f.formula.toml")
+        ));
+    }
+
+    #[test]
+    fn paths_outside_staging_are_not_contained() {
+        let staging = spellings(WINDOWS_CANONICAL_STAGING, WINDOWS_CANONICAL_STAGING);
+        let (outside_root, _) = WINDOWS_CANONICAL_STAGING[4..]
+            .rsplit_once('\\')
+            .expect("staging parent");
+        for path in [
+            // Sibling staging directories sharing a name prefix.
+            format!(
+                "{}0\\plan-fix.formula.toml",
+                &WINDOWS_CANONICAL_STAGING[4..]
+            ),
+            format!(
+                "{}-x\\plan-fix.formula.toml",
+                &WINDOWS_CANONICAL_STAGING[4..]
+            ),
+            format!("{outside_root}\\plan-fix.formula.toml"),
+            r"D:\Users\runneradmin\plan-fix.formula.toml".to_owned(),
+            "plan-fix.formula.toml".to_owned(),
+        ] {
+            assert!(!staging_contains(&staging, Path::new(&path)), "{path}");
+        }
+        assert!(!staging_contains(&[String::new()], Path::new("anything")));
+    }
+
+    #[test]
+    fn hosted_windows_receipt_flags_both_ephemeral_fields() {
+        let staging = controlled_staging(
+            r"C:\Users\RUNNER~1\AppData\Local\Temp\x\.sc-compose-pour-212-0",
+            WINDOWS_CANONICAL_STAGING,
+        );
+        let receipt = |formula: &str| -> BeadComposeReceipt {
+            serde_json::from_value(json!({
+                "schema": "sc-compose/beads/v1",
+                "operation": "pour",
+                "rendered_formula": formula,
+                "outcome": "succeeded",
+                "graph": {
+                    "mode": "pour", "formula": "plan-fix", "revision": "sha256:fb4897d9ac390385c62c7012c02b8c003aeceac7bbdcabbbd944c32865fa44cc",
+                    "parent": "cli-73p", "ids": {}, "nodes": [], "edges": [],
+                    "plan_path": format!("{formula}.graph.json")
+                },
+                "stages": []
+            }))
+            .expect("receipt")
+        };
+        assert_eq!(
+            staging.ephemeral_fields(&receipt(WINDOWS_RECEIPT_FORMULA)),
+            [RENDERED_FORMULA_FIELD, PLAN_PATH_FIELD]
+        );
+        assert!(
+            staging
+                .ephemeral_fields(&receipt(r"C:\Users\runneradmin\kept.formula.toml"))
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn real_staging_directory_flags_canonical_children_and_is_removed() {
+        let dir = std::env::temp_dir().join(format!(
+            "sc-compose-staging-unit-{}-{}",
+            std::process::id(),
+            line!()
+        ));
+        std::fs::create_dir(&dir).expect("create staging");
+        let staging = DirectStaging::new(dir.clone()).expect("staging");
+        let canonical: PathBuf = std::fs::canonicalize(&dir).expect("canonical");
+        assert!(staging.contains(&dir.join("f.formula.toml")));
+        assert!(staging.contains(&canonical.join("f.formula.toml")));
+        assert!(!staging.contains(&dir.with_extension("other").join("f.formula.toml")));
+        drop(staging);
+        assert!(!dir.exists(), "staging must be removed on drop");
+    }
+
+    #[test]
+    fn unresolvable_staging_directory_is_an_explicit_error() {
+        let missing = std::env::temp_dir().join(format!(
+            "sc-compose-staging-missing-{}-{}",
+            std::process::id(),
+            line!()
+        ));
+        assert!(DirectStaging::new(missing).is_err());
+    }
 
     #[test]
     fn recovery_commands_ignore_missing_reworded_and_unrelated_stderr() {
