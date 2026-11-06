@@ -53,6 +53,24 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
             if str(step.get("uses", "")).startswith("actions/upload-artifact"):
                 self.assertEqual(step["with"]["if-no-files-found"], "error")
 
+    def test_each_wheel_is_installed_and_tested_before_the_upload(self):
+        steps = self.jobs["matrix-wheels"]["steps"]
+        names = [s.get("name", "") for s in steps]
+        install = next(i for i, n in enumerate(names) if n.startswith("Install the exact wheel"))
+        upload = next(i for i, s in enumerate(steps) if str(s.get("uses", "")).startswith("actions/upload-artifact"))
+        builds = [i for i, n in enumerate(names) if n.startswith("Build")]
+        self.assertTrue(builds and max(builds) < install < upload)
+        for dist in self.jobs["matrix-wheels"]["strategy"]["matrix"]["dist"]:
+            self.assertTrue((ROOT / dist["source"] / dist["regression"]).is_file())
+
+    def test_each_cli_archive_is_extracted_and_run_before_the_upload(self):
+        steps = self.jobs["matrix-rust"]["steps"]
+        names = [s.get("name", "") for s in steps]
+        smoke = names.index("Extract the exact archive and run the native CLI")
+        upload = next(i for i, s in enumerate(steps) if str(s.get("uses", "")).startswith("actions/upload-artifact"))
+        self.assertLess(names.index("Package manifest-declared release archive"), smoke)
+        self.assertLess(smoke, upload)
+
     def test_collect_waits_for_every_cell_producer(self):
         self.assertEqual(
             set(self.jobs["matrix-collect"]["needs"]),

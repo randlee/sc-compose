@@ -178,6 +178,39 @@ jobs:
               env.write(f"ARCHIVE={archive}\n")
           PY
 
+      - name: Extract the exact archive and run the native CLI
+        shell: bash
+        env:
+          CANDIDATE_VERSION: ${{ needs.matrix-plan.outputs.version }}
+          CELL_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import subprocess
+          import tarfile
+          import zipfile
+          from pathlib import Path
+
+          archive = Path(os.environ["ARCHIVE"])
+          destination = Path(os.environ["RUNNER_TEMP"]) / f"cli-{os.environ['CELL_TARGET']}"
+          destination.mkdir(parents=True)
+          if archive.name.endswith(".tar.gz"):
+              with tarfile.open(archive) as payload:
+                  payload.extractall(destination)
+          else:
+              with zipfile.ZipFile(archive) as payload:
+                  payload.extractall(destination)
+          binary = next(destination.glob("*/bin/sc-compose*"))
+          version = os.environ["CANDIDATE_VERSION"]
+          reported = subprocess.run([str(binary), "--version"], check=True, capture_output=True, text=True).stdout
+          if version not in reported:
+              raise SystemExit(f"{binary.name} --version reported {reported!r}, not {version}")
+          helped = subprocess.run([str(binary), "--help"], check=True, capture_output=True, text=True).stdout
+          if "Standalone template composition CLI" not in helped:
+              raise SystemExit("sc-compose --help did not describe the CLI")
+          PY
+
       - name: Upload the Rust CLI archive
         uses: actions/upload-artifact@v4
         with:
@@ -194,9 +227,9 @@ jobs:
       fail-fast: false
       matrix:
         dist:
-          - {name: sc-compose, source: bindings/python, cargo_manifest: bindings/python/Cargo.toml}
-          - {name: sc-sha, source: bindings/sc-sha-python, cargo_manifest: bindings/sc-sha-python/Cargo.toml}
-          - {name: sc-composer-beads, source: bindings/sc-composer-beads-python, cargo_manifest: bindings/sc-composer-beads-python/Cargo.toml}
+          - {name: sc-compose, source: bindings/python, cargo_manifest: bindings/python/Cargo.toml, module: sc_compose, regression: tests/test_smoke.py}
+          - {name: sc-sha, source: bindings/sc-sha-python, cargo_manifest: bindings/sc-sha-python/Cargo.toml, module: sc_sha, regression: tests/test_compatibility.py}
+          - {name: sc-composer-beads, source: bindings/sc-composer-beads-python, cargo_manifest: bindings/sc-composer-beads-python/Cargo.toml, module: sc_composer_beads, regression: tests/test_smoke.py}
         coordinate:
           - {id: linux-x64, os: ubuntu-latest, zig: false}
           - {id: linux-arm64, os: ubuntu-24.04-arm, zig: true}
@@ -224,6 +257,39 @@ jobs:
         run: >-
           maturin build --release --locked --manifest-path ${{ matrix.dist.cargo_manifest }} --out dist
           --compatibility manylinux2014 --zig
+      # Python 3.11 (setup-python-release-build) installs every abi3-cp39 wheel and is the
+      # interpreter ADR-0025 requires for the Windows ARM64 cp311 exception.
+      - name: Install the exact wheel in a clean environment and run the binding regression
+        shell: bash
+        env:
+          DIST_MODULE: ${{ matrix.dist.module }}
+          DIST_SOURCE: ${{ matrix.dist.source }}
+          DIST_REGRESSION: ${{ matrix.dist.regression }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import subprocess
+          import sys
+          import venv
+          from pathlib import Path
+
+          wheels = sorted(Path("dist").glob("*.whl"))
+          if len(wheels) != 1:
+              raise SystemExit(f"expected exactly one wheel in dist, found {[w.name for w in wheels]}")
+          root = Path(os.environ["RUNNER_TEMP"]) / "wheel-env"
+          venv.create(root, with_pip=True, clear=True)
+          python = root / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+          def run(*args, cwd=None):
+              subprocess.run([str(python), *args], check=True, cwd=cwd)
+
+          run("-m", "pip", "install", "--force-reinstall", str(wheels[0].resolve()), "pytest==8.4.2")
+          run("-c", f"import {os.environ['DIST_MODULE']}")
+          # Run from the binding directory so the installed wheel, not the source tree, is imported.
+          run("-m", "pytest", "-q", "-p", "no:cacheprovider", os.environ["DIST_REGRESSION"], cwd=os.environ["DIST_SOURCE"])
+          PY
+
       - name: Upload the wheel
         uses: actions/upload-artifact@v4
         with:
@@ -274,6 +340,24 @@ jobs:
           PY
           (cd release-files && sha256sum -- * | LC_ALL=C sort -k2) > checksums.txt
           cat checksums.txt
+
+      - name: Record the post-run V7 verifier invocation
+        shell: bash
+        env:
+          CANDIDATE_VERSION: ${{ needs.matrix-plan.outputs.version }}
+        run: |
+          # Completed-run identity, expiry and digest binding can only be checked after this
+          # run completes: download release-files, release-checksums and the run/artifact JSON.
+          {
+            echo "### V7 post-run verification (not run by this job)"
+            echo '```sh'
+            echo "gh api repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} > run.json"
+            echo "gh api repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts > artifacts.json"
+            echo "gh run download ${GITHUB_RUN_ID} -n release-files -D staging -R ${GITHUB_REPOSITORY}"
+            echo "gh run download ${GITHUB_RUN_ID} -n release-checksums -D checksums -R ${GITHUB_REPOSITORY}"
+            echo "python3 scripts/check_install_matrix.py --run run.json --artifacts artifacts.json --checksums checksums/checksums.txt --staging staging --repository ${GITHUB_REPOSITORY} --workflow .github/workflows/go-native-preflight.yml --candidate-sha ${GITHUB_SHA} --version ${CANDIDATE_VERSION}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the release files
         uses: actions/upload-artifact@v4
