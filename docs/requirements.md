@@ -1844,9 +1844,10 @@ User-directed docli behavior is also recorded in anchors ANC-014–016.
 The producer is sc-compose reference --json; consumers extract payload.model.
 Use sc-docli as an external CLI-documentation tool, never a workspace crate
 dependency or a competing in-process documentation engine. Generate and check
-references from the actual Clap model. Register the freshness check through the
-existing sc-publish consumer-preflight extension/config; when Release Preflight
-runs it, stale references fail the preflight. Adopt canonical kit inputs and
+references from the actual Clap model. Every publish path invokes the tool
+through supported sc-publish preflight checks; stale CLI references block
+publication. Register the freshness check through the existing sc-publish
+consumer-preflight extension/config. Adopt canonical kit inputs and
 installed helpers without local forks. A deterministic stale-reference case
 and a real consumer-preflight invocation verify the integration; installer
 capability alone is insufficient.
@@ -1863,11 +1864,16 @@ It verifies the pinned docli is available and that the generated CLI reference
 matches the current `payload.model`; the controlled consumer test passes with
 fresh outputs and fails on stale outputs without rewriting them. The configured
 publish plan enumerates six active paths and the tests verify those entries,
-the shared Release Preflight runner, and the declared check. These facts do not
-show that each individual publish workflow is gated: direct manual dispatch of
-an individual publish workflow does not inherit a `needs` dependency on Release
-Preflight. FR-26 therefore makes no universal mechanical-enforcement claim for
-that path.
+the shared Release Preflight runner, and the declared check.
+
+Implementation limitation, recorded separately and not a weaker requirement:
+the evidence above does not yet show that each individual publish workflow is
+gated, because direct manual dispatch of an individual publish workflow does
+not inherit a `needs` dependency on Release Preflight. The every-publish
+guarantee above stays in force and Phase V does not claim it is implemented.
+If the existing supported extension points cannot satisfy every publish path,
+that is a user decision; the requirement is not reworded to Release
+Preflight-only coverage.
 
 ### FR-27: Released Analyzer Migration and Existing Violations
 
@@ -2511,8 +2517,8 @@ review round or duplicate implementation obligation.
 | ANC-003 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
 | ANC-004 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
 | ANC-014 | FR-26 | V8 | Carried: V4 supplies the live model exporter; V8 supplies the external docli generator. |
-| ANC-015 | FR-26 | V8 | Carried: V8 owns the declared consumer-preflight check, run by Release Preflight through the existing sc-publish extension, and its current/stale tests; individual publish workflows are not mechanically gated; V6 consumes them on final references. |
-| ANC-016 | FR-26 | V8 | Carried: V8 owns the declared consumer-preflight check, run by Release Preflight through the existing sc-publish extension, and its current/stale tests; individual publish workflows are not mechanically gated; V6 consumes them on final references. |
+| ANC-015 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. Implementation limitations are recorded under FR-26, not as a weaker guarantee. |
+| ANC-016 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. Implementation limitations are recorded under FR-26, not as a weaker guarantee. |
 | ANC-023 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
 | ANC-031 | FR-27 | V4 | Carried: codespell passes; legitimate project terms attributed/allowlisted. |
 | ANC-033 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
