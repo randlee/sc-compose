@@ -42,14 +42,12 @@ jobs:
         run: cargo install uniffi --version '=0.31.2' --features cli --bin uniffi-bindgen --locked
       - name: Verify generated Rust scaffolding
         run: python3 scripts/generate_sc_sha_scaffolding.py --mode check
-      - name: Cache generated Go bindings
-        id: generated-cache
+      - name: Cache pinned UniFFI Go generator
         uses: actions/cache@v6
         with:
-          path: bindings/sc-sha-go/go
-          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-runtime-v0.31.2-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
-      - name: Generate bindings on Ubuntu when cache misses
-        if: steps.generated-cache.outputs.cache-hit != 'true'
+          path: ~/.cargo/bin/uniffi-bindgen-go
+          key: uniffi-bindgen-go-v0.7.1-v0.31.0-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/scripts/install_uniffi_bindgen_go.py') }}
+      - name: Generate Go bindings
         run: |
           python3 .github/scripts/install_uniffi_bindgen_go.py
           uniffi-bindgen-go --out-dir bindings/sc-sha-go/go --config bindings/sc-sha-go/uniffi.toml bindings/sc-sha-go/src/sc_sha_go.udl
