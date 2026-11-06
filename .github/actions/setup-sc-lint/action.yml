@@ -1,15 +1,13 @@
 name: Setup sc-lint
 description: >-
   Install and verify the pinned sc-lint release and sibling analyzers. The
-  default repository and version are the deliberate shared ecosystem pin for
-  every kit consumer; the source archive's .just/*.py utilities are copied
-  into the workspace's .just/ directory (the layout sc-lint's Python helpers
-  require).
+  native CLI and Python package use the selected release. The legacy 0.4.0
+  source helpers remain pinned separately for the existing consumer checks.
 inputs:
   version:
     description: Released sc-lint version to install (deliberate ecosystem pin)
     required: false
-    default: "0.4.0"
+    default: "0.8.6"
   repository:
     description: GitHub repository slug hosting sc-lint releases
     required: false
@@ -44,6 +42,7 @@ runs:
           exit 1
         }
         tar -xzf "${RUNNER_TEMP}/${archive}" -C "${install_dir}"
+        install_dir="${install_dir}/sc-lint_${SC_LINT_VERSION}_${target}/bin"
         test -x "${install_dir}/sc-lint" || {
           echo "sc-lint setup: release archive is missing executable sc-lint" >&2
           exit 1
@@ -78,6 +77,7 @@ runs:
           throw "sc-lint setup: could not download $url; verify that release v$env:SC_LINT_VERSION publishes this runner asset. $($_.Exception.Message)"
         }
         Expand-Archive -Path $archivePath -DestinationPath $installDir -Force
+        $installDir = Join-Path $installDir "sc-lint_$env:SC_LINT_VERSION`_$target\bin"
         foreach ($binary in @('sc-lint.exe', 'sc-lint-boundary.exe', 'sc-lint-portability.exe', 'sc-lint-runtime.exe')) {
           if (-not (Test-Path (Join-Path $installDir $binary))) {
             throw "sc-lint setup: release archive is missing sibling backend $binary"
@@ -94,7 +94,7 @@ runs:
         set -euo pipefail
         version_json="$(sc-lint version --json)"
         jq -e --arg expected "${SC_LINT_VERSION}" \
-          '.ok == true and .data.crate_version == $expected' \
+          '.ok == true and .data.version == $expected' \
           <<<"${version_json}" >/dev/null || {
           echo "sc-lint setup: version contract failed; expected ${SC_LINT_VERSION}" >&2
           exit 1
@@ -107,14 +107,30 @@ runs:
         SC_LINT_REPOSITORY: ${{ inputs.repository }}
       run: |
         $value = sc-lint version --json | ConvertFrom-Json
-        if (-not $value.ok -or $value.data.crate_version -ne $env:SC_LINT_VERSION) {
-          throw "sc-lint setup: expected version $env:SC_LINT_VERSION, got $($value.data.crate_version)"
+        if (-not $value.ok -or $value.data.version -ne $env:SC_LINT_VERSION) {
+          throw "sc-lint setup: expected version $env:SC_LINT_VERSION, got $($value.data.version)"
         }
+    - name: Install sc-lint Python package
+      shell: bash
+      env:
+        SC_LINT_VERSION: ${{ inputs.version }}
+        SC_LINT_REPOSITORY: ${{ inputs.repository }}
+      run: |
+        set -euo pipefail
+        case "${RUNNER_OS}:${RUNNER_ARCH}" in
+          Linux:X64) wheel_platform="manylinux_2_28_x86_64" ;;
+          macOS:X64) wheel_platform="macosx_11_0_x86_64" ;;
+          macOS:ARM64) wheel_platform="macosx_11_0_arm64" ;;
+          Windows:X64) wheel_platform="win_amd64" ;;
+          *) echo "unsupported runner ${RUNNER_OS}/${RUNNER_ARCH}" >&2; exit 1 ;;
+        esac
+        wheel="sc_lint-${SC_LINT_VERSION}-cp39-abi3-${wheel_platform}.whl"
+        python -m pip install "https://github.com/${SC_LINT_REPOSITORY}/releases/download/v${SC_LINT_VERSION}/${wheel}"
     - name: Materialize pinned sc-lint Python utilities (Unix)
       if: runner.os != 'Windows'
       shell: bash
       env:
-        SC_LINT_VERSION: ${{ inputs.version }}
+        SC_LINT_VERSION: "0.4.0"
         SC_LINT_REPOSITORY: ${{ inputs.repository }}
       run: |
         set -euo pipefail
@@ -133,7 +149,7 @@ runs:
       if: runner.os == 'Windows'
       shell: pwsh
       env:
-        SC_LINT_VERSION: ${{ inputs.version }}
+        SC_LINT_VERSION: "0.4.0"
         SC_LINT_REPOSITORY: ${{ inputs.repository }}
       run: |
         $ErrorActionPreference = 'Stop'

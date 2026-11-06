@@ -57,8 +57,8 @@ fn sc_lint_version_is_pinned_to_the_bootstrap_contract() {
     );
     let value: Value = serde_json::from_slice(&output.stdout).expect("version JSON");
     assert_eq!(value["ok"], true);
-    assert_eq!(value["data"]["contract_schema"], "v1");
-    assert_eq!(value["data"]["crate_version"], "0.4.0");
+    assert_eq!(value["data"]["contract_schema"], "sc-lint-version-v1");
+    assert_eq!(value["data"]["version"], "0.8.6");
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn sc_lint_discovers_repository_and_fixture_roots_without_config_error() {
             value["error"]["code"], "CLI.CONFIG_ERROR",
             "root discovery must not fail configuration: {value}"
         );
-        assert_eq!(value["data"]["version"], "0.4.0");
+        assert_eq!(value["data"]["version"], "0.8.6");
         assert!(value["data"]["scanned_crates"].as_u64().is_some());
     }
 
