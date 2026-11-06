@@ -82,7 +82,7 @@ pub(super) fn emit_render_output(
         }
         println!();
         println!("{rendered_text}");
-    } else {
+    } else if output_path.is_none() {
         let mut stdout = std::io::stdout().lock();
         checked_output
             .emit(&mut stdout)
