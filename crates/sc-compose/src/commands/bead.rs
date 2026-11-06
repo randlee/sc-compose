@@ -239,29 +239,24 @@ fn create_direct_staging(root: &Path) -> Result<DirectStaging, BeadComposeError>
     })
 }
 
-fn direct_pour_request(
+fn direct_variables(
     args: &BeadRequestArgs,
-    operation: BeadOperation,
-) -> Result<(BeadComposeRequest, DirectStaging), BeadComposeError> {
-    let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
-    if operation != BeadOperation::Pour {
-        return Err(bad("a direct formula is supported only by bead pour".into()));
-    }
+) -> Result<std::collections::BTreeMap<String, String>, BeadComposeError> {
     let mut variables = std::collections::BTreeMap::new();
     for (key, value) in &args.vars {
         if variables.insert(key.clone(), value.clone()).is_some() {
             return Err(BeadComposeError::BeadVariableKeyDuplicate { key: key.clone() });
         }
     }
-    let root = std::env::current_dir().map_err(|source| BeadComposeError::DirectStagingFailed {
-        path: PathBuf::from("."),
-        source: Box::new(source),
-    })?;
-    let operand = args
-        .formula
-        .as_deref()
-        .ok_or_else(|| bad("formula is required".into()))?;
-    let mut source = resolve_direct_formula(&root, operand).ok_or_else(|| {
+    Ok(variables)
+}
+
+/// Resolves the direct formula operand to its source path and canonical spelling.
+fn resolve_direct_source(
+    root: &Path,
+    operand: &str,
+) -> Result<(PathBuf, PathBuf), BeadComposeError> {
+    let source = resolve_direct_formula(root, operand).ok_or_else(|| {
         BeadComposeError::DirectSourceFailed {
             path: PathBuf::from(operand),
             source: Box::new(std::io::Error::new(
@@ -275,6 +270,48 @@ fn direct_pour_request(
             path: source.clone(),
             source: Box::new(error),
         })?;
+    Ok((source, original_source))
+}
+
+/// A bd-rendered pour writes beside an active registry source; otherwise it stays staged.
+fn direct_rendered_formula(
+    args: &BeadRequestArgs,
+    root: &Path,
+    original_source: &Path,
+    registry_file: &str,
+    staged_output: PathBuf,
+) -> PathBuf {
+    if !matches!(args.render_by, BeadRenderByArg::Bd) {
+        return staged_output;
+    }
+    active_formulas(root)
+        .filter(|registry| {
+            original_source
+                .parent()
+                .and_then(|parent| fs::canonicalize(parent).ok())
+                == fs::canonicalize(registry).ok()
+        })
+        .map_or(staged_output, |registry| registry.join(registry_file))
+}
+
+fn direct_pour_request(
+    args: &BeadRequestArgs,
+    operation: BeadOperation,
+) -> Result<(BeadComposeRequest, DirectStaging), BeadComposeError> {
+    let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
+    if operation != BeadOperation::Pour {
+        return Err(bad("a direct formula is supported only by bead pour".into()));
+    }
+    let variables = direct_variables(args)?;
+    let root = std::env::current_dir().map_err(|source| BeadComposeError::DirectStagingFailed {
+        path: PathBuf::from("."),
+        source: Box::new(source),
+    })?;
+    let operand = args
+        .formula
+        .as_deref()
+        .ok_or_else(|| bad("formula is required".into()))?;
+    let (mut source, original_source) = resolve_direct_source(&root, operand)?;
     let canonical_root =
         fs::canonicalize(&root).map_err(|error| BeadComposeError::DirectStagingFailed {
             path: root.clone(),
@@ -295,21 +332,14 @@ fn direct_pour_request(
     } else {
         "toml"
     };
-    let staged_output = dir.join(format!("{name}.formula.{extension}"));
-    let rendered_formula = if matches!(args.render_by, BeadRenderByArg::Bd) {
-        active_formulas(&root)
-            .filter(|registry| {
-                original_source
-                    .parent()
-                    .and_then(|parent| fs::canonicalize(parent).ok())
-                    == fs::canonicalize(registry).ok()
-            })
-            .map_or(staged_output, |registry| {
-                registry.join(format!("{name}.formula.{extension}"))
-            })
-    } else {
-        staged_output
-    };
+    let registry_file = format!("{name}.formula.{extension}");
+    let rendered_formula = direct_rendered_formula(
+        args,
+        &root,
+        &original_source,
+        &registry_file,
+        dir.join(&registry_file),
+    );
     let request = BeadComposeRequest {
         schema: BEADS_SCHEMA_V1.into(),
         operation,
