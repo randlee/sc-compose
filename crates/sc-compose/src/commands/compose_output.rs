@@ -87,7 +87,7 @@ pub(super) fn emit_render_output(
         }
         println!();
         println!("{rendered_text}");
-    } else {
+    } else if output_path.is_none() {
         emit_stdout(checked_output, add_stdout_newline)?;
     }
 

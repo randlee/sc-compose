@@ -19,17 +19,18 @@ Each message is cited by its uuid and UTC time.
 | D3, D7, D8 (parent line endings) | explicit user approval | `610cd975`, 2026-11-06T22:11:59Z: "agree" to each |
 | D8 trailing line break | explicit user approval | session `9ec5e645`, message `370d1803-5f65-4489-bbf6-6d66d8d435e3`, 2026-11-06T22:58:33.362Z: "D8 yes" |
 | D9 | explicit user approval | `610cd975`: "bug --> Multi-pass" |
-| D2, D4, D5, D6, D10, D11, D12, and the D8 points other than line endings | delegated contract decision | `8251bf87`: "We need to make appropriate decisions, create req/adr to cover any ambiguity and fix any issues"; `7bf5ef58`, 2026-11-06T22:06:35Z: "There should be no inconclusive results" |
+| D4 FR-24.2 exception | explicit user approval | `5986cdba`, 2026-11-06T23:05:52Z: "I will approve all", after the impact analysis identified D4 as a breaking output change |
+| Initial contract decision for D2, D4, D5, D6, D10, D11, D12, and the D8 points other than line endings | delegated contract decision | `8251bf87`: "We need to make appropriate decisions, create req/adr to cover any ambiguity and fix any issues"; `7bf5ef58`, 2026-11-06T22:06:35Z: "There should be no inconclusive results" |
 
 Approval of the FR-24.2 exceptions:
 
 - **D7, D8 line endings and trailing line break, D9:** the user explicitly approved each behaviour
   change. That approval is recorded as the exception approval.
-- **D4 (`--output` no longer echoes to stdout):** this is a delegated
-  decision. The user has not explicitly approved its FR-24.2 exception, and
-  FR-24.2 says adding an entry requires user approval. The D4 fix must not add
-  its `approved-exceptions.json` entry until that explicit approval is
-  recorded.
+- **D4 (`--output` no longer echoes to stdout):** the user explicitly approved
+  this FR-24.2 exception in session `9ec5e645`, message `5986cdba`, at
+  `2026-11-06T23:05:52Z`, after the impact analysis identified the output
+  change. Its `approved-exceptions.json` entry records that approval and
+  links issue #998.
 
 ## Context
 
@@ -156,9 +157,9 @@ An include target that cannot be read as valid text fails with
 
 ## Exception receipt format
 
-No `approved-exceptions.json` exists yet. The Phase V plan names its location
-as `tests/fixtures/render-regressions/approved-exceptions.json`. Every fix
-owner uses this single format, so entries compose: a JSON object holding one
+The Phase V plan names the shared file as
+`tests/fixtures/render-regressions/approved-exceptions.json`. Every fix owner
+uses this single format, so entries compose: a JSON object holding one
 `exceptions` array, sorted by `id`.
 
 ```json
@@ -193,7 +194,8 @@ Rules for the format:
 - `after` is the fixed output.
 - `regression_test` is deterministic and uses controlled inputs.
 
-The first fix to land creates the file.
+The first fix creates the file; later fixes append their entries in `id`
+order.
 
 ## Consequences
 
@@ -202,8 +204,8 @@ The first fix to land creates the file.
   `ERR_RENDER_WRITE` for these causes must update. Release notes list both.
 - D4, D7, D8 and D9 change schema-less output. Each fix PR adds an
   `approved-exceptions.json` entry in the format above, with its linked issue,
-  and a regression test with controlled inputs. For D4 and the D8
-  trailing-line-break point, the entry waits for explicit user approval (see
-  Approval provenance).
+  and a regression test with controlled inputs. D4's explicit approval is
+  recorded above; the D8 trailing-line-break point still requires explicit
+  user approval before its entry is added.
 - D5, D6, D11, D12 need no code change, only requirement text and pinning
   tests where none exist.
