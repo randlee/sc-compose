@@ -29,8 +29,8 @@ pub(crate) struct ContainmentEscape {
 /// Canonicalize a candidate and enforce component-aware root containment.
 ///
 /// Existing candidates are checked using their canonical path, which follows
-/// symlinks. Missing candidates are checked using normalized lexical paths so
-/// callers can preserve their existing not-found or filesystem diagnostics.
+/// symlinks. For missing candidates, resolve available symlink components
+/// before checking the boundary: an escape takes precedence over not-found.
 /// Canonical roots and caller-preserved lexical aliases are both accepted as
 /// containment boundaries; missing-path checks normalize both candidates and
 /// roots before comparing them.
@@ -60,17 +60,66 @@ pub(crate) fn canonicalize_within_roots(
         }
         Ok(_) => Err(ContainmentEscape { candidate }),
         Err(source) => {
-            let normalized_candidate = normalize_path(&candidate);
+            let normalized_candidate =
+                resolve_missing_symlinks(&candidate).unwrap_or_else(|| normalize_path(&candidate));
             let normalized_roots = approved_roots
                 .iter()
-                .map(|root| normalize_path(root))
+                .flat_map(|root| {
+                    [Some(normalize_path(root)), resolve_missing_symlinks(root)]
+                        .into_iter()
+                        .flatten()
+                })
                 .collect::<Vec<_>>();
-            if !is_within_any(&normalized_candidate, &normalized_roots) {
+            if !is_within_any(&normalize_path(&candidate), &normalized_roots)
+                || !is_within_any(&normalized_candidate, &normalized_roots)
+            {
                 return Err(ContainmentEscape { candidate });
             }
             Ok(Canonicalization::Missing { candidate, source })
         }
     }
+}
+
+/// Resolve symlinks in the existing prefix even when the final target is missing.
+/// A bounded traversal leaves loop diagnostics to the original canonicalization error.
+fn resolve_missing_symlinks(candidate: &Path) -> Option<PathBuf> {
+    const MAX_SYMLINKS: usize = 40;
+    let mut pending = candidate.to_path_buf();
+    for _ in 0..=MAX_SYMLINKS {
+        let mut prefix = PathBuf::new();
+        let mut replacement = None;
+        for (index, component) in pending.components().enumerate() {
+            match component {
+                Component::CurDir => continue,
+                Component::ParentDir => {
+                    prefix.pop();
+                    continue;
+                }
+                _ => prefix.push(component.as_os_str()),
+            }
+            if std::fs::symlink_metadata(&prefix)
+                .is_ok_and(|metadata| metadata.file_type().is_symlink())
+            {
+                let target = std::fs::read_link(&prefix).ok()?;
+                prefix.pop();
+                let mut next = if target.is_absolute() {
+                    target
+                } else {
+                    prefix.join(target)
+                };
+                for rest in pending.components().skip(index + 1) {
+                    next.push(rest.as_os_str());
+                }
+                replacement = Some(next);
+                break;
+            }
+        }
+        match replacement {
+            Some(next) => pending = next,
+            None => return Some(normalize_path(&prefix)),
+        }
+    }
+    None
 }
 
 fn is_within_any(candidate: &Path, roots: &[PathBuf]) -> bool {
