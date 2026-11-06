@@ -867,11 +867,17 @@ fn graph_capture_overflow_reports_the_actual_stream_limit() {
         let output = w.root.join("oversized-output");
         fs::write(&output, vec![b'x'; limit + 1]).unwrap();
         let bd = w.root.join("fake-bd");
+        let hold = w.root.join("hold-open");
+        // After emitting limit+1 bytes the fake stays alive on a FIFO nobody writes, with no
+        // timer: it can only end when the runner terminates it on the cap breach, so the
+        // terminate path stays exercised without a sleep or any timing dependence.
         fake_exec::install(
             &bd,
             &format!(
-                "#!/bin/sh\ncat '{}'{redirect}\nsleep 60\n",
-                output.display()
+                "#!/bin/sh\ncat '{}'{redirect}\nmkfifo '{}'\nread _ < '{}'\n",
+                output.display(),
+                hold.display(),
+                hold.display()
             ),
         );
         w.req.bd_executable = Some(bd);
