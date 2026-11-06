@@ -208,7 +208,7 @@ result = render_template("Hello {{ name }}", {"name": "world"})
 using the same format detection as the CLI. Malformed JSON raises
 `ScRenderError` with code `ERR_RENDER_JSON_MALFORMED`.
 
-Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
+Pre-built wheels for macOS, Linux, Windows (Python 3.9+; Windows ARM64 requires 3.11+).
 
 ### Go Bindings
 
