@@ -34,7 +34,11 @@ must be on `PATH` (or named by `bd_executable`) for every operation except
 
 The `preview-*` operations never write to Beads; run them first and read the
 receipt. `pour` and `attach` write, and only with the exact authorization value
-`CreatePersistentBeads`.
+`CreatePersistentBeads`. The direct `bead pour FORMULA` command supplies this
+value itself: invoking that command authorizes creation of persistent beads.
+The JSON request form must provide the value explicitly. Direct-form discovery
+uses `bd` on `PATH`; `bd_executable` belongs to the mutually exclusive JSON
+request form.
 
 ## Two ways to build structure
 

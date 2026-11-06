@@ -8,9 +8,9 @@ use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadComposeRequest, BeadDiagnostic,
     BeadErrorClass, BeadExecutionOptions, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode,
-    BeadRenderBy, BeadStageOutcome, FormulaName, PourAuthorization, RefusedBeadComposeReceipt,
-    RequestParseOutcome, execute_bead_request_with_options_and_diagnostics,
-    parse_request_for_operation,
+    BeadRenderBy, BeadStageOutcome, CommandSpec, FormulaName, PourAuthorization, ProcessRunner,
+    RefusedBeadComposeReceipt, RequestParseOutcome, StdProcessRunner,
+    execute_bead_request_with_options_and_diagnostics, parse_request_for_operation,
 };
 
 use crate::CommandError;
@@ -374,20 +374,29 @@ fn write_source_snapshot(
 }
 
 fn active_formulas(root: &Path) -> Option<PathBuf> {
-    std::process::Command::new("bd")
-        .args(["where", "--json"])
-        .current_dir(root)
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .and_then(|output| serde_json::from_slice::<serde_json::Value>(&output.stdout).ok())
-        .and_then(|value| {
-            value
-                .get("path")
-                .and_then(serde_json::Value::as_str)
-                .map(PathBuf::from)
+    active_formulas_with_runner(root, Path::new("bd"), &StdProcessRunner)
+}
+
+fn active_formulas_with_runner(
+    root: &Path,
+    executable: &Path,
+    runner: &dyn ProcessRunner,
+) -> Option<PathBuf> {
+    let output = runner
+        .run(&CommandSpec {
+            executable: executable.to_path_buf(),
+            args: vec!["where".into(), "--json".into()],
+            working_directory: root.to_path_buf(),
         })
-        .map(|path| path.join("formulas"))
+        .ok()?;
+    if output.exit_status != Some(0) {
+        return None;
+    }
+    let value: serde_json::Value = serde_json::from_str(&output.stdout).ok()?;
+    value
+        .get("path")
+        .and_then(serde_json::Value::as_str)
+        .map(|path| PathBuf::from(path).join("formulas"))
 }
 
 fn resolve_direct_formula(root: &Path, operand: &str) -> Option<PathBuf> {
@@ -440,15 +449,26 @@ fn platform_home_directory() -> Option<PathBuf> {
 }
 
 fn native_formula_source(root: &Path, operand: &str) -> Option<PathBuf> {
-    let output = std::process::Command::new("bd")
-        .args(["formula", "list", "--json"])
-        .current_dir(root)
-        .output()
+    native_formula_source_with_runner(root, operand, Path::new("bd"), &StdProcessRunner)
+}
+
+fn native_formula_source_with_runner(
+    root: &Path,
+    operand: &str,
+    executable: &Path,
+    runner: &dyn ProcessRunner,
+) -> Option<PathBuf> {
+    let output = runner
+        .run(&CommandSpec {
+            executable: executable.to_path_buf(),
+            args: vec!["formula".into(), "list".into(), "--json".into()],
+            working_directory: root.to_path_buf(),
+        })
         .ok()?;
-    if !output.status.success() {
+    if output.exit_status != Some(0) {
         return None;
     }
-    let values: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
+    let values: serde_json::Value = serde_json::from_str(&output.stdout).ok()?;
     values
         .as_array()?
         .iter()
@@ -700,6 +720,53 @@ mod tests {
     };
     use serde_json::json;
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn direct_discovery_uses_controlled_runner_and_selected_executable() {
+        use sc_composer_beads::{CommandSpec, ProcessOutput, ProcessRunner};
+        use std::{io, sync::Mutex, time::Duration};
+        struct Fake {
+            calls: Mutex<Vec<CommandSpec>>,
+        }
+        impl ProcessRunner for Fake {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                self.calls.lock().unwrap().push(spec.clone());
+                let stdout = if spec.args[0] == "where" {
+                    r#"{"path":"/registry"}"#
+                } else {
+                    r#"[{"name":"found","source":"/registry/formulas/found.formula.toml"}]"#
+                };
+                Ok(ProcessOutput {
+                    exit_status: Some(0),
+                    stdout: stdout.into(),
+                    stderr: String::new(),
+                    elapsed: Duration::ZERO,
+                })
+            }
+        }
+        let fake = Fake {
+            calls: Mutex::new(Vec::new()),
+        };
+        let root = Path::new("/workspace");
+        let executable = Path::new("/chosen/bd");
+        assert_eq!(
+            super::active_formulas_with_runner(root, executable, &fake),
+            Some(PathBuf::from("/registry/formulas"))
+        );
+        assert_eq!(
+            super::native_formula_source_with_runner(root, "found", executable, &fake),
+            Some(PathBuf::from("/registry/formulas/found.formula.toml"))
+        );
+        let calls = fake.calls.lock().unwrap();
+        assert_eq!(calls.len(), 2);
+        assert!(
+            calls
+                .iter()
+                .all(|call| call.executable == executable && call.working_directory == root)
+        );
+        assert_eq!(calls[0].args, ["where", "--json"]);
+        assert_eq!(calls[1].args, ["formula", "list", "--json"]);
+    }
 
     /// Staging directory spelling of the hosted Windows failure (PR954 run
     /// 42196008975): `fs::canonicalize` returns the verbatim form.
