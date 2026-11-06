@@ -3,7 +3,7 @@
 `sc-compose` provides Python bindings for the standalone template-composition
 engine from the `sc-compose` project.
 
-The package targets Python 3.11+ and exposes the composition APIs as a native
+The package targets Python 3.9+ (Windows ARM64 wheels start at Python 3.11) and exposes the composition APIs as a native
 extension built with `maturin` and `pyo3`.
 
 ## Install
