@@ -151,10 +151,15 @@ state preservation, conditional selection and one atomic apply. V1 must
 verify/pin the bd transaction capability before V3's affected apply work;
 that is an implementation dependency, not an unresolved product decision.
 
-The bytes compared under FR-24.24, corpus identity and FUZZ-171 case-to-test
-mapping must be pinned from the preserved sources. Missing evidence remains
-a narrow unresolved acceptance input; it is never treated as a passing test.
-Historical bd probes stay version-qualified.
+The FUZZ-171 cases and the 229-template corpus are unavailable historical
+evidence. They are never counted as recovered, rerun or passing, and their
+recovery is not a prerequisite for any current work. The 2026-11-05 user
+ruling replaces them with bounded, deterministic regressions of the current
+approved contract, owned by V3, with final reruns owned by V7. The only
+remaining pinning obligation is the v1.7.0 byte compatibility compared under
+FR-24.24: those bytes must be pinned from the preserved sources, and missing
+evidence there stays a narrow unresolved acceptance input, never a passing
+test. Historical bd probes stay version-qualified.
 
 ## Consequences
 
