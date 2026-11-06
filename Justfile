@@ -38,11 +38,14 @@ lint target="full": ensure-lint-runtime
 template-contracts:
     {{sc-compose}} lint --root . --target template-contracts --json
 
-# Temporary consumer profile while sc-lint's released full/ci profile is broken
-# (sc-lint#84). Restore `lint full` after its profile fix; identity-literals is
-# also skipped because v0.4.0 crashes on valid Rust unicode escapes.
+# Preserve the legacy fast checks alongside the released native analyzers.
+# Identity literals remain skipped due to the legacy parser's unicode failure.
 lint-ci-consumer: ensure-lint-runtime
-    {{sc-compose}} lint --root . --target fast --json
+    cargo fmt --all --check
+    python3 .just/check_version_sync.py
+    python3 .just/lint_manifests.py
+    python3 .just/lint_codespell.py
+    python3 .just/run_pytests.py
     python3 .just/lint_cargo_deny.py --root .
     cargo shear
     {{sc-compose}} lint --root . --target sc-boundary --json

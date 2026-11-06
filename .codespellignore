@@ -16,3 +16,6 @@ infor
 # Literal evidence identifiers preserved from run4 worker envelopes.
 afile
 caf
+
+# Plan anchor identifier.
+anc

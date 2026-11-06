@@ -39,19 +39,10 @@ fn lint_full_fixture(name: &str, mode: ToolMode) -> TempFixture {
         name,
         target: "lint-full",
     });
-    if matches!(mode, ToolMode::MissingUtilities) {
-        write_fake_cargo(
-            &fixture.path,
-            FakeCargoOptions {
-                xwin_available: false,
-                test_failure: false,
-                fail_closed: false,
-            },
-        );
-    } else {
+    if !matches!(mode, ToolMode::MissingUtilities) {
         materialize_python_tools(&fixture.path, mode);
-        write_fake_tools(&fixture.path, mode);
     }
+    write_fake_tools(&fixture.path, mode);
     fixture
 }
 
@@ -90,11 +81,19 @@ fn lint_full_pass_preserves_profile_envelope_and_report() {
     assert_eq!(payload["raw_payload"]["data"]["profile"], "full");
     assert_eq!(payload["raw_payload"]["data"]["xwin"]["available"], true);
     assert_eq!(payload["raw_payload"]["data"]["xwin"]["included"], true);
-    assert_eq!(payload["raw_payload"]["data"]["step_count"], 14);
+    assert_eq!(payload["raw_payload"]["data"]["step_count"], 16);
     assert_eq!(payload["raw_payload"]["data"]["steps"][0]["name"], "fmt");
     assert_eq!(
-        payload["raw_payload"]["data"]["steps"][13]["name"],
+        payload["raw_payload"]["data"]["steps"][15]["name"],
         "clippy.xwin"
+    );
+
+    assert!(
+        payload["raw_payload"]["data"]["steps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|step| step["status"] == "pass")
     );
 
     assert_report_materialized(&fixture.path, &[COMMAND_ID, "pass", "profile"]);
@@ -118,13 +117,19 @@ fn lint_full_finding_stays_non_pass_with_structured_backend_payload() {
     assert_eq!(payload["raw_payload"]["command"], COMMAND_ID);
     assert_eq!(
         payload["raw_payload"]["error"]["code"],
-        "CLI.BACKEND_EXEC_FAILURE"
+        "profile.steps_failed"
     );
-    assert_eq!(payload["raw_payload"]["error"]["details"]["step"], "deny");
+    let failures = payload["raw_payload"]["error"]["details"]["failed_steps"]
+        .as_array()
+        .expect("failed steps");
+    let deny = failures
+        .iter()
+        .find(|step| step["name"] == "deny")
+        .expect("deny failed");
     assert!(
-        payload["raw_payload"]["error"]["details"]["stdout"]
+        deny["message"]
             .as_str()
-            .expect("structured finding output")
+            .unwrap()
             .contains("LINT-FULL-FINDING-001")
     );
     assert!(
@@ -145,26 +150,39 @@ fn lint_full_without_materialized_utilities_is_explicit_config_error() {
     let output = run_lint_full(&fixture);
     assert_eq!(
         output.status.code(),
-        Some(3),
+        Some(2),
         "missing utility must return the CLI usage-failure status: {output:?}"
     );
 
     let payload = &parse_stdout(&output)["payload"];
     assert_eq!(payload["command_id"], COMMAND_ID);
-    assert_eq!(payload["outcome"], "config_error");
+    assert_eq!(payload["outcome"], "failed");
     assert_eq!(payload["exit_status"], 5);
     assert_eq!(payload["raw_payload"]["ok"], false);
     assert_eq!(payload["raw_payload"]["command"], COMMAND_ID);
     assert_eq!(
         payload["raw_payload"]["error"]["code"],
-        "CLI.BACKEND_EXEC_FAILURE"
+        "profile.steps_failed"
     );
+    let failures = payload["raw_payload"]["error"]["details"]["failed_steps"]
+        .as_array()
+        .expect("failed steps");
+    assert!(failures.iter().any(|step| {
+        step["name"] == "deny"
+            && step["message"]
+                .as_str()
+                .unwrap()
+                .contains("ModuleNotFoundError")
+    }));
     assert!(
         payload["diagnostics"]
             .as_array()
             .is_some_and(|items| !items.is_empty())
     );
-    assert_report_materialized(&fixture.path, &[COMMAND_ID, "config_error", ".just/"]);
+    assert_report_materialized(
+        &fixture.path,
+        &[COMMAND_ID, "failed", "ModuleNotFoundError"],
+    );
 }
 
 fn run_lint_full(fixture: &TempFixture) -> Output {
@@ -209,10 +227,10 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
             fail_closed: false,
         },
     );
-    let bin = root.join("fake-bin");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
+        let bin = root.join("fake-bin");
 
         let python = bin.join("python3");
         let (body, exit_code) = match mode {
@@ -224,7 +242,10 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
                 r#"printf '%s\n' '{"adapter_schema":"sc-lint-python-v1","ok":false,"summary":"fixture utility found a problem","data":{"findings":[{"rule_id":"LINT-FULL-FINDING-001","path":"src/lib.rs","message":"fixture full-profile finding"}]},"diagnostics":["fixture finding is intentionally non-pass"]}'"#,
                 "1",
             ),
-            ToolMode::MissingUtilities => unreachable!(),
+            ToolMode::MissingUtilities => (
+                "echo 'ModuleNotFoundError: No module named sc_lint' >&2",
+                "1",
+            ),
         };
         fs::write(&python, format!("#!/bin/sh\n{body}\nexit {exit_code}\n")).expect("fake python");
         let mut permissions = fs::metadata(&python)
@@ -236,22 +257,19 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
 
     #[cfg(windows)]
     {
-        let python = bin.join("python.cmd");
-        let (body, exit_code) = match mode {
+        let (stdout, stderr, exit_code) = match mode {
             ToolMode::Pass => (
-                r#"echo {"adapter_schema":"sc-lint-python-v1","ok":true,"summary":"fixture utility passed","data":{"findings":[]},"diagnostics":[]}"#,
-                "0",
+                "{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":true,\"summary\":\"fixture utility passed\",\"data\":{\"findings\":[]},\"diagnostics\":[]}\n",
+                "",
+                0,
             ),
             ToolMode::Finding => (
-                r#"echo {"adapter_schema":"sc-lint-python-v1","ok":false,"summary":"fixture utility found a problem","data":{"findings":[{"rule_id":"LINT-FULL-FINDING-001","path":"src/lib.rs","message":"fixture full-profile finding"}]},"diagnostics":["fixture finding is intentionally non-pass"]}"#,
-                "1",
+                "{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":false,\"summary\":\"fixture utility found a problem\",\"data\":{\"findings\":[{\"rule_id\":\"LINT-FULL-FINDING-001\",\"path\":\"src/lib.rs\",\"message\":\"fixture full-profile finding\"}]},\"diagnostics\":[\"fixture finding is intentionally non-pass\"]}\n",
+                "",
+                1,
             ),
-            ToolMode::MissingUtilities => unreachable!(),
+            ToolMode::MissingUtilities => ("", "ModuleNotFoundError: No module named sc_lint\n", 1),
         };
-        fs::write(
-            &python,
-            format!("@echo off\r\n{body}\r\nexit /b {exit_code}\r\n"),
-        )
-        .expect("fake python");
+        support::write_fake_windows_python(root, stdout, stderr, exit_code);
     }
 }

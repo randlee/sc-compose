@@ -134,9 +134,7 @@ pub(crate) fn run_sc_lint(
         run_external_sc_lint(root, &id, &args)?
     };
     let outcome = classify_outcome(&raw_payload, exit_status);
-    let findings = raw_payload
-        .get("data")
-        .and_then(|data| data.get("findings"))
+    let findings = payload_findings(&raw_payload)
         .cloned()
         .unwrap_or_else(|| Value::Array(Vec::new()));
     let findings_count = findings.as_array().map_or(0, Vec::len);
@@ -395,11 +393,15 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
     if code.contains("CAPABILITY") {
         return ScLintOutcome::CapabilityError;
     }
-    let findings = payload
-        .get("data")
-        .and_then(|data| data.get("findings"))
+    let findings = payload_findings(payload)
         .and_then(Value::as_array)
         .map_or(0, Vec::len);
+    if findings > 0
+        && payload_status(payload) == Some("fail")
+        && matches!(exit_status, Some(5 | 10))
+    {
+        return ScLintOutcome::Findings;
+    }
     if payload.get("ok").and_then(Value::as_bool) == Some(true) && exit_status == Some(0) {
         if findings == 0 {
             ScLintOutcome::Pass
@@ -409,6 +411,31 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
     } else {
         ScLintOutcome::Failed
     }
+}
+
+fn payload_findings(payload: &Value) -> Option<&Value> {
+    payload
+        .get("data")
+        .and_then(|data| data.get("findings"))
+        .or_else(|| {
+            payload
+                .get("error")
+                .and_then(|error| error.get("details"))
+                .and_then(|details| details.get("findings"))
+        })
+}
+
+fn payload_status(payload: &Value) -> Option<&str> {
+    payload
+        .get("data")
+        .and_then(|data| data.get("status"))
+        .or_else(|| {
+            payload
+                .get("error")
+                .and_then(|error| error.get("details"))
+                .and_then(|details| details.get("status"))
+        })
+        .and_then(Value::as_str)
 }
 
 fn normalize_diagnostics(mut diagnostics: Value, outcome: ScLintOutcome) -> Value {
@@ -475,7 +502,10 @@ fn html_escape(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{ScLintOutcome, classify_outcome, command_args, descriptor_target, lint_exit_code};
+    use super::{
+        ScLintOutcome, classify_outcome, command_args, descriptor_target, lint_exit_code,
+        payload_findings,
+    };
     use serde_json::json;
 
     #[test]
@@ -529,6 +559,54 @@ mod tests {
                 Some(6)
             ),
             ScLintOutcome::ConfigError
+        );
+    }
+
+    #[test]
+    fn outcome_classifies_current_sc_lint_findings_exit() {
+        let payload = json!({
+            "ok": true,
+            "command": "lint.sc-boundary",
+            "data": {
+                "version": "0.8.6",
+                "status": "fail",
+                "findings": [{"rule_id": "SCB-DEPENDENCY-001"}]
+            }
+        });
+        assert_eq!(
+            classify_outcome(&payload, Some(10)),
+            ScLintOutcome::Findings
+        );
+        assert_eq!(
+            payload_findings(&payload)
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn outcome_classifies_findings_in_backend_error_details() {
+        let payload = json!({
+            "ok": false,
+            "error": {
+                "code": "CLI.BACKEND_EXEC_FAILURE",
+                "details": {
+                    "status": "fail",
+                    "findings": [{"rule_id": "SCB-DEPENDENCY-001"}]
+                }
+            }
+        });
+        assert_eq!(classify_outcome(&payload, Some(5)), ScLintOutcome::Findings);
+        assert_eq!(
+            payload_findings(&payload)
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            1
         );
     }
 

@@ -1,7 +1,15 @@
 [package]
 name = "sc-lint-bootstrap-fixture"
 version = "0.1.0"
-edition = "2024"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "bootstrap_native"
 
 [workspace]
 
@@ -9,3 +17,7 @@ edition = "2024"
 version = "0.1.0"
 authors = ["sc-compose"]
 edition = "2024"
+homepage = "https://example.invalid"
+license = "MIT"
+repository = "https://example.invalid/repo"
+rust-version = "1.85"
