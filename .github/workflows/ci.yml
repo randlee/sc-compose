@@ -188,24 +188,25 @@ jobs:
           toolchain: 1.94.1
           components: rustfmt, clippy
 
+      # The managed installer forces CARGO_HOME to $RUNNER_TEMP/sc-lint/cargo-home
+      # (.github/scripts/setup_sc_lint_managed.py), so that directory, not
+      # ~/.cargo, holds the registry, git checkouts and the pinned cargo tools.
+      # Restore it before the installer; the installer still verifies every
+      # declared tool version on a cache hit.
+      - name: Cache managed Cargo home
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/sc-lint/cargo-home
+          key: ${{ runner.os }}-${{ runner.arch }}-managed-cargo-home-rust-1.94.1-${{ hashFiles('.sc-lint/install.json') }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-managed-cargo-home-rust-1.94.1-${{ hashFiles('.sc-lint/install.json') }}-
+
       - name: Install pinned sc-lint
         uses: ./.github/actions/setup-sc-lint-managed
 
       - id: beads
         name: Install pinned Beads
         uses: ./.github/actions/setup-beads
-
-      - name: Cache cargo registry
-        uses: actions/cache@v6
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-test-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v6
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-test-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo build
         uses: actions/cache@v6

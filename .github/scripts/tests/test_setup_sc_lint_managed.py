@@ -5,6 +5,7 @@ import subprocess
 from unittest import mock
 
 import pytest
+import yaml
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'setup_sc_lint_managed.py'
 spec = importlib.util.spec_from_file_location('managed_setup', SCRIPT)
@@ -77,3 +78,41 @@ def test_action_passes_release_wheel_constraints_to_bootstrap(tmp_path, monkeypa
     assert (isolated / 'bin' / existing.name).read_text() == 'pinned cargo-deny 0.19.4'
     assert output.read_text().splitlines() == [str(install_dir), str(isolated / 'bin')]
     assert env_output.read_text().strip() == f'CARGO_HOME={isolated}'
+
+
+def test_ci_caches_the_effective_managed_cargo_home_before_setup(tmp_path, monkeypatch):
+    """The cache path is the CARGO_HOME the installer really exports, restored first."""
+    root = Path(__file__).resolve().parents[3]
+    steps = yaml.safe_load((root / '.github/workflows/ci.yml').read_text(encoding='utf-8'))['jobs']['test']['steps']
+    setup_index = next(i for i, step in enumerate(steps) if step.get('uses') == './.github/actions/setup-sc-lint-managed')
+    cache_index = next(i for i, step in enumerate(steps)
+                       if str(step.get('uses', '')).startswith('actions/cache@')
+                       and 'sc-lint/cargo-home' in step['with']['path'])
+    assert cache_index < setup_index
+    rust = next(step for step in steps if str(step.get('uses', '')).startswith('dtolnay/rust-toolchain@'))
+
+    # The effective managed CARGO_HOME, taken from what the installer itself exports.
+    monkeypatch.setenv('RUNNER_TEMP', str(tmp_path))
+    monkeypatch.setenv('GITHUB_PATH', str(tmp_path / 'github-path'))
+    monkeypatch.setenv('GITHUB_ENV', str(tmp_path / 'github-env'))
+    (tmp_path / 'sc-lint' / 'bin').mkdir(parents=True)
+    (tmp_path / 'sc-lint' / 'bin' / ('sc-lint.exe' if managed.os.name == 'nt' else 'sc-lint')).touch()
+    with mock.patch.object(managed, 'install'):
+        managed.main()
+    exported = (tmp_path / 'github-env').read_text(encoding='utf-8').strip()
+    assert exported.startswith('CARGO_HOME=')
+    cache_path = steps[cache_index]['with']['path'].replace('${{ runner.temp }}', str(tmp_path))
+    assert Path(cache_path) == Path(exported.removeprefix('CARGO_HOME='))
+
+    # Keyed by OS/architecture, the Rust toolchain and the declared tool versions.
+    cache = steps[cache_index]['with']
+    for key in (cache['key'], cache['restore-keys'].strip()):
+        assert '${{ runner.os }}' in key and '${{ runner.arch }}' in key
+        assert f"rust-{rust['with']['toolchain']}" in key
+        assert "hashFiles('.sc-lint/install.json')" in key
+    assert "hashFiles('**/Cargo.lock')" in cache['key']
+
+    # Version verification is not skipped on a hit, and the stale ~/.cargo caches are gone.
+    assert 'if' not in steps[setup_index]
+    assert 'id' not in steps[cache_index]
+    assert not [step for step in steps if str(step.get('with', {}).get('path', '')).startswith('~/.cargo/')]
