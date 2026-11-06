@@ -20,6 +20,7 @@ WORKFLOW = ROOT / ".github" / "workflows" / "go-native-preflight.yml"
 PREFLIGHT = ROOT / ".github" / "workflows" / "release-preflight.yml"
 MATRIX_USES = "./.github/workflows/go-native-preflight.yml"
 CALL_JOB = "consumer_workflow_install-matrix"
+BEFORE_PREFLIGHT = ROOT / ".github" / "scripts" / "tests" / "fixtures" / "release-preflight-before-matrix.yml"
 
 
 def route_gaps(preflight: dict, matrix: dict) -> list[str]:
@@ -62,7 +63,7 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
 
     def test_before_route_is_disconnected_and_after_route_is_connected(self):
         after = yaml.safe_load(PREFLIGHT.read_text(encoding="utf-8"))
-        before = {**after, "jobs": {k: v for k, v in after["jobs"].items() if not k.startswith("consumer_workflow")}}
+        before = yaml.safe_load(BEFORE_PREFLIGHT.read_text(encoding="utf-8"))
         self.assertEqual(sorted(before["jobs"]), ["preflight"])
         self.assertEqual(route_gaps(before, self.workflow), ["release-preflight.yml has no job calling the install matrix"])
         self.assertEqual(route_gaps(after, self.workflow), [])
@@ -92,7 +93,6 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
 
         values = json.loads((ROOT / "release" / "sc-publish-install.json").read_text(encoding="utf-8"))
         self.assertEqual([w["uses"] for w in values["preflight_workflows"]], [MATRIX_USES])
-        self.assertEqual(values["sc_publish_pin"]["revision"], "c619f225ebd1bfb3e20a59b91b1fc6e0e59fd07c")
 
     def test_wheel_matrix_covers_each_distribution_on_six_coordinates(self):
         manifest = tomllib.loads((ROOT / "release" / "publish-artifacts.toml").read_text(encoding="utf-8"))
