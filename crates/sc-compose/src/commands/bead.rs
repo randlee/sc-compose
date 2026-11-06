@@ -52,7 +52,7 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
             Ok(RequestParseOutcome::Ready(request)) => request,
             Ok(RequestParseOutcome::Refused(mut receipt)) => {
                 receipt.receipt.operation = operation;
-                return print_refused_receipt(receipt, json);
+                return print_refused_receipt(&receipt, json, &[]);
             }
             // An identifier error that survives parsing is outside the attach
             // family (attach identifiers become refused receipts): ADR-0023 calls
@@ -82,29 +82,80 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
                 diagnostics.push(serde_json::to_value(error));
             }
         });
-    let result = match result {
+    // The staged files are removed before the receipt is printed, so any
+    // receipt path inside the staging directory is flagged as ephemeral.
+    let ephemeral = match (&result, &staging) {
+        (Ok(receipt), Some(staging)) => staging.ephemeral_fields(receipt),
+        _ => Vec::new(),
+    };
+    drop(staging);
+    match result {
         Ok(receipt) => {
             if let Some(error) = refusal_diagnostic {
-                return print_refused_receipt(RefusedBeadComposeReceipt { receipt, error }, json);
+                return print_refused_receipt(
+                    &RefusedBeadComposeReceipt { receipt, error },
+                    json,
+                    &ephemeral,
+                );
             }
             let diagnostics = diagnostics
                 .into_iter()
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|error| CommandError::usage(error.into()))?;
-            print_receipt(receipt, json, &diagnostics)
+            print_receipt(&receipt, json, &diagnostics, &ephemeral)
         }
         Err(error) => print_bead_error(&error, operation, json),
-    };
-    drop(staging);
-    result
+    }
 }
 
 static STAGING_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
-struct DirectStaging(PathBuf);
+/// Receipt fields a direct pour reports inside its private staging directory.
+const RENDERED_FORMULA_FIELD: &str = "rendered_formula";
+const PLAN_PATH_FIELD: &str = "graph.plan_path";
+
+/// Private staging directory of a direct pour, removed when the command ends.
+struct DirectStaging {
+    path: PathBuf,
+    canonical: Option<PathBuf>,
+}
+
+impl DirectStaging {
+    fn new(path: PathBuf) -> Self {
+        let canonical = fs::canonicalize(&path).ok();
+        Self { path, canonical }
+    }
+
+    fn contains(&self, path: &Path) -> bool {
+        path.starts_with(&self.path)
+            || self
+                .canonical
+                .as_deref()
+                .is_some_and(|canonical| path.starts_with(canonical))
+    }
+
+    /// Receipt fields whose paths are removed with this staging directory.
+    fn ephemeral_fields(&self, receipt: &BeadComposeReceipt) -> Vec<&'static str> {
+        let plan_path = receipt
+            .graph
+            .as_ref()
+            .and_then(|graph| graph.plan_path.as_deref());
+        [
+            (
+                RENDERED_FORMULA_FIELD,
+                Some(receipt.rendered_formula.as_path()),
+            ),
+            (PLAN_PATH_FIELD, plan_path),
+        ]
+        .into_iter()
+        .filter_map(|(field, path)| path.filter(|path| self.contains(path)).map(|_| field))
+        .collect()
+    }
+}
+
 impl Drop for DirectStaging {
     fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
+        let _ = fs::remove_dir_all(&self.path);
     }
 }
 
@@ -144,7 +195,7 @@ fn direct_pour_request(
             "cannot create private formula staging directory: {error}"
         ))
     })?;
-    let staging = DirectStaging(dir.clone());
+    let staging = DirectStaging::new(dir.clone());
     if let Some((source_root, files)) = external_snapshot {
         source = write_source_snapshot(&dir, &source_root, &original_source, files)?;
     }
@@ -333,23 +384,53 @@ fn native_formula_source(root: &Path, operand: &str) -> Option<PathBuf> {
 }
 
 fn print_refused_receipt(
-    receipt: RefusedBeadComposeReceipt,
+    receipt: &RefusedBeadComposeReceipt,
     json: bool,
+    ephemeral: &[&str],
 ) -> Result<i32, CommandError> {
     if json {
-        print_json(receipt, Vec::new()).map_err(CommandError::usage)?;
+        print_json(with_ephemeral_paths(receipt, ephemeral)?, Vec::new())
+            .map_err(CommandError::usage)?;
     } else {
         let diagnostic = serde_json::to_value(&receipt.error)
             .map_err(|error| CommandError::usage(error.into()))?;
-        print_human_receipt(&receipt.receipt, &[diagnostic]);
+        print_human_receipt(&receipt.receipt, &[diagnostic], ephemeral);
     }
     Ok(exit_codes::VALIDATION_OR_RENDER_FAIL)
 }
 
+/// The JSON receipt plus an additive `ephemeral_paths` list naming the
+/// receipt fields whose files were removed when the command ended. The field
+/// is absent when every reported path is kept.
+fn with_ephemeral_paths(
+    receipt: &impl serde::Serialize,
+    ephemeral: &[&str],
+) -> Result<serde_json::Value, CommandError> {
+    let mut value =
+        serde_json::to_value(receipt).map_err(|error| CommandError::usage(error.into()))?;
+    if !ephemeral.is_empty()
+        && let Some(fields) = value.as_object_mut()
+    {
+        fields.insert("ephemeral_paths".into(), serde_json::json!(ephemeral));
+    }
+    Ok(value)
+}
+
+/// Human label for a receipt path, flagged when the command removed it.
+fn human_path(path: &Path, field: &str, ephemeral: &[&str]) -> String {
+    let text = escape_human_text(&path.display().to_string());
+    if ephemeral.contains(&field) {
+        format!("{text} (ephemeral: removed when this command exited)")
+    } else {
+        text
+    }
+}
+
 fn print_receipt(
-    receipt: BeadComposeReceipt,
+    receipt: &BeadComposeReceipt,
     json: bool,
     diagnostics: &[serde_json::Value],
+    ephemeral: &[&str],
 ) -> Result<i32, CommandError> {
     let exit_code = match &receipt.outcome {
         BeadOutcome::Succeeded => exit_codes::SUCCESS,
@@ -358,9 +439,10 @@ fn print_receipt(
         }
     };
     if json {
-        print_json(receipt, Vec::new()).map_err(CommandError::usage)?;
+        print_json(with_ephemeral_paths(receipt, ephemeral)?, Vec::new())
+            .map_err(CommandError::usage)?;
     } else {
-        print_human_receipt(&receipt, diagnostics);
+        print_human_receipt(receipt, diagnostics, ephemeral);
     }
     Ok(exit_code)
 }
@@ -438,10 +520,14 @@ fn human_error_fields(envelope: &serde_json::Value) -> String {
     output
 }
 
-fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::Value]) {
+fn print_human_receipt(
+    receipt: &BeadComposeReceipt,
+    diagnostics: &[serde_json::Value],
+    ephemeral: &[&str],
+) {
     println!(
         "rendered_formula: {}",
-        escape_human_text(&receipt.rendered_formula.display().to_string())
+        human_path(&receipt.rendered_formula, RENDERED_FORMULA_FIELD, ephemeral)
     );
     if let Some(mode) = receipt.pour_mode {
         let mode = match mode {
@@ -501,7 +587,7 @@ fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::
         if let Some(plan_path) = &graph.plan_path {
             println!(
                 "plan_path: {}",
-                escape_human_text(&plan_path.display().to_string())
+                human_path(plan_path, PLAN_PATH_FIELD, ephemeral)
             );
         }
     }
