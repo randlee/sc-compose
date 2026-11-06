@@ -143,6 +143,45 @@ pub enum BeadComposeError {
         /// Serializer diagnostic retained for callers and logs.
         message: String,
     },
+    /// The direct-pour arguments do not describe a valid operation.
+    #[error("invalid direct-pour request: {message}")]
+    DirectRequestInvalid {
+        /// Explanation of the invalid arguments.
+        message: String,
+    },
+    /// Direct-pour private staging could not be created or resolved.
+    #[error(
+        "cannot prepare private formula staging at `{path}`: {source}; check directory permissions"
+    )]
+    DirectStagingFailed {
+        /// Path being prepared.
+        path: PathBuf,
+        /// Underlying failure.
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
+    /// A direct-pour source could not be located or resolved.
+    #[error(
+        "cannot locate formula source `{path}`: {source}; check the source path and permissions"
+    )]
+    DirectSourceFailed {
+        /// Requested formula path.
+        path: PathBuf,
+        /// Underlying failure.
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
+    /// A direct-pour source snapshot could not be captured or written.
+    #[error(
+        "cannot snapshot formula source `{path}`: {source}; check source includes and destination permissions"
+    )]
+    DirectSnapshotFailed {
+        /// Source or destination path involved in the failure.
+        path: PathBuf,
+        /// Underlying failure.
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
     /// A relation endpoint omitted its recognized step or bead prefix.
     #[error("endpoint `{value}` must have a step: or bead: prefix (ADR-0023)")]
     RelationEndpointInvalid {
@@ -450,6 +489,15 @@ impl BeadComposeError {
     pub const REQUEST_DESERIALIZATION_FAILED_CODE: &'static str =
         "BEADS_REQUEST_DESERIALIZATION_FAILED";
 
+    /// Stable invalid direct-pour request code.
+    pub const DIRECT_REQUEST_INVALID_CODE: &'static str = "BEADS_DIRECT_REQUEST_INVALID";
+    /// Stable direct-pour staging failure code.
+    pub const DIRECT_STAGING_FAILED_CODE: &'static str = "BEADS_DIRECT_STAGING_FAILED";
+    /// Stable direct-pour source lookup failure code.
+    pub const DIRECT_SOURCE_FAILED_CODE: &'static str = "BEADS_DIRECT_SOURCE_FAILED";
+    /// Stable direct-pour source snapshot failure code.
+    pub const DIRECT_SNAPSHOT_FAILED_CODE: &'static str = "BEADS_DIRECT_SNAPSHOT_FAILED";
+
     /// Stable code for [`BeadComposeError::RelationEndpointInvalid`].
     pub const RELATION_ENDPOINT_INVALID_CODE: &'static str = "BEADS_RELATION_ENDPOINT_INVALID";
 
@@ -624,6 +672,10 @@ impl BeadComposeError {
             | Self::GraphApplyUnconfirmed { .. }
             | Self::RelationEndpointInvalid { .. }
             | Self::RequestReadFailed { .. }
+            | Self::DirectRequestInvalid { .. }
+            | Self::DirectStagingFailed { .. }
+            | Self::DirectSourceFailed { .. }
+            | Self::DirectSnapshotFailed { .. }
             | Self::RequestDeserializationFailed { .. }
             | Self::UnknownSchema { .. }
             | Self::FormulaPathNotFile { .. }
@@ -650,6 +702,7 @@ impl BeadComposeError {
     pub const fn class(&self) -> BeadErrorClass {
         match self {
             Self::RequestReadFailed { .. }
+            | Self::DirectRequestInvalid { .. }
             | Self::RequestDeserializationFailed { .. }
             | Self::RelationEndpointInvalid { .. }
             | Self::UnknownSchema { .. }
@@ -667,7 +720,10 @@ impl BeadComposeError {
             | Self::FormulaNameRequired
             | Self::PourAuthorizationRequired
             | Self::PourAuthorizationInvalid => BeadErrorClass::Request,
-            Self::BdUnavailable { .. }
+            Self::DirectStagingFailed { .. }
+            | Self::DirectSourceFailed { .. }
+            | Self::DirectSnapshotFailed { .. }
+            | Self::BdUnavailable { .. }
             | Self::ProcessArgumentInvalid { .. }
             | Self::ProcessOutputLimitExceeded { .. }
             | Self::RenderFailed { .. }
@@ -697,6 +753,10 @@ impl BeadComposeError {
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
+            Self::DirectRequestInvalid { .. } => Self::DIRECT_REQUEST_INVALID_CODE,
+            Self::DirectStagingFailed { .. } => Self::DIRECT_STAGING_FAILED_CODE,
+            Self::DirectSourceFailed { .. } => Self::DIRECT_SOURCE_FAILED_CODE,
+            Self::DirectSnapshotFailed { .. } => Self::DIRECT_SNAPSHOT_FAILED_CODE,
             Self::RequestReadFailed { .. } => Self::REQUEST_READ_FAILED_CODE,
             Self::RequestDeserializationFailed { .. } => Self::REQUEST_DESERIALIZATION_FAILED_CODE,
             Self::RelationEndpointInvalid { .. } => Self::RELATION_ENDPOINT_INVALID_CODE,
