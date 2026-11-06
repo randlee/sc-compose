@@ -1405,6 +1405,56 @@ fn strict_checks_require_explicit_policy_and_schema() {
     )
     .unwrap();
     assert_eq!(schema_less.outcome, BeadOutcome::Succeeded);
+    for declaration in [
+        "required_variables: []",
+        "variables: {}",
+        "defaults: {}",
+        "input_defaults: {}",
+    ] {
+        std::fs::write(
+            &fixture.request.template,
+            format!("---\n{declaration}\n---\ntitle = \"{{{{ extra }}}}\"\n"),
+        )
+        .unwrap();
+        let explicit_empty = sc_composer_beads::execute_bead_request_with_options_and_runner(
+            &fixture.request,
+            &options,
+            &runner,
+        )
+        .unwrap();
+        assert!(
+            matches!(explicit_empty.outcome, BeadOutcome::Failed { .. }),
+            "{declaration}: {explicit_empty:?}"
+        );
+    }
+    std::fs::write(
+        &fixture.request.template,
+        "---\nvariables:\n  extra:\n    required: false\n---\ntitle = \"{{ extra }}\"\n",
+    )
+    .unwrap();
+    let declared_optional = sc_composer_beads::execute_bead_request_with_options_and_runner(
+        &fixture.request,
+        &options,
+        &runner,
+    )
+    .unwrap();
+    assert_eq!(
+        declared_optional.outcome,
+        BeadOutcome::Succeeded,
+        "{declared_optional:?}"
+    );
+    std::fs::write(
+        &fixture.request.template,
+        "---\nvariables:\n  other:\n    required: false\n---\ntitle = \"{{ extra }}\"\n",
+    )
+    .unwrap();
+    let undeclared = sc_composer_beads::execute_bead_request_with_options_and_runner(
+        &fixture.request,
+        &options,
+        &runner,
+    )
+    .unwrap();
+    assert!(matches!(undeclared.outcome, BeadOutcome::Failed { .. }));
     assert!(runner.calls.lock().unwrap().is_empty());
 }
 

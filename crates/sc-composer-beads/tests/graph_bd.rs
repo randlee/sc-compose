@@ -697,6 +697,11 @@ fn advanced_transport_renders_source_and_preserves_literal_data() {
             "reviewer",
         ]);
         let before = w.snapshot();
+        let second_staging = w.root.join("second-source-snapshot");
+        fs::create_dir(&second_staging).unwrap();
+        let second_template = second_staging.join("release.formula.toml.j2");
+        fs::copy(&template, &second_template).unwrap();
+        request.template = second_template;
         let replay = sc_composer_beads::execute_bead_request(&request).unwrap();
         assert_eq!(replay.outcome, BeadOutcome::Succeeded, "{replay:#?}");
         assert_eq!(

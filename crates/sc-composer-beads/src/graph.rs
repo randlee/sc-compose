@@ -174,13 +174,19 @@ fn run(
     let validated = validate::validate(request, cooked, &rendered, mode)?;
     runtime.stage = stage;
     let plan = plan::plan(&validated, advanced, runtime)?;
+    execute_plan(request.operation, advanced, plan, runtime)
+}
+
+fn execute_plan(
+    operation: BeadOperation,
+    advanced: bool,
+    plan: GraphPlan,
+    runtime: &mut Runtime<'_>,
+) -> Result<BeadGraph, BeadComposeError> {
     match plan {
         GraphPlan::Noop(graph) => {
             if advanced
-                && matches!(
-                    request.operation,
-                    BeadOperation::Attach | BeadOperation::Pour
-                )
+                && matches!(operation, BeadOperation::Attach | BeadOperation::Pour)
                 && graph
                     .edges
                     .iter()
@@ -192,10 +198,7 @@ fn run(
         }
         GraphPlan::Create(pending) => {
             if advanced
-                && matches!(
-                    request.operation,
-                    BeadOperation::Attach | BeadOperation::Pour
-                )
+                && matches!(operation, BeadOperation::Attach | BeadOperation::Pour)
                 && pending
                     .graph
                     .nodes
@@ -205,7 +208,7 @@ fn run(
                 return Err(BeadComposeError::GraphAtomicUpdateUnavailable);
             }
             if matches!(
-                request.operation,
+                operation,
                 BeadOperation::PreviewAttach | BeadOperation::PreviewPour
             ) {
                 pending.preview(runtime)

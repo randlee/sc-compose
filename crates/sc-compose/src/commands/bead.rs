@@ -127,22 +127,12 @@ fn direct_pour_request(
         .formula
         .as_deref()
         .ok_or_else(|| bad("formula is required".into()))?;
-    let source = resolve_direct_formula(&root, operand)
+    let mut source = resolve_direct_formula(&root, operand)
         .ok_or_else(|| bad(format!("formula source not found: {operand}")))?;
-    let name = source
-        .file_name()
-        .and_then(|value| value.to_str())
-        .and_then(|value| {
-            value
-                .strip_suffix(".formula.toml.j2")
-                .or_else(|| value.strip_suffix(".formula.json.j2"))
-                .or_else(|| value.strip_suffix(".formula.toml"))
-                .or_else(|| value.strip_suffix(".formula.json"))
-        })
-        .ok_or_else(|| {
-            bad("formula source must end in .formula.toml or .formula.json, optionally followed by .j2".into())
-        })?
-        .to_owned();
+    let original_source = fs::canonicalize(&source).map_err(|error| bad(error.to_string()))?;
+    let canonical_root = fs::canonicalize(&root).map_err(|error| bad(error.to_string()))?;
+    let external_snapshot = capture_external_source(&original_source, &canonical_root, operand)?;
+    let name = direct_formula_name(&source)?;
     let formula_name = FormulaName::new(&name)?;
     let dir = root.join(format!(
         ".sc-compose-pour-{}-{}",
@@ -154,6 +144,10 @@ fn direct_pour_request(
             "cannot create private formula staging directory: {error}"
         ))
     })?;
+    let staging = DirectStaging(dir.clone());
+    if let Some((source_root, files)) = external_snapshot {
+        source = write_source_snapshot(&dir, &source_root, &original_source, files)?;
+    }
     let extension = if source.to_string_lossy().ends_with(".formula.json.j2")
         || source.to_string_lossy().ends_with(".formula.json")
     {
@@ -164,7 +158,12 @@ fn direct_pour_request(
     let staged_output = dir.join(format!("{name}.formula.{extension}"));
     let rendered_formula = if matches!(args.render_by, BeadRenderByArg::Bd) {
         active_formulas(&root)
-            .filter(|registry| source.parent() == Some(registry.as_path()))
+            .filter(|registry| {
+                original_source
+                    .parent()
+                    .and_then(|parent| fs::canonicalize(parent).ok())
+                    == fs::canonicalize(registry).ok()
+            })
             .map_or(staged_output, |registry| {
                 registry.join(format!("{name}.formula.{extension}"))
             })
@@ -186,7 +185,67 @@ fn direct_pour_request(
         ref_: None,
         relations: Vec::new(),
     };
-    Ok((request, DirectStaging(dir)))
+    Ok((request, staging))
+}
+
+type SourceSnapshot = (PathBuf, std::collections::BTreeMap<PathBuf, String>);
+
+fn capture_external_source(
+    source: &Path,
+    workspace: &Path,
+    operand: &str,
+) -> Result<Option<SourceSnapshot>, BeadComposeError> {
+    if source.starts_with(workspace) || operand.contains(['/', '\\']) {
+        return Ok(None);
+    }
+    let bad = |message: String| BeadComposeError::RequestDeserializationFailed { message };
+    let root = source
+        .parent()
+        .ok_or_else(|| bad("formula source has no parent".into()))?
+        .to_path_buf();
+    let confined =
+        sc_composer::ConfiningRoot::new(&root).map_err(|error| bad(error.to_string()))?;
+    let expanded =
+        sc_composer::expand_includes(source, &confined, &sc_composer::ComposePolicy::default())
+            .map_err(|error| bad(format!("cannot snapshot formula source: {error}")))?;
+    Ok(Some((root, expanded.source_texts)))
+}
+
+fn direct_formula_name(source: &Path) -> Result<String, BeadComposeError> {
+    source.file_name().and_then(|value| value.to_str()).and_then(|value| {
+        value.strip_suffix(".formula.toml.j2")
+            .or_else(|| value.strip_suffix(".formula.json.j2"))
+            .or_else(|| value.strip_suffix(".formula.toml"))
+            .or_else(|| value.strip_suffix(".formula.json"))
+    }).map(str::to_owned).ok_or_else(|| BeadComposeError::RequestDeserializationFailed {
+        message: "formula source must end in .formula.toml or .formula.json, optionally followed by .j2".into(),
+    })
+}
+
+fn write_source_snapshot(
+    dir: &Path,
+    source_root: &Path,
+    source: &Path,
+    files: std::collections::BTreeMap<PathBuf, String>,
+) -> Result<PathBuf, BeadComposeError> {
+    let bad = |message: String| BeadComposeError::RequestDeserializationFailed { message };
+    let snapshot_root = dir.join("source");
+    for (path, contents) in files {
+        let relative = path
+            .strip_prefix(source_root)
+            .map_err(|_error| bad("formula include escapes its registry root".into()))?;
+        let destination = snapshot_root.join(relative);
+        let parent = destination
+            .parent()
+            .ok_or_else(|| bad("formula snapshot has no parent".into()))?;
+        fs::create_dir_all(parent)
+            .and_then(|()| fs::write(&destination, contents))
+            .map_err(|error| bad(format!("cannot snapshot formula source: {error}")))?;
+    }
+    let relative = source
+        .strip_prefix(source_root)
+        .map_err(|_error| bad("formula escapes registry root".into()))?;
+    Ok(snapshot_root.join(relative))
 }
 
 fn active_formulas(root: &Path) -> Option<PathBuf> {
@@ -225,12 +284,13 @@ fn resolve_direct_formula(root: &Path, operand: &str) -> Option<PathBuf> {
         directories.push(active);
     }
     directories.push(root.join(".beads/formulas"));
-    if let Some(home) = std::env::var_os("HOME") {
-        directories.push(PathBuf::from(home).join(".beads/formulas"));
+    if let Some(home) = platform_home_directory() {
+        directories.push(home.join(".beads/formulas"));
     }
     if let Some(shared) = std::env::var_os("GT_ROOT") {
         directories.push(PathBuf::from(shared).join(".beads/formulas"));
     }
+    let native = native_formula_source(root, operand);
     for directory in directories {
         for suffix in ["formula.toml.j2", "formula.json.j2"] {
             let path = directory.join(format!("{operand}.{suffix}"));
@@ -238,7 +298,23 @@ fn resolve_direct_formula(root: &Path, operand: &str) -> Option<PathBuf> {
                 return Some(path);
             }
         }
+        if let Some(path) = &native
+            && path
+                .parent()
+                .and_then(|parent| fs::canonicalize(parent).ok())
+                == fs::canonicalize(&directory).ok()
+        {
+            return Some(path.clone());
+        }
     }
+    native
+}
+
+fn platform_home_directory() -> Option<PathBuf> {
+    std::env::home_dir()
+}
+
+fn native_formula_source(root: &Path, operand: &str) -> Option<PathBuf> {
     let output = std::process::Command::new("bd")
         .args(["formula", "list", "--json"])
         .current_dir(root)

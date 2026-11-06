@@ -9,12 +9,11 @@ use std::sync::{
     Mutex,
     atomic::{AtomicU64, Ordering},
 };
-use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeRequest, BeadOperation, BeadOutcome, PourAuthorization,
-    execute_bead_request,
+    BEADS_SCHEMA_V1, BeadComposeRequest, BeadExecutionOptions, BeadOperation, BeadOutcome,
+    BeadRenderBy, PourAuthorization, execute_bead_request_with_options,
 };
 use serde_json::{Map, json};
 
@@ -136,76 +135,48 @@ fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
     remove_temporary_workspace(&root).expect("remove temporary Beads workspace");
 }
 
+fn execute_bead_request(
+    request: &BeadComposeRequest,
+) -> Result<sc_composer_beads::BeadComposeReceipt, sc_composer_beads::BeadComposeError> {
+    execute_bead_request_with_options(
+        request,
+        &BeadExecutionOptions {
+            render_by: BeadRenderBy::Bd,
+            strict: false,
+        },
+    )
+}
+
 fn remove_temporary_workspace(root: &Path) -> io::Result<()> {
-    #[cfg(windows)]
-    const ATTEMPTS: usize = 120;
-    #[cfg(not(windows))]
-    const ATTEMPTS: usize = 1;
-
-    remove_dir_all_with_retry(root, ATTEMPTS, Duration::from_millis(250), |path| {
-        fs::remove_dir_all(path)
-    })
+    cleanup_once(root, |path| fs::remove_dir_all(path))
 }
 
-fn remove_dir_all_with_retry<F>(
-    root: &Path,
-    attempts: usize,
-    retry_delay: Duration,
-    mut remove_dir_all: F,
-) -> io::Result<()>
-where
-    F: FnMut(&Path) -> io::Result<()>,
-{
-    debug_assert!(attempts > 0, "cleanup must make at least one attempt");
-
-    for attempt in 0..attempts {
-        match remove_dir_all(root) {
-            Ok(()) => return Ok(()),
-            Err(error)
-                if is_retryable_workspace_cleanup_error(&error) && attempt + 1 < attempts =>
-            {
-                thread::sleep(retry_delay);
-            }
-            Err(error) => return Err(error),
-        }
-    }
-
-    unreachable!("the final cleanup attempt returns or propagates its error")
-}
-
-fn is_retryable_workspace_cleanup_error(error: &io::Error) -> bool {
-    // Windows reports a sharing violation as raw OS error 32 when `bd` has
-    // only just released a file in the isolated test workspace.
-    error.raw_os_error() == Some(32)
-}
-
-#[test]
-fn cleanup_retries_transient_file_locks() {
-    let mut calls = 0;
-    remove_dir_all_with_retry(Path::new("temporary-workspace"), 3, Duration::ZERO, |_| {
-        calls += 1;
-        if calls < 3 {
-            Err(io::Error::from_raw_os_error(32))
-        } else {
+fn cleanup_once(root: &Path, remove: impl FnOnce(&Path) -> io::Result<()>) -> io::Result<()> {
+    match remove(root) {
+        // A detached Windows file handle can defer cleanup; do not make the
+        // behavior test depend on how soon the OS releases it.
+        Err(error) if error.raw_os_error() == Some(32) => {
+            eprintln!("temporary workspace cleanup deferred: {}", root.display());
             Ok(())
         }
-    })
-    .expect("transient cleanup failure is retried");
-    assert_eq!(calls, 3);
+        result => result,
+    }
 }
 
 #[test]
-fn cleanup_does_not_retry_unrelated_errors() {
+fn cleanup_does_not_depend_on_lock_release_timing() {
     let mut calls = 0;
-    let error =
-        remove_dir_all_with_retry(Path::new("temporary-workspace"), 3, Duration::ZERO, |_| {
-            calls += 1;
-            Err(io::Error::from(io::ErrorKind::PermissionDenied))
-        })
-        .expect_err("non-sharing cleanup failures must not be hidden by retries");
-
-    assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+    cleanup_once(Path::new("temporary-workspace"), |_| {
+        calls += 1;
+        Err(io::Error::from_raw_os_error(32))
+    })
+    .unwrap();
     assert_eq!(calls, 1);
+    let error = cleanup_once(Path::new("temporary-workspace"), |_| {
+        Err(io::Error::from(io::ErrorKind::PermissionDenied))
+    })
+    .unwrap_err();
+    assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
 }
 
 #[cfg(unix)]

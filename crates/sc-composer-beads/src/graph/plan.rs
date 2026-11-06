@@ -1,6 +1,6 @@
 //! Read-only conflict planning; only a pending create can reach the writer.
 
-use super::validate::{ProvenanceV2, ValidatedGraph};
+use super::validate::{ProvenanceV2, Step, ValidatedGraph};
 use crate::contract::{
     BeadDependencyType, BeadEdgeAction, BeadEndpoint, BeadGraph, BeadGraphEdge, BeadGraphMode,
     BeadGraphNode, BeadGraphProvenance, BeadId, BeadNodeAction, GraphDependencyType, GraphEndpoint,
@@ -280,36 +280,8 @@ fn create_nodes(
             },
         });
         if create {
-            let mut fields = step.fields.clone();
-            let key = PlanKey::step(&step.id, attach);
-            fields.insert("key".into(), json!(key.as_str()));
-            if let Some(id) = ids.get(&step.id) {
-                fields.insert("id".into(), json!(id));
-            }
-            if let Some(parent) = &v.parent {
-                fields.insert("parent_id".into(), json!(parent));
-            } else {
-                fields.insert("parent_key".into(), json!("_root"));
-            }
-            let metadata = fields
-                .entry("metadata")
-                .or_insert_with(|| Value::Object(Map::default()));
-            let provenance = if advanced {
-                json!(v.provenance_v2(Some(step))?)
-            } else {
-                json!(v.provenance(Some(step.id.clone())))
-            };
-            match metadata {
-                Value::Object(metadata) => {
-                    metadata.insert(PROVENANCE_KEY.into(), provenance);
-                }
-                metadata => {
-                    let mut object = Map::new();
-                    object.insert(PROVENANCE_KEY.into(), provenance);
-                    *metadata = Value::Object(object);
-                }
-            }
-            nodes.push(Value::Object(fields));
+            let (key, fields) = create_step(v, advanced, step, ids.get(&step.id), attach)?;
+            nodes.push(fields);
             keys.insert(key, Some(step.id.clone()));
         }
     }
@@ -319,6 +291,45 @@ fn create_nodes(
         endpoints: Vec::new(),
         keys,
     })
+}
+
+fn create_step(
+    v: &ValidatedGraph,
+    advanced: bool,
+    step: &Step,
+    id: Option<&BeadId>,
+    attach: bool,
+) -> Result<(PlanKey, Value), BeadComposeError> {
+    let mut fields = step.fields.clone();
+    let key = PlanKey::step(&step.id, attach);
+    fields.insert("key".into(), json!(key.as_str()));
+    if let Some(id) = id {
+        fields.insert("id".into(), json!(id));
+    }
+    if let Some(parent) = &v.parent {
+        fields.insert("parent_id".into(), json!(parent));
+    } else {
+        fields.insert("parent_key".into(), json!("_root"));
+    }
+    let metadata = fields
+        .entry("metadata")
+        .or_insert_with(|| Value::Object(Map::default()));
+    let provenance = if advanced {
+        json!(v.provenance_v2(Some(step))?)
+    } else {
+        json!(v.provenance(Some(step.id.clone())))
+    };
+    match metadata {
+        Value::Object(metadata) => {
+            metadata.insert(PROVENANCE_KEY.into(), provenance);
+        }
+        metadata => {
+            let mut object = Map::new();
+            object.insert(PROVENANCE_KEY.into(), provenance);
+            *metadata = Value::Object(object);
+        }
+    }
+    Ok((key, Value::Object(fields)))
 }
 
 fn plan_edges(
@@ -355,7 +366,32 @@ fn plan_edges(
             edges.push(planned_edge_json(from, to, &kind));
         }
     }
-    // Parent edges are supplied by parent_id/parent_key, never duplicated in the plan.
+    plan_parent_edges(
+        v,
+        ids,
+        missing,
+        attach,
+        &existing_edges,
+        pending,
+        &mut absent,
+    )?;
+    if advanced {
+        Ok(edges)
+    } else {
+        finish_edges(absent, edges)
+    }
+}
+
+// Parent edges are supplied by parent_id/parent_key, never duplicated in the plan.
+fn plan_parent_edges(
+    v: &ValidatedGraph,
+    ids: &BTreeMap<StepId, BeadId>,
+    missing: &BTreeSet<StepId>,
+    attach: bool,
+    existing_edges: &ExistingEdges,
+    pending: &mut PendingCreate,
+    absent: &mut Vec<MissingEdge>,
+) -> Result<(), BeadComposeError> {
     for step in &v.steps {
         pending.endpoints.push((
             PlannedEndpoint::Named(BeadEndpoint::Step(step.id.clone())),
@@ -385,8 +421,8 @@ fn plan_edges(
             &from,
             &to,
             &GraphDependencyType::ParentChild,
-            &existing_edges,
-            &mut absent,
+            existing_edges,
+            absent,
         )?;
         pending.graph.edges.push(BeadGraphEdge {
             from: from.display().clone(),
@@ -399,11 +435,7 @@ fn plan_edges(
             },
         });
     }
-    if advanced {
-        Ok(edges)
-    } else {
-        finish_edges(absent, edges)
-    }
+    Ok(())
 }
 
 fn finish_edges(

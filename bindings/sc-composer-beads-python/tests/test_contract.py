@@ -675,3 +675,14 @@ def test_advanced_attach_authorization_and_variable_conflicts_write_nothing(tmp_
         beads.preview_attach(duplicate)
     assert raised.value.code == "BEADS_VARIABLE_KEY_DUPLICATE"
     assert not destination.exists() and not trace.exists()
+
+
+def test_python_strict_is_explicit_and_schema_scoped(tmp_path: Path) -> None:
+    template = tmp_path / "strict.formula.toml.j2"
+    destination = tmp_path / "strict.formula.toml"
+    template.write_text('---\nrequired_variables: []\n---\ntitle = "{{ value }}"\n', encoding="utf-8")
+    request = beads.BeadComposeRequest(tmp_path, template, destination, {"value": "allowed"}, operation="render")
+    assert beads.render(request).outcome.kind == "succeeded"
+    assert beads.render(request, strict=True).outcome.kind == "failed"
+    template.write_text('title = "{{ value }}"\n', encoding="utf-8")
+    assert beads.render(request, strict=True).outcome.kind == "succeeded"

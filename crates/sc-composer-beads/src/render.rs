@@ -67,28 +67,7 @@ pub(crate) fn render_formula_with_options(
     advanced: bool,
     strict: bool,
 ) -> Result<(), BeadComposeError> {
-    let root =
-        sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
-    let mut request = sc_composer::ComposeRequest {
-        runtime: None,
-        mode: sc_composer::ComposeMode::File {
-            template_path: template.to_path_buf(),
-        },
-        root,
-        vars_input: compose_variables
-            .iter()
-            .filter_map(|(name, value)| {
-                sc_composer::VariableName::new(name.as_str())
-                    .ok()
-                    .map(|name| (name, value.clone()))
-            })
-            .collect(),
-        vars_env: BTreeMap::new(),
-        vars_defaults: BTreeMap::new(),
-        guidance_block: None,
-        user_prompt: None,
-        policy: sc_composer::ComposePolicy::default(),
-    };
+    let mut request = compose_request(template, compose_variables, working_directory)?;
     // Reuse the library validation path so frontmatter `required_variables`
     // and `defaults` have the same meaning here as in `sc-composer` render.
     let (report, mut expanded) = sc_composer::validate_with_observer_and_delimiters_with_expansion(
@@ -106,7 +85,7 @@ pub(crate) fn render_formula_with_options(
         && expanded.frontmatters.iter().any(|(_, passes)| {
             passes
                 .iter()
-                .any(|pass| !pass.required_variables().is_empty() || !pass.defaults().is_empty())
+                .any(sc_composer::Frontmatter::has_variable_schema)
         });
     let (report, context) = if advanced || strict {
         sc_composer::validate_expanded_with_context(
@@ -159,6 +138,35 @@ pub(crate) fn render_formula_with_options(
         message: error.message().to_owned(),
     })?;
     atomic_write(rendered_formula, rendered.as_bytes())
+}
+
+fn compose_request(
+    template: &Path,
+    variables: &Map<String, serde_json::Value>,
+    working_directory: &Path,
+) -> Result<sc_composer::ComposeRequest, BeadComposeError> {
+    let root =
+        sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
+    Ok(sc_composer::ComposeRequest {
+        runtime: None,
+        mode: sc_composer::ComposeMode::File {
+            template_path: template.to_path_buf(),
+        },
+        root,
+        vars_input: variables
+            .iter()
+            .filter_map(|(name, value)| {
+                sc_composer::VariableName::new(name.as_str())
+                    .ok()
+                    .map(|name| (name, value.clone()))
+            })
+            .collect(),
+        vars_env: BTreeMap::new(),
+        vars_defaults: BTreeMap::new(),
+        guidance_block: None,
+        user_prompt: None,
+        policy: sc_composer::ComposePolicy::default(),
+    })
 }
 
 /// Reject a final output component that would redirect a renderer write.
