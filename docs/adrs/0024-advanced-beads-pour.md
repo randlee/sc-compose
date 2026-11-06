@@ -88,13 +88,25 @@ new facade/composition roots to the Beads and Python boundary manifests;
 allowed crate dependency edges are unchanged. The runner option provides
 controlled inputs in tests, not another execution path.
 
-Python retains the positional request, adding keyword-only options to its
-existing execute/render/validate/preview/pour/attach functions:
+Python retains the positional request and adds the same keyword-only execution
+options to each existing entrypoint. The convenience entrypoints continue to
+select their named operation; `execute` honors `request.operation`:
 
 ```python
 execute(request, *, render_by="sc-compose", strict=False)
+render(request, *, render_by="sc-compose", strict=False)
+validate(request, *, render_by="sc-compose", strict=False)
+preview_pour(request, *, render_by="sc-compose", strict=False)
 pour(request, *, render_by="sc-compose", strict=False)
+preview_attach(request, *, render_by="sc-compose", strict=False)
+attach(request, *, render_by="sc-compose", strict=False)
 ```
+
+`render_by` accepts `"sc-compose"` or `"bd"` and maps to
+`BeadRenderBy::ScCompose` or `BeadRenderBy::Bd`; `strict` maps to
+`BeadExecutionOptions::strict`. The default is advanced sc-compose rendering
+with strict checks disabled. These are additive keyword-only arguments; the
+existing positional request and its layout do not change.
 
 CLI and JSON requests map to these options. `--request` is mutually exclusive
 with a positional formula and direct --var inputs; it is not silently merged.
