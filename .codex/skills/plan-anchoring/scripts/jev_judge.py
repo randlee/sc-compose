@@ -2439,6 +2439,7 @@ def ask_triage(ctx: dict, a: dict, qs: dict, deferred: set, item: dict, fixture_
     if ctx["answers_fixture"] is not None:
         fx = ctx["answers_fixture"].get(fixture_key(a)) or ctx["answers_fixture"].get("*") or {}
         entry["answers"].update({k: v for k, v in fx.items() if k in asked})
+        entry["triage_questions"] = [k for k in asked if k in entry["answers"]]
         return Ok(0)
     body = {"model": ctx["model"], "state": build_state(a, item), "questions": asked}
     if len(encode_body(body)) > ctx["max_request_bytes"]:
@@ -2453,6 +2454,7 @@ def ask_triage(ctx: dict, a: dict, qs: dict, deferred: set, item: dict, fixture_
         return Ok((got.error.meta or {}).get("attempts", 0))
     resp, meta = got.value
     entry["answers"].update(resp["answers"])
+    entry["triage_questions"] = [k for k in asked if k in entry["answers"]]  # which answers are triage, in question order, for the report
     return Ok(meta.get("attempts", 0))
 
 
@@ -3214,6 +3216,25 @@ def sentence(text: str) -> str:
     return s if s.endswith((".", "!", "?")) else s + "."
 
 
+def triage_lines(r: dict) -> list:
+    """The triage answers of one failed cell, one line, in question order; or why there are none. The answers never change the
+    verdict; they are what triage/rules.json routes on, so the reader sees why a cell goes to exclude, plan, question or human."""
+    lines = []
+    answers = r.get("answers") or {}
+    shown = []
+    for qid in r.get("triage_questions") or []:
+        if isinstance(answers.get(qid), dict):
+            choice, conf = answer_choice(answers[qid])
+            shown.append(f"`{qid}` {choice} ({conf:.2f})")
+    if shown:
+        lines.append(">   Triage: " + ", ".join(shown) + ".")
+    if r.get("extra_questions_dropped"):
+        lines.append(">   Not asked, over the request size cap: " + ", ".join(f"`{q}`" for q in r["extra_questions_dropped"]) + ".")
+    if isinstance(r.get("triage_error"), dict) and r["triage_error"].get("code"):
+        lines.append(f">   Triage error {r['triage_error']['code']}: {r['triage_error'].get('message', '')}".rstrip())
+    return lines
+
+
 def report_lines(run: dict, include_passing: bool = False) -> list:
     """One blockquote per judged anchor: the testable statement, then the provenance quote, then the explanation.
 
@@ -3222,6 +3243,7 @@ def report_lines(run: dict, include_passing: bool = False) -> list:
              (the says-clause is skipped when the quote is the statement, as it is for register text)
     Run files written before the quote field existed are read as quote = statement.
     An excluded cell is always listed, with the exclusion's reason in place of the provenance and explanation.
+    A failed cell's triage answers follow on a `Triage:` line (run files written before 0.9.1 do not record them).
     """
     lines = []
     item_id = run["item"]["id"]
@@ -3254,6 +3276,7 @@ def report_lines(run: dict, include_passing: bool = False) -> list:
             lines.append(f">   Low: {q['role']} `{q['question_id']}` answered {q['choice']} at {q['confidence']:.2f}{ask}.")
         if r.get("unstable"):
             lines.append(f">   Unstable: two identical requests gave {r.get('verdict_first')} then {r.get('verdict_second')}.")
+        lines.extend(triage_lines(r))
         if v == "error" and isinstance(r.get("error"), dict) and r["error"].get("code"):
             lines.append(f">   Error {r['error']['code']}: {r['error'].get('message', '')}".rstrip())
         if r.get("deterministic_check") and v in ("satisfied", "asserted_only") and run["gate"] == "dev":
