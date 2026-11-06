@@ -8,8 +8,7 @@ use serde_json::json;
 use crate::support::{TempFixture, sc_compose, write_file};
 
 #[cfg(unix)]
-#[path = "../../../test-support/fake_exec.rs"]
-pub(crate) mod fake_exec;
+use crate::support::fake_exec;
 
 const BEADS_SCHEMA: &str = "sc-compose/beads/v1";
 

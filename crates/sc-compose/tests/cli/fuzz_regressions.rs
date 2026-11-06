@@ -3,7 +3,7 @@
 use super::support::{parse_stdout, sc_compose, temp_root, write_file};
 
 #[cfg(unix)]
-use crate::bead::fake_exec;
+use crate::support::fake_exec;
 
 /// Writes a `bead render` request for `template` and returns its absolute path.
 fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::path::PathBuf {

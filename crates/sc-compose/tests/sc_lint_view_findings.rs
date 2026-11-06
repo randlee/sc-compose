@@ -141,15 +141,11 @@ fn view_findings_missing_runtime_is_explicit_and_non_pass() {
     fs::create_dir_all(&bin).unwrap();
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
         for name in ["python", "python3"] {
-            let path = bin.join(name);
-            fs::write(
-                &path,
+            support::fake_exec::install(
+                &bin.join(name),
                 "#!/bin/sh\necho 'ModuleNotFoundError: No module named sc_lint' >&2\nexit 1\n",
-            )
-            .unwrap();
-            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+            );
         }
     }
     #[cfg(windows)]

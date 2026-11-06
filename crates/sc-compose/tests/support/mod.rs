@@ -13,6 +13,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
+#[cfg(unix)]
+#[path = "../../../test-support/fake_exec.rs"]
+pub mod fake_exec;
+
 // macOS can report the same wall-clock timestamp for parallel test threads.
 // Keep fixture paths unique within a test process so one fixture's Drop cannot
 // remove another test's current directory or subprocess executable.
@@ -340,8 +344,6 @@ pub fn write_fake_cargo(root: &Path, options: FakeCargoOptions) {
     fs::create_dir_all(&bin).expect("fake tools directory");
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-
         let xwin_code = if options.xwin_available { "0" } else { "1" };
         let test_branch = if options.test_failure {
             "if [ \"$1\" = \"test\" ]; then\n  printf '%s\\n' '{\"findings\":[{\"rule_id\":\"CI-TEST-FINDING-001\",\"path\":\"tests/fixture\",\"message\":\"workspace test failed\"}]}' >&2\n  exit 1\nfi\n"
@@ -354,18 +356,12 @@ pub fn write_fake_cargo(root: &Path, options: FakeCargoOptions) {
             "exit 0"
         };
         let cargo = bin.join("cargo");
-        fs::write(
+        fake_exec::install(
             &cargo,
-            format!(
+            &format!(
                 "#!/bin/sh\nif [ \"$1\" = \"xwin\" ] && {{ [ \"$2\" = \"--version\" ] || [ \"$2\" = \"check\" ]; }}; then\n  exit {xwin_code}\nfi\n{test_branch}{fallback}\n"
             ),
-        )
-        .expect("fake cargo");
-        let mut permissions = fs::metadata(&cargo)
-            .expect("fake cargo metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(cargo, permissions).expect("fake cargo permissions");
+        );
     }
 
     #[cfg(windows)]
@@ -429,19 +425,10 @@ pub fn write_fake_cargo_deny(root: &Path) {
     fs::create_dir_all(&bin).expect("fake tools directory");
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-
-        let cargo_deny = bin.join("cargo-deny");
-        fs::write(
-            &cargo_deny,
+        fake_exec::install(
+            &bin.join("cargo-deny"),
             "#!/bin/sh\nif [ \"${1:-}\" = \"--version\" ]; then\n  echo 'cargo-deny 0.20.1'\nfi\nexit 0\n",
-        )
-        .expect("fake cargo-deny");
-        let mut permissions = fs::metadata(&cargo_deny)
-            .expect("fake cargo-deny metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(cargo_deny, permissions).expect("fake cargo-deny permissions");
+        );
     }
 
     #[cfg(windows)]
