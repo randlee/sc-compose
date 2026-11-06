@@ -51,6 +51,18 @@ pub fn execute_bead_request_with_diagnostics(
     )
 }
 
+/// Execute with explicit options and retain typed diagnostics for adapters.
+///
+/// # Errors
+/// Returns the same request and process errors as [`execute_bead_request`].
+pub fn execute_bead_request_with_options_and_diagnostics(
+    request: &BeadComposeRequest,
+    options: &BeadExecutionOptions,
+    diagnostics: &mut dyn FnMut(&BeadComposeError),
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_with_options_runner_and_diagnostics(request, options, &StdProcessRunner, diagnostics)
+}
+
 /// Execute a Beads request through an injected direct process runner.
 ///
 /// # Errors
@@ -95,7 +107,10 @@ fn execute_with_runner_and_diagnostics(
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     execute_with_options_runner_and_diagnostics(
         request,
-        &BeadExecutionOptions::default(),
+        &BeadExecutionOptions {
+            render_by: BeadRenderBy::Bd,
+            strict: false,
+        },
         runner,
         diagnostics,
     )
@@ -148,6 +163,7 @@ fn execute_attach(
         };
     crate::graph::execute(
         request,
+        options.render_by == BeadRenderBy::ScCompose,
         runner,
         &normalized,
         &formula_input,
@@ -215,6 +231,7 @@ fn execute_formula(
 
     crate::pour::execute_pour(
         request,
+        options.render_by == BeadRenderBy::ScCompose,
         runner,
         normalized,
         &formula_input,
@@ -774,7 +791,7 @@ pub(crate) mod tests {
 
     use serde_json::{Map, json};
 
-    use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner};
+    use super::BEADS_SCHEMA_V1;
     #[cfg(unix)]
     use crate::StdProcessRunner;
     use crate::paths::public_path_display;
@@ -782,6 +799,20 @@ pub(crate) mod tests {
         BeadComposeError, BeadComposeRequest, BeadOperation, BeadOutcome, CommandSpec,
         ProcessOutput, ProcessRunner,
     };
+
+    pub(crate) fn execute_bead_request_with_runner(
+        request: &BeadComposeRequest,
+        runner: &dyn ProcessRunner,
+    ) -> Result<crate::BeadComposeReceipt, BeadComposeError> {
+        super::execute_bead_request_with_options_and_runner(
+            request,
+            &crate::BeadExecutionOptions {
+                render_by: crate::BeadRenderBy::Bd,
+                strict: false,
+            },
+            runner,
+        )
+    }
 
     static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 

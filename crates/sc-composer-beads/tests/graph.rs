@@ -263,7 +263,15 @@ fn request_shape_and_authorization_fail_before_render_or_bd() {
             _ => unreachable!(),
         }
         let runner = FakeRunner::new([]);
-        let err = execute_bead_request_with_runner(&w.req, &runner).expect_err("shape refused");
+        let err = execute_bead_request_with_options_and_runner(
+            &w.req,
+            &BeadExecutionOptions {
+                render_by: BeadRenderBy::Bd,
+                strict: false,
+            },
+            &runner,
+        )
+        .expect_err("shape refused");
         assert_eq!(err.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
         let expected_message = match case {
             0 => "attach requires parent",
@@ -466,7 +474,15 @@ fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
         let mut dependencies = ok(deps);
         dependencies.stderr = "unrelated bd dep add forged source --type blocks".into();
         let runner = FakeRunner::new([ok(COOKED), ok(&rows), dependencies]);
-        let r = w.run(&runner);
+        let r = execute_bead_request_with_options_and_runner(
+            &w.req,
+            &BeadExecutionOptions {
+                render_by: BeadRenderBy::Bd,
+                strict: false,
+            },
+            &runner,
+        )
+        .unwrap();
         if code == Some("BEADS_GRAPH_EDGE_MISSING") {
             assert_eq!(
                 r.missing_edges,
@@ -492,6 +508,22 @@ fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
             ["dep", "list", "--json", "--", "proj-1.chain-build"]
         );
     }
+}
+
+#[test]
+fn advanced_missing_edge_refuses_unqualified_atomic_update_without_writes() {
+    let mut w = Workspace::new();
+    let rows = existing(&w);
+    w.req.operation = BeadOperation::Attach;
+    let runner = FakeRunner::new([ok(COOKED), ok(&rows), ok("[]")]);
+    let receipt = w.run(&runner);
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Refused {
+            code: "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE".into()
+        }
+    );
+    assert_read_only(&runner);
 }
 #[test]
 fn apply_failure_is_failed_at_the_apply_stage() {
@@ -710,7 +742,15 @@ fn graph_pour_forbids_runtime_variables_and_registry_pour_forbids_relations() {
     let where_output = json!({"path":w.root.join(".beads")}).to_string();
     let runner = FakeRunner::new([ok("{}"), ok(&where_output), ok(COOKED)]);
     refused_with_reason(
-        &w.run(&runner),
+        &execute_bead_request_with_options_and_runner(
+            &w.req,
+            &BeadExecutionOptions {
+                render_by: BeadRenderBy::Bd,
+                strict: false,
+            },
+            &runner,
+        )
+        .expect("bd-owned request"),
         "BEADS_GRAPH_FORMULA_UNSUPPORTED",
         BeadStage::PreviewPour,
         "bead_variables_set",
@@ -729,6 +769,98 @@ fn graph_pour_forbids_runtime_variables_and_registry_pour_forbids_relations() {
         "relations are unavailable for registry pour",
     );
     assert_read_only(&runner);
+}
+
+#[test]
+fn advanced_graph_and_attach_accept_bead_inputs() {
+    let mut w = Workspace::new();
+    fs::write(
+        &w.req.template,
+        "formula = \"sample\"\ntitle = \"{{ title }}\"\n",
+    )
+    .unwrap();
+    w.req
+        .bead_variables
+        .insert("title".into(), "{{ literal }}".into());
+    let runner = FakeRunner::new([ok(COOKED), parent(), ok("{}")]);
+    let receipt = w.run(&runner);
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    assert!(
+        fs::read_to_string(&w.req.rendered_formula)
+            .unwrap()
+            .contains("{{ literal }}")
+    );
+    assert!(
+        runner
+            .calls()
+            .iter()
+            .all(|call| !call.args.iter().any(|arg| arg == "--var"))
+    );
+}
+
+#[test]
+fn advanced_transport_renders_source_and_preserves_literal_data() {
+    struct Capture<'a> {
+        inner: &'a FakeRunner,
+        formula: Mutex<String>,
+    }
+    impl ProcessRunner for Capture<'_> {
+        fn run(&self, command: &CommandSpec) -> io::Result<ProcessOutput> {
+            if command.args.first().is_some_and(|arg| arg == "cook") {
+                *self.formula.lock().unwrap() = fs::read_to_string(&command.args[1])?;
+            }
+            self.inner.run(command)
+        }
+    }
+    let mut w = Workspace::new();
+    fs::write(&w.req.template, "formula = \"sample\"\n{% if enabled %}{% for item in items %}title = \"{{ item }} {{ literal }}\"\n{% endfor %}{% endif %}{# comment #}\n").unwrap();
+    w.req
+        .compose_variables
+        .insert("enabled".into(), json!(true));
+    w.req
+        .compose_variables
+        .insert("items".into(), json!(["one", "two"]));
+    w.req
+        .bead_variables
+        .insert("literal".into(), "{{ data }} {% raw %}".into());
+    let fake = FakeRunner::new([ok(COOKED), parent(), ok("{}")]);
+    let runner = Capture {
+        inner: &fake,
+        formula: Mutex::new(String::new()),
+    };
+    let receipt = execute_bead_request_with_runner(&w.req, &runner).unwrap();
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    let formula = runner.formula.lock().unwrap();
+    assert!(formula.contains("one {{ data }} {% raw %}"));
+    assert!(formula.contains("two {{ data }} {% raw %}"));
+    assert!(
+        !formula.contains("{% for")
+            && !formula.contains("{% if")
+            && !formula.contains("{# comment")
+    );
+    assert!(
+        fake.calls()
+            .iter()
+            .all(|call| !call.args.iter().any(|arg| arg == "--var"))
+    );
+}
+
+#[test]
+fn bd_owned_graph_and_attach_retain_input_refusals() {
+    let mut w = Workspace::new();
+    w.req.bead_variables.insert("title".into(), "value".into());
+    let runner = FakeRunner::new([]);
+    let error = execute_bead_request_with_options_and_runner(
+        &w.req,
+        &BeadExecutionOptions {
+            render_by: BeadRenderBy::Bd,
+            strict: false,
+        },
+        &runner,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("attach forbids bead_variables"));
+    assert!(runner.calls().is_empty());
 }
 #[test]
 fn graph_plan_symlink_is_refused_without_touching_target() {

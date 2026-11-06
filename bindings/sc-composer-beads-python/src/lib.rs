@@ -847,7 +847,7 @@ mod tests {
             .expect("JSON fixture must be an object")
             .clone(),
             formula_name: None,
-            bead_variables: BTreeMap::new(),
+            bead_variables: BTreeMap::from([("release_name".into(), "1.7.0".into())]),
             bd_executable: None,
             pour_authorization: None,
             parent: None,

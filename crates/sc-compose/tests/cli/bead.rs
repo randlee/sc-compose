@@ -805,3 +805,24 @@ fn assert_missing_edge_recovery(
     }
     assert_eq!(workspace.snapshot(), before, "repair advice writes nothing");
 }
+
+#[test]
+fn direct_pour_rejects_duplicate_mixed_and_missing_sources_before_staging() {
+    let root = TempFixture::new("direct-pour-refusals");
+    let cases: &[&[&str]] = &[
+        &[
+            "bead", "pour", "plan-fix", "--var", "key=one", "--var", "key=two",
+        ],
+        &["bead", "pour", "plan-fix", "--request", "request.json"],
+        &["bead", "pour", "missing-formula", "--var", "key=value"],
+    ];
+    for args in cases {
+        let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+            .args(*args)
+            .current_dir(&root.path)
+            .output()
+            .expect("run direct pour refusal");
+        assert!(!output.status.success(), "{args:?}: {output:?}");
+        assert_eq!(fs::read_dir(&root.path).unwrap().count(), 0, "{args:?}");
+    }
+}

@@ -117,6 +117,7 @@ pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
 /// #     BeadComposeError::GraphConflict { .. } => 0,
 /// #     BeadComposeError::GraphEdgeConflict { .. } => 0,
 /// #     BeadComposeError::GraphEdgeMissing { .. } => 0,
+/// #     BeadComposeError::GraphAtomicUpdateUnavailable => 0,
 /// #     BeadComposeError::GraphReadFailed { .. } => 0,
 /// #     BeadComposeError::GraphApplyFailed { .. } => 0,
 /// #     BeadComposeError::GraphApplyUnconfirmed { .. } => 0,
@@ -373,6 +374,11 @@ pub enum BeadComposeError {
         /// Non-empty missing edges in plan order; repair each before retrying.
         edges: Vec<MissingEdge>,
     },
+    /// The installed bd has no qualified atomic mixed-update protocol.
+    #[error(
+        "graph atomic update unavailable: no supported transaction with ownership preconditions is qualified"
+    )]
+    GraphAtomicUpdateUnavailable,
     /// `ReadFailed` condition from ADR-0023.
     #[error(
         "graph read failed ({status:?}): {cause}; {command:?}; fix bd and retry, nothing was written"
@@ -541,6 +547,10 @@ impl BeadComposeError {
     /// Stable code for [`BeadComposeError::GraphEdgeMissing`].
     pub const GRAPH_EDGE_MISSING_CODE: &'static str = "BEADS_GRAPH_EDGE_MISSING";
 
+    /// Stable code for [`BeadComposeError::GraphAtomicUpdateUnavailable`].
+    pub const GRAPH_ATOMIC_UPDATE_UNAVAILABLE_CODE: &'static str =
+        "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE";
+
     /// Stable code for [`BeadComposeError::GraphReadFailed`].
     pub const GRAPH_READ_FAILED_CODE: &'static str = "BEADS_GRAPH_READ_FAILED";
 
@@ -569,6 +579,7 @@ impl BeadComposeError {
         Self::GRAPH_CONFLICT_CODE,
         Self::GRAPH_EDGE_CONFLICT_CODE,
         Self::GRAPH_EDGE_MISSING_CODE,
+        Self::GRAPH_ATOMIC_UPDATE_UNAVAILABLE_CODE,
         Self::GRAPH_READ_FAILED_CODE,
         Self::GRAPH_APPLY_FAILED_CODE,
         Self::GRAPH_APPLY_UNCONFIRMED_CODE,
@@ -599,6 +610,7 @@ impl BeadComposeError {
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
+            | Self::GraphAtomicUpdateUnavailable
             | Self::GraphReadFailed { .. }
             | Self::GraphApplyFailed { .. }
             | Self::GraphApplyUnconfirmed { .. }
@@ -664,6 +676,7 @@ impl BeadComposeError {
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
+            | Self::GraphAtomicUpdateUnavailable
             | Self::GraphReadFailed { .. }
             | Self::GraphApplyFailed { .. }
             | Self::GraphApplyUnconfirmed { .. } => BeadErrorClass::Execution,
@@ -710,6 +723,7 @@ impl BeadComposeError {
             Self::GraphConflict { .. } => Self::GRAPH_CONFLICT_CODE,
             Self::GraphEdgeConflict { .. } => Self::GRAPH_EDGE_CONFLICT_CODE,
             Self::GraphEdgeMissing { .. } => Self::GRAPH_EDGE_MISSING_CODE,
+            Self::GraphAtomicUpdateUnavailable => Self::GRAPH_ATOMIC_UPDATE_UNAVAILABLE_CODE,
             Self::GraphReadFailed { .. } => Self::GRAPH_READ_FAILED_CODE,
             Self::GraphApplyFailed { .. } => Self::GRAPH_APPLY_FAILED_CODE,
             Self::GraphApplyUnconfirmed { .. } => Self::GRAPH_APPLY_UNCONFIRMED_CODE,

@@ -29,6 +29,7 @@ pub(crate) fn is_attach(operation: BeadOperation) -> bool {
 
 pub(crate) fn execute(
     request: &BeadComposeRequest,
+    advanced: bool,
     runner: &dyn ProcessRunner,
     normalized: &NormalizedRequest,
     formula_input: &InputSnapshot,
@@ -50,7 +51,7 @@ pub(crate) fn execute(
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
     };
-    let result = run(request, &mut runtime, formula_input, stage);
+    let result = run(request, advanced, &mut runtime, formula_input, stage);
     let missing_edges = match &result {
         Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
         _ => Vec::new(),
@@ -127,6 +128,7 @@ fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
 
 fn run(
     request: &BeadComposeRequest,
+    advanced: bool,
     runtime: &mut Runtime<'_>,
     formula_input: &InputSnapshot,
     stage: BeadStage,
@@ -166,9 +168,29 @@ fn run(
     };
     let validated = validate::validate(request, cooked, &rendered, mode)?;
     runtime.stage = stage;
-    match plan::plan(&validated, runtime)? {
+    let plan = plan::plan(&validated, runtime).map_err(|error| {
+        if advanced && matches!(error, BeadComposeError::GraphEdgeMissing { .. }) {
+            BeadComposeError::GraphAtomicUpdateUnavailable
+        } else {
+            error
+        }
+    })?;
+    match plan {
         GraphPlan::Noop(graph) => Ok(graph),
         GraphPlan::Create(pending) => {
+            if advanced
+                && matches!(
+                    request.operation,
+                    BeadOperation::Attach | BeadOperation::Pour
+                )
+                && pending
+                    .graph
+                    .nodes
+                    .iter()
+                    .any(|node| node.action == BeadNodeAction::Existing)
+            {
+                return Err(BeadComposeError::GraphAtomicUpdateUnavailable);
+            }
             if matches!(
                 request.operation,
                 BeadOperation::PreviewAttach | BeadOperation::PreviewPour

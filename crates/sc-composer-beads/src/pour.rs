@@ -17,6 +17,7 @@ use std::path::{Path, PathBuf};
 
 pub(crate) fn execute_pour(
     request: &BeadComposeRequest,
+    advanced: bool,
     runner: &dyn ProcessRunner,
     normalized: NormalizedRequest,
     formula_input: &InputSnapshot,
@@ -69,6 +70,7 @@ pub(crate) fn execute_pour(
         }
         return crate::graph::execute(
             request,
+            advanced,
             runner,
             &normalized,
             formula_input,
@@ -218,8 +220,9 @@ fn refuse_registry_relations(
 
 #[cfg(test)]
 mod tests {
-    use crate::execute::execute_bead_request_with_runner;
-    use crate::execute::tests::{FakeRunner, request, success, where_output, workspace};
+    use crate::execute::tests::{
+        FakeRunner, execute_bead_request_with_runner, request, success, where_output, workspace,
+    };
     use crate::paths::public_path_display;
     use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
     use crate::{BeadComposeError, BeadOperation, BeadOutcome, BeadStage, PourAuthorization};

@@ -1,9 +1,9 @@
 # Beads formula composition
 
 `sc-compose bead` turns sc-compose templates into Beads work: it renders a
-formula template, checks it with `bd`, and creates beads from it. Each command
-takes one complete `sc-compose/beads/v1` JSON request file and returns one
-receipt. The same manual is available in the installed binary with
+formula template, checks it with `bd`, and creates beads from it. Commands
+accept a complete `sc-compose/beads/v1` JSON request; `pour` also accepts a
+direct formula and repeated `--var` arguments. The same manual is available with
 `sc-compose help bead`.
 
 ```text
@@ -11,12 +11,15 @@ sc-compose bead render         --request request.json [--json]
 sc-compose bead validate       --request request.json [--json]
 sc-compose bead preview-pour   --request request.json [--json]
 sc-compose bead pour           --request request.json [--json]
+sc-compose bead pour           FORMULA [--var KEY=VALUE ...] [--json]
 sc-compose bead preview-attach --request request.json [--json]
 sc-compose bead attach         --request request.json [--json]
 ```
 
-The subcommand determines `operation`; every other value comes from the request
-file. There are no partial request flags. `bd` 1.3.1 is the supported version and
+The subcommand determines `operation`. Select `--render-by bd` for the legacy
+bd-owned renderer; the default is `--render-by sc-compose`. Use `--strict`
+to enable undeclared-variable validation for templates declaring a schema.
+`bd` 1.3.1 is the supported version and
 must be on `PATH` (or named by `bd_executable`) for every operation except
 `render`; sc-compose does not probe the version.
 
@@ -46,10 +49,26 @@ in either of two places:
   `extends`, `loop`, `expand`, `condition` and `gate` are evaluated by `bd`.
   Use registry pour (below) for formulas written this way.
 
-In a bead template, sc-compose values use triple braces, `{{{ value }}}`, and
-blocks use ordinary `{% ... %}`. Double-brace `{{ name }}` text is never
-touched by sc-compose; it is left for Beads in registry pour and kept as
-literal text by `attach` and graph-mode `pour`.
+In the default mode, both `{{ name }}` and `{{{ name }}}` expressions are
+rendered once by sc-compose; caller values containing delimiters remain data.
+In `--render-by bd` mode, triple braces are sc-compose expressions and
+ordinary double braces are left for bd.
+
+For example, `examples/beads/plan-fix.formula.toml.j2` defines `review` and
+`fix` steps. From the workspace root, run:
+
+```sh
+sc-compose bead pour examples/beads/plan-fix.formula.toml.j2 \
+  --var plan=phase-v --var finding=EDGE-1 --var 'literal={{ evidence }}'
+```
+
+The advanced renderer produces a review titled `Review EDGE-1`, a fix titled
+`Fix EDGE-1`, and the declared fix-to-review dependency. The evidence text
+`{{ evidence }}` stays literal. Inspect the returned bead ids with `bd show`.
+For an existing registry formula using bd's own `[vars]` declarations, use
+`sc-compose bead pour --request request.json --render-by bd`; a request with
+`bead_variables: {"release_name":"1.5.0"}` passes `--var release_name=1.5.0`
+to bd, so a title `Release {{ release_name }}` is evaluated by bd.
 
 ## The request
 
@@ -79,7 +98,7 @@ literal text by `attach` and graph-mode `pour`.
 | `rendered_formula` | yes | Where the rendered `.formula.toml` / `.formula.json` is written. Any existing directory inside `working_directory`; no Beads `formulas/` directory is needed. |
 | `formula_name` | for `pour` and `preview-pour` | The formula's name in the active registry. Optional for the other operations; only `attach` and `preview-attach` require the portable name grammar. |
 | `compose_variables` | yes (may be `{}`) | Structured JSON values for the template (`{{{ ... }}}`, loops, conditionals). |
-| `bead_variables` | yes (may be `{}`) | Scalar values passed to `bd` as `--var` by registry pour only. Must be `{}` for attach and graph pour. |
+| `bead_variables` | yes (may be `{}`) | Scalar strings rendered by sc-compose in default mode; bd-owned mode passes them as `--var` for registry pour and refuses them for attach and graph pour. |
 | `bd_executable` | no | Path to `bd`; default `bd` on `PATH`. |
 | `pour_authorization` | for `pour` and `attach` | Exactly `CreatePersistentBeads`. |
 | `parent` | for attach ops only | Id of the existing bead to attach under. |

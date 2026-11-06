@@ -1,8 +1,8 @@
 //! Production bd graph use cases from ADR-0023; opt in with `BD_EXECUTABLE`.
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadGraphMode, BeadId, BeadNodeAction,
-    BeadOperation, BeadOutcome, BeadPourMode, BeadStage, GraphRef, PourAuthorization,
-    execute_bead_request,
+    BeadExecutionOptions, BeadOperation, BeadOutcome, BeadPourMode, BeadRenderBy, BeadStage,
+    GraphRef, PourAuthorization, execute_bead_request_with_options,
 };
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -106,7 +106,10 @@ impl Workspace {
     }
     fn run(&self, req: &BeadComposeRequest) -> BeadComposeReceipt {
         assert_eq!(req.working_directory, self.root);
-        execute_bead_request(req).expect("valid request")
+        execute_bead_request_with_options(
+            req,
+            &BeadExecutionOptions { render_by: BeadRenderBy::Bd, strict: false },
+        ).expect("valid request")
     }
     fn success(&self, req: &BeadComposeRequest) -> BeadComposeReceipt {
         let receipt = self.run(req);

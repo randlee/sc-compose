@@ -41,6 +41,7 @@ pub use error::{
 #[doc(inline)]
 pub use execute::{
     execute_bead_request, execute_bead_request_with_diagnostics, execute_bead_request_with_options,
+    execute_bead_request_with_options_and_diagnostics,
     execute_bead_request_with_options_and_runner, execute_bead_request_with_runner,
 };
 #[doc(inline)]

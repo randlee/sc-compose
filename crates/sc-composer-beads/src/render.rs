@@ -69,7 +69,7 @@ pub(crate) fn render_formula_with_options(
 ) -> Result<(), BeadComposeError> {
     let root =
         sc_composer::ConfiningRoot::new(working_directory).map_err(|error| render_error(&error))?;
-    let request = sc_composer::ComposeRequest {
+    let mut request = sc_composer::ComposeRequest {
         runtime: None,
         mode: sc_composer::ComposeMode::File {
             template_path: template.to_path_buf(),
@@ -87,10 +87,7 @@ pub(crate) fn render_formula_with_options(
         vars_defaults: BTreeMap::new(),
         guidance_block: None,
         user_prompt: None,
-        policy: sc_composer::ComposePolicy {
-            strict_undeclared_variables: strict,
-            ..sc_composer::ComposePolicy::default()
-        },
+        policy: sc_composer::ComposePolicy::default(),
     };
     // Reuse the library validation path so frontmatter `required_variables`
     // and `defaults` have the same meaning here as in `sc-composer` render.
@@ -105,6 +102,12 @@ pub(crate) fn render_formula_with_options(
     if advanced {
         expanded.text = crate::expressions::fold_bead_expressions(&expanded.text);
     }
+    request.policy.strict_undeclared_variables = strict
+        && expanded.frontmatters.iter().any(|(_, passes)| {
+            passes
+                .iter()
+                .any(|pass| !pass.required_variables().is_empty() || !pass.defaults().is_empty())
+        });
     let (report, context) = if advanced || strict {
         sc_composer::validate_expanded_with_context(
             &request,
@@ -308,12 +311,16 @@ fn render_error(error: &std::io::Error) -> BeadComposeError {
 }
 
 fn escape_mode(template: &Path) -> sc_composer::TemplateEscapeMode {
-    if template.to_string_lossy().ends_with(".formula.json.j2") {
+    if template.to_string_lossy().ends_with(".formula.json.j2")
+        || template.to_string_lossy().ends_with(".formula.json")
+    {
         // Formula templates retain their literal JSON quotes.  This mirrors
         // the documented sc-compose legacy JSON shape while the deliberately
         // distinct triple braces preserve Beads runtime placeholders.
         sc_composer::TemplateEscapeMode::Json(sc_composer::JsonEscapeMode::Legacy)
-    } else if template.to_string_lossy().ends_with(".formula.toml.j2") {
+    } else if template.to_string_lossy().ends_with(".formula.toml.j2")
+        || template.to_string_lossy().ends_with(".formula.toml")
+    {
         sc_composer::TemplateEscapeMode::Toml
     } else {
         sc_composer::TemplateEscapeMode::Json(sc_composer::JsonEscapeMode::Auto)
@@ -346,6 +353,29 @@ mod tests {
         assert!(rendered.contains("title = \"first\""));
         assert!(rendered.contains("title = \"second\""));
         assert!(!rendered.contains("{% for"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn strict_checks_require_explicit_policy_and_schema() {
+        let root = temporary_directory();
+        let template = root.join("strict.formula.toml.j2");
+        let output = root.join("strict.formula.toml");
+        let vars = Map::from_iter([
+            ("declared".into(), json!("ok")),
+            ("extra".into(), json!("value")),
+        ]);
+        fs::write(&template, "title = \"{{ extra }}\"\n").unwrap();
+        render_formula_with_options(&template, &output, &vars, &root, true, true).unwrap();
+        fs::write(
+            &template,
+            "---\nrequired_variables:\n  - declared\n---\ntitle = \"{{ extra }}\"\n",
+        )
+        .unwrap();
+        render_formula_with_options(&template, &output, &vars, &root, true, false).unwrap();
+        let error =
+            render_formula_with_options(&template, &output, &vars, &root, true, true).unwrap_err();
+        assert!(error.to_string().contains("extra"));
         fs::remove_dir_all(root).unwrap();
     }
 

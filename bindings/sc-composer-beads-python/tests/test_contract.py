@@ -266,8 +266,8 @@ def test_graph_receipt_conversion_failures_raise_bead_compose_error(
     with pytest.raises(beads.BeadComposeError) as raised:
         beads.BeadComposeReceipt.from_json(wire)
 
-    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
-    assert raised.value.stage == "request"
+    assert raised.value.code == "BEADS_OUTPUT_SERIALIZATION_FAILED"
+    assert raised.value.stage == "output"
     assert message in raised.value.message
 
 
@@ -275,7 +275,7 @@ def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
     executable, trace = _write_fake_bd(tmp_path)
 
     validated = beads.validate(_request(tmp_path, executable))
-    previewed = beads.preview_pour(_request(tmp_path, executable))
+    previewed = beads.preview_pour(_request(tmp_path, executable), render_by="bd")
 
     assert validated.operation == "validate"
     assert [stage.stage for stage in validated.stages] == ["render", "validate"]
@@ -637,3 +637,17 @@ def test_receipt_exposes_missing_edges_without_to_json() -> None:
     assert receipt.to_json()["missing_edges"] == edges
     registry = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
     assert beads.BeadComposeReceipt.from_json(json.dumps(registry)).missing_edges == []
+
+
+def test_python_render_modes_keep_literal_values_and_bd_placeholders(tmp_path: Path) -> None:
+    executable, trace = _write_fake_bd(tmp_path)
+    request = _request(tmp_path, executable, operation="render")
+    advanced = beads.render(request)
+    assert advanced.outcome.kind == "succeeded"
+    rendered = Path(advanced.rendered_formula).read_text(encoding="utf-8")
+    assert "1.5.0" in rendered
+    assert "{{ release_name }}" not in rendered
+    legacy = beads.render(request, render_by="bd")
+    assert legacy.outcome.kind == "succeeded"
+    assert "{{ release_name }}" in Path(legacy.rendered_formula).read_text(encoding="utf-8")
+    assert not trace.exists()
