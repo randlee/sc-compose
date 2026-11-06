@@ -121,11 +121,20 @@ def run_object(**overrides) -> dict:
     return run
 
 
+def artifact(name: str, number: int = 1, **overrides) -> dict:
+    entry = {"id": number, "name": name, "expired": False, "expires_at": "2026-12-06T10:00:00Z",
+             "workflow_run": {"id": RUN_ID, "head_sha": HEAD}}
+    entry.update(overrides)
+    return entry
+
+
+def listing_of(*entries: dict) -> dict:
+    return {"total_count": len(entries), "artifacts": list(entries)}
+
+
 def artifact_listing(**overrides) -> dict:
-    artifact = {"id": 1, "name": "release-assets", "expired": False, "expires_at": "2026-12-06T10:00:00Z",
-                "workflow_run": {"id": RUN_ID, "head_sha": HEAD}}
-    artifact.update(overrides)
-    return {"total_count": 1, "artifacts": [artifact]}
+    """The run's two required artifacts; overrides apply to both."""
+    return listing_of(artifact(cim.CHECKSUMS_ARTIFACT, 1, **overrides), artifact(cim.FILES_ARTIFACT, 2, **overrides))
 
 
 class Fixture:
@@ -274,6 +283,61 @@ class RunEvidenceTests(unittest.TestCase):
     def test_invalid_candidate(self) -> None:
         self.assertRejected("CANDIDATE_INVALID", head="abc123")
         self.assertRejected("CANDIDATE_INVALID", version="v1.8")
+
+
+class RequiredArtifactTests(unittest.TestCase):
+    """qa-f1: the listing must name the checksums and release-files artifacts; unrelated evidence never stands in."""
+
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        self.fixture = Fixture(Path(self.directory.name))
+
+    def tearDown(self) -> None:
+        self.directory.cleanup()
+
+    def assertRejected(self, code: str, listing: dict) -> dict:
+        result = self.fixture.verify(artifacts=listing)
+        self.assertFalse(result["ok"])
+        self.assertIn(code, codes(result), result["errors"])
+        return result
+
+    def test_unrelated_live_artifact_does_not_satisfy_required_evidence(self) -> None:
+        result = self.assertRejected("EVIDENCE_MISSING", listing_of(artifact("coverage-report")))
+        missing = [e["message"] for e in result["errors"] if e["code"] == "EVIDENCE_MISSING"]
+        self.assertEqual(len(missing), 2)
+
+    def test_each_required_artifact_missing(self) -> None:
+        for required, other in ((cim.CHECKSUMS_ARTIFACT, cim.FILES_ARTIFACT), (cim.FILES_ARTIFACT, cim.CHECKSUMS_ARTIFACT)):
+            with self.subTest(missing=required):
+                result = self.assertRejected("EVIDENCE_MISSING", listing_of(artifact(other), artifact("coverage-report", 3)))
+                self.assertEqual([e["message"] for e in result["errors"]], [f"run {RUN_ID} retains no {required!r} artifact"])
+
+    def test_each_required_artifact_expired(self) -> None:
+        for required, other in ((cim.CHECKSUMS_ARTIFACT, cim.FILES_ARTIFACT), (cim.FILES_ARTIFACT, cim.CHECKSUMS_ARTIFACT)):
+            for label, stale in (("flag", {"expired": True}), ("past", {"expires_at": "2026-11-06T11:00:00Z"})):
+                with self.subTest(expired=required, how=label):
+                    listing = listing_of(artifact(required, 1, **stale), artifact(other, 2), artifact("coverage-report", 3))
+                    self.assertRejected("EVIDENCE_EXPIRED", listing)
+
+    def test_required_artifact_listed_twice_is_ambiguous(self) -> None:
+        listing = listing_of(artifact(cim.CHECKSUMS_ARTIFACT, 1), artifact(cim.CHECKSUMS_ARTIFACT, 2), artifact(cim.FILES_ARTIFACT, 3))
+        self.assertRejected("EVIDENCE_AMBIGUOUS", listing)
+
+    def test_required_artifact_from_another_run(self) -> None:
+        foreign = artifact(cim.FILES_ARTIFACT, 2, workflow_run={"id": RUN_ID + 1, "head_sha": HEAD})
+        self.assertRejected("ARTIFACT_WRONG_RUN", listing_of(artifact(cim.CHECKSUMS_ARTIFACT), foreign))
+
+    def test_required_artifacts_plus_unrelated_live_artifact_verify(self) -> None:
+        listing = listing_of(artifact(cim.CHECKSUMS_ARTIFACT, 1), artifact(cim.FILES_ARTIFACT, 2), artifact("coverage-report", 3))
+        result = self.fixture.verify(artifacts=listing)
+        self.assertTrue(result["ok"], result["errors"])
+        self.assertEqual(result["verified_cells"], 30)
+
+    def test_artifact_names_are_explicit_inputs(self) -> None:
+        listing = listing_of(artifact("matrix-sums", 1), artifact("matrix-files", 2))
+        self.assertIn("EVIDENCE_MISSING", codes(self.fixture.verify(artifacts=listing)))
+        result = self.fixture.verify(artifacts=listing, checksums_artifact="matrix-sums", files_artifact="matrix-files")
+        self.assertTrue(result["ok"], result["errors"])
 
 
 class FileEvidenceTests(unittest.TestCase):
