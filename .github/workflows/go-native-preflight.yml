@@ -6,6 +6,9 @@ on:
 permissions:
   contents: read
 
+env:
+  RELEASE_ARTIFACT_MANIFEST: release/publish-artifacts.toml
+
 jobs:
   # ANC-023: full Go native build/install integration runs only by manual preflight.
   go-native-plan:
@@ -62,6 +65,261 @@ jobs:
           name: sc-sha-go-generated
           path: bindings/sc-sha-go/go
 
+  # FR-25 / ANC-023: the manual full install matrix. The jobs below build the actual
+  # candidate files for every required cell, and matrix-collect publishes them as the
+  # release-files and release-checksums artifacts that scripts/check_install_matrix.py
+  # verifies (--workflow .github/workflows/go-native-preflight.yml). Manual dispatch only.
+  matrix-plan:
+    name: Manual install-matrix plan
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      release_target_matrix: ${{ steps.plan.outputs.release_target_matrix }}
+      rust_toolchain: ${{ steps.plan.outputs.rust_toolchain }}
+      workspace_toml: ${{ steps.plan.outputs.workspace_toml }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: plan
+        name: Read the candidate version and release target matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(python3 -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
+          plan="$(python3 .github/scripts/release_artifacts.py build-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")"
+          {
+            echo "version=$version"
+            echo "release_target_matrix=$(python3 .github/scripts/release_artifacts.py release-target-matrix --manifest "${RELEASE_ARTIFACT_MANIFEST}")"
+            echo "rust_toolchain=$(jq -r '.rust_toolchain' <<<"$plan")"
+            echo "workspace_toml=$(jq -r '.workspace_toml' <<<"$plan")"
+          } >> "$GITHUB_OUTPUT"
+
+  matrix-rust:
+    name: Rust CLI archive (${{ matrix.target }})
+    needs: matrix-plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix-plan.outputs.release_target_matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ needs.matrix-plan.outputs.rust_toolchain }}
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux native build deps
+        uses: ./.github/actions/install-linux-native-deps
+
+      - name: Install pinned LLVM-MinGW for the gnullvm target
+        if: ${{ matrix.target == 'aarch64-pc-windows-gnullvm' }}
+        shell: bash
+        env:
+          LLVM_MINGW_TAG: "20261104"
+          LLVM_MINGW_SHA256: 7d7f8387a8706639b0b47a629d6e23f8b3ef9acce67e9832b8cd4c5bb2816eab
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, os, urllib.request, zipfile
+          from pathlib import Path
+
+          tag = os.environ["LLVM_MINGW_TAG"]
+          name = f"llvm-mingw-{tag}-ucrt-aarch64"
+          url = f"https://github.com/mstorsjo/llvm-mingw/releases/download/{tag}/{name}.zip"
+          archive = Path(os.environ["RUNNER_TEMP"]) / f"{name}.zip"
+          archive.write_bytes(urllib.request.urlopen(url).read())
+          digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+          if digest != os.environ["LLVM_MINGW_SHA256"]:
+              raise SystemExit(f"LLVM-MinGW digest mismatch: {digest}")
+          root = Path(os.environ["RUNNER_TEMP"]) / "llvm-mingw"
+          with zipfile.ZipFile(archive) as payload:
+              payload.extractall(root)
+          bin_dir = root / name / "bin"
+          with Path(os.environ["GITHUB_PATH"]).open("a", encoding="utf-8") as path_file:
+              path_file.write(f"{bin_dir}\n")
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
+              env_file.write("CARGO_TARGET_AARCH64_PC_WINDOWS_GNULLVM_LINKER=aarch64-w64-mingw32-clang\n")
+              env_file.write("CC=aarch64-w64-mingw32-clang\n")
+          PY
+
+      - name: Build release binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin_args="$(python3 .github/scripts/release_artifacts.py cargo-build-bin-args --manifest "${RELEASE_ARTIFACT_MANIFEST}")"
+          cargo build --release --target ${{ matrix.target }} ${bin_args}
+
+      - name: Package manifest-declared release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import tarfile
+          import zipfile
+
+          target_name = "${{ matrix.target }}"
+          version = "${{ needs.matrix-plan.outputs.version }}"
+          config = json.loads(
+              subprocess.check_output(
+                  [
+                      "python3",
+                      ".github/scripts/release_artifacts.py",
+                      "release-package-config",
+                      "--manifest",
+                      os.environ["RELEASE_ARTIFACT_MANIFEST"],
+                      "--target",
+                      target_name,
+                  ],
+                  text=True,
+              )
+          )
+          project = config["project"]
+          target = config["target"]
+          stage = Path(f"{project['archive_prefix']}_{version}_{target_name}")
+          if stage.exists():
+              shutil.rmtree(stage)
+          (stage / "bin").mkdir(parents=True)
+          for binary in config["binaries"]:
+              filename = binary["name"] + (".exe" if "windows" in target_name else "")
+              shutil.copy2(Path("target") / target_name / "release" / filename, stage / "bin" / filename)
+              for bundled_path in binary.get("bundled_paths", []):
+                  source = Path(bundled_path["source"])
+                  destination = stage / bundled_path["destination"]
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copytree(source, destination, dirs_exist_ok=True)
+          archive = Path(f"{stage}.{target['archive']}")
+          if target["archive"] == "tar.gz":
+              with tarfile.open(archive, "w:gz") as output:
+                  output.add(stage, arcname=stage.name)
+          elif target["archive"] == "zip":
+              with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
+                  for item in stage.rglob("*"):
+                      if item.is_file():
+                          output.write(item, item.relative_to(stage.parent))
+          else:
+              raise SystemExit(f"unsupported archive type: {target['archive']}")
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env:
+              env.write(f"ARCHIVE={archive}\n")
+          PY
+
+      - name: Upload the Rust CLI archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-cell-rust-${{ matrix.target }}
+          path: ${{ env.ARCHIVE }}
+          if-no-files-found: error
+
+  # The six OS/architecture coordinates are fixed by FR-25.1, so the wheel matrix is
+  # declared here rather than derived from the legacy runner-string wheel lists.
+  matrix-wheels:
+    name: ${{ matrix.dist.name }} wheel (${{ matrix.coordinate.id }})
+    needs: matrix-plan
+    strategy:
+      fail-fast: false
+      matrix:
+        dist:
+          - {name: sc-compose, source: bindings/python, cargo_manifest: bindings/python/Cargo.toml}
+          - {name: sc-sha, source: bindings/sc-sha-python, cargo_manifest: bindings/sc-sha-python/Cargo.toml}
+          - {name: sc-composer-beads, source: bindings/sc-composer-beads-python, cargo_manifest: bindings/sc-composer-beads-python/Cargo.toml}
+        coordinate:
+          - {id: linux-x64, os: ubuntu-latest, zig: false}
+          - {id: linux-arm64, os: ubuntu-24.04-arm, zig: true}
+          - {id: macos-arm64, os: macos-15, zig: false}
+          - {id: macos-x64, os: macos-15-intel, zig: false}
+          - {id: windows-x64, os: windows-latest, zig: false}
+          - {id: windows-arm64, os: windows-11-arm, zig: false}
+    runs-on: ${{ matrix.coordinate.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-release-build
+        with:
+          release_ref: ${{ github.sha }}
+          release_version: ${{ needs.matrix-plan.outputs.version }}
+          pyproject: ${{ matrix.dist.source }}/pyproject.toml
+          build_system: maturin
+          install_maturin_zig: ${{ matrix.coordinate.zig }}
+          rust_toolchain: ${{ needs.matrix-plan.outputs.rust_toolchain }}
+          workspace_toml: ${{ needs.matrix-plan.outputs.workspace_toml }}
+      - name: Build wheel (maturin)
+        if: ${{ !matrix.coordinate.zig }}
+        run: maturin build --release --locked --manifest-path ${{ matrix.dist.cargo_manifest }} --out dist
+      - name: Build ARM64 Linux wheel (maturin + Zig)
+        if: ${{ matrix.coordinate.zig }}
+        run: >-
+          maturin build --release --locked --manifest-path ${{ matrix.dist.cargo_manifest }} --out dist
+          --compatibility manylinux2014 --zig
+      - name: Upload the wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-cell-wheel-${{ matrix.dist.name }}-${{ matrix.coordinate.id }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  matrix-collect:
+    name: Collect the candidate release files
+    needs: [matrix-plan, matrix-rust, matrix-wheels, go-native-matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download every matrix cell
+        uses: actions/download-artifact@v4
+        with:
+          pattern: matrix-cell-*
+          merge-multiple: true
+          path: release-files
+
+      - name: Require all 30 cells and write the checksums
+        shell: bash
+        env:
+          CANDIDATE_VERSION: ${{ needs.matrix-plan.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "scripts")
+          import check_install_matrix as matrix
+
+          version = os.environ["CANDIDATE_VERSION"]
+          contracts = matrix.load_contracts(Path("release/publish-artifacts.toml"), Path("release/go-native-module.toml"))
+          report = matrix.Report()
+          for path in sorted(Path("release-files").iterdir()):
+              matrix.classify(report, contracts, path.name, path, version)
+          for family in matrix.FAMILIES:
+              for coordinate in matrix.REQUIRED_COORDINATES:
+                  if (family, *coordinate) not in report.cells:
+                      report.fail("CELL_MISSING", f"no {family} file for {coordinate[0]}/{coordinate[1]}")
+          if report.errors:
+              raise SystemExit("\n".join(f"{e['code']}: {e['message']}" for e in report.errors))
+          print(f"{len(report.cells)} of {matrix.REQUIRED_CELLS} cells collected")
+          PY
+          (cd release-files && sha256sum -- * | LC_ALL=C sort -k2) > checksums.txt
+          cat checksums.txt
+
+      - name: Upload the release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: release-files
+          if-no-files-found: error
+
+      - name: Upload the release checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-checksums
+          path: checksums.txt
+          if-no-files-found: error
+
   go-native-matrix:
     name: Go native integration (${{ matrix.goos }}/${{ matrix.goarch }})
     needs: [go-native-plan, go-native-generated]
@@ -88,6 +346,37 @@ jobs:
         with:
           toolchain: 1.94.1
           targets: ${{ matrix.target }}
+
+      - name: Install pinned LLVM-MinGW for the gnullvm target
+        if: ${{ matrix.target == 'aarch64-pc-windows-gnullvm' }}
+        shell: bash
+        env:
+          LLVM_MINGW_TAG: "20261104"
+          LLVM_MINGW_SHA256: 7d7f8387a8706639b0b47a629d6e23f8b3ef9acce67e9832b8cd4c5bb2816eab
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, os, urllib.request, zipfile
+          from pathlib import Path
+
+          tag = os.environ["LLVM_MINGW_TAG"]
+          name = f"llvm-mingw-{tag}-ucrt-aarch64"
+          url = f"https://github.com/mstorsjo/llvm-mingw/releases/download/{tag}/{name}.zip"
+          archive = Path(os.environ["RUNNER_TEMP"]) / f"{name}.zip"
+          archive.write_bytes(urllib.request.urlopen(url).read())
+          digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+          if digest != os.environ["LLVM_MINGW_SHA256"]:
+              raise SystemExit(f"LLVM-MinGW digest mismatch: {digest}")
+          root = Path(os.environ["RUNNER_TEMP"]) / "llvm-mingw"
+          with zipfile.ZipFile(archive) as payload:
+              payload.extractall(root)
+          bin_dir = root / name / "bin"
+          with Path(os.environ["GITHUB_PATH"]).open("a", encoding="utf-8") as path_file:
+              path_file.write(f"{bin_dir}\n")
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
+              env_file.write("CARGO_TARGET_AARCH64_PC_WINDOWS_GNULLVM_LINKER=aarch64-w64-mingw32-clang\n")
+              env_file.write("CC=aarch64-w64-mingw32-clang\n")
+          PY
 
       - name: Build the target-native static adapter
         run: cargo build --release -p ${{ matrix.cargo_package }} --target ${{ matrix.target }}
@@ -156,3 +445,10 @@ jobs:
           go mod edit -replace "$module=$downloaded/module"
           go get "$module/go/sc_sha_go@v${{ steps.bundle.outputs.version }}"
           CGO_ENABLED=1 go run .
+
+      - name: Upload the verified Go module archive for the manual install matrix
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-cell-go-${{ matrix.target }}
+          path: ${{ runner.temp }}/${{ matrix.artifact_prefix }}-${{ matrix.target }}.zip
+          if-no-files-found: error
