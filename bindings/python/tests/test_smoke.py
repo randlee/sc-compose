@@ -1221,6 +1221,32 @@ def test_exception_classes_preserve_constructor_contract() -> None:
             exc_type("message", code="CODE")
 
 
+def test_exception_recovery_hints_accept_sequences_and_preserve_copy_isolation() -> None:
+    classes = (
+        sc_compose.ScComposeError,
+        sc_compose.ScRenderError,
+        sc_compose.ScValidationError,
+        sc_compose.ScResolveError,
+        sc_compose.ScIncludeError,
+        sc_compose.ScConfigError,
+    )
+    for exc_type in classes:
+        with pytest.raises(TypeError):
+            exc_type("message", "CODE", "not a sequence of hints")
+
+        tuple_error = exc_type("message", "CODE", ("first", "second"))
+        assert tuple_error.recovery_hints == ["first", "second"]
+
+        supplied_hints = ["first", "second"]
+        list_error = exc_type("message", "CODE", supplied_hints)
+        supplied_hints.append("caller mutation")
+        assert list_error.recovery_hints == ["first", "second"]
+
+        returned_hints = list_error.recovery_hints
+        returned_hints.append("returned-list mutation")
+        assert list_error.recovery_hints == ["first", "second"]
+
+
 def test_python_binding_keeps_non_strict_render_default() -> None:
     assert sc_compose.ComposePolicy().strict_undeclared_variables is False
     assert sc_compose.render_template("hello {{ missing_value }}", {}) == "hello "
