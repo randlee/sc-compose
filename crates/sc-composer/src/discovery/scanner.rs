@@ -44,7 +44,11 @@ pub(super) fn walk_template<F>(
             Delimiter::Statement => "%}",
         };
         let after_start = &cursor[start + start_delimiter.len()..];
-        let end = find_closing_delimiter(after_start, end_delimiter);
+        let end = find_closing_delimiter(
+            after_start,
+            end_delimiter,
+            matches!(delimiter, Delimiter::Expression),
+        );
         let Some(end) = end else { break };
         let raw_content = &after_start[..end];
         let without_leading_marker = raw_content
@@ -76,7 +80,7 @@ pub(super) fn walk_template<F>(
 /// A delimiter-looking sequence inside a Jinja string is ordinary string
 /// content.  This intentionally only performs lexical quote handling; the
 /// renderer remains responsible for reporting malformed expressions.
-fn find_closing_delimiter(text: &str, delimiter: &str) -> Option<usize> {
+fn find_closing_delimiter(text: &str, delimiter: &str, exact: bool) -> Option<usize> {
     let bytes = text.as_bytes();
     let delimiter = delimiter.as_bytes();
     let mut quote = None;
@@ -103,6 +107,10 @@ fn find_closing_delimiter(text: &str, delimiter: &str) -> Option<usize> {
             continue;
         }
         if bytes[cursor..].starts_with(delimiter) {
+            if exact && bytes.get(cursor + delimiter.len()) == delimiter.first() {
+                cursor += delimiter.len();
+                continue;
+            }
             return Some(cursor);
         }
         cursor += 1;
