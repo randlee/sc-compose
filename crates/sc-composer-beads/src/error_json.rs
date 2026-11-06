@@ -34,6 +34,10 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             json!({ "field": "rendered_formula", "value": path.to_string_lossy(), "rule": rule }),
             "Choose a rendered_formula path whose parent directory exists inside working_directory.",
         )),
+        BeadComposeError::GraphPlanPathInvalid { path, rule } => Some((
+            json!({ "field": "graph_plan", "value": path.to_string_lossy(), "rule": rule }),
+            "Choose a writable graph plan path beside rendered_formula.",
+        )),
         _ => graph_error_context(error),
     };
     let (details, recovery) = match context {
@@ -117,6 +121,24 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
 }
 
 impl crate::BeadDiagnostic {
+    /// Retain a refused receipt's structured diagnostic when available.
+    #[must_use]
+    pub fn refused(error: &BeadComposeError) -> Option<Self> {
+        match error {
+            BeadComposeError::GraphIdInvalid { .. } => Self::graph_id_invalid(error),
+            BeadComposeError::GraphPlanPathInvalid { .. } => {
+                let envelope = error_envelope(error);
+                Some(Self {
+                    code: envelope.code.into(),
+                    message: envelope.message,
+                    details: envelope.details,
+                    recovery: envelope.recovery.map(str::to_owned),
+                })
+            }
+            _ => None,
+        }
+    }
+
     /// Retain a canonical identifier diagnostic, including its native rule.
     /// Returns `None` for errors outside the identifier-refusal contract.
     #[must_use]

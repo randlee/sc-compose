@@ -9,6 +9,48 @@ use crate::support::{TempFixture, sc_compose, write_file};
 
 const BEADS_SCHEMA: &str = "sc-compose/beads/v1";
 
+#[test]
+fn blocked_graph_plan_reports_its_path_before_bd() {
+    let fixture = TempFixture::new("bead-graph-plan-diagnostic");
+    let root = &fixture.path;
+    let template = root.join("sample.formula.toml.j2");
+    let rendered = root.join("sample.formula.toml");
+    let plan = root.join("sample.formula.toml.graph.json");
+    write_file(&template, "formula = \"sample\"\n");
+    fs::create_dir(&plan).expect("block graph plan");
+    let (bd, trace) = write_fake_bd(root, 0, 0);
+    let request = root.join("request.json");
+    write_file(
+        &request,
+        &json!({
+            "schema": BEADS_SCHEMA, "operation": "preview_attach",
+            "working_directory": root, "template": template,
+            "rendered_formula": rendered, "compose_variables": {},
+            "formula_name": "sample", "bead_variables": {}, "bd_executable": bd,
+            "pour_authorization": "CreatePersistentBeads", "parent": "proj-1",
+            "ref": "chain", "relations": []
+        })
+        .to_string(),
+    );
+    let output = sc_compose()
+        .args(["bead", "preview-attach", "--request"])
+        .arg(&request)
+        .arg("--json")
+        .output()
+        .expect("run CLI");
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("JSON");
+    let error = &value["payload"]["error"];
+    assert_eq!(error["code"], "BEADS_OUTPUT_PATH_INVALID");
+    assert_eq!(error["details"]["field"], "graph_plan");
+    assert_eq!(
+        fs::canonicalize(error["details"]["value"].as_str().unwrap()).unwrap(),
+        fs::canonicalize(&plan).unwrap()
+    );
+    assert!(plan.is_dir());
+    assert!(!trace.exists(), "bd must not run");
+}
+
 fn canonical_template(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../sc-composer-beads/tests/fixtures/beads")

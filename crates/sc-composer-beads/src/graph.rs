@@ -50,13 +50,19 @@ pub(crate) fn execute(
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
     };
-    let result = run(
-        request,
-        normalized.advanced,
-        &mut runtime,
-        formula_input,
-        stage,
-    );
+    let result = match graph_plan_path(&runtime) {
+        Ok(_) => run(
+            request,
+            normalized.advanced,
+            &mut runtime,
+            formula_input,
+            stage,
+        ),
+        Err(error) => {
+            runtime.stage = stage;
+            Err(error)
+        }
+    };
     let missing_edges = match &result {
         Err(BeadComposeError::GraphEdgeMissing { edges }) => edges.clone(),
         _ => Vec::new(),
@@ -465,14 +471,24 @@ fn graph_plan_path(runtime: &Runtime<'_>) -> Result<(PathBuf, PathBuf), BeadComp
     let parent = path
         .parent()
         .and_then(|p| fs::canonicalize(p).ok())
-        .ok_or_else(|| BeadComposeError::OutputPathInvalid {
+        .ok_or_else(|| BeadComposeError::GraphPlanPathInvalid {
             path: public_path.clone(),
             rule: "output parent must exist and be accessible".into(),
         })?;
     if !parent.starts_with(&runtime.normalized.working_directory) {
         return Err(BeadComposeError::OutputOutsideWorkingDirectory { path: public_path });
     }
+    crate::render::validate_output_destination(&path).map_err(graph_plan_path_error)?;
     Ok((path, public_path))
+}
+
+fn graph_plan_path_error(error: BeadComposeError) -> BeadComposeError {
+    match error {
+        BeadComposeError::OutputPathInvalid { path, rule } => {
+            BeadComposeError::GraphPlanPathInvalid { path, rule }
+        }
+        error => error,
+    }
 }
 
 impl PendingCreate {
@@ -489,7 +505,6 @@ impl PendingCreate {
         preview: bool,
     ) -> Result<BeadGraph, BeadComposeError> {
         let (path, public_path) = graph_plan_path(runtime)?;
-        crate::render::validate_output_destination(&path)?;
         let bytes = serde_json::to_vec(&self.payload).expect("plan JSON serializes");
         let plan_input = InputSnapshot::write(&path, &bytes)
             .map_err(|error| crate::snapshot::output_error(&path, error))?;
