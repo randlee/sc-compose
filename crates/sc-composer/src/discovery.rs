@@ -637,4 +637,59 @@ mod tests {
             [crate::VariableName::new("outer").unwrap()].into()
         );
     }
+
+    fn names(tokens: &std::collections::BTreeSet<crate::VariableName>) -> Vec<String> {
+        tokens
+            .iter()
+            .map(|token| token.as_str().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn closing_delimiter_advancement_keeps_later_expressions_discoverable() {
+        // A `}}}` run is not a closing delimiter for a `{{` expression, so
+        // scanning must advance past it and still reach the next expression.
+        for strict in [false, true] {
+            let found = names(&discover_tokens_for("x{{ a }}} y {{ b }}", 2, strict));
+
+            assert!(
+                found.contains(&"a".to_owned()),
+                "strict={strict}: {found:?}"
+            );
+            assert!(
+                found.contains(&"b".to_owned()),
+                "strict={strict}: {found:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn closing_delimiter_inside_string_literal_does_not_end_the_expression() {
+        for strict in [false, true] {
+            let found = names(&discover_tokens_for(r#"{{ "}}" ~ a }}{{ b }}"#, 2, strict));
+
+            assert_eq!(found, ["a", "b"], "strict={strict}");
+        }
+    }
+
+    #[test]
+    fn unterminated_expression_yields_no_tokens_and_does_not_hang() {
+        for strict in [false, true] {
+            assert!(
+                discover_tokens_for("{{ a ", 2, strict).is_empty(),
+                "strict={strict}"
+            );
+        }
+    }
+
+    #[test]
+    fn strict_flag_changes_only_comment_and_raw_handling() {
+        let text = "{# {{ c }} #}{% raw %}{{ r }}{% endraw %}{{ v }}";
+
+        assert_eq!(names(&discover_tokens_for(text, 2, true)), ["v"]);
+        let default = names(&discover_tokens_for(text, 2, false));
+        for expected in ["c", "r", "v"] {
+            assert!(default.contains(&expected.to_owned()), "{default:?}");
+        }
+    }
 }
