@@ -1,5 +1,6 @@
 //! Typed YAML frontmatter parsing and normalization.
 
+mod duplicates;
 mod model;
 mod normalizer;
 mod parser;

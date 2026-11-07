@@ -437,6 +437,11 @@ impl Renderer {
         })
     }
 
+    pub(crate) fn preserve_trailing_newline(mut self, preserve: bool) -> Self {
+        self.env.set_keep_trailing_newline(preserve);
+        self
+    }
+
     /// Refuse to print an undefined value instead of rendering it empty.
     ///
     /// Tests such as `{% if name %}` and `name is defined` still see an
@@ -472,13 +477,14 @@ impl Renderer {
         template: &str,
         context: T,
     ) -> Result<String, RenderError> {
+        let source = template;
         let template = self
             .env
-            .template_from_named_str(template_name, template)
-            .map_err(template_render_error)?;
+            .template_from_named_str(template_name, source)
+            .map_err(|error| located_template_error(error, template_name, source))?;
         template.render(context).map_err(|error| {
             if error.kind() != minijinja::ErrorKind::UndefinedError {
-                return template_render_error(error);
+                return located_template_error(error, template_name, source);
             }
             // Name the expression that printed the undefined value.
             let expression = error
@@ -492,7 +498,13 @@ impl Renderer {
                 Some(expression) => format!("undefined variable: {expression}{location}"),
                 None => format!("undefined value{location}"),
             };
-            RenderError::with_code(error, DiagnosticCode::ErrValUnboundVariable, message)
+            coded_engine_error(
+                error,
+                DiagnosticCode::ErrValUnboundVariable,
+                message,
+                template_name,
+                source,
+            )
         })
     }
 }
@@ -500,6 +512,39 @@ impl Renderer {
 fn template_render_error(error: minijinja::Error) -> RenderError {
     let message = error.to_string();
     RenderError::with_code(error, DiagnosticCode::ErrRenderTemplate, message)
+}
+
+fn located_template_error(
+    error: minijinja::Error,
+    template_name: &str,
+    source: &str,
+) -> RenderError {
+    let message = error.to_string();
+    coded_engine_error(
+        error,
+        DiagnosticCode::ErrRenderTemplate,
+        message,
+        template_name,
+        source,
+    )
+}
+
+/// Build a coded render error that records where the engine failed in
+/// `source`, the text it rendered under `template_name`.
+fn coded_engine_error(
+    error: minijinja::Error,
+    code: DiagnosticCode,
+    message: String,
+    template_name: &str,
+    source: &str,
+) -> RenderError {
+    let line = error.line();
+    let offset = error.range().map(|range| range.start);
+    let rendered = RenderError::with_code(error, code, message);
+    match line {
+        Some(line) => rendered.with_engine_location(template_name, source, line, offset),
+        None => rendered,
+    }
 }
 
 impl Default for Renderer {
