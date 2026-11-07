@@ -27,6 +27,20 @@
   "release_binaries": [
     {"name": "sc-compose", "bundled_paths": [{"source": "examples", "destination": "share/sc-compose/examples", "homebrew_destination_components": ["pkgshare"]}]}
   ],
+  "prerelease": {
+    "tag_prefix": "prerelease/v",
+    "tag_script": "scripts/prerelease_tag.py",
+    "install_root": "~/.sc-compose-builds",
+    "binaries": ["sc-compose"],
+    "selector_dir": {
+      "darwin": "~/.sc-compose-builds/selectors/darwin",
+      "linux": "~/.sc-compose-builds/selectors/linux",
+      "windows": "%LOCALAPPDATA%\\sc-compose\\prerelease-selectors"
+    },
+    "post_install": "{selector_dir}/sc-compose --version",
+    "verify": "{selector_dir}/sc-compose --version",
+    "protected_branches": ["develop", "main"]
+  },
   "python_packages": [
     {"artifact": "sc-sha-python", "package": "sc-sha", "manifest": "bindings/sc-sha-python/pyproject.toml", "module": "sc_sha", "publish": "pypi"},
     {"artifact": "sc-compose-python", "package": "sc-compose", "manifest": "bindings/python/pyproject.toml", "module": "sc_compose", "publish": "pypi"},
