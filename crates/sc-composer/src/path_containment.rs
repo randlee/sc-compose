@@ -29,11 +29,12 @@ pub(crate) struct ContainmentEscape {
 /// Canonicalize a candidate and enforce component-aware root containment.
 ///
 /// Existing candidates are checked using their canonical path, which follows
-/// symlinks. For missing candidates, resolve available symlink components
-/// before checking the boundary: an escape takes precedence over not-found.
-/// Canonical roots and caller-preserved lexical aliases are both accepted as
-/// containment boundaries; missing-path checks normalize both candidates and
-/// roots before comparing them.
+/// symlinks. For missing candidates, resolve available symlink components and
+/// canonicalize the existing prefix before checking the boundary: an escape
+/// takes precedence over not-found, and a missing path under an alias of a
+/// root (such as `/var` for `/private/var`) is inside it. Canonical roots and
+/// caller-preserved lexical aliases are both accepted as containment
+/// boundaries.
 pub(crate) fn canonicalize_within_roots(
     candidate: impl AsRef<Path>,
     root: &ConfiningRoot,
@@ -60,8 +61,13 @@ pub(crate) fn canonicalize_within_roots(
         }
         Ok(_) => Err(ContainmentEscape { candidate }),
         Err(source) => {
-            let normalized_candidate =
-                resolve_missing_symlinks(&candidate).unwrap_or_else(|| normalize_path(&candidate));
+            // Decide containment on the physical path, as for existing files:
+            // symlinks resolved, then the existing prefix canonicalized so it
+            // compares in the same form as canonical roots (macOS `/private`,
+            // Windows long names and verbatim prefixes).
+            let physical_candidate = canonicalize_existing_prefix(
+                &resolve_missing_symlinks(&candidate).unwrap_or_else(|| normalize_path(&candidate)),
+            );
             let normalized_roots = approved_roots
                 .iter()
                 .flat_map(|root| {
@@ -70,14 +76,26 @@ pub(crate) fn canonicalize_within_roots(
                         .flatten()
                 })
                 .collect::<Vec<_>>();
-            if !is_within_any(&normalize_path(&candidate), &normalized_roots)
-                || !is_within_any(&normalized_candidate, &normalized_roots)
-            {
+            if !is_within_any(&physical_candidate, &normalized_roots) {
                 return Err(ContainmentEscape { candidate });
             }
             Ok(Canonicalization::Missing { candidate, source })
         }
     }
+}
+
+/// Canonicalize the deepest existing ancestor of `path` and append the
+/// components below it that do not exist.
+fn canonicalize_existing_prefix(path: &Path) -> PathBuf {
+    for ancestor in path.ancestors() {
+        if let Ok(canonical) = std::fs::canonicalize(ancestor) {
+            let missing = path
+                .strip_prefix(ancestor)
+                .unwrap_or_else(|_| Path::new(""));
+            return canonical.join(missing);
+        }
+    }
+    path.to_path_buf()
 }
 
 /// Resolve symlinks in the existing prefix even when the final target is missing.
@@ -172,5 +190,36 @@ mod tests {
         let result = canonicalize_within_roots(&candidate, &root, &[raw_allowed]);
 
         assert!(matches!(result, Ok(Canonicalization::Missing { .. })));
+    }
+
+    /// A missing path written through an alias of the root (macOS `/var` for
+    /// `/private/var`) is inside the canonical root; a missing path under a
+    /// symlink that leaves the root is still an escape.
+    #[cfg(unix)]
+    #[test]
+    fn missing_paths_under_a_root_alias_are_contained() {
+        let base = std::env::temp_dir().join(format!(
+            "sc-compose-path-alias-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let real = base.join("real");
+        let outside = base.join("outside");
+        fs::create_dir_all(&real).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        let alias = base.join("alias");
+        std::os::unix::fs::symlink(&real, &alias).unwrap();
+        std::os::unix::fs::symlink(&outside, real.join("out")).unwrap();
+
+        let root = ConfiningRoot::new(&alias).unwrap();
+        let inside = canonicalize_within_roots(alias.join("missing.md.j2"), &root, &[]);
+        let escaping = canonicalize_within_roots(alias.join("out/missing.md.j2"), &root, &[]);
+        fs::remove_dir_all(&base).unwrap();
+
+        assert!(matches!(inside, Ok(Canonicalization::Missing { .. })));
+        assert!(matches!(escaping, Err(super::ContainmentEscape { .. })));
     }
 }
