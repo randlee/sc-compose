@@ -129,15 +129,17 @@ impl RenderError {
             return self;
         };
         let engine = &mut located.engine;
-        let Some(location) = expanded.source_location(template_path, root, policy, engine.line)
+        // The column only carries over when the engine saw the line unchanged.
+        let expanded_line = expanded.text.split_inclusive('\n').nth(engine.line - 1);
+        let column = engine
+            .column
+            .filter(|_| expanded_line == Some(engine.line_text.as_str()));
+        let Some((location, column)) =
+            expanded.source_location_at(template_path, root, policy, engine.line, column)
         else {
             return self;
         };
-        // The column only carries over when the engine saw the line unchanged.
-        let expanded_line = expanded.text.split_inclusive('\n').nth(engine.line - 1);
-        if expanded_line != Some(engine.line_text.as_str()) {
-            engine.column = None;
-        }
+        engine.column = column;
         let shown = location
             .path
             .strip_prefix(root.as_path())
