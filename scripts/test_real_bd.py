@@ -22,6 +22,7 @@ from pathlib import Path
 # (label, cargo test arguments before `--`)
 SUITES = (
     ("sc-composer-beads/graph_bd", ["-p", "sc-composer-beads", "--test", "graph_bd"]),
+    ("sc-composer-beads/bd_integration", ["-p", "sc-composer-beads", "--test", "bd_integration"]),
     ("sc-compose/cli bead", ["-p", "sc-compose", "--test", "cli", "bead"]),
 )
 RESULT = re.compile(
