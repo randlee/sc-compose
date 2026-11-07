@@ -5,6 +5,69 @@ use support::{sc_compose, temp_root, write_file};
 
 #[cfg(unix)]
 #[test]
+fn valid_profile_survives_unrelated_dangling_runtime_candidate() {
+    use std::os::unix::fs::symlink;
+    let base = temp_root("profile-invalid-candidate");
+    let root = base.join("root");
+    write_file(&root.join(".claude/agents/foo.md"), "valid");
+    std::fs::create_dir_all(root.join(".codex/agents")).unwrap();
+    symlink(base.join("missing.md"), root.join(".codex/agents/foo.md")).unwrap();
+    write_file(&root.join(".codex/agents/bar.md"), "valid");
+    symlink(base.join("missing.md"), root.join(".claude/agents/bar.md")).unwrap();
+    symlink(base.join("missing.md"), root.join(".claude/agents/only.md")).unwrap();
+    write_file(&root.join(".claude/agents/ambiguous.md"), "one");
+    write_file(&root.join(".codex/agents/ambiguous.md"), "two");
+    write_file(&root.join(".claude/agents/looped.md"), "valid");
+    symlink("looped.md", root.join(".codex/agents/looped.md")).unwrap();
+    symlink("looponly.md", root.join(".claude/agents/looponly.md")).unwrap();
+    for json in [false, true] {
+        for (name, expected) in [
+            ("foo", ".claude/agents/foo.md"),
+            ("bar", ".codex/agents/bar.md"),
+            ("looped", ".claude/agents/looped.md"),
+        ] {
+            let mut cli = sc_compose();
+            cli.args(["resolve", "--mode", "profile", "--root"])
+                .arg(&root)
+                .args(["--kind", "agent", "--agent", name]);
+            if json {
+                cli.arg("--json");
+            }
+            let output = cli.output().unwrap();
+            let text = format!(
+                "{}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(output.status.success(), "{name} json={json}: {text}");
+            assert!(text.contains(expected), "{name} json={json}: {text}");
+        }
+        for (name, code) in [
+            ("only", "ERR_RESOLVE_ESCAPE"),
+            ("ambiguous", "ERR_RESOLVE_AMBIGUOUS"),
+            ("looponly", "ERR_INCLUDE_FILESYSTEM_LOOP"),
+        ] {
+            let mut cli = sc_compose();
+            cli.args(["resolve", "--mode", "profile", "--root"])
+                .arg(&root)
+                .args(["--kind", "agent", "--agent", name]);
+            if json {
+                cli.arg("--json");
+            }
+            let output = cli.output().unwrap();
+            let text = format!(
+                "{}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert_eq!(output.status.code(), Some(3), "{name} json={json}: {text}");
+            assert!(text.contains(code), "{name} json={json}: {text}");
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn escapes_report_the_same_cause_for_render_and_validate() {
     use std::os::unix::fs::symlink;
     let base = temp_root("adr0026-d1-resolve");

@@ -457,8 +457,8 @@ Referenced-but-unbound tokens are a separate axis from undeclared tokens:
 - Path traversal outside the allowed root set must fail. A template path
   outside the allowed roots fails with `ERR_RESOLVE_ESCAPE`, not
   `ERR_RESOLVE_NOT_FOUND`, and the text and JSON messages name the same cause
-  (ADR-0026 D1). Implementation pending: today the code still reports
-  `ERR_RESOLVE_NOT_FOUND`.
+  (ADR-0026 D1). This behavior is implemented on the Phase V candidate at
+  `f3d523e0`; integration and phase acceptance remain pending.
 - Confinement covers reads. `render --output` and `--append` may write to any
   path the caller names. Beads request outputs keep their own confinement
   under `working_directory` (ADR-0021; ADR-0026 D5).
@@ -622,7 +622,8 @@ Command behavior:
     stdout in text mode (ADR-0026 D4),
   - reports a template syntax or engine evaluation error as
     `ERR_RENDER_TEMPLATE`, never `ERR_RENDER_WRITE`, in text and JSON output
-    (ADR-0026 D2; implementation pending),
+    (ADR-0026 D2; implemented on the Phase V candidate at `f3d523e0`; integration
+    and phase acceptance remain pending),
   - must honor validation and strictness policy,
   - accepts optional guidance and user prompt blocks,
   - with `--append <path>`, renders and validates first, requires the output
