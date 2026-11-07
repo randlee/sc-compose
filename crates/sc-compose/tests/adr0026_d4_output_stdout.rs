@@ -113,10 +113,8 @@ fn json_output_keeps_its_stdout_envelope_when_writing_a_file() {
         String::from_utf8_lossy(&output.stderr)
     );
     let envelope: Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(
-        envelope["payload"]["output_path"],
-        output_path.to_string_lossy().as_ref()
-    );
+    let expected_output_path = output_path.to_string_lossy().replace('\\', "/");
+    assert_eq!(envelope["payload"]["output_path"], expected_output_path);
     assert!(envelope["payload"].get("body").is_none());
     assert_eq!(fs::read(output_path).unwrap(), b"out a");
 }
