@@ -15,12 +15,22 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("prerelease_tag", ROOT / "scripts" / "prerelease_tag.py")
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
+IDENTITY_VARIABLES = ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "EMAIL")
+HOSTILE_GIT_ENV = {
+    "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_CONFIG_SYSTEM": os.devnull,
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "user.useConfigOnly",
+    "GIT_CONFIG_VALUE_0": "true",
+}
 MANIFEST = """\
 [prerelease]
 tag_prefix = "prerelease/v"
@@ -59,6 +69,8 @@ dependencies = [
  "serde",
 ]
 """
+IDENTITY_NAME = "Fixture Tagger"
+IDENTITY_EMAIL = "fixture@example.invalid"
 PYPROJECT = '[project]\nname = "{n}"\nversion = "{v}"\n'
 PYPROJECTS = {
     "bindings/sc-sha-python/pyproject.toml": "sc-sha",
@@ -68,13 +80,10 @@ PYPROJECTS = {
 
 
 def git(cwd: Path, *args: str) -> str:
-    env = {
-        **os.environ,
-        "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
-        "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid",
-        "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
-    }
-    done = subprocess.run(["git", *args], cwd=cwd, env=env, check=True, capture_output=True, text=True)
+    # No identity is injected here: fixture repositories carry their own local
+    # user.name/user.email, so the script under test and this helper see the same
+    # deterministic identity and neither depends on machine or global config.
+    done = subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True)
     return done.stdout
 
 
@@ -85,6 +94,10 @@ class Fixture:
         subprocess.run(["git", "init", "--bare", "-q", str(self.origin)], check=True)
         self.work.mkdir()
         git(self.work, "init", "-q", "-b", "develop")
+        git(self.work, "config", "user.name", IDENTITY_NAME)
+        git(self.work, "config", "user.email", IDENTITY_EMAIL)
+        git(self.work, "config", "commit.gpgsign", "false")
+        git(self.work, "config", "tag.gpgsign", "false")
         git(self.work, "remote", "add", "origin", str(self.origin))
         self.write("release/publish-artifacts.toml", MANIFEST)
         self.write("Cargo.toml", CARGO.format(v=version))
@@ -123,6 +136,14 @@ class PrereleaseTag(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
+        # Hostile identity environment: no identity variables, null global and
+        # system config, and no automatic identity detection. Only the
+        # fixture-local config can satisfy `git commit` and `git tag -a`.
+        patcher = mock.patch.dict(os.environ, HOSTILE_GIT_ENV)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        for name in IDENTITY_VARIABLES:
+            os.environ.pop(name, None)
         self.fx = Fixture(Path(self.tmp.name))
 
     # --- dry-run -----------------------------------------------------------
@@ -203,6 +224,24 @@ class PrereleaseTag(unittest.TestCase):
         tags = {f"prerelease/v1.8.{n}" for n in range(MODULE.MAX_PATCH_STEPS - 1)}
         chosen = MODULE.select_version("1.8.0", "prerelease/v", tags, None)
         self.assertEqual(chosen, f"1.8.{MODULE.MAX_PATCH_STEPS - 1}")
+
+    # --- identity independence ---------------------------------------------
+    def test_real_run_uses_only_the_fixture_local_identity(self) -> None:
+        for name in IDENTITY_VARIABLES:
+            self.assertNotIn(name, os.environ)
+        probe = subprocess.run(
+            ["git", "-C", str(Path(self.tmp.name) / "no-repo"), "var", "GIT_COMMITTER_IDENT"],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertNotEqual(probe.returncode, 0, "the hostile environment must offer no ambient identity")
+        code, out = self.fx.run(published={"1.8.0"})
+        self.assertEqual(code, 0)
+        self.assertIn("prerelease/v1.8.1", out)
+        who = git(self.fx.work, "log", "-1", "--format=%an <%ae>|%cn <%ce>").strip()
+        expected = f"{IDENTITY_NAME} <{IDENTITY_EMAIL}>"
+        self.assertEqual(who, f"{expected}|{expected}")
+        tagger = git(self.fx.work, "for-each-ref", "--format=%(taggername) <%(taggeremail)>", "refs/tags/prerelease/v1.8.1").strip()
+        self.assertEqual(tagger, f"{IDENTITY_NAME} <<{IDENTITY_EMAIL}>>")
 
     # --- real run (local bare origin) -------------------------------------
     def test_real_run_tags_unused_workspace_version_without_a_commit(self) -> None:
