@@ -31,7 +31,7 @@ sc-composer library and are normalized by the shared lint runner.
 | Code | Error family | Severity | Trigger condition | Expected primary emitter |
 | --- | --- | --- | --- | --- |
 | `ERR_RESOLVE_NOT_FOUND` | `ResolveError` | error | no matching template/profile found | `resolve_profile()`, CLI `resolve`, CLI `render` |
-| `ERR_RESOLVE_ESCAPE` | `ResolveError` | error | template path or its resolved target lies outside the allowed roots; reported in preference to not-found (ADR-0026 D1); implementation pending, not emitted yet | `resolve_profile()`, CLI `resolve`, CLI `render`, CLI `validate` |
+| `ERR_RESOLVE_ESCAPE` | `ResolveError` | error | template path or its resolved target lies outside the allowed roots; reported in preference to not-found (ADR-0026 D1) | file resolver, CLI `render`, CLI `validate` |
 | `ERR_RESOLVE_AMBIGUOUS` | `ResolveError` | error | multiple candidates found without a disambiguating runtime | `resolve_profile()`, CLI `resolve`, CLI `render` |
 | `ERR_INCLUDE_NOT_FOUND` | `IncludeError` | error | include target cannot be resolved within the allowed roots | include engine |
 | `ERR_INCLUDE_ESCAPE` | `IncludeError` | error | include path, or the target it resolves to (including a dangling symlink target), lies outside the confinement root; reported in preference to not-found (ADR-0026 D1) | include engine |
