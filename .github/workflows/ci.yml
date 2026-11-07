@@ -140,8 +140,6 @@ jobs:
           plugin = Path('plugins/sc-publish/.github/scripts')
           for source in plugin.rglob('*.py'):
               relative = source.relative_to(plugin)
-              if relative.as_posix() == 'tests/test_setup_sc_lint_source.py':
-                  continue  # Root has an additional host-workflow assertion.
               installed = root / relative
               assert installed.read_bytes() == source.read_bytes(), f'vendored coverage drift: {relative}'
           action = Path('.github/actions/setup-sc-lint/action.yml')

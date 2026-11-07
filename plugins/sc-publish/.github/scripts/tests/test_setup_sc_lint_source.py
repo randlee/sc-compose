@@ -118,12 +118,20 @@ class SourceSetupTests(unittest.TestCase):
         self.assertGreaterEqual(tuple(int(part) for part in version.split('.')), (0, 8, 4))
 
     def test_subprocess_timeout_fails_with_command_context(self):
-        command = ['controlled-command']
-        timeout = subprocess.TimeoutExpired(command, 7)
+        # Controlled TimeoutExpired at the subprocess boundary: no process is
+        # started and nothing depends on wall-clock timing or scheduling.
+        command = ['controlled-command', Path('argument')]
+        timeout = subprocess.TimeoutExpired(['controlled-command', 'argument'], 7)
         with mock.patch.object(setup.subprocess, 'run', side_effect=timeout) as run:
-            with self.assertRaisesRegex(RuntimeError, 'timed out.*controlled-command') as caught:
+            with self.assertRaises(RuntimeError) as caught:
                 setup.run(command, Path('.'), timeout=7)
+        self.assertEqual(
+            str(caught.exception),
+            "sc-lint source command timed out after 7s: ['controlled-command', 'argument']",
+        )
         self.assertIs(caught.exception.__cause__, timeout)
+        run.assert_called_once()
+        self.assertEqual(run.call_args.args[0], ['controlled-command', 'argument'])
         self.assertEqual(run.call_args.kwargs['timeout'], 7)
         self.assertEqual(setup.BUILD_TIMEOUT_SECONDS, 1800)
         self.assertLess(setup.PROBE_TIMEOUT_SECONDS, setup.SETUP_TIMEOUT_SECONDS)
