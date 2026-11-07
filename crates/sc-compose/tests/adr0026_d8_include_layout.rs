@@ -231,3 +231,55 @@ fn crlf_receipt_case_materializes_git_stable_fixture() {
     );
     assert_eq!(output.stdout, b"A\r\nC\nB\r\n");
 }
+
+/// Render `template` with an empty `e.md` beside it and return stdout bytes.
+fn render_with_empty_child(label: &str, template: &[u8]) -> Vec<u8> {
+    let root = temp_root(label);
+    std::fs::write(root.join("template.j2"), template).unwrap();
+    std::fs::write(root.join("e.md"), b"").unwrap();
+    let output = sc_compose()
+        .args(["render", "--mode", "file", "--root"])
+        .arg(&root)
+        .args(["--file", "template.j2"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    output.stdout
+}
+
+#[test]
+fn empty_child_directive_line_becomes_an_empty_line() {
+    // ADR-0026 D8: empty content has no final line break, so the directive's
+    // own terminator follows it and the directive line is an empty line.
+    // Trailing blank lines keep the existing final trimming.
+    for (name, template, expected) in [
+        ("lf-nonfinal", &b"A\n@<e.md>\nB\n"[..], &b"A\n\nB\n"[..]),
+        ("crlf-nonfinal", b"A\r\n@<e.md>\r\nB\r\n", b"A\r\n\r\nB\r\n"),
+        ("lf-final", b"A\n@<e.md>\n", b"A\n"),
+        ("lf-final-no-eol", b"A\n@<e.md>", b"A\n"),
+        ("crlf-final", b"A\r\n@<e.md>\r\n", b"A\r\n"),
+    ] {
+        assert_eq!(
+            render_with_empty_child(&format!("adr0026-d8-empty-{name}"), template),
+            expected,
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn empty_child_receipt_case_renders_an_empty_directive_line() {
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/fixtures/render-regressions/adr0026-d8/empty-child");
+    assert_eq!(std::fs::read(fixture.join("e.md")).unwrap(), b"");
+    let template = std::fs::read(fixture.join("template.j2")).unwrap();
+    assert_eq!(template, b"A\n@<e.md>\nB\n");
+    assert_eq!(
+        render_with_empty_child("adr0026-d8-empty-receipt", &template),
+        b"A\n\nB\n"
+    );
+}
