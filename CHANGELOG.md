@@ -6,10 +6,11 @@ All notable changes to this project will be documented in this file.
 
 Candidate for 1.8.0. Workspace crates and Python packages carry version
 1.8.0. The release is not published, and production publishing happens after
-Phase V. The qualifying full platform matrix and the supported release
-preflight have not yet run on the final candidate. The platform and wheel
-entries below describe declared and locally checked configuration, not
-qualified deliverables.
+Phase V. The release candidate tag, the hosted Release Preflight, and the
+dispatch-only full install matrix (`go-native-preflight.yml`) have not yet run
+on the final candidate; they remain pending and no 1.8.0 tag exists. The
+platform and wheel entries below describe declared and locally checked
+configuration, not qualified deliverables.
 
 ### Added
 
@@ -58,6 +59,14 @@ qualified deliverables.
 
 ### Fixed
 
+- ADR-0026 review fixes: template-root escapes are reported distinctly from
+  other resolution errors; duplicate-key detection has a single visitor owner;
+  rendering diagnostics keep custom delimiters; include line-ending layout and
+  source lines after conditional includes are preserved; a valid profile match
+  is retained when other candidates are invalid; containment holds across
+  Windows root aliases and reentry through existing paths is refused.
+- Python `ScRenderError` for a template syntax error carries
+  `ERR_RENDER_TEMPLATE`.
 - Bead identifiers that contain control characters are refused with
   `BEADS_GRAPH_ID_INVALID`. This covers constructors, the request `parent`,
   and `bead:` relation endpoints.
@@ -68,6 +77,18 @@ qualified deliverables.
 
 ### Changed
 
+- Release tooling: the repository opts into the sc-publish GitHub prerelease
+  path through `release/sc-publish-install.json` (`[prerelease]` in the
+  rendered `release/publish-artifacts.toml`), with the consumer-owned
+  `scripts/prerelease_tag.py`. A prerelease uses the workspace version only if
+  `prerelease/vX.Y.Z`, `vX.Y.Z` and the registries have never carried it;
+  otherwise only the patch number is incremented, and a patch bump is committed
+  to the non-protected branch it was run from. Minor and major numbers are never
+  changed, so 1.8.0 can never become 1.9.0 this way. Its `--dry-run` is
+  local-only and mutates nothing. No prerelease or release tag has been created.
+- The real Beads integration tests (`graph_bd`, `bd_integration`, and the CLI
+  `bead` tests) are `#[ignore]` and run explicitly by
+  `scripts/test_real_bd.py`, which fails on zero executed tests, in CI.
 - The existing Rust `execute_bead_request` entrypoint now defaults to
   `BeadRenderBy::ScCompose` instead of v1.7.0's bd-owned rendering. To retain
   the v1.7.0 behavior, use an existing `execute_bead_request_with_options*`

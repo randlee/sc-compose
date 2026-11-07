@@ -9,6 +9,15 @@ license = "MIT"
 readme_dependency_crate = "sc-composer"
 renderer_archive_path = "bin/sc-compose"
 
+[prerelease]
+tag_prefix = "prerelease/v"
+tag_script = "scripts/prerelease_tag.py"
+install_root = "~/.sc-compose-builds"
+binaries = ["sc-compose"]
+protected_branches = ["develop", "main"]
+selector_dir = { darwin = "~/.sc-compose-builds/selectors/darwin", linux = "~/.sc-compose-builds/selectors/linux", windows = "%LOCALAPPDATA%\\sc-compose\\prerelease-selectors" }
+post_install = "{selector_dir}/sc-compose --version"
+verify = "{selector_dir}/sc-compose --version"
 
 [[release_targets]]
 target = "x86_64-unknown-linux-gnu"
