@@ -36,17 +36,39 @@ pub(super) type SourceChain = Arc<[PathBuf]>;
 pub(super) struct LineOrigin {
     pub(super) chain: SourceChain,
     pub(super) line: usize,
+    /// Characters of synthetic conditional-include text (`{% if %}`,
+    /// `{% else %}`, `{% endif %}`) that precede the source text on this
+    /// expanded line. Source columns are expanded columns minus this.
+    pub(super) column_offset: usize,
+    /// Directive line that wrote the synthetic prefix, when there is one.
+    pub(super) directive: Option<(SourceChain, usize)>,
+}
+
+impl LineOrigin {
+    fn new(chain: &SourceChain, line: usize) -> Self {
+        Self {
+            chain: Arc::clone(chain),
+            line,
+            column_offset: 0,
+            directive: None,
+        }
+    }
 }
 
 /// Expanded text plus the origin of each of its lines.
 ///
 /// `origins[k]` is the origin of the line that `text.split_inclusive('\n')`
 /// yields at index `k`. When text from several sources shares one expanded
-/// line, the line keeps the origin of the source that started it.
+/// line, the line keeps the origin of the source that started it, except that
+/// synthetic conditional-include text never owns a line that source text
+/// continues: that line takes the origin of the source text, shifted by the
+/// synthetic prefix.
 #[derive(Debug, Default)]
 pub(super) struct ExpandedText {
     pub(super) text: String,
     pub(super) origins: Vec<LineOrigin>,
+    /// The last origin belongs to synthetic text on a line that is still open.
+    provisional: bool,
 }
 
 impl ExpandedText {
@@ -71,13 +93,7 @@ impl ExpandedText {
     /// Append text taken from one source, whose first line is `first_line`.
     fn push_source(&mut self, text: &str, chain: &SourceChain, first_line: usize) {
         for (offset, piece) in text.split_inclusive('\n').enumerate() {
-            if self.at_line_start() {
-                self.origins.push(LineOrigin {
-                    chain: Arc::clone(chain),
-                    line: first_line + offset,
-                });
-            }
-            self.text.push_str(piece);
+            self.push_piece(piece, Some(LineOrigin::new(chain, first_line + offset)));
         }
     }
 
@@ -85,14 +101,50 @@ impl ExpandedText {
     fn push_expanded(&mut self, other: Self) {
         let mut origins = other.origins.into_iter();
         for piece in other.text.split_inclusive('\n') {
-            let origin = origins.next();
-            if self.at_line_start()
-                && let Some(origin) = origin
-            {
+            self.push_piece(piece, origins.next());
+        }
+    }
+
+    /// Append synthetic conditional-include text written for the directive
+    /// at `line` of `chain`. It has no line break, so it either starts a line
+    /// or continues one.
+    fn push_synthetic(&mut self, text: &str, chain: &SourceChain, line: usize) {
+        let width = text.chars().count();
+        if self.at_line_start() {
+            let mut origin = LineOrigin::new(chain, line);
+            origin.column_offset = width;
+            origin.directive = Some((Arc::clone(chain), line));
+            self.origins.push(origin);
+            self.provisional = true;
+        } else if self.provisional
+            && let Some(last) = self.origins.last_mut()
+        {
+            last.column_offset += width;
+        }
+        self.text.push_str(text);
+    }
+
+    /// Append one piece holding at most one line break, at its end.
+    fn push_piece(&mut self, piece: &str, origin: Option<LineOrigin>) {
+        if piece.is_empty() {
+            return;
+        }
+        if self.at_line_start() {
+            if let Some(origin) = origin {
                 self.origins.push(origin);
             }
-            self.text.push_str(piece);
+        } else if self.provisional
+            && let (Some(origin), Some(last)) = (origin, self.origins.last_mut())
+        {
+            // Source text continues a line that synthetic text started.
+            *last = LineOrigin {
+                column_offset: last.column_offset + origin.column_offset,
+                directive: last.directive.take(),
+                ..origin
+            };
         }
+        self.provisional = false;
+        self.text.push_str(piece);
     }
 }
 
@@ -262,11 +314,11 @@ impl ExpansionContext<'_> {
                             .expect("conditional include has an else candidate"),
                         path,
                     )?;
-                    expanded.push_source(&format!("{{% if {condition} %}}"), chain, line_number);
+                    expanded.push_synthetic(&format!("{{% if {condition} %}}"), chain, line_number);
                     expanded.push_include(first, line, chain, line_number);
-                    expanded.push_source("{% else %}", chain, line_number);
+                    expanded.push_synthetic("{% else %}", chain, line_number);
                     expanded.push_include(second, line, chain, line_number);
-                    expanded.push_source("{% endif %}", chain, line_number);
+                    expanded.push_synthetic("{% endif %}", chain, line_number);
                 }
                 Some(IncludeDirective::Dynamic | IncludeDirective::Static(_)) | None
                     if line.trim_start().starts_with("@<") =>
