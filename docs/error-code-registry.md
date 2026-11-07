@@ -53,6 +53,7 @@ sc-composer library and are normalized by the shared lint runner.
 | `ERR_VAL_MISSING_REQUIRED` | `ValidationError` | error | required variable remains unresolved after merge | validation pipeline |
 | `ERR_VAL_MISSING_NESTED_FIELD` | `ValidationError` | error | a required nested field path is missing inside a present object value | validation pipeline |
 | `ERR_VAL_SHAPE_MISMATCH` | `ValidationError` | error | nested required-path traversal expected an object but found a scalar or array | validation pipeline |
+| `ERR_VAL_ARRAY_SHAPE_MISMATCH` | `ValidationError` | error | a required variable consumed as a list by a bare `{% for %}` loop has a non-array value; the message names the variable and received JSON type | validation pipeline; CLI `render` reports exit `2` |
 | `ERR_VAL_UNDECLARED_TOKEN` | `ValidationError` | warning/error | referenced token is not declared in frontmatter | validation pipeline |
 | `ERR_VAL_EXTRA_INPUT` | `ValidationError` | warning/error | caller provided a variable that is neither declared nor referenced | validation pipeline |
 | `ERR_VAL_UNBOUND_VARIABLE` | `ValidationError` | warning/error | referenced variable has no value binding after context/default merge | validation pipeline |
