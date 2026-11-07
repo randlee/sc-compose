@@ -228,3 +228,116 @@ fn later_pass_error_says_it_is_in_the_pass_input() {
         "{diagnostic}"
     );
 }
+
+const CONDITIONAL_PARENT: &str = "T\n@<{{ \"ca.md\" if flag else \"cb.md\" }}>\n{{ 1 + }}\n";
+
+#[test]
+fn parent_error_after_conditional_include_names_parent_line_for_both_branches() {
+    // Children without a final newline get the directive's terminator
+    // (ADR-0026 D8); the synthetic `{% endif %}` then shares the parent's
+    // next line, which must still be reported as that parent line.
+    for (ca, cb) in [("ca", "cb"), ("ca\n", "cb\n"), ("ca\r\n", "cb")] {
+        let root = canonical_root("adr0026-pe-f2-following");
+        write_file(&root.join("main.md"), CONDITIONAL_PARENT);
+        write_file(&root.join("ca.md"), ca);
+        write_file(&root.join("cb.md"), cb);
+        for flag in ["flag=true", "flag="] {
+            let run = run(&root, "render", "main.md", &["--var", flag]);
+            assert_located(&run, &root, "main.md", 3, Some(8), &["main.md"]);
+        }
+    }
+}
+
+#[test]
+fn error_in_conditional_candidate_names_the_candidate_line() {
+    let root = canonical_root("adr0026-pe-f2-candidate");
+    write_file(
+        &root.join("main.md"),
+        "T\n@<{{ \"ca.md\" if flag else \"cb.md\" }}>\nend\n",
+    );
+    write_file(&root.join("ca.md"), "{{ bad syntax }}");
+    write_file(&root.join("cb.md"), "ok\n{{ bad syntax }}");
+    let then_branch = run(&root, "render", "main.md", &["--var", "flag=true"]);
+    assert_located(
+        &then_branch,
+        &root,
+        "ca.md",
+        1,
+        Some(8),
+        &["main.md", "ca.md"],
+    );
+    // The template is compiled whole, so the first broken candidate is
+    // reported whichever branch is selected.
+    let else_branch = run(&root, "render", "main.md", &["--var", "flag="]);
+    assert_located(
+        &else_branch,
+        &root,
+        "ca.md",
+        1,
+        Some(8),
+        &["main.md", "ca.md"],
+    );
+    write_file(&root.join("ca.md"), "fine");
+    let else_only_broken = run(&root, "render", "main.md", &["--var", "flag="]);
+    assert_located(
+        &else_only_broken,
+        &root,
+        "cb.md",
+        2,
+        Some(8),
+        &["main.md", "cb.md"],
+    );
+}
+
+#[test]
+fn parent_error_after_nested_conditional_include_names_the_including_file() {
+    let root = canonical_root("adr0026-pe-f2-nested");
+    write_file(&root.join("top.md"), "top\n@<parts/mid.md>\nend\n");
+    write_file(
+        &root.join("parts/mid.md"),
+        "m1\n@<{{ \"leaf.md\" if deep else \"flat.md\" }}>\n{{ 1 + }}\n",
+    );
+    write_file(&root.join("parts/leaf.md"), "g1\ng2");
+    write_file(&root.join("parts/flat.md"), "f1");
+    for flag in ["deep=true", "deep="] {
+        let run = run(&root, "render", "top.md", &["--var", flag]);
+        assert_located(
+            &run,
+            &root,
+            "parts/mid.md",
+            3,
+            Some(8),
+            &["top.md", "parts/mid.md"],
+        );
+    }
+}
+
+#[test]
+fn conditional_include_rendered_bytes_are_unchanged() {
+    // Control: locating errors must not change what a valid template renders.
+    let root = canonical_root("adr0026-pe-f2-bytes");
+    write_file(
+        &root.join("main.md"),
+        "T\n@<{{ \"ca.md\" if flag else \"cb.md\" }}>\n{{ x }}\n",
+    );
+    for (ca, flag, expected) in [
+        ("ca", "flag=true", "T\nca\n1\n"),
+        ("ca", "flag=", "T\ncb\n1\n"),
+        ("ca\r\n", "flag=true", "T\nca\r\n1\n"),
+    ] {
+        write_file(&root.join("ca.md"), ca);
+        write_file(&root.join("cb.md"), "cb");
+        let output = sc_compose()
+            .args(["render", "--mode", "file", "--root"])
+            .arg(&root)
+            .args(["--file", "main.md", "--var", flag, "--var", "x=1"])
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(0), "{output:?}");
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap(),
+            expected,
+            "{ca:?} {flag}"
+        );
+    }
+}
