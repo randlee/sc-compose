@@ -270,16 +270,3 @@ fn empty_child_directive_line_becomes_an_empty_line() {
         );
     }
 }
-
-#[test]
-fn empty_child_receipt_case_renders_an_empty_directive_line() {
-    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/fixtures/render-regressions/adr0026-d8/empty-child");
-    assert_eq!(std::fs::read(fixture.join("e.md")).unwrap(), b"");
-    let template = std::fs::read(fixture.join("template.j2")).unwrap();
-    assert_eq!(template, b"A\n@<e.md>\nB\n");
-    assert_eq!(
-        render_with_empty_child("adr0026-d8-empty-receipt", &template),
-        b"A\n\nB\n"
-    );
-}

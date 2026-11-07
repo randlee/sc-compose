@@ -45,28 +45,6 @@
       "regression_test": "crates/sc-compose/tests/cli/render.rs::render_inline_vars_override_files_independent_of_argument_order"
     },
     {
-      "id": "ADR-0026-D8-EMPTY-CHILD",
-      "decision": "empty included content has no final line break, so the approved D8 trailing rule appends the directive line terminator and the directive line becomes an empty line; this is the zero-length interpretation of ADR-0026-D8-TRAILING, not a separate verbatim user approval",
-      "issue": "https://github.com/randlee/sc-compose/issues/1000",
-      "approval": {
-        "kind": "explicit-user",
-        "reference": "session 9ec5e645 message 370d1803-5f65-4489-bbf6-6d66d8d435e3 (ADR-0026-D8-TRAILING rule; empty content is its zero-length interpretation)",
-        "date": "2026-11-06"
-      },
-      "case": "tests/fixtures/render-regressions/adr0026-d8/empty-child",
-      "before": {
-        "exit": 0,
-        "stdout_sha256": "daee1cd25194ae952d046ad9b9c81d3c07dc5332440b58d6d7461b248be56712",
-        "code": null
-      },
-      "after": {
-        "exit": 0,
-        "stdout_sha256": "c410bfd99c846b9dc84431c34ca7044a1e3e4e33146a8fa105b25577e6188768",
-        "code": null
-      },
-      "regression_test": "crates/sc-compose/tests/adr0026_d8_include_layout.rs::empty_child_receipt_case_renders_an_empty_directive_line"
-    },
-    {
       "id": "ADR-0026-D8-LINE-ENDINGS",
       "decision": "preserve parent and child line-ending kinds while retaining existing trailing whitespace and blank-line trimming",
       "issue": "https://github.com/randlee/sc-compose/issues/1000",
