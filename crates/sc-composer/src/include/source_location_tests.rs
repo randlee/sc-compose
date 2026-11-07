@@ -77,7 +77,10 @@ impl Drop for Fixture {
 fn owned(pairs: &[(&str, usize)]) -> Vec<(String, usize)> {
     pairs
         .iter()
-        .map(|(name, line)| ((*name).to_owned(), *line))
+        .map(|(name, line)| {
+            let path: PathBuf = Path::new(name).components().collect();
+            (path.display().to_string(), *line)
+        })
         .collect()
 }
 

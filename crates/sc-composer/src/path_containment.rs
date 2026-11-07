@@ -65,15 +65,22 @@ pub(crate) fn canonicalize_within_roots(
             let normalized_roots = approved_roots
                 .iter()
                 .flat_map(|root| {
-                    [Some(normalize_path(root)), resolve_missing_symlinks(root)]
-                        .into_iter()
-                        .flatten()
+                    [
+                        Some(normalize_path(root)),
+                        resolve_missing_symlinks(root),
+                        canonicalize_existing_prefix(&normalize_path(root)),
+                    ]
+                    .into_iter()
+                    .flatten()
                 })
                 .collect::<Vec<_>>();
-            if !(is_within_any(&normalize_path(&candidate), &normalized_roots)
-                || starts_with_root_alias(&candidate, &normalized_roots))
-                || !is_within_any(&normalized_candidate, &normalized_roots)
-            {
+            let lexical_contained = match root_alias_boundary(&candidate, &normalized_roots) {
+                Some(contained) => contained,
+                None => is_within_any(&normalize_path(&candidate), &normalized_roots),
+            };
+            let physical_candidate =
+                canonicalize_existing_prefix(&normalized_candidate).unwrap_or(normalized_candidate);
+            if !lexical_contained || !is_within_any(&physical_candidate, &normalized_roots) {
                 return Err(ContainmentEscape { candidate });
             }
             Ok(Canonicalization::Missing { candidate, source })
@@ -83,7 +90,7 @@ pub(crate) fn canonicalize_within_roots(
 
 /// An existing prefix may be a filesystem alias for a canonical approved root.
 /// Once that boundary is reached, a parent component may not leave it.
-fn starts_with_root_alias(candidate: &Path, roots: &[PathBuf]) -> bool {
+fn root_alias_boundary(candidate: &Path, roots: &[PathBuf]) -> Option<bool> {
     let mut prefix = PathBuf::new();
     let components = candidate.components().collect::<Vec<_>>();
     for (index, component) in components.iter().enumerate() {
@@ -93,15 +100,31 @@ fn starts_with_root_alias(candidate: &Path, roots: &[PathBuf]) -> bool {
             for remainder in &components[index + 1..] {
                 match remainder {
                     Component::Normal(_) => depth += 1,
-                    Component::ParentDir if depth == 0 => return false,
+                    Component::ParentDir if depth == 0 => return Some(false),
                     Component::ParentDir => depth -= 1,
                     _ => {}
                 }
             }
-            return true;
+            return Some(true);
         }
     }
-    false
+    None
+}
+
+/// Canonicalize the longest existing prefix, retaining the missing suffix.
+fn canonicalize_existing_prefix(path: &Path) -> Option<PathBuf> {
+    let mut ancestor = path;
+    let mut suffix = Vec::new();
+    loop {
+        if let Ok(mut canonical) = std::fs::canonicalize(ancestor) {
+            for component in suffix.iter().rev() {
+                canonical.push(component);
+            }
+            return Some(canonical);
+        }
+        suffix.push(ancestor.file_name()?.to_os_string());
+        ancestor = ancestor.parent()?;
+    }
 }
 
 /// Resolve symlinks in the existing prefix even when the final target is missing.
@@ -173,6 +196,72 @@ mod tests {
 
     use super::{Canonicalization, canonicalize_within_roots};
     use crate::types::ConfiningRoot;
+
+    #[test]
+    fn missing_paths_accept_native_and_canonical_root_spellings_without_traversal() {
+        let base = std::env::temp_dir().join(format!(
+            "ci1020-roots-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let real = base.join("root");
+        let sibling = base.join("root-sibling");
+        let allowed = base.join("allowed");
+        fs::create_dir_all(&real).unwrap();
+        fs::create_dir_all(&sibling).unwrap();
+        fs::create_dir_all(&allowed).unwrap();
+        let root = ConfiningRoot::new(&real).unwrap();
+        let extra = ConfiningRoot::new(&allowed).unwrap();
+        for candidate in [real.join("missing"), root.as_path().join("missing")] {
+            assert!(matches!(
+                canonicalize_within_roots(candidate, &root, &[]),
+                Ok(Canonicalization::Missing { .. })
+            ));
+        }
+        assert!(matches!(
+            canonicalize_within_roots(allowed.join("missing"), &root, &[extra]),
+            Ok(Canonicalization::Missing { .. })
+        ));
+        let _escape = canonicalize_within_roots(real.join("../outside"), &root, &[])
+            .expect_err("parent traversal must fail");
+        let _escape = canonicalize_within_roots(real.join("../root/missing"), &root, &[])
+            .expect_err("leaving and re-entering must fail");
+        let _escape = canonicalize_within_roots(sibling.join("missing"), &root, &[])
+            .expect_err("a sibling prefix is not a root");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_outward_existing_and_dangling_symlinks_are_rejected() {
+        use std::os::windows::fs::symlink_file;
+        let base = std::env::temp_dir().join(format!(
+            "ci1020-symlinks-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let root_path = base.join("root");
+        fs::create_dir_all(&root_path).unwrap();
+        let outside = base.join("outside.txt");
+        fs::write(&outside, "outside").unwrap();
+        let existing = root_path.join("existing-link");
+        if let Err(error) = symlink_file(&outside, &existing) {
+            eprintln!("Windows symlink controls unavailable: {error}");
+            return;
+        }
+        let dangling = root_path.join("dangling-link");
+        symlink_file(base.join("missing-outside"), &dangling).unwrap();
+        let root = ConfiningRoot::new(&root_path).unwrap();
+        let _escape = canonicalize_within_roots(&existing, &root, &[])
+            .expect_err("existing outside symlink must fail");
+        let _escape = canonicalize_within_roots(&dangling, &root, &[])
+            .expect_err("dangling outside symlink must fail");
+    }
 
     #[cfg(unix)]
     #[test]
