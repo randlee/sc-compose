@@ -9,6 +9,16 @@ license = "MIT"
 readme_dependency_crate = "sc-composer"
 renderer_archive_path = "bin/sc-compose"
 
+[prerelease]
+tag_prefix = "prerelease/v"
+tag_script = "scripts/prerelease_tag.py"
+install_root = "~/.sc-compose-builds"
+binaries = ["sc-compose"]
+protected_branches = ["develop", "main"]
+selector_dir = { darwin = "~/.sc-compose-builds/selectors/darwin", linux = "~/.sc-compose-builds/selectors/linux", windows = "%LOCALAPPDATA%\\sc-compose\\prerelease-selectors" }
+post_install = "{selector_dir}/sc-compose --version"
+verify = "{selector_dir}/sc-compose --version"
+
 [[release_targets]]
 target = "x86_64-unknown-linux-gnu"
 os = "ubuntu-latest"
@@ -19,11 +29,11 @@ os = "ubuntu-24.04-arm"
 archive = "tar.gz"
 [[release_targets]]
 target = "aarch64-apple-darwin"
-os = "macos-14"
+os = "macos-15"
 archive = "tar.gz"
 [[release_targets]]
 target = "x86_64-apple-darwin"
-os = "macos-14"
+os = "macos-15-intel"
 archive = "tar.gz"
 [[release_targets]]
 target = "x86_64-pc-windows-msvc"
@@ -32,6 +42,10 @@ archive = "zip"
 [[release_targets]]
 target = "x86_64-pc-windows-gnu"
 os = "windows-latest"
+archive = "zip"
+[[release_targets]]
+target = "aarch64-pc-windows-msvc"
+os = "windows-11-arm"
 archive = "zip"
 
 [[crates]]
@@ -92,21 +106,21 @@ source = "bindings/sc-sha-python"
 cargo_manifest = "bindings/sc-sha-python/Cargo.toml"
 module_path = "bindings/sc-sha-python/python/sc_sha"
 sdist = true
-wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
+wheels = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]
 [[python_distributions]]
 name = "sc-compose"
 source = "bindings/python"
 cargo_manifest = "bindings/python/Cargo.toml"
 module_path = "bindings/python/python/sc_compose"
 sdist = true
-wheels = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "windows-latest"]
+wheels = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]
 [[python_distributions]]
 name = "sc-composer-beads"
 source = "bindings/sc-composer-beads-python"
 cargo_manifest = "bindings/sc-composer-beads-python/Cargo.toml"
 module_path = "bindings/sc-composer-beads-python/python/sc_composer_beads"
 sdist = true
-wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
+wheels = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]
 
 [channels.pypi]
 workflow = "pypi-publish.yml"

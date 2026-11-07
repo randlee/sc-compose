@@ -1,0 +1,23 @@
+# v-7: final-recovery-validation
+
+## Description
+
+Agent level: normal.
+### Deliverables
+1. Compose/audit the completed candidate and resolve only owned final integration issues. Route an out-of-fence defect to its owning sprint or amend the fence before edits. V3 closes Beads behavior, V4 the migrated/lint-fixed baseline, V5 ABI adapters, V8 reusable external tooling, V9 Go adapter, and V6 real artifact/tool composition.
+2. Run final workspace/cross-platform checks, the same v1.7.0 byte command and preserved Beads fuzz/isolated-bd cases. Map every required historical input honestly; missing cases do not count as coverage. Keep deterministic inputs and unchanged assertions.
+3. After the LAST candidate change (including lock/changelog/README/CI/tests), obtain V6's qualifying full matrix/preflight on that exact SHA/version. Reuse a successful run only when SHA/version/retained bytes match exactly; otherwise dispatch it. Verify trusted run identity and every retained artifact digest, then verify identical publisher staging. Any later change invalidates that qualifying run and requires another. V6 targeted pipeline checks are not full-platform evidence; no extra full run is required merely because the sprint changes.
+4. Audit the existing PR dispositions under the root rule: every listed replacement commit is reachable from the final candidate, retained behavior still exists, and every original is closed/merged with an honest landed/superseded/declined status or a specific unresolved blocker. If replacement work was dropped/rewritten, reopen or update the original with the new reviewed replacement/disposition and report the gap. V3 owns #810; V7 only audits it. #816 stays closed.
+5. Update release notes for actual net behavior and perform the one all-change phase-ending review and authorized atomic phase landing. Production publication remains separate.
+
+## Acceptance criteria
+
+The exact final candidate passes all required validation and the qualifying full matrix/preflight after its last change. Artifact/version/HEAD and digests agree at staging with no rebuild. All named retained regressions have honest results. Every scoped original PR has a completed, truthful disposition and its retained behavior/commit survives in the final candidate; unresolved integration/QA blocks closure. One whole-phase review passes before authorized landing.
+
+### Required Validation
+cargo build --workspace; cargo test --workspace; cargo clippy --all-targets --all-features -- -D warnings; cargo fmt --all -- --check.
+- just check xwin; just clippy xwin (all configured scopes); require Linux/macOS/Windows and declared ARM64 CI on the final head, not historical layer results.
+- python3 scripts/check_render_regressions.py --baseline-ref f4fda4b9 --check; python3 scripts/generate_cli_reference.py --check.
+- BD_EXECUTABLE="$(command -v bd)" cargo test -p sc-composer-beads --test graph_bd; run the mapped FUZZ-171/T/D/include-default cases through V3's existing tests.
+- If no qualifying run already matches the exact final SHA/version/bytes, dispatch: gh workflow run release-preflight.yml --ref "$CANDIDATE_BRANCH" -f version="$VERSION" -f run_by_agent=publisher, AFTER recording the final SHA; require V6's real 30-cell matrix, consumer preflight and trusted digest results on that SHA. A changed candidate requires a fresh run.
+- For each retained source-PR replacement: git merge-base --is-ancestor "$REPLACEMENT_COMMIT" "$FINAL_CANDIDATE_SHA" and review final retained behavior/tests. A failed check or rewritten/dropped replacement is a reported blocker/disposition change, not an integrated claim.

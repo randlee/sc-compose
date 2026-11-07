@@ -48,7 +48,7 @@ cargo build --release -p sc-compose
 pip install sc-compose
 ```
 
-Pre-built wheels for macOS, Linux, Windows (Python 3.11+). Pre-release builds
+Pre-built wheels for macOS, Linux, Windows (Python 3.9+; Windows ARM64 requires 3.11+). Pre-release builds
 available on TestPyPI:
 
 ```bash

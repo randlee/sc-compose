@@ -47,3 +47,14 @@ sprints can execute in parallel after L.2.
 - [Phase L plan](../phase-L/phase-L-plan.md)
 - [sc-lint reporting contract](../phase-L/sc-lint-reporting-contract.md)
 - [sc-lint #83](https://github.com/randlee/sc-lint/issues/83)
+
+## Phase V compatibility amendment — 2026-11-04
+
+The external version is now sc-lint 0.8.6 under FR-27 and amended ADR-0016.
+Supported installer/runtime materialization may change during migration;
+runner allowlisting, stable report identities and honest failure propagation
+remain required. External docli publish preflight is governed by FR-26.
+
+Phase V update (2026-11-05): the owner selected the final v0.8.6 release
+(tag commit `6142682313171a7a714edee99942146415329f11`), superseding
+the earlier 0.8.5 migration pin. Analyzer and reporting obligations remain.

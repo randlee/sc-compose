@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 MODULE = Path(__file__).resolve().parents[1] / "post_mortem_context.py"
 spec = importlib.util.spec_from_file_location("context", MODULE)
+assert spec is not None and spec.loader is not None
 context = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(context)
 
@@ -88,8 +89,8 @@ class CollectionTests(unittest.TestCase):
                 p.write_text(json.dumps(value))
                 with self.assertRaises(ValueError):
                     context.read_ids(p)
-        p.write_text('["comp-f.1", "comp-f2"]')
-        self.assertEqual(context.read_ids(p), ["comp-f.1", "comp-f2"])
+        p.write_text('["p-f.1", "p-f2"]')
+        self.assertEqual(context.read_ids(p), ["p-f.1", "p-f2"])
 
     def test_cli_returns_nonzero_for_collection_error(self):
         inventory = self.root / "ids.json"

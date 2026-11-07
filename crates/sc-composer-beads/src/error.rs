@@ -1,6 +1,9 @@
 //! Stable Beads composition failures.
 
-use std::fmt::Write as _;
+mod presentation;
+
+pub use presentation::{escape_human_text, shell_quote};
+
 use std::path::PathBuf;
 
 use thiserror::Error;
@@ -117,6 +120,7 @@ pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
 /// #     BeadComposeError::GraphConflict { .. } => 0,
 /// #     BeadComposeError::GraphEdgeConflict { .. } => 0,
 /// #     BeadComposeError::GraphEdgeMissing { .. } => 0,
+/// #     BeadComposeError::GraphAtomicUpdateUnavailable => 0,
 /// #     BeadComposeError::GraphReadFailed { .. } => 0,
 /// #     BeadComposeError::GraphApplyFailed { .. } => 0,
 /// #     BeadComposeError::GraphApplyUnconfirmed { .. } => 0,
@@ -141,6 +145,45 @@ pub enum BeadComposeError {
     RequestDeserializationFailed {
         /// Serializer diagnostic retained for callers and logs.
         message: String,
+    },
+    /// The direct-pour arguments do not describe a valid operation.
+    #[error("invalid direct-pour request: {message}")]
+    DirectRequestInvalid {
+        /// Explanation of the invalid arguments.
+        message: String,
+    },
+    /// Direct-pour private staging could not be created or resolved.
+    #[error(
+        "cannot prepare private formula staging at `{path}`: {source}; check directory permissions"
+    )]
+    DirectStagingFailed {
+        /// Path being prepared.
+        path: PathBuf,
+        /// Underlying failure.
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
+    /// A direct-pour source could not be located or resolved.
+    #[error(
+        "cannot locate formula source `{path}`: {source}; check the source path and permissions"
+    )]
+    DirectSourceFailed {
+        /// Requested formula path.
+        path: PathBuf,
+        /// Underlying failure.
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
+    /// A direct-pour source snapshot could not be captured or written.
+    #[error(
+        "cannot snapshot formula source `{path}`: {source}; check source includes and destination permissions"
+    )]
+    DirectSnapshotFailed {
+        /// Source or destination path involved in the failure.
+        path: PathBuf,
+        /// Underlying failure.
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
     },
     /// A relation endpoint omitted its recognized step or bead prefix.
     #[error("endpoint `{value}` must have a step: or bead: prefix (ADR-0023)")]
@@ -178,6 +221,14 @@ pub enum BeadComposeError {
         /// Output path supplied by the request.
         path: PathBuf,
         /// Rule that the output path failed.
+        rule: String,
+    },
+    /// The graph-plan output path cannot be written safely.
+    #[error("invalid graph plan output path `{path}`: {rule}")]
+    GraphPlanPathInvalid {
+        /// Graph plan path derived beside the rendered formula.
+        path: PathBuf,
+        /// Rule that the graph plan path failed.
         rule: String,
     },
     /// A template path escaped the working directory.
@@ -373,6 +424,11 @@ pub enum BeadComposeError {
         /// Non-empty missing edges in plan order; repair each before retrying.
         edges: Vec<MissingEdge>,
     },
+    /// The installed bd has no qualified atomic mixed-update protocol.
+    #[error(
+        "graph atomic update unavailable: no supported transaction with ownership preconditions is qualified"
+    )]
+    GraphAtomicUpdateUnavailable,
     /// `ReadFailed` condition from ADR-0023.
     #[error(
         "graph read failed ({status:?}): {cause}; {command:?}; fix bd and retry, nothing was written"
@@ -435,6 +491,15 @@ impl BeadComposeError {
     /// Stable code for malformed requests, available without constructing an error.
     pub const REQUEST_DESERIALIZATION_FAILED_CODE: &'static str =
         "BEADS_REQUEST_DESERIALIZATION_FAILED";
+
+    /// Stable invalid direct-pour request code.
+    pub const DIRECT_REQUEST_INVALID_CODE: &'static str = "BEADS_DIRECT_REQUEST_INVALID";
+    /// Stable direct-pour staging failure code.
+    pub const DIRECT_STAGING_FAILED_CODE: &'static str = "BEADS_DIRECT_STAGING_FAILED";
+    /// Stable direct-pour source lookup failure code.
+    pub const DIRECT_SOURCE_FAILED_CODE: &'static str = "BEADS_DIRECT_SOURCE_FAILED";
+    /// Stable direct-pour source snapshot failure code.
+    pub const DIRECT_SNAPSHOT_FAILED_CODE: &'static str = "BEADS_DIRECT_SNAPSHOT_FAILED";
 
     /// Stable code for [`BeadComposeError::RelationEndpointInvalid`].
     pub const RELATION_ENDPOINT_INVALID_CODE: &'static str = "BEADS_RELATION_ENDPOINT_INVALID";
@@ -541,6 +606,10 @@ impl BeadComposeError {
     /// Stable code for [`BeadComposeError::GraphEdgeMissing`].
     pub const GRAPH_EDGE_MISSING_CODE: &'static str = "BEADS_GRAPH_EDGE_MISSING";
 
+    /// Stable code for [`BeadComposeError::GraphAtomicUpdateUnavailable`].
+    pub const GRAPH_ATOMIC_UPDATE_UNAVAILABLE_CODE: &'static str =
+        "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE";
+
     /// Stable code for [`BeadComposeError::GraphReadFailed`].
     pub const GRAPH_READ_FAILED_CODE: &'static str = "BEADS_GRAPH_READ_FAILED";
 
@@ -555,6 +624,10 @@ impl BeadComposeError {
     pub const RECEIPT_DESERIALIZATION_FAILED_CODE: &'static str =
         "BEADS_RECEIPT_DESERIALIZATION_FAILED";
 
+    /// Stable code an adapter reports when it cannot serialize a value it is
+    /// returning to its caller (a receipt, graph or request field).
+    pub const OUTPUT_SERIALIZATION_FAILED_CODE: &'static str = "BEADS_OUTPUT_SERIALIZATION_FAILED";
+
     /// Every `BEADS_GRAPH_*` code, in ADR-0023 table order.
     pub const GRAPH_CODES: &'static [&'static str] = &[
         Self::GRAPH_PARENT_NOT_FOUND_CODE,
@@ -565,6 +638,7 @@ impl BeadComposeError {
         Self::GRAPH_CONFLICT_CODE,
         Self::GRAPH_EDGE_CONFLICT_CODE,
         Self::GRAPH_EDGE_MISSING_CODE,
+        Self::GRAPH_ATOMIC_UPDATE_UNAVAILABLE_CODE,
         Self::GRAPH_READ_FAILED_CODE,
         Self::GRAPH_APPLY_FAILED_CODE,
         Self::GRAPH_APPLY_UNCONFIRMED_CODE,
@@ -595,17 +669,23 @@ impl BeadComposeError {
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
+            | Self::GraphAtomicUpdateUnavailable
             | Self::GraphReadFailed { .. }
             | Self::GraphApplyFailed { .. }
             | Self::GraphApplyUnconfirmed { .. }
             | Self::RelationEndpointInvalid { .. }
             | Self::RequestReadFailed { .. }
+            | Self::DirectRequestInvalid { .. }
+            | Self::DirectStagingFailed { .. }
+            | Self::DirectSourceFailed { .. }
+            | Self::DirectSnapshotFailed { .. }
             | Self::RequestDeserializationFailed { .. }
             | Self::UnknownSchema { .. }
             | Self::FormulaPathNotFile { .. }
             | Self::FormulaExtensionUnsupported { .. }
             | Self::TemplatePathInvalid { .. }
             | Self::OutputPathInvalid { .. }
+            | Self::GraphPlanPathInvalid { .. }
             | Self::TemplateOutsideWorkingDirectory { .. }
             | Self::OutputOutsideWorkingDirectory { .. }
             | Self::OutputPathSymlink { .. }
@@ -625,6 +705,7 @@ impl BeadComposeError {
     pub const fn class(&self) -> BeadErrorClass {
         match self {
             Self::RequestReadFailed { .. }
+            | Self::DirectRequestInvalid { .. }
             | Self::RequestDeserializationFailed { .. }
             | Self::RelationEndpointInvalid { .. }
             | Self::UnknownSchema { .. }
@@ -642,7 +723,10 @@ impl BeadComposeError {
             | Self::FormulaNameRequired
             | Self::PourAuthorizationRequired
             | Self::PourAuthorizationInvalid => BeadErrorClass::Request,
-            Self::BdUnavailable { .. }
+            Self::DirectStagingFailed { .. }
+            | Self::DirectSourceFailed { .. }
+            | Self::DirectSnapshotFailed { .. }
+            | Self::BdUnavailable { .. }
             | Self::ProcessArgumentInvalid { .. }
             | Self::ProcessOutputLimitExceeded { .. }
             | Self::RenderFailed { .. }
@@ -660,9 +744,11 @@ impl BeadComposeError {
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
+            | Self::GraphAtomicUpdateUnavailable
             | Self::GraphReadFailed { .. }
             | Self::GraphApplyFailed { .. }
-            | Self::GraphApplyUnconfirmed { .. } => BeadErrorClass::Execution,
+            | Self::GraphApplyUnconfirmed { .. }
+            | Self::GraphPlanPathInvalid { .. } => BeadErrorClass::Execution,
         }
     }
 
@@ -670,6 +756,10 @@ impl BeadComposeError {
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
+            Self::DirectRequestInvalid { .. } => Self::DIRECT_REQUEST_INVALID_CODE,
+            Self::DirectStagingFailed { .. } => Self::DIRECT_STAGING_FAILED_CODE,
+            Self::DirectSourceFailed { .. } => Self::DIRECT_SOURCE_FAILED_CODE,
+            Self::DirectSnapshotFailed { .. } => Self::DIRECT_SNAPSHOT_FAILED_CODE,
             Self::RequestReadFailed { .. } => Self::REQUEST_READ_FAILED_CODE,
             Self::RequestDeserializationFailed { .. } => Self::REQUEST_DESERIALIZATION_FAILED_CODE,
             Self::RelationEndpointInvalid { .. } => Self::RELATION_ENDPOINT_INVALID_CODE,
@@ -677,7 +767,9 @@ impl BeadComposeError {
             Self::FormulaPathNotFile { .. } => Self::FORMULA_NOT_FILE_CODE,
             Self::FormulaExtensionUnsupported { .. } => Self::FORMULA_EXTENSION_UNSUPPORTED_CODE,
             Self::TemplatePathInvalid { .. } => Self::TEMPLATE_PATH_INVALID_CODE,
-            Self::OutputPathInvalid { .. } => Self::OUTPUT_PATH_INVALID_CODE,
+            Self::OutputPathInvalid { .. } | Self::GraphPlanPathInvalid { .. } => {
+                Self::OUTPUT_PATH_INVALID_CODE
+            }
             Self::TemplateOutsideWorkingDirectory { .. } => Self::TEMPLATE_OUTSIDE_WORKING_DIR_CODE,
             Self::OutputOutsideWorkingDirectory { .. } => Self::OUTPUT_OUTSIDE_WORKING_DIR_CODE,
             Self::OutputPathSymlink { .. } => Self::OUTPUT_PATH_SYMLINK_CODE,
@@ -706,6 +798,7 @@ impl BeadComposeError {
             Self::GraphConflict { .. } => Self::GRAPH_CONFLICT_CODE,
             Self::GraphEdgeConflict { .. } => Self::GRAPH_EDGE_CONFLICT_CODE,
             Self::GraphEdgeMissing { .. } => Self::GRAPH_EDGE_MISSING_CODE,
+            Self::GraphAtomicUpdateUnavailable => Self::GRAPH_ATOMIC_UPDATE_UNAVAILABLE_CODE,
             Self::GraphReadFailed { .. } => Self::GRAPH_READ_FAILED_CODE,
             Self::GraphApplyFailed { .. } => Self::GRAPH_APPLY_FAILED_CODE,
             Self::GraphApplyUnconfirmed { .. } => Self::GRAPH_APPLY_UNCONFIRMED_CODE,
@@ -733,6 +826,8 @@ pub enum GraphConflictReason {
     NotOwned,
     /// The `provenance_differs` refusal reason.
     ProvenanceDiffers,
+    /// A v1 node lacks verifiable creation history for migration.
+    MigrationProofMissing,
 }
 
 impl std::fmt::Display for GraphConflictReason {
@@ -740,6 +835,7 @@ impl std::fmt::Display for GraphConflictReason {
         f.write_str(match self {
             Self::NotOwned => "not_owned",
             Self::ProvenanceDiffers => "provenance_differs",
+            Self::MigrationProofMissing => "migration_proof_missing",
         })
     }
 }
@@ -818,104 +914,6 @@ impl std::fmt::Display for GraphFormulaUnsupportedReason {
             Self::StepGraph => "step_graph",
         })
     }
-}
-
-/// Quote one argument for a shell-copyable recovery command.
-///
-/// The result is a POSIX `sh` word and needs nothing beyond `sh` and the
-/// `printf` builtin. An argument without control or formatting characters is a
-/// single-quoted word (`'` becomes `'"'"'`). Each control or formatting
-/// character is instead spelled with octal `printf` escapes inside a
-/// double-quoted command substitution, so no raw control character reaches the
-/// terminal and no Bash-only `$'...'` quoting is used. The substitution also
-/// covers the plain text that follows the escapes: POSIX command substitution
-/// drops trailing newlines, which would otherwise lose a newline. A newline
-/// that ends the argument cannot be kept that way, so it is shown as the
-/// visible text `\u{000A}` instead; recovery commands never carry one.
-///
-/// The word is not valid in `PowerShell` (an embedded quote there is a doubled
-/// `''`, and it has no `printf`) or in `cmd.exe`. On Windows, run recovery
-/// commands from Git Bash or WSL.
-#[must_use]
-pub fn shell_quote(argument: &str) -> String {
-    if !argument.chars().any(needs_shell_escape) {
-        return single_quoted(argument);
-    }
-    let body = argument.trim_end_matches('\n');
-    let trailing_newlines = argument.len() - body.len();
-    let characters: Vec<char> = body.chars().collect();
-    let mut quoted = String::new();
-    let mut index = 0;
-    while index < characters.len() {
-        let plain_end = characters[index..]
-            .iter()
-            .position(|character| needs_shell_escape(*character))
-            .map_or(characters.len(), |offset| index + offset);
-        if plain_end > index {
-            quoted.push_str(&single_quoted(
-                &characters[index..plain_end].iter().collect::<String>(),
-            ));
-        }
-        index = plain_end;
-        if index == characters.len() {
-            break;
-        }
-        // The escapes and the plain text up to the next escape share one
-        // substitution so it never ends in a newline.
-        let mut end = index;
-        while end < characters.len() && needs_shell_escape(characters[end]) {
-            end += 1;
-        }
-        while end < characters.len() && !needs_shell_escape(characters[end]) {
-            end += 1;
-        }
-        quoted.push_str("\"$(printf '");
-        for character in &characters[index..end] {
-            let mut encoded = [0; 4];
-            for byte in character.encode_utf8(&mut encoded).bytes() {
-                // String formatting is infallible.
-                let _ = write!(quoted, "\\{byte:03o}");
-            }
-        }
-        quoted.push_str("')\"");
-        index = end;
-    }
-    for _ in 0..trailing_newlines {
-        quoted.push_str("'\\u{000A}'");
-    }
-    quoted
-}
-
-fn single_quoted(text: &str) -> String {
-    format!("'{}'", text.replace('\'', "'\"'\"'"))
-}
-
-fn needs_shell_escape(character: char) -> bool {
-    character.is_control()
-        || matches!(character, '\u{2028}' | '\u{2029}')
-        || is_format_character(character)
-}
-
-fn is_format_character(character: char) -> bool {
-    matches!(u32::from(character),
-        0x00AD | 0x0600..=0x0605 | 0x061C | 0x06DD | 0x070F | 0x0890..=0x0891 | 0x08E2
-        | 0x180E | 0x200B..=0x200F | 0x202A..=0x202E | 0x2060..=0x2064 | 0x2066..=0x206F
-        | 0xFEFF | 0xFFF9..=0xFFFB | 0x110BD | 0x110CD | 0x13430..=0x1343F
-        | 0x1BCA0..=0x1BCA3 | 0x1D173..=0x1D17A | 0xE0001 | 0xE0020..=0xE007F)
-}
-
-/// Render terminal control and formatting characters as visible Unicode escapes.
-#[must_use]
-pub fn escape_human_text(text: &str) -> String {
-    let mut escaped = String::with_capacity(text.len());
-    for character in text.chars() {
-        if needs_shell_escape(character) {
-            let _ = write!(escaped, "\\u{{{:04X}}}", u32::from(character));
-        } else {
-            escaped.push(character);
-        }
-    }
-    escaped
 }
 
 fn unconfirmed_apply_reconcile(ids: &[BeadId]) -> String {

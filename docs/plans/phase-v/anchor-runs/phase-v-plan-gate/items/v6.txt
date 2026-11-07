@@ -1,0 +1,25 @@
+# v-6: delivery-integration
+
+## Description
+
+Agent level: frontier.
+### Deliverables
+1. FR-25: consume completed V5 wheels, V9 Go adapter/peer inputs and V8 tooling. Render the actual canonical channel/target contracts and implement the complete 30-cell build/install pipeline for final qualification in V7. Count six OS/architecture coordinates per family, not duplicate Windows toolchains; retain required supplemental toolchain variants without using them as false coverage.
+2. Implement the workflow_dispatch-only full install integration matrix through the existing registered release-preflight.yml entrypoint using supported canonical kit inputs. It must build/test the selected candidate/ref/version, run on real target runners (Windows ARM64 on GitHub), and cover applicable Python/installer/channel combinations. Normal CI stays small.
+3. Rehearse immutable files through build -> install/test -> retained run/SHA/version/digests -> supported preflight -> identical publisher staging -> final digest. Reject wrong/missing/expired evidence, changed bytes/version/head and post-gate rebuilds. No production registry publication. A missing canonical capability is an explicit upstream dependency, never a consumer fork.
+4. FR-26: own final generated reference artifacts. Run V8's installed generator against the completed command model and check it; do not hand-edit generated outputs or build a second generator. V8 owns generator code, V6 owns committing the final generated files.
+5. Wire V3's one current-only byte command into normal CI and supported preflight once. Invoke the Go peer version-lockstep check in CI/preflight/release/gate through supported inputs. V7 owns the one qualifying full matrix/preflight run after its last changes; V6 validates the working pipeline with targeted checks, without a mandatory extra full rehearsal.
+
+## Acceptance criteria
+
+The real build/install/staging pipeline is implemented for all required 30 cells and declared applicable channels, including the Python floor/Windows ARM exception. Targeted native producer-to-consumer checks prove unchanged tested files reach staging; controlled wrong/missing/stale byte/version/head cases fail closed. Final CLI references include the actual advanced commands and conditional/edge behavior. Routine CI runs the small byte check and peer lockstep, not the full matrix. V7 owns real full-matrix qualification on the final candidate; V6 does not claim full-platform outcomes from targeted tests.
+
+### Required Validation
+cargo build --workspace; cargo test --workspace; cargo clippy --all-targets --all-features -- -D warnings; cargo fmt --all -- --check.
+- python3 -m unittest discover -s .github/scripts/tests; python3 -m unittest discover -s scripts/tests.
+- python3 .github/scripts/release_artifacts.py validate-manifest --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml.
+- python3 .github/scripts/release_artifacts.py release-target-matrix --manifest release/publish-artifacts.toml; python3 .github/scripts/go_native_module.py target-matrix --manifest release/publish-artifacts.toml --config release/go-native-module.toml (verify required unique coordinates).
+- python3 .github/scripts/go_native_module.py verify-version-lockstep --config release/go-native-module.toml --workspace-toml Cargo.toml.
+- python3 scripts/generate_cli_reference.py --write; python3 scripts/generate_cli_reference.py --check (V8 supplies this thin external-docli wrapper).
+- python3 scripts/check_render_regressions.py --baseline-ref f4fda4b9 --check.
+- Exercise the actual native pipeline against retained candidate files through install/readback and supported preflight/staging; use the existing controlled helper fixtures for invalid evidence. V7 alone dispatches the complete qualifying matrix after the final changes. No additional mandatory full-matrix rehearsal is required.

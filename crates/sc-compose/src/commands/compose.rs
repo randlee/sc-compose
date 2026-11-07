@@ -157,7 +157,10 @@ pub(crate) fn run_validate(
         );
     }
     let render_report = sc_composer::RenderCheckReport::StaticOnly {
-        meta: render_check_meta(&request, &report.resolve_result.resolved_path),
+        meta: sc_composer::RenderCheckMeta::for_request(
+            &request,
+            &report.resolve_result.resolved_path,
+        ),
         diagnostics: diagnostics.clone(),
     };
     if args.json {
@@ -186,7 +189,7 @@ fn run_checked_validate(
     observer: &mut dyn CompositionObserver,
     mut diagnostics: Vec<sc_composer::Diagnostic>,
 ) -> Result<i32, CommandError> {
-    let meta = render_check_meta(request, resolved_path);
+    let meta = sc_composer::RenderCheckMeta::for_request(request, resolved_path);
     let report = match sc_composer::compose_with_observer(request, observer) {
         Ok(result) => {
             let checked =
@@ -316,25 +319,6 @@ const fn checked_validation_exit_code(report: &sc_composer::RenderCheckReport) -
     } else {
         crate::exit_codes::VALIDATION_OR_RENDER_FAIL
     }
-}
-
-pub(crate) fn render_check_meta(
-    request: &sc_composer::ComposeRequest,
-    template: &Path,
-) -> sc_composer::RenderCheckMeta {
-    let declared_mode = std::fs::read_to_string(template)
-        .ok()
-        .and_then(|source| declared_json_escape_mode(&source));
-    let output_format = sc_composer::OutputFormat::from_template_path(template);
-    let mode = (output_format == sc_composer::OutputFormat::Json).then(|| {
-        sc_composer::resolve_json_escape_mode(request.policy.json_escape_mode, declared_mode)
-    });
-    sc_composer::RenderCheckMeta::for_template(template).with_json_escape_mode(mode)
-}
-
-fn declared_json_escape_mode(source: &str) -> Option<sc_composer::JsonEscapeMode> {
-    let parsed = sc_composer::parse_template_document(source).ok()?;
-    parsed.frontmatter()?.json_escape_mode()
 }
 
 pub(crate) fn context_summary(

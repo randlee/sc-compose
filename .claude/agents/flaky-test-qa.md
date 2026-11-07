@@ -21,6 +21,8 @@ with free-form input.
 ```json
 {
   "worktree_path": "/absolute/path/to/worktree",
+  "branch": "feature/branch-name",
+  "commit": "exact-reviewed-commit",
   "scope": {
     "phase": "optional string",
     "sprint": "optional string"
@@ -28,9 +30,23 @@ with free-form input.
   "review_targets": [
     "optional paths"
   ],
+  "round_limit": false,
+  "changed_files": [],
+  "triage_records": [],
+  "carry_forward_findings": [],
   "notes": "optional context"
 }
 ```
+
+`branch` and `commit` pin an orchestration assignment to the exact reviewed
+revision; verify the worktree is at that revision before reviewing. Legacy
+assignments may omit these fields. `changed_files`, `triage_records`, and
+`round_limit` carry review context; they never relax the flakiness standards.
+When `carry_forward_findings` is nonempty, verify only those previously filed
+findings against their original requirements. Report each as fixed, open, or
+regressed with evidence. Do not file new findings in this fix-verification
+round; mention unrelated observations only in notes. An empty list requests a
+full review.
 
 ## Scope
 
@@ -85,6 +101,10 @@ Return fenced JSON only.
   "error": null
 }
 ```
+
+For fix verification, put one object per carried finding in `data.findings`,
+with its original `id`, `disposition` (`fixed`, `open`, or `regressed`), and
+`evidence`. Include no new finding IDs in that round.
 
 If the review cannot be completed, return:
 

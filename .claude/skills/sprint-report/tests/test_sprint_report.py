@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -13,6 +14,7 @@ from unittest import mock
 SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/sprint-report'
 loader = importlib.machinery.SourceFileLoader('sprint_report', str(SCRIPT))
 spec = importlib.util.spec_from_loader(loader.name, loader)
+assert spec is not None
 report = importlib.util.module_from_spec(spec)
 loader.exec_module(report)
 
@@ -25,10 +27,10 @@ class SprintReportTests(unittest.TestCase):
                     return report.main(), stderr.getvalue()
 
     def test_report_template_and_skill_keep_current_usage_text(self):
-        repo = Path(__file__).resolve().parents[4]
-        template = (repo / '.claude/skills/sprint-report/report.md.j2').read_text()
-        skill = (repo / '.claude/skills/sprint-report/SKILL.md').read_text()
-        script = (repo / '.claude/skills/sprint-report/scripts/sprint-report').read_text()
+        skill_dir = Path(__file__).resolve().parents[1]  # .claude/skills/sprint-report installed, skills/sprint-report in the package
+        template = (skill_dir / 'report.md.j2').read_text()
+        skill = (skill_dir / 'SKILL.md').read_text()
+        script = (skill_dir / 'scripts/sprint-report').read_text()
         self.assertIn('Sprint status report for phase plans.', template)
         self.assertNotIn('agent-team-mail', template)
         self.assertIn('`--table` is the default mode', skill)
@@ -69,27 +71,27 @@ class SprintReportTests(unittest.TestCase):
             self.assertEqual(index['root_bead_id'], 'comp-phase-x')
 
     def test_root_lookup_executes_phase_id_fallback_end_to_end(self):
-        checkout = Path(__file__).resolve().parents[4]
+        skills = Path(__file__).resolve().parents[2]  # .claude/skills installed, skills/ in the package
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
             subprocess.run(['git', 'init', '-q'], cwd=repo, check=True)
             helper_dir = repo / '.claude/skills/atm-beads/scripts'
             helper_dir.mkdir(parents=True)
-            for name in ('phase-index-path', 'sprint_index_common.py', 'repo_config.py'):
-                shutil.copy2(checkout / '.claude/skills/atm-beads/scripts' / name, helper_dir / name)
+            for name in ('phase-index-path', 'sprint_index_common.py', 'operation_models.py', 'repo_config.py'):
+                shutil.copy2(skills / 'atm-beads/scripts' / name, helper_dir / name)
             config = repo / '.claude/project/atm-bd-orchestration.yaml'
             config.parent.mkdir(parents=True)
             config.write_text('plans_dir: docs/plans\n')
-            (repo / '.atm-bd').mkdir()
-            (repo / '.atm-bd/phase-x.toml').write_text(
-                'plan = "docs/plans/phase-x.jsonl"\nroot = "comp-phase-x"\nintegration_branch = "integrate/phase-x"\n')
+            sys.path.insert(0, str(skills / 'atm-beads/tests'))
+            from phase_fixtures import write_phase
+            write_phase(repo, 'x', 'comp', 'docs/plans')
             path = repo / 'docs/plans/phase-x.jsonl'
             path.parent.mkdir(parents=True)
             path.write_text('{"sprint": "x-1"}\n')
             bin_dir = repo / 'bin'
             bin_dir.mkdir()
             bd = bin_dir / 'bd'
-            bd.write_text('#!/bin/sh\nprintf \'[{"id":"comp-phase-x","metadata":{}}]\\n\'\n')
+            bd.write_text('#!/bin/sh\nprintf \'[{"id":"comp-phase-x","status":"open","metadata":{}}]\\n\'\n')
             bd.chmod(0o755)
             old_cwd = Path.cwd()
             try:
@@ -152,12 +154,12 @@ class SprintReportTests(unittest.TestCase):
         self.assertEqual(set(index['sprints'][1]), {'dev_bead_id', 'sanity_bead_id'})
 
     def test_historical_sanity_count_counts_only_completed_runs(self):
-        events = {'events': [{'event': event} for event in (
+        events = [{'event': event} for event in (
             'assigned', 'started', 'completed', 'reopened', 'started',
             'completed', 'reopened', 'started', 'completed', 'refused'
-        )]}
+        )]
         self.assertEqual(report.completed_sanity_runs(events), 3)
-        self.assertEqual(report.completed_sanity_runs({'events': []}), 0)
+        self.assertEqual(report.completed_sanity_runs([]), 0)
 
     def test_sanity_iterations_use_cumulative_completion_not_line_count(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -322,17 +324,20 @@ class SprintReportTests(unittest.TestCase):
             {'id': 'minor', 'priority': 4, 'metadata': {'layer': 3, 'difficulty': 'fast'}},
             {'id': 'blocking', 'priority': 1, 'metadata': {'layer': 2, 'severity': 'blocking', 'difficulty': 'hard'}},
             {'id': 'unknown', 'priority': 2, 'metadata': {'layer': 1}},
-        ], [{'identity': 'luna', 'model': 'gpt-6-luna'}, {'identity': 'astra', 'model': 'gpt-6-astra'}], set())
+        ], [{'identity': 'luna', 'model': 'gpt-6-luna', 'agent_type': 'dev'},
+            {'identity': 'astra', 'model': 'gpt-6-astra', 'agent_type': 'dev'}], set())
         self.assertEqual([row['id'] for row in rows], ['blocking', 'unknown', 'minor'])
         self.assertEqual(rows[0]['agents'], 'astra')
         self.assertEqual(rows[1]['agents'], 'UNCLASSIFIED')
         self.assertIn('UNCLASSIFIED', report.render_dispatch(rows))
 
-    def test_dispatch_fixture_matches_three_model_classes_and_waits(self):
+    def test_dispatch_recommends_dev_members_at_the_tier_then_one_up(self):
         members = [
-            {'identity': 'luna', 'model': 'gpt-6-luna'},
-            {'identity': 'terra', 'model': 'gpt-6-terra'},
-            {'identity': 'astra', 'model': 'gpt-6-astra'},
+            {'identity': 'luna', 'model': 'gpt-6-luna', 'agent_type': 'dev'},
+            {'identity': 'terra', 'model': 'gpt-6-terra', 'agent_type': 'dev'},
+            {'identity': 'astra', 'model': 'gpt-6-astra', 'agent_type': 'dev'},
+            {'identity': 'publisher', 'model': 'claude-opus-5-5', 'agent_type': 'publisher'},
+            {'identity': 'sanity', 'model': 'luna', 'agent_type': 'worker'},
         ]
         ready = [
             {'id': 'normal', 'priority': 2, 'metadata': {'layer': 2, 'difficulty': 'normal'}},
@@ -341,9 +346,12 @@ class SprintReportTests(unittest.TestCase):
         ]
         rows = report.dispatch_rows(ready, members, set())
         self.assertEqual([row['id'] for row in rows], ['hard', 'normal', 'fast'])
-        self.assertEqual([row['agents'] for row in rows], ['astra', 'terra', 'luna'])
-        hard_wait = report.dispatch_rows([ready[2]], members[:1], set())
-        self.assertEqual(hard_wait[0]['agents'], 'WAIT')
+        self.assertEqual([row['agents'] for row in rows], ['astra', 'terra', 'luna'])   # non-dev types never listed
+        busy_fast = report.dispatch_rows([ready[1]], members, {'luna'})
+        self.assertEqual(busy_fast[0]['agents'], 'terra')                             # one tier up when none is idle
+        self.assertEqual(report.dispatch_rows([ready[1]], members, {'luna', 'terra'})[0]['agents'], 'WAIT')  # never two up
+        self.assertEqual(report.dispatch_rows([ready[2]], members[:1], set())[0]['agents'], 'WAIT')
+        self.assertIn('no roster member has type dev', report.render_dispatch(rows, members[3:]))
 
 
 if __name__ == '__main__':

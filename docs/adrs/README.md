@@ -23,3 +23,8 @@
 - [ADR-0021: Beads Formula Composition Host-Neutral Integration](0021-beads-formula-composition-integration.md)
 - [ADR-0022: Go Native Module Peer Package Ownership and Release Validation](0022-go-native-module-peer-package.md): Accepted (2026-08-30)
 - [ADR-0023: Beads Attach and By-Path Pour](0023-beads-attach-and-by-path-pour.md): Accepted (2026-10-06)
+
+- [ADR-0024: Advanced Beads Pour Without Delegated Variable Substitution](0024-advanced-beads-pour.md): Draft / Proposed (2026-11-04)
+
+- [ADR-0025: Complete Platform Delivery and Python Stable ABI](0025-platform-delivery-and-python-abi.md): Accepted user decisions; implementation pending (2026-11-04)
+- [ADR-0026: Contract Decisions From the Phase V Post-Merge Fuzz Campaign](0026-fuzz-contract-decisions.md): Accepted; D1/D2 implemented on the Phase V candidate at `f3d523e0`, integration and phase acceptance pending (2026-11-07)

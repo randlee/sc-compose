@@ -68,6 +68,24 @@
 - Tests must cover missing/rejected-token diagnostics without ever
   asserting on or logging a secret value.
 
+### 4.1 Consumer publish preflight extension
+
+- Release Preflight exposes one kit-owned extension point for
+  repository-specific checks: `release/publish-preflight.toml`, rendered from
+  optional `preflight_checks` and optional `docli` in consumer input JSON,
+  executed by `.github/scripts/run-consumer-preflight.sh` and recorded in the
+  deny summary as `consumer-preflight`. Consumers must not patch
+  `release-preflight.yml` by hand for repo-only gates.
+- Optional **sc-docli** (`docli.enabled` in consumer input) is not mandatory.
+  Consumers that ship a **customer-facing CLI SHOULD** enable it so CLI HTML
+  drift is caught in Release Preflight, not on every sprint PR CI. See
+  `docs/consumer-preflight-and-docli.md`.
+- Optional `preflight_workflows` in consumer input JSON calls consumer-owned
+  reusable workflows (for example a multi-runner matrix) from Release
+  Preflight. The installer appends one call job per entry and a
+  `consumer_workflows` job that fails unless every call succeeded. When
+  nothing is declared, `release-preflight.yml` is installed byte for byte.
+
 ## 5. Agent Behavior Around Credentials
 
 - The publisher (and any channel subagent) MUST NOT ask whether a token

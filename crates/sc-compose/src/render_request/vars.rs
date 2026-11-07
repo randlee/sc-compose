@@ -32,17 +32,24 @@ pub(super) fn load_cli_and_file_vars(
     args: &InputArgs,
 ) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
     let mut vars = BTreeMap::default();
-    load_cli_vars(&mut vars, &args.vars)?;
     load_var_file_vars(&mut vars, &args.var_file)?;
+    load_cli_vars(&mut vars, &args.vars)?;
     Ok(vars)
 }
 
 pub(super) fn load_prefixed_env_vars(
     args: &InputArgs,
 ) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
+    load_prefixed_env_vars_from(args, std::env::vars())
+}
+
+pub(super) fn load_prefixed_env_vars_from(
+    args: &InputArgs,
+    environment: impl IntoIterator<Item = (String, String)>,
+) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
     let mut vars = BTreeMap::default();
     if let Some(prefix) = &args.env_prefix {
-        for (key, value) in std::env::vars() {
+        for (key, value) in environment {
             if let Some(trimmed) = key.strip_prefix(prefix) {
                 let name = if BUILTIN_VARIABLE_NAMES.contains(&trimmed) {
                     trimmed.to_owned()
@@ -68,8 +75,8 @@ fn load_pass_input_vars(
     pass: &PassInputArgs,
 ) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
     let mut vars = BTreeMap::new();
-    load_cli_vars(&mut vars, &pass.vars)?;
     load_var_file_vars(&mut vars, &pass.var_files)?;
+    load_cli_vars(&mut vars, &pass.vars)?;
     Ok(vars)
 }
 

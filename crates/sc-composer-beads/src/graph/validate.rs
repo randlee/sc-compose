@@ -9,7 +9,7 @@ use crate::error::{
     GraphRelationInvalidReason as Invalid,
 };
 use sc_composer::{HashInput, calculate_hash};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -60,7 +60,44 @@ pub(super) struct ValidatedGraph {
     pub relations: Vec<BeadRelation>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub(super) struct ProvenanceV2 {
+    pub v: u32,
+    pub mode: BeadGraphMode,
+    pub formula: crate::FormulaName,
+    pub parent: Option<BeadId>,
+    #[serde(rename = "ref")]
+    pub reference: Option<GraphRef>,
+    pub step: Option<StepId>,
+    pub node_definition: Sha256Digest,
+    pub revision: Sha256Digest,
+    pub inputs: Sha256Digest,
+}
+
 impl ValidatedGraph {
+    pub fn provenance_v2(&self, step: Option<&Step>) -> Result<ProvenanceV2, BeadComposeError> {
+        let mut definition = step.map_or_else(
+            || json!({"type": "molecule", "title": self.formula, "description": self.description}),
+            |step| Value::Object(step.fields.clone()),
+        );
+        if let Some(object) = definition.as_object_mut() {
+            for key in ["status", "notes", "assignee"] {
+                object.remove(key);
+            }
+        }
+        let bytes = serde_json::to_vec(&definition).expect("node definition serializes");
+        Ok(ProvenanceV2 {
+            v: 2,
+            mode: self.mode,
+            formula: self.formula.clone(),
+            parent: self.parent.clone(),
+            reference: self.reference.clone(),
+            step: step.map(|item| item.id.clone()),
+            node_definition: digest(&bytes)?,
+            revision: self.revision.clone(),
+            inputs: self.inputs.clone(),
+        })
+    }
     pub fn provenance(&self, step: Option<StepId>) -> BeadGraphProvenance {
         BeadGraphProvenance {
             v: 1,
@@ -124,26 +161,7 @@ pub(super) fn validate(
     rendered: &[u8],
     mode: BeadGraphMode,
 ) -> Result<ValidatedGraph, BeadComposeError> {
-    if !req.bead_variables.is_empty() {
-        return Err(unsupported(Unsupported::BeadVariablesSet));
-    }
-    if cooked.kind != "workflow" {
-        return Err(unsupported(Unsupported::Composition));
-    }
-    for (key, value) in &cooked.extra {
-        match key.as_str() {
-            "vars" if nonempty(value) => return Err(unsupported(Unsupported::VarsDeclared)),
-            "template" | "compose" | "advice" | "pointcuts" if nonempty(value) => {
-                return Err(unsupported(Unsupported::Composition));
-            }
-            "vars" | "template" | "compose" | "advice" | "pointcuts" | "version"
-            | "schema_version" | "source" | "phase" | "pour" | "intent" => {}
-            _ => return Err(unsupported(Unsupported::UnknownKey)),
-        }
-    }
-    if cooked.steps.is_empty() {
-        return Err(unsupported(Unsupported::StepGraph));
-    }
+    validate_formula_shape(req, &cooked)?;
     let mut steps = Vec::new();
     let mut ids = BTreeSet::new();
     for step in cooked.steps {
@@ -210,6 +228,33 @@ pub(super) fn validate(
         steps,
         relations: req.relations.clone(),
     })
+}
+
+fn validate_formula_shape(
+    req: &BeadComposeRequest,
+    cooked: &CookedFormula,
+) -> Result<(), BeadComposeError> {
+    if !req.bead_variables.is_empty() {
+        return Err(unsupported(Unsupported::BeadVariablesSet));
+    }
+    if cooked.kind != "workflow" {
+        return Err(unsupported(Unsupported::Composition));
+    }
+    for (key, value) in &cooked.extra {
+        match key.as_str() {
+            "vars" if nonempty(value) => return Err(unsupported(Unsupported::VarsDeclared)),
+            "template" | "compose" | "advice" | "pointcuts" if nonempty(value) => {
+                return Err(unsupported(Unsupported::Composition));
+            }
+            "vars" | "template" | "compose" | "advice" | "pointcuts" | "version"
+            | "schema_version" | "source" | "phase" | "pour" | "intent" => {}
+            _ => return Err(unsupported(Unsupported::UnknownKey)),
+        }
+    }
+    if cooked.steps.is_empty() {
+        return Err(unsupported(Unsupported::StepGraph));
+    }
+    Ok(())
 }
 
 fn validate_relations(

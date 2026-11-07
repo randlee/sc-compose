@@ -12,11 +12,11 @@ use sc_sha::{
     calculate_composition_hash as calculate_core_composition_hash,
     calculate_hash as calculate_core_hash,
 };
-// The included UniFFI scaffold uses this runtime through generated code under
-// `OUT_DIR`; retain an explicit source-level reference for dependency analysis.
+// The checked-in scaffold uses this runtime; retain an explicit source-level
+// reference for dependency analysis.
 use uniffi as _;
 
-include!(concat!(env!("OUT_DIR"), "/sc_sha_go.uniffi.rs"));
+include!("sc_sha_go.uniffi.rs");
 
 /// Tagged canonical source identity accepted by the generated Go package.
 #[derive(Debug)]

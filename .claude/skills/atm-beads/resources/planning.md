@@ -22,6 +22,7 @@ rather than reaching an agent:
 | Bead | Template | Id |
 | --- | --- | --- |
 | phase root | [`plan-root.json.j2`](../templates/plan-root.json.j2) | `<prefix>-phase-<x>` |
+| stack ledger | [`stack-bead.json.j2`](../templates/stack-bead.json.j2) | `<prefix>-phase-<x>.stack` |
 | sprint container | [`sprint-bead.json.j2`](../templates/sprint-bead.json.j2) | `<prefix>-<x>-<n>` |
 
 1. Run `bd doctor --json`. Any check with `"status": "error"` stops the
@@ -30,7 +31,7 @@ rather than reaching an agent:
    and render each strictly into one JSONL file:
 
    ```bash
-   sc-compose render --file .claude/skills/atm-beads/templates/<t>.json.j2 \
+   sc-compose render --strict --file .claude/skills/atm-beads/templates/<t>.json.j2 \
      --var-file <scratch>/<bead>-vars.json --strict --output <scratch>/<bead>.json \
      && jq -e -c . <scratch>/<bead>.json >> <scratch>/plan.jsonl
    ```
@@ -38,8 +39,9 @@ rather than reaching an agent:
    Stop on any failure; never pipe a render straight into `jq`, which drops
    a failed bead silently.
 
-3. Write the plan file `<plans_dir>/phase-<x>.jsonl` and the phase file
-   `.atm-bd/phase-<x>.toml` by hand (see "Phase definition" below).
+3. Write the plan file `<plans_dir>/phase-<x>.jsonl`. Create the phase file with
+   `.claude/skills/atm-beads/scripts/phase-config init --phase <x> --lead <appointed-lead>`
+   before validation or pouring (see "Phase definition" below).
 4. Validate the rendered plan against it. This step is mandatory:
 
    ```bash
@@ -52,11 +54,12 @@ rather than reaching an agent:
    <scratch>/plan.jsonl`. Pour every sprint's group:
    `.claude/skills/atm-bd-orchestration/scripts/bead-groups --phase <x>`.
    Right away, create the plan-review bead
-   (`atm-bd-orchestration` "Plan Gate", step 1). Commit the plan file and the
-   phase file and push them to the root bead's `integration_branch`. Then run
+   (`atm-bd-orchestration` "Plan Gate", step 1). Run
    `.claude/skills/sprint-review/scripts/sprint-review --root <root>`, which
-   writes `<plans_dir>/phase-<x>/phase-<x>-dag.html` locally; it never commits
-   or pushes. No viewer opens without `--view`. Then run `validate-plan --phase <x>`
+   writes `<plans_dir>/phase-<x>/phase-<x>-dag.html` from the plan file in the
+   working tree; the script never commits or pushes. Commit the plan file, the
+   phase file and the DAG together and push them to the root bead's
+   `integration_branch`, then open a PR from the `integration_branch` to the repository trunk the phase lands on, carrying the plan file, the phase file and the DAG, before plan review. No viewer opens without `--view`. Then run `validate-plan --phase <x>`
    on the imported beads; without `--index` it reads the plan file from
    that integration branch.
 
@@ -89,7 +92,27 @@ The tracked phase file `.atm-bd/phase-<x>.toml` holds exactly:
 plan = "<plans_dir>/phase-<x>.jsonl"
 root = "<prefix>-phase-<x>"
 integration_branch = "integrate/phase-<x>"
+lead = "appointed-phase-lead"
+
+[templates]
+dev = ".claude/skills/atm-bd-orchestration/templates/dev-template.xml.j2"
+fix = ".claude/skills/atm-bd-orchestration/templates/fix-assignment.xml.j2"
+sanity = ".claude/skills/atm-bd-orchestration/templates/dev-sanity-template.xml.j2"
+qa = ".claude/skills/atm-bd-orchestration/templates/qa-template.xml.j2"
+plan_review = ".claude/skills/atm-bd-orchestration/templates/plan-review-template.xml.j2"
+review = ".claude/skills/atm-bd-orchestration/templates/review-template.xml.j2"
 ```
+
+`phase-config init --phase <x> --lead <appointed-lead>` writes these six
+default template paths and the explicit phase lead. It derives `plan`, `root`
+and `integration_branch` from the repository's `plans_dir`, `bead_prefix` and
+`integration_branch_pattern`, and refuses to overwrite an existing phase file.
+Review the resulting paths and branch before validation. All fields are required;
+template paths must name existing files inside the installed template directory. An older `dev_fix` key is ignored.
+
+The lead renders `stack-bead.json.j2` with the root variables beside `plan-root.json.j2` and imports both records into the plan JSONL. A hand-written `bd create` is forbidden for these beads: the rendered records are their only source.
+Runtime readers never substitute defaults, repository YAML or environment identities
+for missing phase settings. A lead handoff updates this tracked file.
 
 The file is never generated from beads and beads are never generated from the
 file. A plan change is one planner transaction: change the beads, edit the
@@ -106,7 +129,9 @@ Hierarchy:
   poured `fix ← sanity ← qa` group per blocking finding. Important and minor
   findings are plain finding beads under the phase or feature bead.
 
-`phase-<x>-dag.html` is written locally; it is never committed or pushed.
+`phase-<x>-dag.html` is committed with the plan file and the phase file; when
+the plan changes, re-run `sprint-review` and commit the DAG with the plan file
+change, which updates the plan PR. The script itself never commits or pushes.
 `--view` only controls optional background viewing in Wyvern.
 
 ## Phase Root
@@ -190,7 +215,7 @@ after its work passes the sanity check. See [`dev-sanity.md`](dev-sanity.md).
   Only the final phase PR leaves it, for the repository's base branch.
 - `layer` is the plan's intent. Layers really stack in the
   order they complete, and the lead records the actual `layer` when it links
-  each one (`atm-bd-orchestration` "Stack Discipline"); `pr_target` stays the planned lower bound until a dev-fix records the sprint's first layer's branch there.
+  each one (`atm-bd-orchestration` "Stack Discipline"); `pr_target` stays the planned lower bound after the cut.
 - Sprints that can run at once must have disjoint `owned_paths`. Sprints that
   share a path must be ordered: one's sanity bead in the other's blocker closure.
 

@@ -30,7 +30,11 @@ const KEYWORDS: &[&str] = &[
     "true",
     "false",
     "none",
+    "True",
+    "False",
+    "None",
     "not",
+    "is",
     "and",
     "or",
     "block",
@@ -39,6 +43,11 @@ const KEYWORDS: &[&str] = &[
     "endmacro",
     "filter",
     "endfilter",
+    "with",
+    "endwith",
+    "call",
+    "endcall",
+    "recursive",
 ];
 
 pub(super) fn collect_identifiers(
@@ -51,7 +60,8 @@ pub(super) fn collect_identifiers(
         .flat_map(|scope| scope.bound_names.iter().map(String::as_str))
         .collect::<BTreeSet<_>>();
 
-    let masked_expression = mask_filter_names(&mask_quoted_literals(expression));
+    let masked_expression = mask_test_names(&mask_filter_names(&mask_quoted_literals(expression)));
+    let masked_expression = join_indexed_attributes(&masked_expression);
     for candidate in masked_expression.split(|character: char| {
         !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
     }) {
@@ -74,9 +84,48 @@ pub(super) fn collect_identifiers(
     }
 }
 
+fn join_indexed_attributes(expression: &str) -> String {
+    let chars: Vec<char> = expression.chars().collect();
+    let mut result = String::with_capacity(expression.len());
+    let mut cursor = 0;
+    while cursor < chars.len() {
+        if chars[cursor] == '[' {
+            let prefix_start = (0..cursor)
+                .rev()
+                .find(|&i| {
+                    !(chars[i].is_ascii_alphanumeric() || matches!(chars[i], '_' | '-' | '.'))
+                })
+                .map_or(0, |i| i + 1);
+            let mut end = cursor + 1;
+            while end < chars.len() && chars[end].is_ascii_digit() {
+                end += 1;
+            }
+            if prefix_start < cursor
+                && (chars[prefix_start].is_ascii_alphabetic() || chars[prefix_start] == '_')
+                && is_identifier_char(chars[cursor - 1])
+                && end > cursor + 1
+                && chars.get(end) == Some(&']')
+                && chars.get(end + 1) == Some(&'.')
+                && chars
+                    .get(end + 2)
+                    .is_some_and(|c| c.is_ascii_alphabetic() || *c == '_')
+            {
+                cursor = end + 1;
+                continue;
+            }
+        }
+        result.push(chars[cursor]);
+        cursor += 1;
+    }
+    result
+}
+
 fn is_loop_context_name(candidate: &str, expression: &str, scopes: &[LoopScope]) -> bool {
     if scopes.len() <= 1 {
         return false;
+    }
+    if candidate == "loop" {
+        return true;
     }
     if candidate != "loop.cycle" {
         return LOOP_CONTEXT_NAMES.contains(&candidate);
@@ -138,4 +187,49 @@ fn mask_filter_names(expression: &str) -> String {
         cursor = filter_end;
     }
     masked.into_iter().collect()
+}
+
+/// Blank the test name after `is` / `is not` (`x is defined`): like a filter
+/// name, it names a Jinja test, never a variable.
+fn mask_test_names(expression: &str) -> String {
+    let mut masked = expression.chars().collect::<Vec<_>>();
+    let is_word = |characters: &[char], start: usize, word: &str| {
+        let end = start + word.len();
+        end <= characters.len()
+            && characters[start..end].iter().copied().eq(word.chars())
+            && (start == 0 || !is_identifier_char(characters[start - 1]))
+            && characters
+                .get(end)
+                .is_none_or(|next| !is_identifier_char(*next))
+    };
+    let skip_whitespace = |characters: &[char], mut cursor: usize| {
+        while cursor < characters.len() && characters[cursor].is_ascii_whitespace() {
+            cursor += 1;
+        }
+        cursor
+    };
+    let mut cursor = 0;
+    while cursor < masked.len() {
+        if !is_word(&masked, cursor, "is") {
+            cursor += 1;
+            continue;
+        }
+        let mut test_start = skip_whitespace(&masked, cursor + 2);
+        if is_word(&masked, test_start, "not") {
+            test_start = skip_whitespace(&masked, test_start + 3);
+        }
+        let mut test_end = test_start;
+        while test_end < masked.len() && is_identifier_char(masked[test_end]) {
+            test_end += 1;
+        }
+        for character in &mut masked[test_start..test_end] {
+            *character = ' ';
+        }
+        cursor = test_end.max(cursor + 2);
+    }
+    masked.into_iter().collect()
+}
+
+fn is_identifier_char(character: char) -> bool {
+    character.is_ascii_alphanumeric() || character == '_'
 }

@@ -96,6 +96,17 @@ pub(crate) fn execute_pour(
         formula_input.publish_copy(&normalized.rendered_formula)?;
     }
 
+    run_registry_pour(request, runner, normalized, bd, stages, formula_name)
+}
+
+fn run_registry_pour(
+    request: &BeadComposeRequest,
+    runner: &dyn ProcessRunner,
+    normalized: NormalizedRequest,
+    bd: PathBuf,
+    mut stages: Vec<BeadStageReceipt>,
+    formula_name: &crate::FormulaName,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
     let preview = request.operation == BeadOperation::PreviewPour;
     let pour = CommandSpec {
         executable: bd,
@@ -207,8 +218,9 @@ fn refuse_registry_relations(
 
 #[cfg(test)]
 mod tests {
-    use crate::execute::execute_bead_request_with_runner;
-    use crate::execute::tests::{FakeRunner, request, success, where_output, workspace};
+    use crate::execute::tests::{
+        FakeRunner, execute_bead_request_with_runner, request, success, where_output, workspace,
+    };
     use crate::paths::public_path_display;
     use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner};
     use crate::{BeadComposeError, BeadOperation, BeadOutcome, BeadStage, PourAuthorization};

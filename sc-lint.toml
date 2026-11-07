@@ -1,10 +1,102 @@
-# Pinned by the Phase L integration contract. The setup action verifies this
-# value before any analyzer command runs.
-version = "0.4.0"
+version = "0.8.6"
 
-[logging]
-root = "reports/latest/sc-lint/logs"
-console = false
+[line_counts]
+max_production_lines = 1000
+
+[identities]
+forbidden_literals = ["randlee", "team-lead", "arch-comp", "arch-ccomp", "comp", "comps", "team-lead@example.invalid", "ATM_HOME"]
+production_canonical_literals = { "SC_COMPOSE_DATA_DIR" = ["crates/sc-compose/src/template_store.rs"], "SC_COMPOSE_TEMPLATE_DIR" = ["crates/sc-compose/src/template_store.rs"], "SC_COMPOSE_TEMPLATE_CONTRACTS_SCOPE" = ["crates/sc-compose/src/commands/template_lint.rs"] }
+
+[version_sync]
+python = { "cargo_lock" = true, "python_manifests" = ["bindings/python/pyproject.toml", "bindings/sc-sha-python/pyproject.toml", "bindings/sc-composer-beads-python/pyproject.toml"] }
+
+[tool.sc-lint]
+minimum_version = "0.8.6"
+default_lint_profile = "full"
+
+[tool.sc-lint.analyzers.boundary]
+enabled = true
+
+[tool.sc-lint.analyzers.portability]
+enabled = true
+
+[tool.sc-lint.analyzers.runtime]
+enabled = true
+
+[tool.sc-lint.lint_profiles]
+full = ["fmt", "clippy-native", "sc-boundary", "sc-portability", "sc-runtime", "function-length", "line-counts", "identity-literals", "version-sync", "codespell", "cargo-deny", "cargo-shear", "wheel-tests", "check-xwin", "clippy-xwin"]
+fast = ["fmt", "sc-boundary", "sc-portability", "sc-runtime"]
+ci = ["fmt", "clippy-native", "sc-boundary", "sc-portability", "sc-runtime", "function-length", "line-counts", "identity-literals", "version-sync", "codespell", "cargo-deny", "cargo-shear", "wheel-tests", "check-xwin", "clippy-xwin"]
+
+[[tool.sc-lint.lint]]
+name = "fmt"
+command = ["cargo", "fmt", "--all", "--", "--check"]
+
+[[tool.sc-lint.lint]]
+name = "clippy-native"
+command = ["cargo", "clippy", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"]
+
+[[tool.sc-lint.lint]]
+name = "sc-boundary"
+command = ["sc-lint", "lint", "sc-boundary", "--root", ".", "--json"]
+
+[[tool.sc-lint.lint]]
+name = "sc-portability"
+command = ["sc-lint", "lint", "sc-portability", "--root", ".", "--json"]
+
+[[tool.sc-lint.lint]]
+name = "sc-runtime"
+command = ["sc-lint", "lint", "sc-runtime", "--root", ".", "--json"]
+
+[[tool.sc-lint.lint]]
+name = "function-length"
+command = ["sc-lint", "lint", "function-length", "--root", ".", "--json"]
+
+[[tool.sc-lint.lint]]
+name = "line-counts"
+command = ["sc-lint", "lint", "line-counts", "--root", ".", "--json"]
+
+[[tool.sc-lint.lint]]
+name = "identity-literals"
+command = ["sc-lint", "lint", "identity-literals", "--root", ".", "--json"]
+
+[[tool.sc-lint.lint]]
+name = "version-sync"
+command = ["python", "-m", "sc_lint.check_version_sync", "--root", ".", "--json"]
+
+[[tool.sc-lint.lint]]
+name = "codespell"
+command = ["codespell", "--config", ".codespellrc"]
+
+[[tool.sc-lint.lint]]
+name = "cargo-deny"
+command = ["cargo", "deny", "check"]
+
+[[tool.sc-lint.lint]]
+name = "cargo-shear"
+command = ["cargo", "shear"]
+
+[[tool.sc-lint.lint]]
+name = "wheel-tests"
+command = ["python", "-m", "sc_lint.run_pytests"]
+
+[[tool.sc-lint.lint]]
+name = "check-xwin"
+command = ["cargo", "check", "--workspace"]
+platform = "windows"
+target = "x86_64-pc-windows-msvc"
+env = { "PYO3_CROSS_PYTHON_VERSION" = "3.11" }
+
+[[tool.sc-lint.lint]]
+name = "clippy-xwin"
+command = ["cargo", "clippy", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"]
+platform = "windows"
+target = "x86_64-pc-windows-msvc"
+env = { "PYO3_CROSS_PYTHON_VERSION" = "3.11" }
+
+[[tool.sc-lint.test]]
+name = "workspace"
+command = ["cargo", "test", "--workspace"]
 
 [artifacts]
 root = "reports/latest/sc-lint"

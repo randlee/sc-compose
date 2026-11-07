@@ -51,11 +51,10 @@ else its sprint container's, `metadata.sprint_bead`), its head must start with t
 (not checked when the QA bead's `metadata.quick_fix` is true: a Parallel Quick Fix has no sanity check),
 and the QA worktree HEAD must equal that PR head. Otherwise refuse
 `SANITY_STALE`; no layer or quick fix lacking QA PASS at that pinned head is
-mergeable. Reuse an existing workflow class bead for the same failure signature:
-append the task id, head, command and failure evidence, and cite the class id in
-the refusal. If no class matches, report the signature to the task assigner for
-classification and cite that message instead; do not create a per-task shadow
-or delay the refusal.
+mergeable. Close the task refused with `SANITY_STALE` and the command and failure
+evidence in `reason_md`; do not create a bead for the refusal. The lead
+answers a `SANITY_STALE` from a rebase with a re-check sanity bead
+(`SKILL.md` Stack Discipline), never a reopen.
 
 ## Plan Review
 
@@ -122,6 +121,10 @@ QA policy (`policy_path`) requires for the change, for example a flaky-test
 reviewer when tests changed or a schema reviewer when a governed interface is
 in scope, as `quality-mgr.md` ("Reviewer Selection") says.
 
+Upstream-owned installed `.claude/` skill, agent and template content is out of
+QA reviewer scope; the lead accepts such changes by diff review and the
+package's template tests.
+
 ### Fix verification takes precedence
 
 A fix round (`carry_forward` set) dispatches only each carried finding's
@@ -143,7 +146,7 @@ Render each reviewer assignment to a file, gate it with `jq`, and send it to
 the reviewer as a fenced ```json block:
 
 ```bash
-sc-compose render --file .claude/skills/atm-bd-orchestration/templates/<reviewer>-assignment.json.j2 \
+sc-compose render --strict --file .claude/skills/atm-bd-orchestration/templates/<reviewer>-assignment.json.j2 \
   --var-file <scratch>/<qa bead>-<reviewer>-vars.json --json-escape-mode auto \
   --output <scratch>/<qa bead>-<reviewer>.json && jq -e . <scratch>/<qa bead>-<reviewer>.json
 ```

@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lib]
+name = "sc_sha_native"
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 sc-sha = { path = "../sc-sha" }
 sc-composer = { path = "../sc-composer" }

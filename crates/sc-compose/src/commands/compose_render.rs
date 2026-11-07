@@ -8,7 +8,7 @@ use sc_composer::{
 };
 
 use super::compose_output::emit_render_output;
-use super::{context_summary, render_check_meta};
+use super::context_summary;
 use crate::cli::{RenderArgs, RenderBehaviorArgs};
 use crate::path_utils::to_forward_slash;
 use crate::{CommandError, exit_codes};
@@ -45,6 +45,7 @@ pub(super) fn execute_render_with_extra_warnings(
         &checked_output,
         extra_warnings,
         render_check,
+        result.resolved_files.len() > 1,
     )?;
 
     Ok(exit_codes::SUCCESS)
@@ -81,6 +82,7 @@ pub(super) fn execute_render_with_expanded(
         &checked_output,
         extra_warnings,
         render_check,
+        result.resolved_files.len() > 1,
     )?;
 
     Ok(exit_codes::SUCCESS)
@@ -102,6 +104,34 @@ pub(super) fn execute_custom_delimiter_render(
         return Err(validation_report_error(report.errors));
     }
     let resolve_result = report.resolve_result;
+    let rendered_text = render_with_custom_delimiters(
+        request,
+        observer,
+        &expanded,
+        &resolve_result,
+        &open,
+        &close,
+    )?;
+    finish_custom_render(
+        request,
+        &args.render,
+        &resolve_result.resolved_path,
+        &expanded,
+        &rendered_text,
+        report.warnings,
+    )
+}
+
+/// Render the validated expanded body with the caller's delimiters, locating
+/// engine errors in their source file (ADR-0026 D10).
+fn render_with_custom_delimiters(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+    expanded: &ExpandedTemplate,
+    resolve_result: &ResolveResult,
+    open: &str,
+    close: &str,
+) -> Result<String, CommandError> {
     let root_passes = expanded
         .frontmatters
         .iter()
@@ -121,8 +151,9 @@ pub(super) fn execute_custom_delimiter_render(
             .first()
             .and_then(sc_composer::Frontmatter::json_escape_mode),
     );
+    let template_body = custom_template_body(parsed.body(), expanded);
     let rendered_text =
-        Renderer::with_delimiters_and_json_escape_mode(&open, &close, json_escape_mode)
+        Renderer::with_delimiters_and_json_escape_mode(open, close, json_escape_mode)
             .map_err(|error| {
                 CommandError::usage_with_code(
                     anyhow!(error),
@@ -131,45 +162,77 @@ pub(super) fn execute_custom_delimiter_render(
             })?
             .render_named(
                 &template_name,
-                parsed.body(),
+                &template_body,
                 build_custom_render_context(request, &resolve_result.resolved_path, &root_passes),
             )
+            .map_err(|error| {
+                error.located_in(
+                    expanded,
+                    &resolve_result.resolved_path,
+                    &request.root,
+                    &request.policy,
+                )
+            })
             .inspect_err(|error| {
                 observer.on_render_outcome(&RenderOutcomeEvent {
                     rendered_bytes: None,
                     code: error.code(),
                 });
             })
-            .map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!(error),
-                    sc_composer::DiagnosticCode::ErrConfigParse,
-                )
-            })?;
+            .map_err(|error| CommandError::compose(error.into()))?;
     observer.on_render_outcome(&RenderOutcomeEvent {
         rendered_bytes: Some(rendered_text.len()),
         code: None,
     });
-    let rendered_text = sc_composer::assemble_output(
-        &rendered_text,
-        request.guidance_block.as_deref(),
-        request.user_prompt.as_deref(),
-    );
+    Ok(rendered_text)
+}
+
+fn custom_template_body(body: &str, expanded: &ExpandedTemplate) -> String {
+    if expanded.resolved_files.len() > 1 && body.ends_with("\r\n") {
+        // An empty comment keeps the lexer from stripping the preceding CRLF.
+        format!("{body}{{# D8 #}}")
+    } else {
+        body.to_owned()
+    }
+}
+
+fn finish_custom_render(
+    request: &ComposeRequest,
+    args: &RenderBehaviorArgs,
+    resolved_path: &Path,
+    expanded: &ExpandedTemplate,
+    rendered_text: &str,
+    warnings: Vec<Diagnostic>,
+) -> Result<i32, CommandError> {
+    let preserve_crlf = expanded.resolved_files.len() > 1
+        && expanded.text.ends_with("\r\n")
+        && request.guidance_block.as_deref().is_none_or(str::is_empty)
+        && request.user_prompt.as_deref().is_none_or(str::is_empty);
+    let rendered_text = if preserve_crlf && rendered_text.ends_with("\r\n") {
+        format!("{}\r\n", rendered_text.trim_end())
+    } else {
+        sc_composer::assemble_output(
+            rendered_text,
+            request.guidance_block.as_deref(),
+            request.user_prompt.as_deref(),
+        )
+    };
     let (checked_output, render_check) = checked_render_output(
         request,
-        &resolve_result.resolved_path,
+        resolved_path,
         &rendered_text,
-        &args.render,
+        args,
         None,
-        &custom_variable_sources(request, &expanded, &resolve_result.resolved_path),
+        &custom_variable_sources(request, expanded, resolved_path),
     )?;
     emit_render_output(
         request,
-        &args.render,
-        &resolve_result.resolved_path,
+        args,
+        resolved_path,
         &checked_output,
-        report.warnings,
+        warnings,
         render_check,
+        expanded.resolved_files.len() > 1,
     )?;
     Ok(exit_codes::SUCCESS)
 }
@@ -188,7 +251,7 @@ fn checked_render_output(
     ),
     CommandError,
 > {
-    let meta = render_check_meta(request, resolved_path);
+    let meta = sc_composer::RenderCheckMeta::for_request(request, resolved_path);
     let should_check = args.check_render || meta.output_format() == sc_composer::OutputFormat::Json;
     if !should_check {
         let checked = sc_composer::check_rendered_output(

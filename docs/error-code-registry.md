@@ -31,9 +31,10 @@ sc-composer library and are normalized by the shared lint runner.
 | Code | Error family | Severity | Trigger condition | Expected primary emitter |
 | --- | --- | --- | --- | --- |
 | `ERR_RESOLVE_NOT_FOUND` | `ResolveError` | error | no matching template/profile found | `resolve_profile()`, CLI `resolve`, CLI `render` |
+| `ERR_RESOLVE_ESCAPE` | `ResolveError` | error | template path or its resolved target lies outside the allowed roots; reported in preference to not-found (ADR-0026 D1) | file resolver, CLI `render`, CLI `validate` |
 | `ERR_RESOLVE_AMBIGUOUS` | `ResolveError` | error | multiple candidates found without a disambiguating runtime | `resolve_profile()`, CLI `resolve`, CLI `render` |
 | `ERR_INCLUDE_NOT_FOUND` | `IncludeError` | error | include target cannot be resolved within the allowed roots | include engine |
-| `ERR_INCLUDE_ESCAPE` | `IncludeError` | error | include path escapes confinement root | include engine |
+| `ERR_INCLUDE_ESCAPE` | `IncludeError` | error | include path, or the target it resolves to (including a dangling symlink target), lies outside the confinement root; reported in preference to not-found (ADR-0026 D1) | include engine |
 | `ERR_INCLUDE_CYCLE` | `IncludeError` | error | include graph revisits a file already on the active include stack | include engine |
 | `ERR_INCLUDE_DEPTH` | `IncludeError` | error | include depth exceeds configured maximum | include engine |
 | `ERR_INCLUDE_DYNAMIC_UNRESOLVED` | `IncludeError` | error | include target cannot be exhaustively enumerated as a static dependency | include engine |
@@ -52,6 +53,7 @@ sc-composer library and are normalized by the shared lint runner.
 | `ERR_VAL_MISSING_REQUIRED` | `ValidationError` | error | required variable remains unresolved after merge | validation pipeline |
 | `ERR_VAL_MISSING_NESTED_FIELD` | `ValidationError` | error | a required nested field path is missing inside a present object value | validation pipeline |
 | `ERR_VAL_SHAPE_MISMATCH` | `ValidationError` | error | nested required-path traversal expected an object but found a scalar or array | validation pipeline |
+| `ERR_VAL_ARRAY_SHAPE_MISMATCH` | `ValidationError` | error | a required variable consumed as a list by a bare `{% for %}` loop has a non-array value; the message names the variable and received JSON type | validation pipeline; CLI `render` reports exit `2` |
 | `ERR_VAL_UNDECLARED_TOKEN` | `ValidationError` | warning/error | referenced token is not declared in frontmatter | validation pipeline |
 | `ERR_VAL_EXTRA_INPUT` | `ValidationError` | warning/error | caller provided a variable that is neither declared nor referenced | validation pipeline |
 | `ERR_VAL_UNBOUND_VARIABLE` | `ValidationError` | warning/error | referenced variable has no value binding after context/default merge | validation pipeline |
@@ -64,6 +66,7 @@ sc-composer library and are normalized by the shared lint runner.
 | `SC_SHA_UNKNOWN_EDGE_ENDPOINT` | `CompositionError` | error | an include edge references no node in the resolved manifest | `sc_sha::calculate_composition_hash()` |
 | `ERR_RENDER_STDIN_DOUBLE_READ` | `RenderError` | error | CLI attempts to consume stdin twice for guidance/prompt inputs | CLI input layer |
 | `ERR_RENDER_WRITE` | `RenderError` | error | output write or output-target materialization failure | CLI output layer |
+| `ERR_RENDER_TEMPLATE` | `RenderError` | error | template syntax or engine evaluation error; never reported as `ERR_RENDER_WRITE` (ADR-0026 D2) | render engine, CLI `render`, CLI `validate` |
 | `ERR_RENDER_APPEND_NOT_OBJECT` | `RenderError` | error | JSON Lines append rendered a non-object JSON value | CLI output layer |
 | `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` | `RenderError` | error | JSON Lines append target has no final newline | CLI output layer |
 | `ERR_CONFIG_READONLY` | `ConfigError` | error | frontmatter rewrite or workspace update refused on read-only target | `frontmatter_init()`, `init_workspace()` |
@@ -203,7 +206,11 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 
 | Code | Class | Trigger condition | Expected primary emitter |
 | --- | --- | --- | --- |
-| `BEADS_REQUEST_READ_FAILED` | request | the request file cannot be read as UTF-8 | request loader, CLI `bead` |
+| `BEADS_REQUEST_READ_FAILED` | request | the request file cannot be opened/read as UTF-8, including a missing non-UTF8 path whose diagnostic must remain representable (FR-24.36) | request loader, CLI `bead` |
+| `BEADS_DIRECT_REQUEST_INVALID` | request | direct-pour arguments are invalid | direct pour |
+| `BEADS_DIRECT_STAGING_FAILED` | execution | direct-pour staging cannot be prepared | direct pour |
+| `BEADS_DIRECT_SOURCE_FAILED` | execution | direct-pour formula source cannot be found or resolved | direct pour |
+| `BEADS_DIRECT_SNAPSHOT_FAILED` | execution | direct-pour source snapshot cannot be captured or written | direct pour |
 | `BEADS_REQUEST_DESERIALIZATION_FAILED` | request | the request JSON is malformed or has the wrong shape (line and column refer to the request file) | request parser |
 | `BEADS_RELATION_ENDPOINT_INVALID` | request | a relation endpoint lacks the `step:` or `bead:` prefix (a prefixed id that fails its grammar is `BEADS_GRAPH_ID_INVALID`) | request parser |
 | `BEADS_UNKNOWN_SCHEMA` | request | the request `schema` is not `sc-compose/beads/v1` | request parser |
@@ -239,7 +246,22 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 | `BEADS_GRAPH_CONFLICT` | execution | a planned bead already exists with different content; existing beads are never edited | graph planning |
 | `BEADS_GRAPH_EDGE_CONFLICT` | execution | an existing edge has a different type than requested | graph planning |
 | `BEADS_GRAPH_EDGE_MISSING` | execution | planned edges are absent; the receipt carries `missing_edges` and recovery `bd dep add` commands | graph planning, attach |
+| `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` | execution | advanced `attach`/`pour` unconditionally refuses before mutation when a create plan contains an existing node or a no-op plan adds an edge; the mixed update is not supported | advanced graph planning, attach |
 | `BEADS_GRAPH_READ_FAILED` | execution | reading existing beads with `bd show` failed; large id sets are read in batches | graph planning |
 | `BEADS_GRAPH_APPLY_FAILED` | execution | `bd create --graph` failed; nothing was written | graph apply |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | execution | `bd create --graph` exited 0 but its response cannot be consumed, so beads may exist; reconcile with `bd show` before pouring again | graph apply |
 | `BEADS_RECEIPT_DESERIALIZATION_FAILED` | adapter | a receipt document cannot be parsed back; an adapter-level code (`BeadComposeError::RECEIPT_DESERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
+| `BEADS_OUTPUT_SERIALIZATION_FAILED` | adapter | a value the adapter returns to its caller (receipt, graph, relations) cannot be serialized; reported with stage `output`; an adapter-level code (`BeadComposeError::OUTPUT_SERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
+
+### Phase V planned graph capability refusal
+
+`BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` is the shipped execution refusal
+(CLI exit 2) for two advanced `attach`/`pour` plan shapes: a `Create` plan
+containing any existing node, and a `Noop` plan containing an edge marked
+`Add`. The refusal is unconditional and happens before any write; the current
+implementation does not probe the selected bd binary for mixed-update
+capability. Fresh creates and exact replays are unaffected. Mixed graph
+updates requiring a qualified atomic transaction with ownership preconditions
+remain undelivered; this refusal is not evidence that such updates are
+supported. FR-24.34–35 and the ADR-0023 advanced-mode amendment remain the
+required contract.

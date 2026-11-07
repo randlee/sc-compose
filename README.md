@@ -187,6 +187,14 @@ sc-compose bead attach         --request req.json --json  # create under an exis
   `"pour_authorization": "CreatePersistentBeads"`; previews never write.
 - **Missing inputs fail.** An unset `{{{ variable }}}` with no frontmatter
   default is refused with `BEADS_RENDER_FAILED` before anything is written.
+- **Renderer choice (unreleased 1.8.0 candidate).**
+  - The default, `--render-by sc-compose`, renders both `{{ }}` and `{{{ }}}`
+    once. `--render-by bd` keeps the 1.7.0 behaviour.
+  - `bead pour FORMULA --var KEY=VALUE` pours a formula directly, without a
+    request file.
+  - In the default mode, `pour` and `attach` refuse a run that mixes new and
+    existing beads, or one that only adds edges. The refusal is
+    `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`, and nothing is written.
 
 The same contract is available as the `sc-composer-beads` Rust crate and
 Python package (`pip install sc-composer-beads`; `from sc_composer_beads import
@@ -204,7 +212,11 @@ result = render_template("Hello {{ name }}", {"name": "world"})
 # compose(request) — full pipeline with ComposePolicy.passes
 ```
 
-Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
+`compose`, `compose_file`, and `render_loaded_template` check JSON output
+using the same format detection as the CLI. Malformed JSON raises
+`ScRenderError` with code `ERR_RENDER_JSON_MALFORMED`.
+
+Pre-built wheels for macOS, Linux, Windows (Python 3.9+; Windows ARM64 requires 3.11+).
 
 ### Go Bindings
 
@@ -247,7 +259,7 @@ examples.
 
 | | |
 |---|---|
-| Version | 1.7.0 |
+| Version | 1.7.0 (latest release); 1.8.0 candidate is unreleased and pending full-platform qualification |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |

@@ -1,29 +1,44 @@
 """sanity-merge accepts exactly one result per deliverable, folds in the lint result and re-checks the tree."""
 import copy
+from functools import partial
 import hashlib
+import importlib.machinery
+import importlib.util
 import json
 from pathlib import Path
 import shutil
-import subprocess
 import tempfile
 import time
 import unittest
 
-from jev_receipts import CLIENT, env, receipted
+from subprocess_helpers import HANG_GUARD_SECONDS, run_command
+from jev_receipts import CLIENT, env, receipted, split
+from rendering import render
 
 ROOT = Path(__file__).parents[2]
 SCRIPT = ROOT / "scripts/sanity-merge"
 TEMPLATES = ROOT / "templates"
 TASK, DEV, SPRINT, BRANCH = "comp-d-4-sanity", "comp-d-4", "d-4", "sprint/d-4-x"
 FINDING = {"kind": "skipped", "file": "crates/x/src/lib.rs", "line": 3, "issue": "no 503 test"}
+run_bounded = partial(run_command, timeout=HANG_GUARD_SECONDS)
+MERGE_LOADER = importlib.machinery.SourceFileLoader("sanity_merge_test_module", str(SCRIPT))
+MERGE_SPEC = importlib.util.spec_from_loader(MERGE_LOADER.name, MERGE_LOADER)
+assert MERGE_SPEC is not None
+MERGE_MODULE = importlib.util.module_from_spec(MERGE_SPEC)
+MERGE_LOADER.exec_module(MERGE_MODULE)
 
 
 def without(envelope, key):
     return {k: v for k, v in envelope.items() if k != key}
 
 
+def test_selected_fallback_errors_are_not_counted_twice():
+    error = {"code": "SANITY.LLM_API_FAILURE", "message": "unavailable"}
+    assert MERGE_MODULE.unique_errors([error, error]) == [error]
+
+
 def git(cwd, *argv):
-    return subprocess.run(["git", "-C", str(cwd), *argv], check=True, capture_output=True, text=True).stdout.strip()
+    return run_bounded(["git", "-C", str(cwd), *argv], check=True, capture_output=True, text=True).stdout.strip()
 
 
 def reviewer_vars(run_id, reviewer, results):
@@ -79,7 +94,7 @@ class SanityMerge(unittest.TestCase):
     def merge(self, results, *args):
         argv = args or (str(self.manifest), TASK, DEV, SPRINT)
         body = results if isinstance(results, str) else json.dumps(results)
-        return subprocess.run([str(SCRIPT), *argv, "--client", str(CLIENT)], input=body, capture_output=True, text=True, env=env())
+        return run_bounded([str(SCRIPT), *argv, "--client", str(CLIENT)], input=body, capture_output=True, text=True, env=env())
 
     def test_paired_reports_share_identity_preserve_conclusions_and_own_timing(self):
         self.write_manifest(run_id="shared-run", reviewers=["sanity-llm", "sanity-jev"],
@@ -105,6 +120,20 @@ class SanityMerge(unittest.TestCase):
         self.assertEqual([r["verdict"] for r in reports], ["PASS", "FAIL"])
         self.assertNotEqual(reports[0]["completed_at"], reports[1]["completed_at"])
         self.assertEqual([r["duration_seconds"] for r in reports], [3, 21])
+        self.assertEqual([r["llm_elapsed_s"] for r in reports], [3, None])
+
+    def test_jev_envelopes_accept_optional_elapsed_and_preserve_it(self):
+        self.write_manifest(run_id="elapsed-run", reviewers=["sanity-jev"], operational_reviewer="sanity-jev")
+        self.lint(0)
+        results = [{**self.result(1), "elapsed_s": 4.2}, self.result(2)]
+        args = (str(self.manifest), TASK, DEV, SPRINT, "--reviewer", "sanity-jev",
+                "--started-at", "1700000000", "--completed-at", "1700000001")
+        out = self.merge(results, *args)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(json.loads(out.stdout)["reviewer_results"], results)
+        for value in (-1, float("nan"), True, "4.2"):
+            bad = [{**self.result(1), "elapsed_s": value}, self.result(2)]
+            self.assertNotEqual(self.merge(bad, *args).returncode, 0)
 
     def test_single_jev_and_cannot_run_are_never_relabelled(self):
         self.write_manifest(run_id="jev-run", reviewers=["sanity-jev"], operational_reviewer="sanity-jev")
@@ -150,11 +179,61 @@ class SanityMerge(unittest.TestCase):
         client_text = self.failure(code="SANITY.JEV_UNAVAILABLE", message="Jev HTTP 529; response body withheld")
         report = json.loads(self.merge([good, client_text], *args).stdout)
         self.assertEqual((report["reviewer_results"][1], report["rejected_results"]), (client_text, []))
-        no_key = subprocess.run([str(SCRIPT), *args, "--client", str(CLIENT)], input=json.dumps([good, self.result(2)]),
+        no_key = run_bounded([str(SCRIPT), *args, "--client", str(CLIENT)], input=json.dumps([good, self.result(2)]),
                                 capture_output=True, text=True, env={k: v for k, v in env().items() if k != "TYPESAFE_API_KEY"})
         self.assertIn("cannot be verified", json.loads(no_key.stdout)["reviewer_results"][0]["error"]["message"])
         llm = self.merge([{**good, "data": without(good["data"], "jev")}, bare], *args[:4], "--reviewer", "sanity-llm", *args[6:])
         self.assertEqual((llm.returncode, json.loads(llm.stdout)["rejected_results"]), (0, []))
+
+    def test_a_split_reply_stands_on_every_part_receipt_and_the_triaged_final_result(self):
+        self.write_manifest(run_id="jev-run", reviewers=["sanity-llm", "sanity-jev"], operational_reviewer="sanity-llm")
+        self.lint(0)
+        args = (str(self.manifest), TASK, DEV, SPRINT, "--reviewer", "sanity-jev", "--started-at", "1700000000", "--completed-at", "1700000001")
+        agreed = split(self.result(1), ["yes", "yes"])
+        bare = split({**self.result(2, [FINDING]), "data": without(self.result(2, [FINDING])["data"], "jev")}, ["yes", "no", "yes"])
+        labels = ["1 of 3", "2 of 3", "3 of 3"]
+        undone = {**bare, "data": {**bare["data"], "jev_final": {
+            "choice": "no", "reason": "triage: part 2 shows the hand-off missing; parts 1 and 3 hold unrelated files",
+            "parts": labels}}}
+        done = {**bare, "data": {**bare["data"], "findings": [], "jev_final": {
+            "choice": "yes", "reason": "triage: part 2's no reads a moved test; parts 1 and 3 deliver", "parts": labels}}}
+        for name, reply, verdict in (("triaged no", undone, "FAIL"), ("triaged yes", done, "PASS")):
+            with self.subTest(name):
+                out = self.merge([agreed, reply], *args)
+                self.assertEqual(out.returncode, 0, out.stderr)
+                report = json.loads(out.stdout)
+                self.assertEqual((report["verdict"], report["rejected_results"]), (verdict, []))
+                self.assertEqual(report["reviewer_results"], [agreed, reply])
+
+        parts = undone["data"]["jev"]
+        def with_parts(new_parts, **data):
+            return {**undone, "data": {**undone["data"], "jev": new_parts, **data}}
+        forged = dict(parts[1], receipt={**parts[1]["receipt"], "mac": "0" * 64})
+        edited = dict(parts[1], receipt={**parts[1]["receipt"], "choice": "yes"})
+        response = dict(parts[1], response={**parts[1]["response"], "answers": {"written": {
+            **parts[1]["response"]["answers"]["written"], "choice": "yes"}}})
+        cases = {
+            "forged part receipt": (with_parts([parts[0], forged, parts[2]]), "no valid Jev receipt on part 2 of 3"),
+            "edited part receipt": (with_parts([parts[0], edited, parts[2]]), "no valid Jev receipt on part 2 of 3"),
+            "edited part response": (with_parts([parts[0], response, parts[2]]), "does not match its receipt"),
+            "a part dropped": (with_parts([parts[0], parts[2]]), "part 1 of 2 is missing or mislabelled"),
+            "disagreement not triaged": (with_parts(parts, jev_final=None), "parts disagree"),
+            "final cites some parts": (with_parts(parts, jev_final={**undone["data"]["jev_final"], "parts": labels[1:]}), "parts disagree"),
+            "findings contradict the final": (with_parts(parts, findings=[]), "contradicts the reply's findings"),
+            "final contradicts agreeing parts": ({**agreed, "data": {**agreed["data"], "deliverable": 2, "jev_final": {
+                "choice": "no", "reason": "r", "parts": ["1 of 2", "2 of 2"]}}}, "contradicts every Jev part"),
+        }
+        for name, (reply, reason) in cases.items():
+            with self.subTest(name):
+                out = self.merge([agreed, reply], *args)
+                self.assertEqual(out.returncode, 3, out.stderr)
+                slot = json.loads(out.stdout)["reviewer_results"][1]
+                self.assertEqual((slot["error"]["code"], slot["error"]["deliverable"]), ("SANITY.RESULT_INVALID", 2))
+                self.assertIn(reason, slot["error"]["message"])
+        reused = split(self.result(2), ["yes", "yes"])
+        reused["data"]["jev"] = agreed["data"]["jev"]
+        out = self.merge([agreed, reused], *args)
+        self.assertIn("reused", json.loads(out.stdout)["reviewer_results"][1]["error"]["message"])
 
     def test_pass(self):
         self.lint(0, "ok\n")
@@ -177,7 +256,7 @@ class SanityMerge(unittest.TestCase):
         self.assertEqual(vars_["findings_md"], "D1: done\nD2:\n- `crates/x/src/lib.rs:3` skipped: no 503 test")
         self.assertIsNone(vars_["selection"])
 
-    def test_selected_vars_render_the_completion_template(self):
+    def selected_merge_args(self):
         self.write_manifest(run_id="selected-run",
                             reviewers=["sanity-llm", "sanity-jev", "sanity-selected"],
                             operational_reviewer="sanity-selected")
@@ -190,17 +269,19 @@ class SanityMerge(unittest.TestCase):
         jev_path.write_text(json.dumps(jev_vars))
         selection_path.write_text(json.dumps([
             {"deliverable": 1, "llm": "done", "jev": "done", "selected": "llm",
-             "reason": "", "rerun": None, "checker_defect": False,
+             "reason": "", "rerun": None,
              "llm_sha256": llm_sha256, "jev_sha256": jev_sha256},
             {"deliverable": 2, "llm": "done", "jev": "undone", "selected": "jev",
-             "reason": "JEV has pinned evidence", "rerun": None, "checker_defect": False,
+             "reason": "JEV has pinned evidence", "rerun": None,
              "llm_sha256": llm_sha256, "jev_sha256": jev_sha256},
         ]))
-        completed = time.time()
-        selected_args = (str(self.manifest), TASK, DEV, SPRINT,
-                         "--reviewer", "sanity-selected", "--started-at", str(completed - 1),
-                         "--completed-at", str(completed), "--llm-vars", str(llm_path),
-                         "--jev-vars", str(jev_path), "--selection", str(selection_path))
+        return (str(self.manifest), TASK, DEV, SPRINT,
+                "--reviewer", "sanity-selected", "--started-at", "1700000000",
+                "--completed-at", "1700000001", "--llm-vars", str(llm_path),
+                "--jev-vars", str(jev_path), "--selection", str(selection_path))
+
+    def test_selected_vars_render_the_completion_template(self):
+        selected_args = self.selected_merge_args()
         waiting = self.merge([], *selected_args)
         self.assertEqual((waiting.returncode, waiting.stdout), (4, ""))
         self.lint(0)
@@ -209,9 +290,57 @@ class SanityMerge(unittest.TestCase):
         vars_ = json.loads(out.stdout)
         self.assertEqual(vars_["reviewer"], "sanity-selected")
         self.assertIsInstance(vars_["selection"], list)
-        self.assertEqual(vars_["selection"][0]["llm_sha256"], llm_sha256)
-        self.assertEqual(vars_["selection"][0]["jev_sha256"], jev_sha256)
+        self.assertEqual(vars_["selection"], json.loads((self.dir / "selection.json").read_text()))
         self.render_complete(vars_, "# Dev Sanity Check FAIL")
+
+    def test_rerun_context_is_validated_as_typed_repo_relative_paths(self):
+        selected_args = self.selected_merge_args()
+        selection_path = Path(selected_args[selected_args.index("--selection") + 1])
+        selection = json.loads(selection_path.read_text())
+        selection[1].update({
+            "selected": "rerun",
+            "reason": "rerun with pinned context",
+            "rerun": {"reviewer": "sanity-llm", "context": ["lib.rs"], "reply": self.result(2)},
+        })
+        selection_path.write_text(json.dumps(selection))
+        self.lint(0)
+        out = self.merge([], *selected_args)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(json.loads(out.stdout)["selection"][1]["rerun"]["context"], ["lib.rs"])
+
+        for invalid_context in (["lib.rs", 7], ["lib.rs", True], []):
+            with self.subTest(context=invalid_context):
+                selection[1]["rerun"]["context"] = invalid_context
+                selection_path.write_text(json.dumps(selection))
+                rejected = self.merge([], *selected_args)
+                self.assertEqual(rejected.returncode, 1, rejected.stderr)
+                self.assertIn("rerun requires reviewer and nonempty repo-relative context", rejected.stderr)
+
+    def test_selection_rejects_removed_checker_defect_key(self):
+        selected_args = self.selected_merge_args()
+        self.lint(0)
+        selection_path = self.dir / "selection.json"
+        selection = json.loads(selection_path.read_text())
+        for value in (False, True):
+            with self.subTest(value=value):
+                selection[1]["checker_defect"] = value
+                selection_path.write_text(json.dumps(selection))
+                out = self.merge([], *selected_args)
+                self.assertEqual(out.returncode, 1, out.stderr)
+                self.assertIn("selection entry has incorrect fields", out.stderr)
+
+    def test_selected_undone_reply_keeps_its_findings(self):
+        selected_args = self.selected_merge_args()
+        self.lint(0)
+        out = self.merge([], *selected_args)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        report = json.loads(out.stdout)
+        self.assertEqual((report["verdict"], report["findings_count"]), ("FAIL", 1))
+        self.assertEqual(len(report["findings"]), 1)
+        self.assertEqual(report["findings"][0]["deliverable"], 2)
+        for key, value in FINDING.items():
+            self.assertEqual(report["findings"][0][key], value)
+        self.assertEqual(report["findings_md"], "D1: done\nD2:\n- `crates/x/src/lib.rs:3` skipped: no 503 test")
 
     def test_rejects_multiple_or_non_skipped_findings(self):
         self.lint(0)
@@ -360,11 +489,7 @@ class SanityMerge(unittest.TestCase):
         self.assertEqual(self.merge([], str(self.manifest), TASK).returncode, 1)
 
     def render_complete(self, vars_, expected_heading):
-        var_file = self.dir / "vars.json"
-        var_file.write_text(json.dumps(vars_))
-        out = subprocess.run(["sc-compose", "render", "--strict", "--root", str(TEMPLATES),
-                              "--file", "dev-sanity-complete.md.j2", "--var-file", str(var_file)],
-                             capture_output=True, text=True)
+        out = render(TEMPLATES / "dev-sanity-complete.md.j2", vars_)
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn(expected_heading, out.stdout)
         self.assertIn(f'"verdict": "{vars_["verdict"]}"', out.stdout)

@@ -134,9 +134,7 @@ pub(crate) fn run_sc_lint(
         run_external_sc_lint(root, &id, &args)?
     };
     let outcome = classify_outcome(&raw_payload, exit_status);
-    let findings = raw_payload
-        .get("data")
-        .and_then(|data| data.get("findings"))
+    let findings = payload_findings(&raw_payload)
         .cloned()
         .unwrap_or_else(|| Value::Array(Vec::new()));
     let findings_count = findings.as_array().map_or(0, Vec::len);
@@ -386,6 +384,7 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
             == Some("sc-lint-view-findings returned malformed adapter json");
     if code == "CLI.CONFIG_ERROR"
         || missing_view_utility
+        || (code == "profile.steps_failed" && profile_missing_sc_lint_runtime(payload))
         || (code == "CLI.BACKEND_EXEC_FAILURE"
             && error_text.contains(".just/")
             && (error_text.contains("can't open file") || error_text.contains("No such file")))
@@ -395,11 +394,15 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
     if code.contains("CAPABILITY") {
         return ScLintOutcome::CapabilityError;
     }
-    let findings = payload
-        .get("data")
-        .and_then(|data| data.get("findings"))
+    let findings = payload_findings(payload)
         .and_then(Value::as_array)
         .map_or(0, Vec::len);
+    let reported_finding_failure = findings > 0
+        && ((payload.get("ok").and_then(Value::as_bool) == Some(true) && exit_status == Some(10))
+            || (payload_status(payload) == Some("fail") && matches!(exit_status, Some(5 | 10))));
+    if reported_finding_failure {
+        return ScLintOutcome::Findings;
+    }
     if payload.get("ok").and_then(Value::as_bool) == Some(true) && exit_status == Some(0) {
         if findings == 0 {
             ScLintOutcome::Pass
@@ -409,6 +412,64 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
     } else {
         ScLintOutcome::Failed
     }
+}
+
+/// sc-lint 0.8.6 composite profiles run each utility as `python -m sc_lint.<module>`,
+/// so an absent sc-lint Python runtime surfaces as `profile.steps_failed` with every
+/// failed step reporting `ModuleNotFoundError` for `sc_lint`. That is an environment
+/// configuration fault, not a lint failure; any other failed step keeps it `Failed`.
+fn profile_missing_sc_lint_runtime(payload: &Value) -> bool {
+    payload
+        .pointer("/error/details/failed_steps")
+        .and_then(Value::as_array)
+        .filter(|steps| !steps.is_empty())
+        .is_some_and(|steps| {
+            steps.iter().all(|step| {
+                step.get("message")
+                    .and_then(Value::as_str)
+                    .is_some_and(reports_missing_sc_lint_module)
+            })
+        })
+}
+
+fn reports_missing_sc_lint_module(message: &str) -> bool {
+    const MARKER: &str = "ModuleNotFoundError: No module named ";
+    message.match_indices(MARKER).any(|(index, _)| {
+        let module = message[index + MARKER.len()..]
+            .trim_start_matches(['\'', '"'])
+            .strip_prefix("sc_lint");
+        module.is_some_and(|rest| {
+            !rest
+                .chars()
+                .next()
+                .is_some_and(|next| next.is_ascii_alphanumeric() || next == '_')
+        })
+    })
+}
+
+fn payload_findings(payload: &Value) -> Option<&Value> {
+    payload
+        .get("data")
+        .and_then(|data| data.get("findings"))
+        .or_else(|| {
+            payload
+                .get("error")
+                .and_then(|error| error.get("details"))
+                .and_then(|details| details.get("findings"))
+        })
+}
+
+fn payload_status(payload: &Value) -> Option<&str> {
+    payload
+        .get("data")
+        .and_then(|data| data.get("status"))
+        .or_else(|| {
+            payload
+                .get("error")
+                .and_then(|error| error.get("details"))
+                .and_then(|details| details.get("status"))
+        })
+        .and_then(Value::as_str)
 }
 
 fn normalize_diagnostics(mut diagnostics: Value, outcome: ScLintOutcome) -> Value {
@@ -475,7 +536,10 @@ fn html_escape(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{ScLintOutcome, classify_outcome, command_args, descriptor_target, lint_exit_code};
+    use super::{
+        ScLintOutcome, classify_outcome, command_args, descriptor_target, lint_exit_code,
+        payload_findings,
+    };
     use serde_json::json;
 
     #[test]
@@ -492,6 +556,32 @@ mod tests {
 
     #[test]
     fn outcome_distinguishes_pass_findings_and_error_classes() {
+        let error_findings = json!({"ok": false, "error": {"code": "CLI.BACKEND_EXEC_FAILURE", "details": {"status": "fail", "findings": [{"rule_id": "RULE-1", "path": "src/lib.rs"}]}}});
+        assert_eq!(
+            payload_findings(&error_findings).unwrap()[0]["rule_id"],
+            "RULE-1"
+        );
+        assert_eq!(
+            classify_outcome(
+                &json!({"ok": false, "error": {"code": "CLI.BACKEND_EXEC_FAILURE", "details": {"status": "fail", "findings": [{"rule_id": "RULE-1"}]}}}),
+                Some(5)
+            ),
+            ScLintOutcome::Findings
+        );
+        assert_eq!(
+            classify_outcome(
+                &json!({"ok": false, "error": {"code": "CLI.BACKEND_EXEC_FAILURE", "details": {"status": "fail", "findings": []}}}),
+                Some(5)
+            ),
+            ScLintOutcome::Failed
+        );
+        assert_eq!(
+            classify_outcome(
+                &json!({"ok": false, "error": {"code": "CLI.CONFIG_ERROR", "details": {"status": "fail", "findings": ["bad"]}}}),
+                Some(3)
+            ),
+            ScLintOutcome::ConfigError
+        );
         assert_eq!(
             classify_outcome(&json!({"ok": true, "data": {"findings": []}}), Some(0)),
             ScLintOutcome::Pass
@@ -530,6 +620,108 @@ mod tests {
             ),
             ScLintOutcome::ConfigError
         );
+    }
+
+    #[test]
+    fn outcome_classifies_current_sc_lint_findings_exit() {
+        let payload = json!({
+            "ok": true,
+            "command": "lint.sc-boundary",
+            "data": {
+                "version": "0.8.6",
+                "status": "fail",
+                "findings": [{"rule_id": "SCB-DEPENDENCY-001"}]
+            }
+        });
+        assert_eq!(
+            classify_outcome(&payload, Some(10)),
+            ScLintOutcome::Findings
+        );
+        assert_eq!(
+            payload_findings(&payload)
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn outcome_classifies_findings_in_backend_error_details() {
+        let payload = json!({
+            "ok": false,
+            "error": {
+                "code": "CLI.BACKEND_EXEC_FAILURE",
+                "details": {
+                    "status": "fail",
+                    "findings": [{"rule_id": "SCB-DEPENDENCY-001"}]
+                }
+            }
+        });
+        assert_eq!(classify_outcome(&payload, Some(5)), ScLintOutcome::Findings);
+        assert_eq!(
+            payload_findings(&payload)
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
+    fn profile_failure(messages: &[&str]) -> serde_json::Value {
+        let failed_steps: Vec<_> = messages
+            .iter()
+            .enumerate()
+            .map(|(index, message)| json!({"name": format!("step-{index}"), "message": message}))
+            .collect();
+        json!({
+            "ok": false,
+            "command": "lint.full",
+            "error": {
+                "code": "profile.steps_failed",
+                "kind": "backend_failure",
+                "details": {"failed_steps": failed_steps}
+            }
+        })
+    }
+
+    // Verbatim sc-lint 0.8.6 step message from a profile run without the sc_lint runtime.
+    const MISSING_RUNTIME_0_8_6: &str = "deny failed: stdout:\n\nstderr:\n/opt/homebrew/opt/python@3.14/bin/python3.14: Error while finding module specification for 'sc_lint.lint_cargo_deny' (ModuleNotFoundError: No module named 'sc_lint')";
+
+    #[test]
+    fn profile_missing_sc_lint_runtime_is_config_error() {
+        let payload = profile_failure(&[
+            MISSING_RUNTIME_0_8_6,
+            "spell failed: stderr:\nModuleNotFoundError: No module named sc_lint",
+        ]);
+        assert_eq!(
+            classify_outcome(&payload, Some(5)),
+            ScLintOutcome::ConfigError
+        );
+    }
+
+    #[test]
+    fn profile_step_failures_other_than_missing_runtime_stay_failed() {
+        let genuine = "deny failed: stdout:\nLINT-FULL-FINDING-001 fixture full-profile finding";
+        for payload in [
+            profile_failure(&[MISSING_RUNTIME_0_8_6, genuine]),
+            profile_failure(&[genuine]),
+            profile_failure(&["deny failed: ModuleNotFoundError: No module named 'yaml'"]),
+            profile_failure(&["deny failed: ModuleNotFoundError: No module named 'sc_lint_extra'"]),
+            profile_failure(&[]),
+            json!({"ok": false, "error": {"code": "profile.steps_failed", "details": {}}}),
+            json!({"ok": false, "error": {"code": "CLI.BACKEND_EXEC_FAILURE", "details": {
+                "failed_steps": [{"name": "deny", "message": MISSING_RUNTIME_0_8_6}]
+            }}}),
+        ] {
+            assert_eq!(
+                classify_outcome(&payload, Some(5)),
+                ScLintOutcome::Failed,
+                "{payload}"
+            );
+        }
     }
 
     #[test]

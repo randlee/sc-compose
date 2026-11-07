@@ -12,7 +12,7 @@ use crate::template_store::TemplateStore;
 
 pub(crate) fn run_examples_list(args: &ListArgs) -> Result<i32, CommandError> {
     let store = TemplateStore::examples()
-        .map_err(|error| store_root_error(error, "SC_COMPOSE_DATA_DIR"))?;
+        .map_err(|error| store_root_error(error, crate::template_store::DATA_DIR_ENV))?;
     let packs = store.list().map_err(pack_not_renderable_error)?;
     print_pack_list(&packs, args.json).map_err(CommandError::usage)?;
     Ok(crate::exit_codes::SUCCESS)
@@ -27,7 +27,7 @@ pub(crate) fn run_examples_render(
         .as_deref()
         .ok_or_else(|| CommandError::usage(anyhow!("missing example pack name")))?;
     let store = TemplateStore::examples()
-        .map_err(|error| store_root_error(error, "SC_COMPOSE_DATA_DIR"))?;
+        .map_err(|error| store_root_error(error, crate::template_store::DATA_DIR_ENV))?;
     let pack = store
         .get_example(name)
         .map_err(pack_not_renderable_error)?

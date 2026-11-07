@@ -1,7 +1,8 @@
-"""Formula lookup and the small `bd` wrapper shared by `sc-compose-pour-mock` and `bead-groups`.
+# pyright: strict
+"""Formula lookup and the small `bd` wrapper `bead-groups` uses.
 
 A formula is two files: `<name>.formula.toml.j2` (the sc-compose source) and
-`<name>.relations.json` (bead-groups data: attach ref and post-pour edges).
+`<name>.relations.json` (bead-groups data: attach ref and the attach relations).
 Each file is looked up on `search_path(repo)`, first match wins:
 
 1. `<repo>/.atm-bd/formula/` - the repository override (tracked in git; the
@@ -12,16 +13,17 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
+from subprocess import CompletedProcess
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "atm-beads/scripts"))
+from operation_models import BeadRecord, bead_record_to_json as bead_record_to_json, is_bead_records  # noqa: E402
 
 PACKAGE_FORMULAS = Path(__file__).resolve().parents[1] / "formulas"
 OVERRIDE_DIR = Path(".atm-bd") / "formula"
 TEMPLATE_SUFFIX = ".formula.toml.j2"
 RELATIONS_SUFFIX = ".relations.json"
-# Poured beads record where they came from, so a re-run can tell its own bead from a conflicting one.
-PROVENANCE_KEY = "sc_compose_attach"
-
-
 def search_path(repo: Path | None) -> list[Path]:
     """Directories searched for formula files, highest precedence first."""
     return ([Path(repo) / OVERRIDE_DIR] if repo is not None else []) + [PACKAGE_FORMULAS]
@@ -69,7 +71,7 @@ class Bd:
         self.executable = executable
         self.log: list[tuple[list[str], int]] = []
 
-    def run(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+    def run(self, *args: str, check: bool = True) -> CompletedProcess[str]:
         argv = [self.executable, *args]
         proc = subprocess.run(argv, text=True, capture_output=True)
         self.log.append((argv, proc.returncode))
@@ -77,21 +79,16 @@ class Bd:
             raise BdError(argv, proc.returncode, proc.stdout, proc.stderr)
         return proc
 
-    def show(self, bead: str) -> dict | None:
-        """The bead as `bd show --json` reports it, or None when it does not exist."""
+    def show(self, bead: str) -> BeadRecord | None:
+        """One validated bd bead record, or None when it does not exist."""
         proc = self.run("show", bead, "--json", check=False)
         if proc.returncode:
             text = (proc.stderr + proc.stdout).lower()
             if "not found" in text or "no issue" in text:
                 return None
             raise BdError([self.executable, "show", bead], proc.returncode, proc.stdout, proc.stderr)
-        rows = json.loads(proc.stdout)
+        rows: object = json.loads(proc.stdout)
+        if not is_bead_records(rows):
+            raise ValueError("bd show returned invalid bead records")
         return rows[0] if rows else None
 
-    def deps(self, bead: str) -> dict[str, str]:
-        """{depends_on_id: dependency type} for the edges `bead` holds."""
-        rows = json.loads(self.run("dep", "list", bead, "--json").stdout or "[]")
-        return {row["id"]: row.get("dependency_type") or row.get("type") for row in rows}
-
-    def dep_add(self, bead: str, depends_on: str, dep_type: str) -> None:
-        self.run("dep", "add", bead, depends_on, "--type", dep_type)

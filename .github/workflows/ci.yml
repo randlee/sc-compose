@@ -62,19 +62,19 @@ jobs:
           components: clippy
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: ubuntu-clippy-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo index
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/git
           key: ubuntu-clippy-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
           key: ubuntu-clippy-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
@@ -90,17 +90,22 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.x"
+          python-version: "3.11"
 
-      - name: Install pytest
-        run: python3 -m pip install maturin==1.9.4 pytest
+      - name: Install consumer test dependencies
+        run: python3 -m pip install maturin==1.9.4 pytest PyYAML==6.0.3
 
       - name: Install Rust toolchain for renderer bindings
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.94.1
+
+      - name: Install and verify pinned sc-docli
+        run: |
+          cargo install sc-docli --version 0.2.0 --locked
+          test "$(docli --version)" = "docli 0.2.0"
 
       - name: Build and install sc-compose renderer bindings
         run: |
@@ -123,9 +128,32 @@ jobs:
             --workspace-toml Cargo.toml
 
       - name: Run publish-kit regression tests
+        run: python3 -m pytest .github/scripts/tests
+
+      # Root tests cover these identical vendored implementations. Fail on drift
+      # rather than executing the same behavioral suite a second time.
+      - name: Verify vendored publish-plugin coverage parity
         run: |
-          python3 -m pytest .github/scripts/tests
-          python3 -m pytest plugins/sc-publish/.github/scripts/tests
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('.github/scripts')
+          plugin = Path('plugins/sc-publish/.github/scripts')
+          for source in plugin.rglob('*.py'):
+              relative = source.relative_to(plugin)
+              installed = root / relative
+              assert installed.read_bytes() == source.read_bytes(), f'vendored coverage drift: {relative}'
+          action = Path('.github/actions/setup-sc-lint/action.yml')
+          assert action.read_bytes() == (Path('plugins/sc-publish') / action).read_bytes()
+          PY
+
+      - name: Run CLI reference and consumer preflight tests
+        run: python3 -m unittest discover -s scripts/tests -p test_generate_cli_reference.py
+
+      - name: Run prerelease tag script tests
+        run: python3 -m unittest discover -s scripts/tests -p test_prerelease_tag.py
+
+      - name: Verify generated CLI reference is current
+        run: python3 scripts/generate_cli_reference.py --check --install-docli
 
       - name: Verify vendored Homebrew template tracks sc-publish
         shell: bash
@@ -167,12 +195,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python for cross-platform test helpers
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
       - name: Set up lint toolchain
         uses: ./.github/actions/setup-lint-toolchain
+        with:
+          cargo-shear-version: "1.12.0"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -180,24 +210,28 @@ jobs:
           toolchain: 1.94.1
           components: rustfmt, clippy
 
+      # The managed installer forces CARGO_HOME to $RUNNER_TEMP/sc-lint/cargo-home
+      # (.github/scripts/setup_sc_lint_managed.py), so that directory, not
+      # ~/.cargo, holds the registry, git checkouts and the pinned cargo tools.
+      # Restore it before the installer; the installer still verifies every
+      # declared tool version on a cache hit.
+      - name: Cache managed Cargo home
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/sc-lint/cargo-home
+          key: ${{ runner.os }}-${{ runner.arch }}-managed-cargo-home-rust-1.94.1-${{ hashFiles('.sc-lint/install.json') }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-managed-cargo-home-rust-1.94.1-${{ hashFiles('.sc-lint/install.json') }}-
+
+      - name: Install pinned sc-lint
+        uses: ./.github/actions/setup-sc-lint-managed
+
       - id: beads
         name: Install pinned Beads
         uses: ./.github/actions/setup-beads
 
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-test-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-test-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Cache cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
           key: ${{ runner.os }}-test-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
@@ -207,8 +241,17 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
-      - name: Run real Beads CLI integration
-        run: cargo test -p sc-compose --test cli bead
+      - name: Set up Go for release-layout fixtures
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: bindings/sc-sha-go/go.mod
+          cache: false
+
+      - name: Run controlled Go release-layout fixtures
+        run: python3 bindings/sc-sha-go/tests/test_release_layout.py
+
+      - name: Run real-bd qualification (ignored tests; fails if bd is absent)
+        run: python3 scripts/test_real_bd.py
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
@@ -216,9 +259,7 @@ jobs:
         uses: taiki-e/install-action@just
 
       - name: Run shared sc-lint contract
-        # sc-lint 0.4.0's full/ci profile still runs source-tree Cargo wrappers
-        # for boundary/portability. Use native targets until sc-lint#84 lands.
-        run: just lint-ci-consumer
+        run: just lint full
 
       - name: Publish sc-lint report and raw JSON
         if: always()
@@ -252,6 +293,11 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
+      - name: Run real-bd qualification (ignored tests; fails if bd is absent)
+        run: python3 scripts/test_real_bd.py
+        env:
+          BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
+
       - name: Build and smoke-test native ARM64 CLI archive target
         shell: bash
         run: |
@@ -260,7 +306,7 @@ jobs:
           target/aarch64-unknown-linux-gnu/release/sc-compose --help
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -295,7 +341,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -346,7 +392,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -390,7 +436,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -436,22 +482,6 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
-  sc-sha-go-plan:
-    name: sc-sha Go native target plan
-    needs: [test]
-    runs-on: ubuntu-latest
-    outputs:
-      target_matrix: ${{ steps.matrix.outputs.target_matrix }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - id: matrix
-        name: Read Go native target matrix
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "target_matrix=$(python3 .github/scripts/go_native_module.py target-matrix --manifest release/publish-artifacts.toml --config release/go-native-module.toml)" >> "$GITHUB_OUTPUT"
-
   sc-sha-go-generated:
     name: Generate shared sc-sha Go bindings
     needs: [test]
@@ -461,14 +491,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.94.1
-      - name: Cache generated Go bindings
-        id: generated-cache
-        uses: actions/cache@v4
+      - name: Cache pinned UniFFI scaffolding generator
+        id: uniffi-cli-cache
+        uses: actions/cache@v6
         with:
-          path: bindings/sc-sha-go/go
-          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
-      - name: Generate bindings on Ubuntu when cache misses
-        if: steps.generated-cache.outputs.cache-hit != 'true'
+          path: ~/.cargo/bin/uniffi-bindgen
+          key: uniffi-cli-0.31.2-${{ runner.os }}-${{ runner.arch }}
+      - name: Install pinned UniFFI scaffolding generator
+        if: steps.uniffi-cli-cache.outputs.cache-hit != 'true'
+        run: cargo install uniffi --version '=0.31.2' --features cli --bin uniffi-bindgen --locked
+      - name: Verify generated Rust scaffolding
+        run: python3 scripts/generate_sc_sha_scaffolding.py --mode check
+      - name: Cache pinned UniFFI Go generator
+        uses: actions/cache@v6
+        with:
+          path: ~/.cargo/bin/uniffi-bindgen-go
+          key: uniffi-bindgen-go-v0.7.1-v0.31.0-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/scripts/install_uniffi_bindgen_go.py') }}
+      - name: Generate Go bindings
         run: |
           python3 .github/scripts/install_uniffi_bindgen_go.py
           uniffi-bindgen-go --out-dir bindings/sc-sha-go/go --config bindings/sc-sha-go/uniffi.toml bindings/sc-sha-go/src/sc_sha_go.udl
@@ -477,106 +516,3 @@ jobs:
         run: cd .github/scripts && python3 -m unittest test_install_uniffi_bindgen_go -v
       - name: Verify generated bindings
         run: git diff --exit-code -- bindings/sc-sha-go/go
-      - name: Upload generated Go bindings
-        uses: actions/upload-artifact@v4
-        with:
-          name: sc-sha-go-generated
-          path: bindings/sc-sha-go/go
-
-  sc-sha-go:
-    name: sc-sha Go bundle (${{ matrix.goos }}/${{ matrix.goarch }})
-    needs: [sc-sha-go-plan, sc-sha-go-generated]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.sc-sha-go-plan.outputs.target_matrix) }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download generated Go bindings
-        uses: actions/download-artifact@v4
-        with:
-          name: sc-sha-go-generated
-          path: bindings/sc-sha-go/go
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.26.x"
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
-          targets: ${{ matrix.target }}
-
-      - name: Build the target-native static adapter
-        run: cargo build --release -p ${{ matrix.cargo_package }} --target ${{ matrix.target }}
-
-      - name: Stage the self-contained Go module bundle
-        id: bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="$(python3 -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
-          library="target/${{ matrix.target }}/release/${{ matrix.library }}"
-          bundle="$RUNNER_TEMP/${{ matrix.artifact_prefix }}-${{ matrix.target }}"
-          python3 .github/scripts/go_native_module.py stage \
-            --config release/go-native-module.toml \
-            --target '${{ matrix.target }}' \
-            --native-library "$library" \
-            --output "$bundle" \
-            --version "$version"
-          echo "path=$bundle" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Run bundled Go conformance tests
-        working-directory: ${{ steps.bundle.outputs.path }}
-        env:
-          CGO_ENABLED: "1"
-        run: go test ./...
-
-      - name: Run an independent Go consumer module
-        shell: bash
-        run: |
-          set -euo pipefail
-          consumer="$RUNNER_TEMP/sc-sha-go-consumer"
-          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
-          cd "$consumer"
-          module='${{ matrix.module }}'
-          go mod edit -replace "$module=${{ steps.bundle.outputs.path }}"
-          go get "$module/go/sc_sha_go@v${{ steps.bundle.outputs.version }}"
-          CGO_ENABLED=1 go run .
-
-      - name: Verify downloaded release bundle contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          bundle="${{ steps.bundle.outputs.path }}"
-          archive="$RUNNER_TEMP/${{ matrix.artifact_prefix }}-${{ matrix.target }}.zip"
-          downloaded="$RUNNER_TEMP/${{ matrix.artifact_prefix }}-downloaded-${{ matrix.target }}"
-          python3 - "$bundle" "$archive" "$downloaded/module" <<'PY'
-          import sys
-          import zipfile
-          from pathlib import Path
-
-          source, archive, destination = map(Path, sys.argv[1:])
-          with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
-              for path in source.rglob("*"):
-                  if path.is_file():
-                      output.write(path, path.relative_to(source))
-          destination.mkdir(parents=True)
-          with zipfile.ZipFile(archive) as payload:
-              payload.extractall(destination)
-          PY
-          (cd "$downloaded/module" && CGO_ENABLED=1 go test ./...)
-          consumer="$RUNNER_TEMP/${{ matrix.artifact_prefix }}-downloaded-consumer-${{ matrix.target }}"
-          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
-          cd "$consumer"
-          module='${{ matrix.module }}'
-          go mod edit -replace "$module=$downloaded/module"
-          go get "$module/go/sc_sha_go@v${{ steps.bundle.outputs.version }}"
-          CGO_ENABLED=1 go run .
-
-      - name: Verify release-layout contract
-        run: python3 bindings/sc-sha-go/tests/test_release_layout.py

@@ -9,9 +9,7 @@ ignore = []
 [bans]
 multiple-versions = "allow"
 wildcards = "deny"
-# Private path dev-dependencies (publish = false test-support) carry no version.
-# Registry dependencies keep the wildcard ban.
-allow-wildcard-paths = true
+allow-wildcard-paths = false
 highlight = "all"
 
 [sources]
@@ -25,8 +23,7 @@ allow = [
   "Apache-2.0",
   "Apache-2.0 WITH LLVM-exception",
   "MIT",
-  # UniFFI 0.31.0 is the approved generated Go-binding runtime (ADR-0020).
+  # UniFFI 0.31.2 runtime and externally generated scaffolding use MPL-2.0.
   "MPL-2.0",
   "Unicode-3.0",
-  "Zlib",
 ]

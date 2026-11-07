@@ -4,6 +4,121 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Candidate for 1.8.0. Workspace crates and Python packages carry version
+1.8.0. The release is not published, and production publishing happens after
+Phase V. The release candidate tag, the hosted Release Preflight, and the
+dispatch-only full install matrix (`go-native-preflight.yml`) have not yet run
+on the final candidate; they remain pending and no 1.8.0 tag exists. The
+platform and wheel entries below describe declared and locally checked
+configuration, not qualified deliverables.
+
+### Added
+
+- `sc-compose bead --render-by <sc-compose|bd>` selects the formula renderer
+  on every `bead` subcommand. The Rust crate and Python package offer the same
+  selection: Python `render_by=` keyword, Rust `BeadRenderBy` with the
+  `execute_bead_request_with_options*` functions. The existing request layouts
+  are unchanged.
+  - The default, `sc-compose`, renders both `{{ name }}` and `{{{ name }}}`
+    once; caller values that contain delimiters stay data.
+  - `--render-by bd` keeps the 1.7.0 behaviour: triple braces are sc-compose
+    expressions, and double braces are left for bd.
+- `sc-compose bead pour FORMULA [--var KEY=VALUE ...]`: a direct pour form that
+  takes a formula path or registry name. The command supplies
+  `CreatePersistentBeads` itself. The JSON request form still requires
+  `pour_authorization` explicitly.
+- `--strict` (Python `strict=`) turns on undeclared-variable validation for
+  templates that declare a schema. It is off by default. Templates without
+  frontmatter or a schema render as in 1.7.0, and there is no strict-only
+  default (#783).
+- Advanced-renderer graph beads record stable provenance, which ownership
+  checks use on re-runs.
+- `sc-sha-go` declares six native target coordinates and canonical release
+  staging. The windows/amd64 and windows/arm64 GNU cross-checks run through
+  `cargo xwin` as a compile-time check only, not an MSVC validation.
+- Python wheels are declared for six runner coordinates for each of
+  `sc-compose`, `sc-composer-beads` and `sc-sha`. The wheels are abi3-py39
+  with `requires-python >=3.9`; Windows ARM64 requires 3.11+.
+- `sc-compose reference [--json]` exports the live CLI reference model.
+  Routine CI checks that the generated CLI reference is up to date.
+
+### Known limitations
+
+- **Mixed graph updates are refused.** With the default renderer, `pour` and
+  `attach` refuse a run that would combine planned additions with
+  already-existing operation-owned beads, or add edges to an otherwise
+  unchanged graph. The refusal is `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`, and
+  it happens before any write, because no atomic bd update with ownership
+  preconditions is qualified. Fresh creates and exact replays are unaffected.
+  Automatic declared-edge additions between existing beads are therefore not
+  delivered in this candidate.
+- sc-compose does not serialize concurrent pours or attaches. Under a race, bd
+  decides the committed state.
+- Full-platform qualification (30 cells) is pending the single V7 run. Go
+  linking and running on the six coordinates is a manual preflight step.
+
+### Fixed
+
+- ADR-0026 review fixes: template-root escapes are reported distinctly from
+  other resolution errors; duplicate-key detection has a single visitor owner;
+  rendering diagnostics keep custom delimiters; include line-ending layout and
+  source lines after conditional includes are preserved; a valid profile match
+  is retained when other candidates are invalid; containment holds across
+  Windows root aliases and reentry through existing paths is refused.
+- Python `ScRenderError` for a template syntax error carries
+  `ERR_RENDER_TEMPLATE`.
+- Bead identifiers that contain control characters are refused with
+  `BEADS_GRAPH_ID_INVALID`. This covers constructors, the request `parent`,
+  and `bead:` relation endpoints.
+- Python wheel render entry points now reject malformed JSON output in line
+  with the CLI (#787). Callers that previously received malformed JSON from
+  `compose`, `compose_file`, or `render_loaded_template` now receive
+  `ScRenderError` with code `ERR_RENDER_JSON_MALFORMED`.
+
+### Changed
+
+- Release tooling: the repository opts into the sc-publish GitHub prerelease
+  path through `release/sc-publish-install.json` (`[prerelease]` in the
+  rendered `release/publish-artifacts.toml`), with the consumer-owned
+  `scripts/prerelease_tag.py`. A prerelease uses the workspace version only if
+  `prerelease/vX.Y.Z`, `vX.Y.Z` and the registries have never carried it;
+  otherwise only the patch number is incremented, and a patch bump is committed
+  to the non-protected branch it was run from. Minor and major numbers are never
+  changed, so 1.8.0 can never become 1.9.0 this way. Its `--dry-run` is
+  local-only and mutates nothing. No prerelease or release tag has been created.
+- The real Beads integration tests (`graph_bd`, `bd_integration`, and the CLI
+  `bead` tests) are `#[ignore]` and run explicitly by
+  `scripts/test_real_bd.py`, which fails on zero executed tests, in CI.
+- The existing Rust `execute_bead_request` entrypoint now defaults to
+  `BeadRenderBy::ScCompose` instead of v1.7.0's bd-owned rendering. To retain
+  the v1.7.0 behavior, use an existing `execute_bead_request_with_options*`
+  entrypoint with `BeadExecutionOptions { render_by: BeadRenderBy::Bd,
+  strict: false }`. Request layouts remain unchanged.
+- Replaced archived `serde_yaml` 0.9 (RUSTSEC-2024-0449) with the maintained
+  `yaml_serde` 0.10.7 fork under the same `serde_yaml` alias. Parsed values,
+  errors, and re-serialization were verified identical on a 2,056-case
+  differential corpus. The parser, `libyaml-rs`, is a maintained C-to-Rust
+  libyaml port and still contains unsafe code.
+- `sc-sha-go` Rust scaffolding is generated by the pinned `uniffi-bindgen`
+  0.31.2 CLI and committed, with a CI drift check. Removing `uniffi_build`
+  clears RUSTSEC-2026-0374 from the active dependency graph.
+- Removed the unused `sc-compose-test-support` workspace dependency alias;
+  `sc-composer-beads` tests no longer depend on it.
+- `verify`: upgraded `similar` from 2.7.0 to 3.2.1. The unified diff shown
+  on a drift mismatch may be laid out differently on repetitive input (about
+  30% of repetitive test inputs; unchanged for ordinary template edits). The
+  match/mismatch decision is unchanged.
+- Upgraded `ulid` from 1.2.1 to 3.0.0; output path IDs retain the 26-character
+  Crockford format.
+- Upgraded `sha2` from 0.10 to 0.11; hashes remain byte-identical and the
+  compatibility vectors are unchanged.
+- Upgraded the Python bindings from PyO3 0.29 to 0.30 without an API change.
+- Upgraded UniFFI scaffolding to 0.31.2 while retaining
+  `uniffi-bindgen-go v0.7.1+v0.31.0` (ADR-0020).
+- Pinned MiniJinja to 2.18.0 to preserve template boolean rendering; upgraded
+  `process-wrap` to 10.0.1.
+- Updated CI Actions and semver-compatible dependencies in the lockfile.
+
 ## [1.7.0] - 2026-10-08
 
 ### Added

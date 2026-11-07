@@ -129,6 +129,9 @@ impl fmt::Display for CommandError {
         } else {
             write!(f, "{:#}", self.error)?;
         }
+        if let Some(chain) = located_render_include_chain(&self.error) {
+            write!(f, " | include_chain={chain}")?;
+        }
         for hint in &self.recovery_hints {
             write!(f, "\nrecovery: {}", format_recovery_hint(hint))?;
         }
@@ -199,17 +202,47 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
             validation.code(),
             validation.message(),
         )],
-        ComposeError::Render(render) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            render.code().unwrap_or(DiagnosticCode::ErrRenderWrite),
-            render.message(),
-        )],
+        ComposeError::Render(render) => vec![render_diagnostic(render)],
         ComposeError::Config(config) => vec![Diagnostic::new(
             DiagnosticSeverity::Error,
             config.code(),
             config.message(),
         )],
     }
+}
+
+/// Return the include chain of a render error raised inside an included file,
+/// formatted like validation diagnostics, so text output names it too.
+fn located_render_include_chain(error: &Error) -> Option<String> {
+    let ComposeError::Render(render) = error.downcast_ref::<ComposeError>()? else {
+        return None;
+    };
+    let chain = &render.location()?.include_chain;
+    (chain.len() > 1).then(|| {
+        chain
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect::<Vec<_>>()
+            .join(" -> ")
+    })
+}
+
+/// Build the diagnostic for a render error, naming the source file, line and
+/// include chain when the error was located (ADR-0026 D10).
+fn render_diagnostic(render: &sc_composer::RenderError) -> Diagnostic {
+    let mut diagnostic = Diagnostic::new(
+        DiagnosticSeverity::Error,
+        render.code().unwrap_or(DiagnosticCode::ErrRenderWrite),
+        render.message(),
+    );
+    if let Some(location) = render.location() {
+        diagnostic = diagnostic
+            .with_path(location.path.clone())
+            .with_include_chain(location.include_chain.clone());
+        diagnostic.line = Some(location.line);
+        diagnostic.column = render.column();
+    }
+    diagnostic
 }
 
 fn compose_error_recovery_hints(error: &ComposeError) -> Vec<RecoveryHint> {

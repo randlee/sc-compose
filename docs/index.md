@@ -67,7 +67,7 @@ description: Compose once. Render deterministically. Ship everywhere.
       <p>
         <code>pip install sc-compose</code>. Native extension module built with
         PyO3 and maturin. Pre-built wheels for macOS, Linux, and Windows
-        (Python 3.11+). Full multi-pass rendering from Python.
+        (Python 3.9+; Windows ARM64 requires 3.11+). Full multi-pass rendering from Python.
       </p>
     </div>
 

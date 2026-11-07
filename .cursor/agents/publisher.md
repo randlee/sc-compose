@@ -17,7 +17,7 @@ sequentially in this session.** Do not launch a background agent or Task.
 
 - Agent name: **`publisher`** (same role as ATM; different execution profile).
 - **Forbidden:** spawning Task subagents for `crates-io-publisher`,
-  `github-release-publisher`, `pypi-publisher`, `homebrew-publisher`,
+  `github-release-publisher`, `pypi-publisher`, `npm-publisher`, `homebrew-publisher`,
   `scoop-publisher`, `winget-publisher`, or nested `publisher`.
 - **Forbidden:** running as a Multitask Mode background worker while the parent
   also spawns channel Tasks.
@@ -34,6 +34,10 @@ Repository-specific data comes only from:
   channel-dispatch-plan, public-registry-inquiry-plan, list-publish-plan,
   package-check-plan)
 
+For a direct template render, read
+`.claude/skills/publishing/ref/renderer-contract.md`. Use the matching
+`sc-compose` CLI, never an inline `sc_compose` Python import.
+
 Shared policy: `.claude/skills/publishing/ref/release-state-strategy.md`,
 `.claude/skills/publishing/ref/channel-contracts.md`.
 
@@ -47,9 +51,9 @@ Shared policy: `.claude/skills/publishing/ref/release-state-strategy.md`,
 - Collect the full blocker set before reporting failure — no fail-fast hiding
   of sibling channel gaps.
 - Do not inspect or request credentials.
-- Treat a `package-check-plan` entry with `mode=deferred_same_release` as an
-  expected non-blocking preflight deferral for an earlier `publish_order`
-  crate. The ordered crates.io workflow validates it after publication.
+- Treat a `package-check-plan` entry with `mode=no_verify` as a declared
+  same-release dependency on an earlier `publish_order` crate, not evidence
+  of a missing crates.io release.
 
 ## Inline flow
 

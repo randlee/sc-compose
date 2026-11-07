@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import tomllib
+import urllib.parse
 from pathlib import Path, PurePosixPath
 
 
@@ -52,6 +53,9 @@ def load_manifest(path: Path, *, with_channel_contracts: bool = False) -> dict:
     release_binaries = data.get("release_binaries", [])
     python_packages = data.get("python_packages", [])
     python_distributions = data.get("python_distributions", [])
+    for crate in crates:
+        if "verify_registry_visibility" in crate and type(crate["verify_registry_visibility"]) is not bool:
+            raise SystemExit("crates.verify_registry_visibility must be a boolean")
     crates = sorted(crates, key=lambda item: (item["publish_order"], item["artifact"]))
     manifest = {
         "project": data.get("project", {}),
@@ -60,8 +64,12 @@ def load_manifest(path: Path, *, with_channel_contracts: bool = False) -> dict:
         "release_targets": data.get("release_targets", []),
         "python_packages": python_packages,
         "python_distributions": python_distributions,
+        "npm_packages": data.get("npm_packages", []),
         "channels": data.get("channels", {}),
     }
+    # Optional: the prerelease skill's table is validated only when declared.
+    if "prerelease" in data:
+        manifest["prerelease"] = data["prerelease"]
     if with_channel_contracts:
         manifest["channel_contracts"] = load_channel_contracts(
             path.parent / CHANNEL_CONTRACTS_FILE
@@ -180,6 +188,50 @@ def validate_publish_order(args: object) -> int:
     return 0
 
 
+def cargo_package_check_plan(workspace_toml: Path, manifest: dict) -> list[dict[str, object]]:
+    """Return the registry-aware Cargo package validation plan.
+
+    ``cargo package`` verifies a crate against the public registry.  During a
+    new multi-crate release, a dependent crate can legitimately require an
+    earlier manifest crate at the target version before that earlier crate has
+    been published.  Package the dependent crate without Cargo's registry
+    verification in that one case; the ordered crates.io workflow will publish
+    the dependency first and performs the final registry-backed verification.
+    """
+    publishable = {
+        crate["package"]: crate
+        for crate in manifest["crates"]
+        if crate.get("publish", True) is True
+    }
+    plan: list[dict[str, object]] = []
+    # A crate that is never uploaded needs no archive verification.
+    for crate in publishable.values():
+        package = crate["package"]
+        crate_toml = workspace_toml.parent / crate["cargo_toml"]
+        earlier_release_dependencies = sorted(
+            dependency
+            for dependency in workspace_dependency_names(crate_toml, workspace_toml)
+            if dependency in publishable
+            and publishable[dependency]["publish_order"] < crate["publish_order"]
+        )
+        plan.append(
+            {
+                "package": package,
+                "cargo_toml": crate["cargo_toml"],
+                "mode": "no_verify" if earlier_release_dependencies else "verify",
+                "earlier_release_dependencies": earlier_release_dependencies,
+            }
+        )
+    return plan
+
+
+def cmd_package_check_plan(args: object) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    for entry in cargo_package_check_plan(Path(args.workspace_toml), manifest):
+        print(f"{entry['package']}|{entry['mode']}|{','.join(entry['earlier_release_dependencies'])}" + (f"|{entry['cargo_toml']}" if args.include_manifest else ""))
+    return 0
+
+
 def workspace_version(workspace_toml: Path) -> str:
     """Resolve the release version from the manifest-declared version source.
 
@@ -209,6 +261,11 @@ def _assert_workspace_inherited_version(workspace_toml: Path, relative_path: str
     path = _resolve_workspace_path(workspace_toml, relative_path)
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     value = data.get("package", {}).get("version")
+    if "workspace" in data and path.resolve() != workspace_toml.resolve():
+        actual = data["workspace"].get("package", {}).get("version") if isinstance(value, dict) else value
+        if actual != workspace_version(workspace_toml):
+            raise SystemExit(f"{relative_path}: standalone version must match release workspace version")
+        return
     if isinstance(value, dict) and value.get("workspace") is True:
         return
     if allow_literal_base and value == workspace_version(workspace_toml).split("-", 1)[0]:
@@ -332,6 +389,55 @@ def _require_project(manifest: dict) -> dict:
     return project
 
 
+def validate_prerelease(manifest: dict) -> None:
+    """Validate the optional [prerelease] table consumed by the prerelease skill."""
+    prerelease = manifest.get("prerelease")
+    if prerelease is None:
+        return
+    if not isinstance(prerelease, dict):
+        raise SystemExit("[prerelease] must be a table")
+    string_fields = ("tag_prefix", "tag_script", "install_root", "post_install", "verify")
+    _require_keys(
+        prerelease,
+        (*string_fields, "protected_branches", "selector_dir"),
+        "[prerelease]",
+    )
+    if not all(isinstance(prerelease[key], str) and prerelease[key] for key in string_fields):
+        raise SystemExit("[prerelease] string fields must be non-empty")
+    protected = prerelease["protected_branches"]
+    if not isinstance(protected, list) or not protected or not all(isinstance(name, str) and name for name in protected):
+        raise SystemExit("[prerelease].protected_branches must be a non-empty string list")
+    # binaries is optional: a consumer without release binaries installs only
+    # its Python wheels from the prerelease.
+    binaries = prerelease.get("binaries", [])
+    if not isinstance(binaries, list) or not all(isinstance(name, str) and name for name in binaries):
+        raise SystemExit("[prerelease].binaries must be a string list")
+    declared = {
+        entry.get("name")
+        for entry in manifest.get("release_binaries", [])
+        if isinstance(entry, dict)
+    }
+    undeclared = sorted(set(binaries) - declared)
+    if undeclared:
+        raise SystemExit(
+            "[prerelease].binaries references undeclared release binary(s): " + ", ".join(undeclared)
+        )
+    if not binaries and not any(
+        isinstance(entry, dict) and entry.get("wheels")
+        for entry in manifest.get("python_distributions", [])
+    ):
+        raise SystemExit(
+            "[prerelease] installs nothing: declare [prerelease].binaries or python_distributions wheels"
+        )
+    selector_dir = prerelease["selector_dir"]
+    if (
+        not isinstance(selector_dir, dict)
+        or set(selector_dir) != {"darwin", "linux", "windows"}
+        or not all(isinstance(value, str) and value for value in selector_dir.values())
+    ):
+        raise SystemExit("[prerelease].selector_dir must declare non-empty darwin, linux, and windows paths")
+
+
 def _renderer_archive_path(manifest: dict) -> str:
     value = _require_project(manifest).get("renderer_archive_path")
     if not isinstance(value, str) or not value:
@@ -445,7 +551,7 @@ def _normalize_pypi_name(name: str) -> str:
 
 
 def _url_from_contract(template: str, name: str, version: str) -> str:
-    return template.format(name=name, version=version)
+    return template.format(name=urllib.parse.quote(name, safe=""), version=urllib.parse.quote(version, safe=""))
 
 
 def _public_registry_checks(
@@ -594,6 +700,7 @@ def _channel_preflight_result(
     for requirement, outcome_key in (
         ("publisher ownership", "ownership"),
         ("normalized release tag", "release_metadata"),
+        ("immutable repository and release state", "immutable_releases"),
     ):
         checks.append({
             "kind": "release_authorization",
@@ -634,3 +741,16 @@ def _channel_preflight_result(
         "credential_rehearsal": rehearsal,
         "sanitized_diagnostic": diagnostic,
     }
+
+
+def cmd_list_publish_plan(args: object) -> int:
+    """Render the ordered plan, retaining the legacy fields unless requested."""
+    manifest = load_manifest(Path(args.manifest))
+    for crate in manifest["crates"]:
+        row = f"{crate['package']}|{crate['wait_after_publish_seconds']}"
+        if args.include_manifest:
+            row += f"|{crate['cargo_toml']}"
+        if args.include_visibility:
+            row += "|" + str(crate.get("verify_registry_visibility", False)).lower()
+        print(row)
+    return 0

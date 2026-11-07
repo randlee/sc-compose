@@ -51,17 +51,18 @@ fn ci_pass_preserves_composite_envelope_and_excludes_xwin() {
     assert_eq!(payload["raw_payload"]["data"]["tests_included"], true);
     assert_eq!(payload["raw_payload"]["data"]["xwin"]["available"], true);
     assert_eq!(payload["raw_payload"]["data"]["xwin"]["included"], false);
-    assert_eq!(payload["raw_payload"]["data"]["step_count"], 11);
+    assert_eq!(payload["raw_payload"]["data"]["step_count"], 12);
     assert_eq!(payload["raw_payload"]["data"]["steps"][0]["name"], "fmt");
-    assert_eq!(payload["raw_payload"]["data"]["steps"][10]["name"], "test");
+    assert_eq!(payload["raw_payload"]["data"]["steps"][11]["name"], "test");
     assert!(
         payload["raw_payload"]["data"]["steps"]
             .as_array()
             .expect("ci steps")
             .iter()
-            .all(|step| !step["name"]
-                .as_str()
-                .is_some_and(|name| name.contains("xwin")))
+            .all(|step| step["status"] == "pass"
+                && !step["name"]
+                    .as_str()
+                    .is_some_and(|name| name.contains("xwin")))
     );
 
     assert_report_materialized(&root.path, &[COMMAND_ID, "pass", "tests_included"]);
@@ -90,7 +91,7 @@ fn ci_test_failure_stays_non_pass_with_structured_diagnostics() {
     assert!(
         payload["raw_payload"]["error"]["details"]["stderr"]
             .as_str()
-            .expect("structured test finding")
+            .unwrap()
             .contains("CI-TEST-FINDING-001")
     );
     assert!(
@@ -108,7 +109,7 @@ fn ci_without_materialized_utilities_is_explicit_config_error() {
     assert_eq!(
         output.status.code(),
         Some(3),
-        "missing utility must retain sc-lint's subprocess status: {output:?}"
+        "missing sc_lint runtime must return the CLI usage-failure status: {output:?}"
     );
 
     let payload = &parse_stdout(&output)["payload"];
@@ -119,14 +120,28 @@ fn ci_without_materialized_utilities_is_explicit_config_error() {
     assert_eq!(payload["raw_payload"]["command"], COMMAND_ID);
     assert_eq!(
         payload["raw_payload"]["error"]["code"],
-        "CLI.BACKEND_EXEC_FAILURE"
+        "profile.steps_failed"
     );
+    let failures = payload["raw_payload"]["error"]["details"]["failed_steps"]
+        .as_array()
+        .expect("failed steps");
+    assert!(failures.iter().any(|step| {
+        step["name"] == "deny"
+            && step["message"]
+                .as_str()
+                .unwrap()
+                .contains("ModuleNotFoundError")
+    }));
     assert!(
         payload["diagnostics"]
             .as_array()
-            .is_some_and(|items| !items.is_empty())
+            .is_some_and(|items| !items.is_empty()
+                && items.iter().all(|item| item["code"] == "CLI.CONFIG_ERROR"))
     );
-    assert_report_materialized(&root.path, &[COMMAND_ID, "config_error", ".just/"]);
+    assert_report_materialized(
+        &root.path,
+        &[COMMAND_ID, "config_error", "ModuleNotFoundError"],
+    );
 }
 
 fn run_ci(fixture: &str, mode: ToolMode) -> (TempFixture, Output) {
@@ -135,19 +150,8 @@ fn run_ci(fixture: &str, mode: ToolMode) -> (TempFixture, Output) {
         name: fixture,
         target: "ci",
     });
-    if matches!(mode, ToolMode::MissingUtilities) {
-        write_fake_cargo(
-            &root.path,
-            FakeCargoOptions {
-                xwin_available: false,
-                test_failure: false,
-                fail_closed: false,
-            },
-        );
-    } else {
-        materialize_python_tools(&root.path);
-        write_fake_tools(&root.path, mode);
-    }
+    materialize_python_tools(&root.path);
+    write_fake_tools(&root.path, mode);
 
     let output = sc_compose()
         .args([
@@ -199,30 +203,30 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
             fail_closed: false,
         },
     );
-    let bin = root.join("fake-bin");
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
+        let bin = root.join("fake-bin");
 
         let python = bin.join("python3");
-        fs::write(
-            &python,
-            "#!/bin/sh\nprintf '%s\\n' '{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":true,\"summary\":\"fixture utility passed\",\"data\":{\"findings\":[]},\"diagnostics\":[]}'\nexit 0\n",
-        )
-        .expect("fake python");
-        let mut permissions = fs::metadata(&python)
-            .expect("fake python metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(python, permissions).expect("fake python permissions");
+        let script = if matches!(mode, ToolMode::MissingUtilities) {
+            "#!/bin/sh\necho 'ModuleNotFoundError: No module named sc_lint' >&2\nexit 1\n"
+        } else {
+            "#!/bin/sh\nprintf '%s\\n' '{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":true,\"summary\":\"fixture utility passed\",\"data\":{\"findings\":[]},\"diagnostics\":[]}'\nexit 0\n"
+        };
+        support::fake_exec::install(&python, script);
     }
 
     #[cfg(windows)]
     {
-        fs::write(
-            bin.join("python.cmd"),
-            "@echo off\r\necho {\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":true,\"summary\":\"fixture utility passed\",\"data\":{\"findings\":[]},\"diagnostics\":[]}\r\nexit /b 0\r\n",
-        )
-        .expect("fake python");
+        let (stdout, stderr, exit_code) = if matches!(mode, ToolMode::MissingUtilities) {
+            ("", "ModuleNotFoundError: No module named sc_lint\n", 1)
+        } else {
+            (
+                "{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":true,\"summary\":\"fixture utility passed\",\"data\":{\"findings\":[]},\"diagnostics\":[]}\n",
+                "",
+                0,
+            )
+        };
+        support::write_fake_windows_python(root, stdout, stderr, exit_code);
     }
 }

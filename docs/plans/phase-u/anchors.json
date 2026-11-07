@@ -1,0 +1,41 @@
+{
+  "schema": "plan-anchoring/anchors/1",
+  "plan": "phase-u",
+  "intent_ref": "docs/plans/phase-u/intent.md",
+  "anchors": [
+    {
+      "id": "ANC-001",
+      "source_type": "ANC",
+      "source_ref": null,
+      "statement": "Values containing {{ }}, {{{ }}} or {% %} must stay data and must never be re-parsed.",
+      "quote": "Values containing {{ }}, {{{ }}} or {% %} stay data and are never re-parsed.",
+      "kind": "directive",
+      "stated_by": "randlee",
+      "stated_at": "2026-11-03",
+      "context": "Phase U planning, 2026-11-04",
+      "summary": "values stay data",
+      "scope": "advanced bead pour in sc-composer-beads and the sc-compose bead commands (render, pour, preview-pour, attach, preview-attach)",
+      "deterministic_check": "supply values containing each delimiter and read back identical literal text from the text passed to bd",
+      "fixtures": {
+        "pass": [],
+        "fail": []
+      },
+      "question_overrides": {},
+      "version": 1,
+      "status": "locked",
+      "promoted_to": null,
+      "beads": {
+        "anchor": null,
+        "plan_questions": null,
+        "dev_questions": null
+      },
+      "history": [
+        {
+          "at": "2026-11-04T02:28:49+00:00",
+          "event": "created",
+          "status": "locked"
+        }
+      ]
+    }
+  ]
+}

@@ -23,7 +23,9 @@ TEAM_LEAD_SENDER = (FIXTURE_ROOT / "team-lead-sender.txt").read_text(
 
 def write(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(textwrap.dedent(contents), encoding="utf-8", newline="\n")
+    # Byte write: text-mode writes translate "\n" to CRLF on Windows, while the
+    # renderer correctly retains template bytes and the tests assert exact LF.
+    path.write_bytes(textwrap.dedent(contents).encode("utf-8"))
 
 
 def make_file_request(root: Path, name: str, **kwargs: object) -> sc_compose.ComposeRequest:
@@ -1158,7 +1160,7 @@ def test_headerless_templates_keep_phase_c_behavior() -> None:
         (
             lambda root: sc_compose.render_template("{% if true %}", {}),
             sc_compose.ScRenderError,
-            None,
+            "ERR_RENDER_TEMPLATE",
         ),
         (
             lambda root: sc_compose.resolve_template_path(
@@ -1194,3 +1196,124 @@ def test_exception_surface_exposes_message_and_code(
     assert isinstance(error.message, str)
     assert error.message
     assert error.code == expected_code
+
+
+def test_exception_classes_preserve_constructor_contract() -> None:
+    classes = (
+        sc_compose.ScComposeError,
+        sc_compose.ScRenderError,
+        sc_compose.ScValidationError,
+        sc_compose.ScResolveError,
+        sc_compose.ScIncludeError,
+        sc_compose.ScConfigError,
+    )
+    for exc_type in classes:
+        assert exc_type is getattr(sc_compose._native, exc_type.__name__)
+        error = exc_type("message", "CODE", ["hint"], "kind", "diagnostic", 3)
+        assert error.args == ("message", "CODE", ["hint"], "kind", "diagnostic", 3)
+        assert str(error) == str(error.args)
+        assert error.message == "message"
+        assert error.code == "CODE"
+        assert error.recovery_hints == ["hint"]
+        assert error.diagnostic_kind == "kind"
+        assert error.diagnostic_message == "diagnostic"
+        assert error.diagnostic_occurrence == 3
+        assert issubclass(exc_type, sc_compose.ScComposeError)
+        with pytest.raises(TypeError, match="no keyword arguments"):
+            exc_type("message", code="CODE")
+
+
+def test_exception_recovery_hints_accept_sequences_and_preserve_copy_isolation() -> None:
+    classes = (
+        sc_compose.ScComposeError,
+        sc_compose.ScRenderError,
+        sc_compose.ScValidationError,
+        sc_compose.ScResolveError,
+        sc_compose.ScIncludeError,
+        sc_compose.ScConfigError,
+    )
+    for exc_type in classes:
+        with pytest.raises(TypeError):
+            exc_type("message", "CODE", "not a sequence of hints")
+
+        tuple_error = exc_type("message", "CODE", ("first", "second"))
+        assert tuple_error.recovery_hints == ["first", "second"]
+
+        supplied_hints = ["first", "second"]
+        list_error = exc_type("message", "CODE", supplied_hints)
+        supplied_hints.append("caller mutation")
+        assert list_error.recovery_hints == ["first", "second"]
+
+        returned_hints = list_error.recovery_hints
+        returned_hints.append("returned-list mutation")
+        assert list_error.recovery_hints == ["first", "second"]
+
+
+def test_python_binding_keeps_non_strict_render_default() -> None:
+    assert sc_compose.ComposePolicy().strict_undeclared_variables is False
+    assert sc_compose.render_template("hello {{ missing_value }}", {}) == "hello "
+
+
+def test_compose_rejects_malformed_json_output_like_the_cli(tmp_path: Path) -> None:
+    write(tmp_path / "payload.json.j2", '{"a": {{ a }}, }')
+    request = make_file_request(tmp_path, "payload.json.j2", vars_input={"a": 1})
+
+    for render in (sc_compose.compose, sc_compose.compose_file):
+        with pytest.raises(sc_compose.ScRenderError) as error:
+            render(request)
+        assert error.value.code == "ERR_RENDER_JSON_MALFORMED"
+
+    write(tmp_path / "ok.json.j2", '{"a": {{ a }}}')
+    ok = sc_compose.compose(make_file_request(tmp_path, "ok.json.j2", vars_input={"a": 1}))
+    assert ok.rendered_text == '{"a": 1}'
+
+    write(tmp_path / "notes.md.j2", '{"a": {{ a }}, }')
+    text = sc_compose.compose(make_file_request(tmp_path, "notes.md.j2", vars_input={"a": 1}))
+    assert text.rendered_text == '{"a": 1, }'
+
+
+def test_render_loaded_template_rejects_malformed_json_output() -> None:
+    request = sc_compose.LoadedTemplateRequest(
+        template_name="payload.json.j2",
+        template_text='{"a": {{ a }}, }',
+        context={"a": 1},
+    )
+
+    with pytest.raises(sc_compose.ScRenderError) as error:
+        sc_compose.render_loaded_template(request)
+    assert error.value.code == "ERR_RENDER_JSON_MALFORMED"
+
+
+def test_checked_wheel_render_keeps_schema_less_text_bytes(tmp_path: Path) -> None:
+    source = "hello {{ name }}!\n"
+    write(tmp_path / "greeting.txt.j2", source)
+    request = make_file_request(tmp_path, "greeting.txt.j2", vars_input={"name": "wheel"})
+    for render in (sc_compose.compose, sc_compose.compose_file):
+        assert render(request).rendered_text.encode("utf-8") == b"hello wheel!"
+    loaded = sc_compose.LoadedTemplateRequest(
+        template_name="greeting.txt.j2", template_text=source, context={"name": "wheel"}
+    )
+    assert sc_compose.render_loaded_template(loaded).rendered.encode("utf-8") == b"hello wheel!"
+
+
+def test_render_loaded_template_accepts_complete_json() -> None:
+    request = sc_compose.LoadedTemplateRequest(
+        template_name="payload.json.j2", template_text='{"a": {{ a }}}', context={"a": 1}
+    )
+    assert sc_compose.render_loaded_template(request).rendered == '{"a": 1}'
+
+
+def test_schema_less_boolean_values_keep_lowercase(tmp_path: Path) -> None:
+    source = '{{ true }} {{ 1 == 1 }} {{ x is defined }} {{ [true,false] }} {{ {"a": true} }}'
+    write(tmp_path / "boolean.md.j2", source)
+    for variables, expected in (
+        ({}, 'true true false [true, false] {"a": true}'),
+        ({"x": 1}, 'true true true [true, false] {"a": true}'),
+    ):
+        request = make_file_request(tmp_path, "boolean.md.j2", vars_input=variables)
+        for render in (sc_compose.compose, sc_compose.compose_file):
+            assert render(request).rendered_text == expected
+        loaded = sc_compose.LoadedTemplateRequest(
+            template_name="boolean.md.j2", template_text=source, context=variables
+        )
+        assert sc_compose.render_loaded_template(loaded).rendered == expected

@@ -1,0 +1,23 @@
+# v-3: compatible-beads
+
+## Description
+
+Agent level: frontier.
+### Deliverables
+1. Review current develop/recovered code against consolidated FR-24. Verify completed refactor work as one batch with three crate sections: sc-composer, sc-composer-beads, sc-compose. Reuse satisfied behavior and existing tests; implement only missing behavior/corrections. Vetted source/tests from #799–814, including #810, may be retained after review; V3 alone owns #810 disposition, with quarantine ending only when retained parts are accounted for. #816 remains closed.
+2. Implement the ADR-0024 options/runner and Python mappings through one execution engine, preserving public request layouts and explicit bd-owned v1.7.0 behavior. Update the Beads/Python facade manifests when adding entrypoints; dependency edges do not widen. Advanced rendering is default; strict validation remains explicit and schema-scoped.
+3. Implement/reuse variables, loop locals, literal-safe values/filters, included defaults, graph/path and authorization behavior under FR-24. Provide the versioned examples/beads/plan-fix.formula.toml.j2, direct repeated --var CLI and matching JSON/API mapping. Reuse cli::parse_var; strings stay strings. Reject duplicates, mixed direct/--request inputs, unresolved sources and missing required inputs before writes.
+4. FR-24.34–35: implement automatic missing/new edges, optional beads/edges and provenance-v2 state preservation under the amended ADR-0023. Consume V1's qualified atomic bd command/schema/version; do not dispatch the mixed-apply path against an unspecified/unavailable primitive. Include existing endpoints, changed relations, newly enabled nodes, foreign planned ids, changed node definitions, conflicting types, unauthorized inputs, atomic rollback and ambiguous-response readback.
+5. Deliver the one small current-only byte regression command and immutable v1.7.0 goldens/approved exception list. V6 alone wires it into CI/preflight. Map FUZZ-171-01..14, T-02..T-06, D-01 and include-default #11 to recovered cases; missing inputs remain explicit blockers to complete-coverage claims. Close actual Rust/CLI/Python plus isolated-bd feature behavior here, not at the final audit.
+
+## Acceptance criteria
+
+FR-24 behavior passes through real Rust/CLI/Python adapters with equivalent rendered values and bd commands. Direct-input refusal cases are explicit: a duplicate --var key, mixed --request/direct input, an unresolved formula, and a missing required variable each fail with the documented request/validation outcome and create no bead or edge. The direct plan-fix command and JSON path have matching stored results. Optional-node/edge false/true branches, false-to-true additions and true-to-false state preservation work. Existing-owned missing and newly declared edges are created without manual commands; conflicts/foreign ownership and dangling references fail before mutation. Controlled apply failure rolls back all additions and ambiguous completion is reconciled safely. Existing status/notes/assignee survive. Legacy bd-owned cases retain their exact bytes/codes/argv. A verified v1 creation snapshot/history can migrate provenance and add elements atomically without changing user fields; missing migration proof refuses safely. Each named historical case has an honest mapped result or a declared missing-input blocker.
+
+### Required Validation
+cargo build --workspace; cargo test --workspace; cargo clippy --all-targets --all-features -- -D warnings; cargo fmt --all -- --check.
+- cargo test -p sc-composer-beads --test graph; cargo test -p sc-composer-beads --test contract.
+- BD_EXECUTABLE="$(command -v bd)" cargo test -p sc-composer-beads --test graph_bd (existing isolated harness, including new addition/conditional cases).
+- In an isolated active Python venv: python -m pip install ./bindings/sc-composer-beads-python; python -m unittest discover -s bindings/sc-composer-beads-python/tests.
+- python3 scripts/check_render_regressions.py --baseline-ref f4fda4b9 --check (V3 adds this small command: comparison uses fixed goldens; baseline executable is never run in routine CI; candidate output never regenerates goldens).
+- Source/fixture mapping for every required historical case is reviewed in the existing PR. Zero executed or missing required cases is not a pass.

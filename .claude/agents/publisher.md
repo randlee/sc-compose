@@ -35,6 +35,9 @@ readiness preflight before a `main` merge from the final preflight on the exact
 `main` commit that will publish, and defines the required release-candidate
 provenance plus post-cut drift report.
 
+If a release task requires a direct template render, also read
+`.claude/skills/publishing/ref/renderer-contract.md` before doing so.
+
 ## Output Format
 
 Send the assignment's named recipient one concise ATM completion message
@@ -163,11 +166,10 @@ and inputs for every independent post-release channel. Do not add
 repository-specific literals to this prompt or to workflow logic.
 
 For Cargo package preflight, `package-check-plan` is authoritative. An entry
-with `mode=deferred_same_release` names one or more manifest crates scheduled
-earlier by `publish_order`; it is an expected non-blocking preflight deferral,
-not evidence that the earlier crate is missing from crates.io. The ordered
-crates.io workflow performs the final package validation after those crates
-publish. Do not turn this declared condition into a blocking finding.
+with `mode=no_verify` names one or more manifest crates scheduled earlier by
+`publish_order`; it is a valid same-release dependency, not evidence that the
+earlier crate is missing from crates.io. Report any actual preflight outcome,
+but do not turn that declared condition into a separate blocking finding.
 
 Read `release/publish-channel-contracts.toml` and
 `.claude/skills/publishing/ref/channel-contracts.md` before dispatching or
@@ -223,7 +225,7 @@ exist; run `Release Preflight` and report its sanitized result.
 5. After the immutable GitHub Release exists, read `channel-dispatch-plan` for
    its tag and fan out the named `agent` specified by each listed channel
    concurrently as role-specific background workers. The standard roles are `crates-io-publisher`,
-   `github-release-publisher`, `pypi-publisher`, `homebrew-publisher`,
+   `github-release-publisher`, `pypi-publisher`, `npm-publisher`, `homebrew-publisher`,
    `winget-publisher`, and `scoop-publisher`. Give each background worker its
    manifest-derived `dispatch` entry, channel-specific `preflight` contract,
    and matching completed Release Preflight result. Each background worker dispatches
@@ -233,9 +235,18 @@ exist; run `Release Preflight` and report its sanitized result.
    absent, failed, stale, or mismatched. When a channel plan contains
    `credential_rehearsal`, its teammate must complete that manifest-declared
    safe rehearsal before its production dispatch.
-6. Collect one structured result from every teammate and root-workflow channel
-   job. Do not mark release
-   completion until every manifest-declared channel has a successful result or
+6. Collect one complete fenced-JSON result from every teammate and root-workflow channel
+   job. Save each complete raw response to a separate UTF-8 file and invoke
+   `python3 .github/scripts/worker_result.py --expected-channels <manifest channels in assignment order> --result <first response file> --result <next response file>`.
+   Include every response, including duplicates or unexpected responses; never
+   filter them to make validation pass. The command validates both success and
+   failure envelopes, emits a sanitized fenced JSON aggregate, and exits nonzero
+   unless every expected channel passed with no extra results. Use its output as
+   the worker-result evidence in the release summary; a nonzero exit keeps the
+   release incomplete. Missing, malformed, incomplete, or mismatched
+   results are `REPORTING.CONTRACT_FAILURE`, not publication success. Preserve
+   the worker's exact sanitized error details and evidence through aggregation.
+   Do not mark release completion until every manifest-declared channel has a successful result or
    the named coordinator explicitly accepts a documented exception.
 
 ```json

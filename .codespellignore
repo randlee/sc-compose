@@ -16,3 +16,8 @@ infor
 # Literal evidence identifiers preserved from run4 worker envelopes.
 afile
 caf
+
+# Planning-anchor identifier prefix in the checked-in anchor registry.
+ANC
+
+anc

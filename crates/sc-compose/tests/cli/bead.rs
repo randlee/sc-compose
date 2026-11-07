@@ -7,7 +7,52 @@ use serde_json::json;
 
 use crate::support::{TempFixture, sc_compose, write_file};
 
+#[cfg(unix)]
+use crate::support::fake_exec;
+
 const BEADS_SCHEMA: &str = "sc-compose/beads/v1";
+
+#[test]
+fn blocked_graph_plan_reports_its_path_before_bd() {
+    let fixture = TempFixture::new("bead-graph-plan-diagnostic");
+    let root = &fixture.path;
+    let template = root.join("sample.formula.toml.j2");
+    let rendered = root.join("sample.formula.toml");
+    let plan = root.join("sample.formula.toml.graph.json");
+    write_file(&template, "formula = \"sample\"\n");
+    fs::create_dir(&plan).expect("block graph plan");
+    let (bd, trace) = write_fake_bd(root, 0, 0);
+    let request = root.join("request.json");
+    write_file(
+        &request,
+        &json!({
+            "schema": BEADS_SCHEMA, "operation": "preview_attach",
+            "working_directory": root, "template": template,
+            "rendered_formula": rendered, "compose_variables": {},
+            "formula_name": "sample", "bead_variables": {}, "bd_executable": bd,
+            "pour_authorization": "CreatePersistentBeads", "parent": "proj-1",
+            "ref": "chain", "relations": []
+        })
+        .to_string(),
+    );
+    let output = sc_compose()
+        .args(["bead", "preview-attach", "--request"])
+        .arg(&request)
+        .arg("--json")
+        .output()
+        .expect("run CLI");
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("JSON");
+    let error = &value["payload"]["error"];
+    assert_eq!(error["code"], "BEADS_OUTPUT_PATH_INVALID");
+    assert_eq!(error["details"]["field"], "graph_plan");
+    assert_eq!(
+        fs::canonicalize(error["details"]["value"].as_str().unwrap()).unwrap(),
+        fs::canonicalize(&plan).unwrap()
+    );
+    assert!(plan.is_dir());
+    assert!(!trace.exists(), "bd must not run");
+}
 
 fn canonical_template(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -78,24 +123,16 @@ fn initialize_beads_workspace(root: &Path, bd: &Path) {
 
 #[cfg(unix)]
 fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathBuf) {
-    use std::os::unix::fs::PermissionsExt;
-
     let trace = root.join("bd.trace");
     let executable = root.join("fake-bd");
-    fs::write(
+    fake_exec::install(
         &executable,
-        format!(
+        &format!(
             "#!/bin/sh\nprintf '%s\\n' \"$1\" >> '{}'\nif [ \"$1\" = cook ]; then exit {cook_exit}; fi\nif [ \"$1\" = where ]; then printf '%s' '{{\"path\":\"{}\"}}'; fi\nif [ \"$1\" = mol ]; then exit {pour_exit}; fi\nexit 0\n",
             trace.display(),
             root.join(".beads").display()
         ),
-    )
-    .expect("write fake bd");
-    let mut permissions = fs::metadata(&executable)
-        .expect("fake bd metadata")
-        .permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&executable, permissions).expect("make fake bd executable");
+    );
     (executable, trace)
 }
 
@@ -446,10 +483,12 @@ fn authorized_failed_pour_reports_its_exact_r1_stage_code() {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn pinned_bd_validates_the_canonical_cli_fixture_when_configured() {
     let Some(pinned_bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping pinned bd CLI integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let fixture = TempFixture::new("bead-pinned-bd");
     initialize_beads_workspace(&fixture.path, &pinned_bd);
@@ -590,6 +629,7 @@ impl GraphCliWorkspace {
         command
             .args(["bead", operation, "--request"])
             .arg(request)
+            .args(["--render-by", "bd"])
             .current_dir(&self.fixture.path)
             .env("BEADS_DIR", &self.beads_dir)
             .env("BEADS_NO_DAEMON", "1");
@@ -612,10 +652,224 @@ impl GraphCliWorkspace {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn direct_plan_fix_pour_persists_values_and_declared_dependency() {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let registry = root.join(".beads/formulas");
+    fs::create_dir_all(&registry).unwrap();
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/beads/plan-fix.formula.toml.j2"),
+        registry.join("plan-fix.formula.toml.j2"),
+    )
+    .unwrap();
+    let bin = root.join("fake-bin");
+    fs::create_dir(&bin).unwrap();
+    fs::copy(
+        &workspace.bd,
+        bin.join(if cfg!(windows) { "bd.exe" } else { "bd" }),
+    )
+    .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args([
+            "bead",
+            "pour",
+            "plan-fix",
+            "--var",
+            "plan=phase-v",
+            "--var",
+            "finding=EDGE-1",
+            "--var",
+            "literal={{ evidence }}",
+            "--json",
+        ])
+        .current_dir(root)
+        .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    // This first pour creates beads, so its staged graph plan is reported.
+    assert_eq!(
+        assert_receipt_paths_exist_or_are_ephemeral(&envelope["payload"]),
+        ["rendered_formula", "graph.plan_path"]
+    );
+    let graph = &envelope["payload"]["graph"];
+    let review = graph["ids"]["review"].as_str().expect("review id");
+    let fix = graph["ids"]["fix"].as_str().expect("fix id");
+    let review_row = workspace.bd_json(&["show", review, "--json"]);
+    let fix_row = workspace.bd_json(&["show", fix, "--json"]);
+    assert_eq!(review_row[0]["title"], "Review EDGE-1");
+    assert!(
+        review_row[0]["description"]
+            .as_str()
+            .unwrap()
+            .contains("{{ evidence }}")
+    );
+    assert_eq!(fix_row[0]["title"], "Fix EDGE-1");
+    assert!(
+        review_row[0]["labels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|label| label == "plan-phase-v")
+    );
+    let edges = workspace.bd_json(&["dep", "list", fix, "--json"]);
+    assert!(
+        edges
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|edge| edge["id"] == review && edge["dependency_type"] == "blocks")
+    );
+
+    assert_plan_fix_json_matches(&workspace, &registry, &review_row[0], &fix_row[0]);
+    assert_plan_fix_path_matches(&workspace, &review_row[0], &fix_row[0]);
+    assert_direct_pour_refusals_preserve_state(&workspace);
+}
+
+fn assert_plan_fix_path_matches(
+    workspace: &GraphCliWorkspace,
+    review: &serde_json::Value,
+    fix: &serde_json::Value,
+) {
+    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args([
+            "bead",
+            "pour",
+            ".beads/formulas/plan-fix.formula.toml.j2",
+            "--var",
+            "plan=phase-v",
+            "--var",
+            "finding=EDGE-1",
+            "--var",
+            "literal={{ evidence }}",
+            "--json",
+        ])
+        .current_dir(&workspace.fixture.path)
+        .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let receipt: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_receipt_paths_exist_or_are_ephemeral(&receipt["payload"]);
+    for (step, expected) in [("review", review), ("fix", fix)] {
+        let id = receipt["payload"]["graph"]["ids"][step].as_str().unwrap();
+        let row = workspace.bd_json(&["show", id, "--json"]);
+        for field in ["title", "description", "labels"] {
+            assert_eq!(row[0][field], expected[field]);
+        }
+    }
+}
+
+fn assert_plan_fix_json_matches(
+    workspace: &GraphCliWorkspace,
+    registry: &Path,
+    review_row: &serde_json::Value,
+    fix_row: &serde_json::Value,
+) {
+    let root = &workspace.fixture.path;
+    let request = workspace.write_request(&json!({
+        "schema": BEADS_SCHEMA,
+        "operation": "pour",
+        "working_directory": fs::canonicalize(root).unwrap(),
+        "template": registry.join("plan-fix.formula.toml.j2"),
+        "rendered_formula": root.join("build/plan-fix.formula.toml"),
+        "compose_variables": {},
+        "formula_name": "plan-fix",
+        "bead_variables": {"plan":"phase-v", "finding":"EDGE-1", "literal":"{{ evidence }}"},
+        "bd_executable": workspace.bd,
+        "pour_authorization": "CreatePersistentBeads"
+    }));
+    let json_output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args(["bead", "pour", "--request"])
+        .arg(&request)
+        .arg("--json")
+        .current_dir(root)
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap();
+    assert!(json_output.status.success(), "{json_output:?}");
+    let json_receipt: serde_json::Value = serde_json::from_slice(&json_output.stdout).unwrap();
+    for (step, direct) in [("review", review_row), ("fix", fix_row)] {
+        let id = json_receipt["payload"]["graph"]["ids"][step]
+            .as_str()
+            .unwrap();
+        let row = workspace.bd_json(&["show", id, "--json"]);
+        for field in ["title", "description", "labels"] {
+            assert_eq!(row[0][field], direct[field], "{step} {field}");
+        }
+    }
+    let json_review = json_receipt["payload"]["graph"]["ids"]["review"]
+        .as_str()
+        .unwrap();
+    let json_fix = json_receipt["payload"]["graph"]["ids"]["fix"]
+        .as_str()
+        .unwrap();
+    let json_edges = workspace.bd_json(&["dep", "list", json_fix, "--json"]);
+    assert!(
+        json_edges
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|edge| edge["id"] == json_review && edge["dependency_type"] == "blocks")
+    );
+}
+
+fn assert_direct_pour_refusals_preserve_state(workspace: &GraphCliWorkspace) {
+    let root = &workspace.fixture.path;
+    let before = workspace.snapshot();
+    let refusal_cases: &[&[&str]] = &[
+        &[
+            "bead", "pour", "plan-fix", "--var", "plan=one", "--var", "plan=two",
+        ],
+        &["bead", "pour", "plan-fix", "--request", "request.json"],
+        &["bead", "pour", "not-a-formula", "--var", "plan=phase-v"],
+        &[
+            "bead",
+            "pour",
+            "plan-fix",
+            "--var",
+            "plan=phase-v",
+            "--var",
+            "literal=value",
+        ],
+    ];
+    for args in refusal_cases {
+        let result = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+            .args(*args)
+            .current_dir(root)
+            .env("PATH", workspace.fixture.path_with_fake_tools())
+            .env("BEADS_DIR", &workspace.beads_dir)
+            .env("BEADS_NO_DAEMON", "1")
+            .output()
+            .unwrap();
+        assert!(!result.status.success(), "{args:?}: {result:?}");
+        assert_eq!(
+            workspace.snapshot(),
+            before,
+            "{args:?} must not change beads or edges"
+        );
+    }
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn pinned_bd_graph_pour_and_attach_run_the_release_example_with_text_and_exit_contracts() {
     let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping graph CLI integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let workspace = GraphCliWorkspace::new(bd);
     let root = &workspace.fixture.path;
@@ -804,4 +1058,428 @@ fn assert_missing_edge_recovery(
         );
     }
     assert_eq!(workspace.snapshot(), before, "repair advice writes nothing");
+}
+
+#[test]
+fn direct_pour_rejects_duplicate_mixed_and_missing_sources_before_staging() {
+    let root = TempFixture::new("direct-pour-refusals");
+    let cases: &[&[&str]] = &[
+        &[
+            "bead", "pour", "plan-fix", "--var", "key=one", "--var", "key=two",
+        ],
+        &["bead", "pour", "plan-fix", "--request", "request.json"],
+        &["bead", "pour", "missing-formula", "--var", "key=value"],
+    ];
+    for args in cases {
+        let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+            .args(*args)
+            .current_dir(&root.path)
+            .output()
+            .expect("run direct pour refusal");
+        assert!(!output.status.success(), "{args:?}: {output:?}");
+        assert_eq!(fs::read_dir(&root.path).unwrap().count(), 0, "{args:?}");
+    }
+}
+
+#[test]
+fn missing_direct_formula_reports_typed_source_failure() {
+    let root = TempFixture::new("direct-pour-missing-source");
+    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args(["bead", "pour", "missing.formula.toml", "--json"])
+        .current_dir(&root.path)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.contains("BEADS_DIRECT_SOURCE_FAILED"), "{text}");
+    assert!(text.contains("missing.formula.toml"), "{text}");
+    assert!(text.contains("recovery"), "{text}");
+    assert_eq!(fs::read_dir(&root.path).unwrap().count(), 0);
+}
+
+/// Every path a receipt prints must exist after the command returns, or be
+/// listed in `ephemeral_paths` because the command removed it.
+fn assert_receipt_paths_exist_or_are_ephemeral(payload: &serde_json::Value) -> Vec<String> {
+    let ephemeral: Vec<String> = payload
+        .get("ephemeral_paths")
+        .map(|fields| serde_json::from_value(fields.clone()).expect("ephemeral_paths"))
+        .unwrap_or_default();
+    for (field, path) in [
+        ("rendered_formula", &payload["rendered_formula"]),
+        ("graph.plan_path", &payload["graph"]["plan_path"]),
+    ] {
+        if let Some(path) = path.as_str() {
+            assert!(
+                Path::new(path).exists() || ephemeral.iter().any(|name| name == field),
+                "{field} names a missing file without flagging it: {payload}"
+            );
+        }
+    }
+    ephemeral
+}
+
+// Direct pour resolves `bd` from PATH, and only Unix finds a script there.
+#[cfg(unix)]
+#[test]
+fn direct_pour_receipt_flags_staged_paths_removed_on_exit() {
+    let fixture = TempFixture::new("direct-pour-receipt-paths");
+    let root = &fixture.path;
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/beads/plan-fix.formula.toml.j2"),
+        root.join("plan-fix.formula.toml.j2"),
+    )
+    .expect("copy plan-fix example");
+    // A failing cook stops the pour after the formula is rendered and staged.
+    let (fake_bd, _trace) = write_fake_bd(root, 1, 0);
+    fs::create_dir(root.join("fake-bin")).expect("fake-bin");
+    fs::copy(&fake_bd, root.join("fake-bin/bd")).expect("install fake bd on PATH");
+    let pour = |json: bool| {
+        let mut command = sc_compose();
+        command
+            .args(["bead", "pour", "plan-fix.formula.toml.j2"])
+            .args(["--var", "plan=p", "--var", "finding=F", "--var"])
+            .arg("literal={{ x }}")
+            .current_dir(root)
+            .env("PATH", fixture.path_with_fake_tools());
+        if json {
+            command.arg("--json");
+        }
+        let output = command.output().expect("run direct pour");
+        assert_eq!(output.status.code(), Some(2), "{output:?}");
+        output
+    };
+
+    let envelope: serde_json::Value =
+        serde_json::from_slice(&pour(true).stdout).expect("receipt envelope");
+    let payload = &envelope["payload"];
+    assert_eq!(payload["outcome"]["failed"]["code"], "BEADS_COOK_FAILED");
+    let staged = payload["rendered_formula"]
+        .as_str()
+        .expect("rendered_formula");
+    assert!(staged.contains(".sc-compose-pour-"), "{payload}");
+    assert!(!Path::new(staged).exists(), "staging is removed on exit");
+    assert_eq!(
+        assert_receipt_paths_exist_or_are_ephemeral(payload),
+        ["rendered_formula"]
+    );
+
+    let human = String::from_utf8(pour(false).stdout).expect("human receipt");
+    let line = human
+        .lines()
+        .find(|line| line.starts_with("rendered_formula: "))
+        .expect("rendered_formula line");
+    assert!(
+        line.ends_with(" (ephemeral: removed when this command exited)"),
+        "{line}"
+    );
+    assert!(
+        fs::read_dir(root).unwrap().all(|entry| !entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .starts_with(".sc-compose-pour-")),
+        "no staging directory is left behind"
+    );
+
+    // A request names its own output, which is kept and never flagged.
+    let template = copy_canonical_template(root, "toml-workflow.formula.toml.j2");
+    let output = root.join("build/workflow.formula.toml");
+    fs::create_dir_all(output.parent().unwrap()).unwrap();
+    let request = write_request(root, &template, &output, &fake_bd, None);
+    let rendered = sc_compose()
+        .args(["bead", "render", "--request"])
+        .arg(&request)
+        .arg("--json")
+        .output()
+        .expect("run request render");
+    assert!(rendered.status.success(), "{rendered:?}");
+    let envelope: serde_json::Value = serde_json::from_slice(&rendered.stdout).expect("envelope");
+    assert!(envelope["payload"].get("ephemeral_paths").is_none());
+    assert!(assert_receipt_paths_exist_or_are_ephemeral(&envelope["payload"]).is_empty());
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn direct_bd_owned_registry_pour_passes_variables_to_bd() {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let registry = root.join(".beads/formulas");
+    fs::create_dir_all(&registry).unwrap();
+    fs::write(registry.join("legacy.formula.toml.j2"), "formula = \"legacy\"\nversion = 1\ntype = \"workflow\"\n[vars.release]\nrequired = true\n[[steps]]\nid = \"build\"\ntitle = \"Release {{ release }}\"\n").unwrap();
+    fs::create_dir(root.join("fake-bin")).unwrap();
+    fs::copy(
+        &workspace.bd,
+        root.join("fake-bin")
+            .join(if cfg!(windows) { "bd.exe" } else { "bd" }),
+    )
+    .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args([
+            "bead",
+            "pour",
+            "legacy",
+            "--render-by",
+            "bd",
+            "--var",
+            "release=2.0",
+            "--json",
+        ])
+        .current_dir(root)
+        .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let receipt: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let stages = receipt["payload"]["stages"].as_array().unwrap();
+    let pour = stages
+        .iter()
+        .find(|stage| stage["stage"] == "pour")
+        .unwrap();
+    let argv = pour["argv"].as_array().unwrap();
+    assert!(
+        argv.windows(2)
+            .any(|pair| pair[0] == "--var" && pair[1] == "release=2.0")
+    );
+    let listed = workspace.bd_json(&["list", "--all", "-n", "0", "--json"]);
+    assert!(
+        listed
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|row| row["title"] == "Release {{ release }}"),
+        "{listed}"
+    );
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn direct_named_user_registry_snapshots_confined_includes() {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let home = TempFixture::new("bead-registry-home");
+    let registry = home.path.join(".beads/formulas");
+    fs::create_dir_all(&registry).unwrap();
+    fs::write(
+        registry.join("external.formula.toml.j2"),
+        "formula = \"external\"\nversion = 1\ntype = \"workflow\"\n@<part.j2>\n",
+    )
+    .unwrap();
+    fs::write(registry.join("part.j2"), "---\ndefaults:\n  fallback: '{{ evidence }}'\n---\n[[steps]]\nid = \"build\"\ntitle = \"Build {{ value }}\"\ndescription = \"{{ fallback }}\"\n").unwrap();
+    let bin = workspace.fixture.path.join("fake-bin");
+    fs::create_dir(&bin).unwrap();
+    fs::copy(
+        &workspace.bd,
+        bin.join(if cfg!(windows) { "bd.exe" } else { "bd" }),
+    )
+    .unwrap();
+    let receipt = run_external_registry_pour(&workspace, &home.path);
+    let id = receipt["payload"]["graph"]["ids"]["build"]
+        .as_str()
+        .unwrap();
+    let row = workspace.bd_json(&["show", id, "--json"]);
+    assert_eq!(row[0]["title"], "Build outside");
+    assert_eq!(row[0]["description"], "{{ evidence }}");
+    workspace.bd_output(&["update", id, "--notes", "keep", "--assignee", "reviewer"]);
+    let second = run_external_registry_pour(&workspace, &home.path);
+    let second_id = second["payload"]["graph"]["ids"]["build"].as_str().unwrap();
+    let second_row = workspace.bd_json(&["show", second_id, "--json"]);
+    assert_eq!(row[0]["metadata"]["sc_compose_graph"]["v"], 2);
+    assert!(
+        row[0]["metadata"]["sc_compose_graph"]["node_definition"]
+            .as_str()
+            .is_some()
+    );
+    assert_eq!(
+        row[0]["metadata"]["sc_compose_graph"],
+        second_row[0]["metadata"]["sc_compose_graph"]
+    );
+    let preserved = workspace.bd_json(&["show", id, "--json"]);
+    assert_eq!(preserved[0]["notes"], "keep");
+    assert_eq!(preserved[0]["assignee"], "reviewer");
+    assert!(fs::read_dir(&workspace.fixture.path).unwrap().all(|entry| {
+        !entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .starts_with(".sc-compose-pour-")
+    }));
+
+    let active = workspace.beads_dir.join("formulas");
+    fs::create_dir_all(&active).unwrap();
+    fs::write(active.join("priority.formula.toml"), "formula = \"priority\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Active source\"\n").unwrap();
+    fs::write(registry.join("priority.formula.toml.j2"), "formula = \"priority\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"User source\"\n").unwrap();
+    let priority = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args(["bead", "pour", "priority", "--json"])
+        .current_dir(&workspace.fixture.path)
+        .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("HOME", &home.path)
+        .env("USERPROFILE", &home.path)
+        .env("GT_ROOT", &home.path)
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap();
+    assert!(priority.status.success(), "{priority:?}");
+    let priority_receipt: serde_json::Value = serde_json::from_slice(&priority.stdout).unwrap();
+    let priority_id = priority_receipt["payload"]["graph"]["ids"]["build"]
+        .as_str()
+        .unwrap();
+    assert_eq!(
+        workspace.bd_json(&["show", priority_id, "--json"])[0]["title"],
+        "Active source"
+    );
+
+    fs::write(registry.join("escape.formula.toml.j2"), "@<../secret.j2>\n").unwrap();
+    fs::write(home.path.join(".beads/secret.j2"), "private").unwrap();
+    let before = workspace.snapshot();
+    let refused = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args(["bead", "pour", "escape", "--json"])
+        .current_dir(&workspace.fixture.path)
+        .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("HOME", &home.path)
+        .env("USERPROFILE", &home.path)
+        .env("GT_ROOT", &home.path)
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    assert_eq!(workspace.snapshot(), before);
+}
+
+fn run_external_registry_pour(workspace: &GraphCliWorkspace, home: &Path) -> serde_json::Value {
+    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args([
+            "bead",
+            "pour",
+            "external",
+            "--var",
+            "value=outside",
+            "--json",
+        ])
+        .current_dir(&workspace.fixture.path)
+        .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("GT_ROOT", home)
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn advanced_attach_missing_edge_previews_and_refuses_unqualified_apply_without_mutation() {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let example =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/beads/release-under-epic");
+    fs::copy(
+        example.join("release.formula.toml.j2"),
+        root.join("release.formula.toml.j2"),
+    )
+    .unwrap();
+    let mut request: serde_json::Value =
+        serde_json::from_slice(&fs::read(example.join("request.json")).unwrap()).unwrap();
+    let parent = workspace.bd_json(&["create", "Parent", "--type", "epic", "--json"])["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    request["working_directory"] = json!(fs::canonicalize(root).unwrap());
+    request["rendered_formula"] = json!(root.join("build/release.formula.toml"));
+    request["bd_executable"] = json!(workspace.bd);
+    request["parent"] = json!(parent);
+    let request = workspace.write_request(&request);
+    let applied = advanced_graph_cli(&workspace, "attach", &request);
+    assert!(applied.status.success(), "{applied:?}");
+    let created: serde_json::Value = serde_json::from_slice(&applied.stdout).unwrap();
+    let graph = &created["payload"]["graph"]["ids"];
+    let build = graph["build"].as_str().unwrap();
+    let verify = graph["verify"].as_str().unwrap();
+    workspace.bd_output(&["dep", "remove", verify, build]);
+    let before = workspace.snapshot();
+    let preview = advanced_graph_cli(&workspace, "preview-attach", &request);
+    assert!(preview.status.success(), "{preview:?}");
+    let planned: serde_json::Value = serde_json::from_slice(&preview.stdout).unwrap();
+    assert!(
+        planned["payload"]["graph"]["edges"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|edge| edge["from"] == verify && edge["to"] == build && edge["action"] == "add")
+    );
+    assert_eq!(workspace.snapshot(), before);
+    let refused = advanced_graph_cli(&workspace, "attach", &request);
+    assert_eq!(refused.status.code(), Some(2), "{refused:?}");
+    let value: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert_eq!(
+        value["payload"]["outcome"]["refused"]["code"],
+        "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE"
+    );
+    assert_eq!(workspace.snapshot(), before);
+}
+
+fn advanced_graph_cli(
+    workspace: &GraphCliWorkspace,
+    operation: &str,
+    request: &Path,
+) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+        .args(["bead", operation, "--request"])
+        .arg(request)
+        .arg("--json")
+        .current_dir(&workspace.fixture.path)
+        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_NO_DAEMON", "1")
+        .output()
+        .unwrap()
+}
+
+#[test]
+fn cli_strict_is_explicit_and_schema_scoped() {
+    let fixture = TempFixture::new("bead-strict-schema");
+    let template = fixture.path.join("strict.formula.toml.j2");
+    let output = fixture.path.join("strict.formula.toml");
+    fs::write(
+        &template,
+        "---\nrequired_variables: []\n---\ntitle = \"{{ value }}\"\n",
+    )
+    .unwrap();
+    let request = fixture.path.join("request.json");
+    write_file(&request, &json!({
+        "schema": BEADS_SCHEMA, "operation": "render", "working_directory": fixture.path,
+        "template": template, "rendered_formula": output, "compose_variables": {"value": "allowed"},
+        "formula_name": null, "bead_variables": {}, "bd_executable": null, "pour_authorization": null
+    }).to_string());
+    let run = |strict: bool| {
+        let mut command = sc_compose();
+        command.args(["bead", "render", "--request"]).arg(&request);
+        if strict {
+            command.arg("--strict");
+        }
+        command.output().unwrap()
+    };
+    assert!(run(false).status.success());
+    assert_eq!(run(true).status.code(), Some(2));
+    fs::write(&template, "title = \"{{ value }}\"\n").unwrap();
+    assert!(run(true).status.success());
 }

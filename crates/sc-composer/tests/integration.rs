@@ -112,13 +112,13 @@ fn render_all_renders_three_pass_template() {
             ),
             (
                 1,
-                BTreeMap::from([(VariableName::new("user").unwrap(), json!("randlee"))]),
+                BTreeMap::from([(VariableName::new("user").unwrap(), json!("example-user"))]),
             ),
         ],
     )
     .unwrap();
 
-    assert_eq!(rendered, "Org=acme\nTeam=platform\nUser=randlee");
+    assert_eq!(rendered, "Org=acme\nTeam=platform\nUser=example-user");
 }
 
 #[test]

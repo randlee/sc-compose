@@ -1,0 +1,40 @@
+# Remaining implementation runs in bounded child dev/sanity/QA groups.
+# V5 ABI work does not wait for whole-V3 closure. V6 pipeline preparation
+# does not wait for completed V5 wheels; its final qualification still does.
+# V7 qualification retains V6 as a prerequisite; its read-only disposition
+# child can run independently. No target coverage or acceptance is waived.
+#
+# Already poured child groups (each ID also has -sanity and -qa beads):
+# comp-v-3.approved-source-accounting       comp       (read-only)
+# comp-v-3.graph-plan-diagnostic           comp
+# comp-v-5.compose-abi3                    compl
+# comp-v-5.sha-abi3                        compl
+# comp-v-5.beads-abi3                      compl
+# comp-v-6.target-contracts                publisher
+# comp-v-6.manual-matrix-wiring            publisher  (after target sanity)
+# comp-v-6.verifier-artifact-binding       team-lead
+# comp-v-6.ci-existing-checks              team-lead
+# comp-v-7.original-pr-disposition         comp       (read-only)
+#
+# Beads remain authoritative for file ownership, source hashes and checks.
+# Every child compares approved source with its candidate, explicitly excludes
+# the breaking change, and has focused QA; no wholesale quarantined import.
+# Atomic ownership qualification remains a phase-end discussion and a named
+# undelivered capability, not a whole-sprint development prerequisite.
+# Final integration uses the completed V3 command model, V5 wheels and V6
+# pipeline, then the single qualifying V7 matrix run and phase-end review.
+# This PR proposes the changed scheduling edges; reconcile live group-dev
+# edges with the merged plan before dispatching those whole-sprint tasks.
+plan = "docs/plans/phase-v/phase-v.jsonl"
+root = "comp-phase-v"
+integration_branch = "integrate/phase-v"
+lead = "comps"
+team = "sc-compose"
+
+[templates]
+dev = ".claude/skills/atm-bd-orchestration/templates/dev-template.xml.j2"
+fix = ".claude/skills/atm-bd-orchestration/templates/fix-assignment.xml.j2"
+sanity = ".claude/skills/atm-bd-orchestration/templates/dev-sanity-template.xml.j2"
+qa = ".claude/skills/atm-bd-orchestration/templates/qa-template.xml.j2"
+plan_review = ".claude/skills/atm-bd-orchestration/templates/plan-review-template.xml.j2"
+review = ".claude/skills/atm-bd-orchestration/templates/review-template.xml.j2"

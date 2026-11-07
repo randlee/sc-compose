@@ -1,0 +1,22 @@
+# v-2: net-dependencies
+
+## Description
+
+Agent level: normal.
+### Deliverables
+1. Compare the exact original dependency-stack PR set below with recovered develop and V4's lint-fixed baseline. Apply only missing net changes and necessary corrections; do not replay intermediate reverts/rebumps or already-carried code. Preserve MiniJinja =2.18.0 and actual boundary ownership.
+2. Use the already-committed UniFFI 0.31.2 contract, reconcile manifests/lock and generated Rust/Go scaffolding, and preserve YAML/var-file compatibility and test-support/license cleanup. Boundary changes may correct ownership, never weaken dependency constraints or implementation-site enforcement.
+3. Obtain quality-mgr code review of every listed contribution, including code already in develop. Apply required fixes, validate the retained baseline and complete each source-PR disposition under the root rule. #831 is the separate UniFFI ADR amendment, excluded from the 17 code-stack PRs.
+4. Hand V3 and V9 the reviewed dependency/scaffolding baseline. V9 owns native target/loader/archive expansion; this sprint does not claim the six-platform delivery matrix.
+Exact dependency PRs (17): #823, #824, #827, #828, #829, #830, #832, #833, #834, #835, #836, #837, #838, #839, #840, #841, #842.
+
+## Acceptance criteria
+
+Every listed contribution has quality-mgr's code-review verdict against a pinned baseline/candidate, even if no net diff remains. All retained changes and fixes pass the required checks; completed originals close with the correct already-landed/superseded/declined status. Current dependency versions, generated output and license/boundary facts agree; unresolved contributions block this sprint.
+
+### Required Validation
+cargo build --workspace; cargo test --workspace; cargo clippy --all-targets --all-features -- -D warnings; cargo fmt --all -- --check.
+- just generate-sc-sha-rust check; just generate-sc-sha-go check (no generated drift).
+- cargo test -p sc-composer; cargo test -p sc-sha-go --test conformance.
+- python3 bindings/sc-sha-go/tests/test_release_layout.py.
+- just lint sc-boundary; just lint sc-portability. The exact 0.8.5 tool must run; skipped/empty analysis is not success.

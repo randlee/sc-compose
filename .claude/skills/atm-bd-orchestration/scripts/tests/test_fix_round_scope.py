@@ -11,7 +11,9 @@ import unittest
 
 SCRIPT = Path(__file__).parents[1] / "fix-round-scope"
 LOADER = importlib.machinery.SourceFileLoader("fix_round_scope", str(Path(__file__).parents[1] / "fix-round-scope"))
-scope = importlib.util.module_from_spec(importlib.util.spec_from_loader("fix_round_scope", LOADER))
+SPEC = importlib.util.spec_from_loader("fix_round_scope", LOADER)
+assert SPEC is not None
+scope = importlib.util.module_from_spec(SPEC)
 LOADER.exec_module(scope)
 
 CARRIED = [
@@ -138,6 +140,16 @@ class CliTests(unittest.TestCase):
         (self.dir / "r.json").write_text(json.dumps({"data": {"findings": []}}))
         out = self.run_cli("filter", "--carried", "carried.json", "--reviewer", "req-qa", "--result", "r.json")
         self.assertEqual(out.returncode, 2)
+
+    def test_inline_json_or_a_missing_file_is_a_named_error(self):
+        out = self.run_cli("filter", "--carried", "carried.json", "--reviewer", "arch-qa", "--result", '{"data": {"findings": []}}')
+        self.assertEqual(out.returncode, 2)
+        self.assertIn("--result is a file path, not inline JSON", out.stderr)
+        self.assertNotIn("Traceback", out.stderr)
+        out = self.run_cli("owned", "--carried", "missing.json")
+        self.assertEqual(out.returncode, 2)
+        self.assertIn("cannot read --carried missing.json", out.stderr)
+        self.assertNotIn("Traceback", out.stderr)
 
 
 if __name__ == "__main__":

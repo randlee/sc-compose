@@ -52,8 +52,8 @@ The repository MUST publish a generated Go module for the canonical `sc-sha`
 hash operations so external consumers can use the shared hash contract without
 copying its implementation. The module MUST use the documented submodule path
 `github.com/randlee/sc-compose/bindings/sc-sha-go`, generated UniFFI source, and
-the matching packaged native artifact for each supported target (Linux/amd64,
-macOS/arm64, and Windows/amd64). Release validation MUST cover generated
+the matching packaged native artifact for each supported target (Linux/amd64 and arm64, macOS/amd64 and arm64,
+and Windows/amd64 and arm64), as required by FR-25 and ADR-0025. Release validation MUST cover generated
 source drift, native artifact selection, conformance vectors, and an
 independent Go consumer. The adapter MUST depend only on `sc-sha` and MUST NOT
 add ATM, resolver, filesystem, or duplicate hash logic.
@@ -149,6 +149,9 @@ Schema rules:
 - If no frontmatter block exists at all, the file is treated as having no
   declarations and no defaults.
 - `required_variables` values must be unique variable names.
+- A duplicate key in any frontmatter mapping, at any nesting level and whether
+  or not the key is recognized, fails with `ERR_CONFIG_PARSE`, as FR-12
+  requires for var-files ([ADR-0026](adrs/0026-fuzz-contract-decisions.md) D3).
 - `defaults` supplies optional values that become part of the render context
   unless overridden by environment-derived or explicit input values.
 - If both `defaults` and `input_defaults` appear in the same frontmatter
@@ -308,6 +311,10 @@ HTML-Report follow-on design track:
 - `validate` and `render --dry-run` must emit an informational diagnostic when
   a referenced or required variable is satisfied by a default value rather than
   explicit caller input.
+- Within explicit input variables, an inline `--var` value overrides the same
+  key loaded from `--var-file`, regardless of argument order. For repeated
+  `--var` arguments with one key the last wins; for several `--var-file`
+  arguments a later file wins ([ADR-0026](adrs/0026-fuzz-contract-decisions.md) D7).
 - Explicit CLI `--var key=value` inputs are always strings.
 - This string-only behavior is intentional: CLI text inputs are not coerced
   based on their spelling. Callers that need numeric, boolean, null, object,
@@ -407,6 +414,25 @@ Referenced-but-unbound tokens are a separate axis from undeclared tokens:
   to a file.
 - Include failures must produce actionable diagnostics with include-chain
   context.
+- A render or validation error raised from included content must name the
+  included file and its own line number, plus the include chain, not a line in
+  the expanded parent (ADR-0026 D10).
+- An include target outside the allowed roots fails with `ERR_INCLUDE_ESCAPE`,
+  including a target reached through the root fallback or through a symlink
+  whose destination is outside the roots, even when that destination does not
+  exist. A boundary violation is reported in preference to not-found
+  (ADR-0026 D1).
+- Include layout (ADR-0026 D8):
+  - the directive line is replaced by the included content, and the
+    replacement always ends the line; when the included content has no final
+    line break, the parent's line break follows it;
+  - line endings outside the included content are never changed, and the
+    included content keeps its own;
+  - indentation in front of a directive is not applied to the included lines;
+  - include directives expand before Jinja evaluation, so a directive inside
+    `{% raw %}` or a false `{% if %}` block is still expanded and validated.
+- An include target that is not readable as valid text fails with
+  `ERR_CONFIG_READ` (ADR-0026 D12).
 
 ### FR-3a: Frontmatter Across Includes
 
@@ -428,7 +454,14 @@ Referenced-but-unbound tokens are a separate axis from undeclared tokens:
 ### FR-4: Safety Constraints
 
 - File reads must be confined to a configured root by default.
-- Path traversal outside the allowed root set must fail.
+- Path traversal outside the allowed root set must fail. A template path
+  outside the allowed roots fails with `ERR_RESOLVE_ESCAPE`, not
+  `ERR_RESOLVE_NOT_FOUND`, and the text and JSON messages name the same cause
+  (ADR-0026 D1). This behavior is implemented on the Phase V candidate at
+  `f3d523e0`; integration and phase acceptance remain pending.
+- Confinement covers reads. `render --output` and `--append` may write to any
+  path the caller names. Beads request outputs keep their own confinement
+  under `working_directory` (ADR-0021; ADR-0026 D5).
 - Callers may optionally provide additional allowed roots.
 - Template rendering must not execute arbitrary host code.
 
@@ -524,6 +557,10 @@ Each block may be empty. Ordering is never caller-defined.
 
 ### FR-7: CLI Surface
 
+The Phase V `reference --json` command exposes the actual live command model
+for FR-26 through the normal envelope; its payload.model contract is in
+[architecture.md](architecture.md#phase-v-external-documentation-adapter-contract).
+
 `sc-compose` must provide these commands:
 
 - `render`
@@ -581,7 +618,12 @@ Command behavior:
 - `render`
   - renders one resolved template or profile,
   - writes to stdout by default,
-  - may write to a file when requested,
+  - may write to a file when requested; with `--output` it writes nothing to
+    stdout in text mode (ADR-0026 D4),
+  - reports a template syntax or engine evaluation error as
+    `ERR_RENDER_TEMPLATE`, never `ERR_RENDER_WRITE`, in text and JSON output
+    (ADR-0026 D2; implemented on the Phase V candidate at `f3d523e0`; integration
+    and phase acceptance remain pending),
   - must honor validation and strictness policy,
   - accepts optional guidance and user prompt blocks,
   - with `--append <path>`, renders and validates first, requires the output
@@ -711,7 +753,11 @@ Pack root policy:
 
 ### FR-7a: Variable File Rules
 
-- `--var-file` accepts a JSON or YAML object.
+- `--var-file` accepts a JSON or YAML object, detected by content: text that
+  is not valid JSON but is valid YAML is read as YAML, whatever the file
+  extension (ADR-0026 D11).
+- A YAML scalar of digits with a leading zero, such as `012`, is the string
+  `"012"`. Non-finite YAML numbers (`.inf`, `.nan`) are rejected.
 - Variable-file keys must be strings.
 - Variable-file values must be supported render-context value types.
 - Object/map values with string keys are valid per FR-12.
@@ -751,6 +797,10 @@ arrays), `ERR_RENDER_APPEND_NOT_OBJECT` (JSON but not one object),
 
 The template engine must enable `trim_blocks` and `lstrip_blocks` by default.
 Authors may opt out for a specific block with the standard Jinja `+` modifier.
+
+Every pass of a multi-pass template (ADR-0002) follows the same whitespace
+rules. An expression at the end of a line keeps its line break in every pass
+(ADR-0026 D9).
 
 ### FR-8: Determinism and Diagnostics
 
@@ -1427,6 +1477,11 @@ and `bd` argv are unchanged, except that `bd cook` reads a private
 path (same command and flags; receipts and diagnostics show the public path;
 see ADR-0023 Errata).
 
+Request keys: the `sc-compose/beads/v1` request accepts and ignores unknown
+top-level keys in every mode, so callers may carry their own annotations. The
+template path suffix is not enforced; only the `rendered_formula` extension is
+checked ([ADR-0026](adrs/0026-fuzz-contract-decisions.md) D6).
+
 - **FR-23.1 Rendered formulas are final.** For the graph operations below,
   structure and values come from the sc-compose template (loops, conditionals,
   includes, `{{{ ... }}}` values). No `--var` is passed to `bd`, the formula
@@ -1484,6 +1539,419 @@ see ADR-0023 Errata).
   `#[non_exhaustive]`, so adapters match it with a wildcard arm.
 - **FR-23.11 bd support.** Production `bd` v1.3.1 is supported; every command
   used exists there. No Beads fork, version probe or persisted proto is used.
+
+### FR-25: Complete Platform Delivery and Python Stable ABI
+
+FR-25.1: Deliver all six macOS/Windows/Linux × x64/arm64 targets for each
+of five artifact families: Rust CLI, sc-compose wheel, sc-sha wheel,
+sc-composer-beads wheel, and sc-sha-go native module (30 artifact/platform
+cells). Update the Go binding native target contract explicitly; an infeasible
+target blocks completion rather than disappearing from the matrix.
+
+All 30 artifact/platform cells must build successfully: the Rust CLI, the
+sc-compose, sc-sha and sc-composer-beads wheels, and the sc-sha-go native module,
+each for macOS, Windows and Linux on x64 and arm64.
+
+FR-25.2: All three Python distributions support CPython 3.9 and newer,
+with Windows ARM64 starting at CPython 3.11 (user ruling, 2026-11-04).
+Prefer one abi3-py39 wheel per supported platform, correct cp39-abi3 tags and
+requires-python >=3.9, without an artificial upper bound. Windows ARM64's
+runtime matrix starts at 3.11; 3.9/3.10 there are explicitly inapplicable,
+not silently skipped failures. If a target toolchain requires a stricter
+wheel tag, record and verify that platform-specific exception without
+raising the other platforms' minimum.
+Test 3.9/3.10/3.11/3.12/3.13/3.14 where applicable, with pip and uv, and
+inspect actual stable-ABI symbols, tags, installed imports and behavior.
+Prefer the single compatible family. Measure representative rendering,
+hashing and Beads adapter workloads before claiming a performance penalty.
+If a material penalty is demonstrated, present the measurements and proposed
+optimized wheel variants for owner review; variants should share the same
+package release where supported. Do not drop 3.9 support or multiply package
+versions without that decision. Benchmarks report measurements, not flaky
+wall-clock assertions in unit tests.
+
+FR-25.3: Preserve applicable delivery channels: Rust GitHub/Homebrew/winget/
+Scoop, wheels PyPI and isolated TestPyPI rehearsal, Go target ZIP modules/
+GitHub assets, and crates.io source packages. Go package/schema/helper
+ownership remains ADR-0018/0020/0022; use supported canonical installers,
+not a local vendored fork. No public publication occurs during recovery.
+
+FR-25.4: Run the full integration install matrix only via workflow_dispatch,
+with real Windows x64/arm64 execution on GitHub. Normal sprint CI uses the
+small cached-wheel install path and current-only byte regression command.
+Windows amd64 and manylinux integration runs belong only to the manual
+integration/preflight workflow; ordinary native Windows unit checks do not
+constitute those integration runs.
+Before publication, require a successful matrix on the final publication
+candidate/version and the exact retained artifact bytes; an earlier upgrade
+run cannot cover later code changes. Check every selected release
+artifact's SHA-256 against trusted successful run outputs, reject missing/
+wrong/stale evidence and same-candidate changed bytes, and publish those same
+files without rebuilding after gate/tag. Candidate/version/bytes changes
+require a new qualifying run. Evidence survives through its publication
+consumer; expired/missing evidence fails closed.
+
+Governing decision: [ADR-0025](adrs/0025-platform-delivery-and-python-abi.md).
+These requirements record the user's platform, Python-floor and
+integration-only matrix rulings; they do not assert implementation completion.
+
+### FR-24: Advanced Beads Pour
+
+The 24 approved items plus Phase V extensions below are the user-approved target behavior, consolidated
+by the user and team-lead on 2026-11-04. They describe what must work,
+including behavior that may already be implemented in develop. Review the
+current implementation and tests against each requirement before adding code;
+reuse correct code and tests, and implement only missing behavior or corrections.
+The previous opt-in advanced-mode wording is superseded: advanced rendering is
+the default; `--render-by bd` explicitly selects v1.7.0 rendering behavior.
+The existing public Rust request layouts remain source compatible.
+
+Definitions: advanced pour renders all template expressions before bd runs;
+bd-owned mode leaves ordinary expressions for bd. The CLI selector is
+`--render-by <sc-compose|bd>`, defaulting to `sc-compose`.
+Design choices still requiring decisions are listed after the requirements;
+they are not silently approved by this consolidation.
+
+#### FR-24.13 — Approved item 1
+
+Advanced pour is the default: sc-compose rendering is used when `--render-by` is not specified, and `--render-by bd` selects bd rendering.
+
+#### FR-24.14 — Approved item 2
+
+In advanced pour, sc-compose renders every loop, condition, include and variable expression; the formula or graph sent to bd contains no template expression left for bd to evaluate.
+
+#### FR-24.15 — Approved item 3
+
+In advanced pour, sc-compose never passes a value to bd as `--var`.
+
+#### FR-24.16 — Approved item 4
+
+Tight `{{key}}` and padded `{{ key }}` are both replaced by the caller's bead input before bd runs.
+
+#### FR-24.17 — Approved item 5
+
+A loop-local variable is replaced by that iteration's value.
+
+#### FR-24.18 — Approved item 6
+
+Values containing `{{ }}`, `{{{ }}}` or `{% %}` stay literal data and are never re-parsed.
+
+#### FR-24.19 — Approved item 7
+
+Every field bd stores, including labels, holds the rendered value, checked by reading the created bead back from bd, not by checking the pre-bd file.
+
+#### FR-24.20 — Approved item 8
+
+Filters act on the real value: `A{BC` lowercases to `a{bc`, has length 4, and its first three characters are `A{B`.
+
+#### FR-24.21 — Approved item 9
+
+A default declared in an included template's frontmatter fills a value the caller didn't supply, and the default's text stays literal.
+
+#### FR-24.8 — Approved item 10
+
+With advanced pour, graph pour by path and attach accept caller bead inputs; with `--render-by bd`, they reject those inputs exactly as v1.7.0 does (graph pour by path: `BEADS_GRAPH_FORMULA_UNSUPPORTED` with reason `bead_variables_set`; attach: request error `attach forbids bead_variables`).
+
+#### FR-24.22 — Approved item 11
+
+Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+
+#### FR-24.23 — Approved item 12
+
+The real `sprint-group` and `finding-group` orchestration formulas pour through advanced mode, and the created beads' titles, descriptions, labels, ids and edges match the expected output.
+
+#### FR-24.24 — Approved item 13
+
+With `--render-by bd`, every Rust API function, CLI command and Python function that exists in sc-compose v1.7.0 (commit f4fda4b9) behaves exactly as in v1.7.0: same rendered bytes, same bd command line, same error codes.
+
+#### FR-24.2 — Approved item 14
+
+Schema-less template output matches v1.7.0 byte for byte. A difference is allowed only if the user has approved it as a genuine bug fix, and it is recorded with its linked issue in `approved-exceptions.json`. Goldens are generated once from v1.7.0 and are never regenerated from candidate output. Any unlisted difference fails CI. Adding an entry requires user approval.
+
+#### FR-24.25 — Approved item 15
+
+Existing Rust request struct literals compile unchanged; the new mode is added as a new option or entrypoint, not as a new required field.
+
+#### FR-24.26 — Approved item 16
+
+The same advanced request gives identical rendered output and identical bd command lines from Rust, the CLI and Python.
+
+#### FR-24.7 — Approved item 17
+
+An explicit bd-owned mode leaves `{{ }}` expressions for bd to evaluate and keeps today's registry `--var` behavior.
+
+#### FR-24.10 — Approved item 18
+
+A graph-plan output path that is blocked, including by a directory, is refused before any bd command runs.
+
+#### FR-24.27 — Approved item 19
+
+If rendering or validation fails, no bead is created.
+
+#### FR-24.28 — Approved item 20
+
+The undeclared-variable check runs only when explicitly requested, and only for templates that declare a schema.
+
+#### FR-24.29 — Approved item 21
+
+The recovered Beads code and tests (`crates/sc-composer-beads` on the `rebuild/from-main` branch) are ported, not rewritten. #791's strict-only default is not ported: strict validation stays off unless the caller passes `--strict` (or the matching API option).
+
+#### FR-24.30 — Approved item 22
+
+`bead.md` (`crates/sc-compose/docs/manual/bead.md`) documents each mode (`--render-by sc-compose` and `--render-by bd`) with a worked input-to-created-bead example.
+
+#### FR-24.31 — Approved item 23
+
+V3 builds bounded, deterministic regressions for the current approved Beads
+contract, pairing rejected inputs with permitted inputs where the contract
+requires both. V7 reruns the applicable regressions on the final candidate.
+The abandoned FUZZ-171 recovery is historical evidence, not a prerequisite
+for these tests; unavailable historical cases are not claimed as recovered or
+passed.
+
+#### FR-24.32 — Approved item 24
+
+V3 verifies compatible validation and rendering with a bounded, controlled
+set of current-contract templates, including accepted inputs and relevant
+refusals. V7 reruns the applicable checks on the final candidate. The prior
+229-template comparison is historical evidence; its unavailable exact corpus
+and source mapping are not a prerequisite for the current tests and are not
+represented as a passing rerun.
+
+#### FR-24.33 — Plan-fix pour with caller variables
+
+Provide the sc-compose equivalent of `bd mol pour <plan-fix formula> --var
+key=value`: `sc-compose bead pour <plan-fix-formula> --var key=value`.
+Resolve the selected formula and render supplied values through advanced
+sc-compose rendering before bd runs. Repeated --var inputs are supported;
+values remain data and never become template source. Keep the existing
+--request JSON form working. The default renderer and explicit --render-by bd
+behavior follow FR-24.13 and FR-24.7; strict checks remain explicitly requested.
+Document a real plan-fix formula with caller variables and expected created
+beads, and verify stored fields by reading them back from bd. Missing source
+or unresolved input must fail without creating beads. Confirm the actual
+formula source/registry identity before claiming that example passes.
+
+#### FR-24.34 — Automatic declared edges during pour
+
+Advanced pour creates declared dependency/relationship edges without manual
+bd dep add follow-up, including missing edges and newly declared edges
+between existing beads (user decision, 2026-11-04). Existing operation-owned
+beads retain their state. Conflicting edge types and foreign-owned planned
+ids are refused. Explicit external relation endpoints remain governed by
+ADR-0023; they are not adopted as operation-owned beads.
+The operation validates rendered references and applies its allowed node/edge
+additions atomically. Added relations alone must not invalidate ownership of
+unchanged nodes. Changed node definitions are a conflict, not implicit field
+updates. Preview and failed validation write nothing. Replays do not duplicate
+edges, reset status/notes/assignee, or remove prior graph state.
+
+#### FR-24.35 — Conditional beads and edges
+
+Jinja conditionals may include or omit entire beads and edges. sc-compose
+renders conditions, loops and includes before validating the resulting graph.
+Both enabled and disabled branches must work. A remaining relation to an
+omitted step is a dangling reference and fails before mutation. Enabling an
+optional bead or edge on a later advanced pour adds the requested elements
+under FR-24.34; disabling one later does not delete existing beads or edges.
+Deletion/pruning is a separate operation and is not inferred from omission.
+Use typed booleans from structured request inputs, or explicit comparisons
+for string-valued CLI --var inputs; do not treat the nonempty string "false"
+as a boolean false. Test typed true/false and documented string flag forms,
+including literal brace data, real stored nodes/edges and idempotent replays.
+
+#### FR-24.36 — Beads identifiers, paths and diagnostics
+
+Carry the Phase U ANC-012/013 and ANC-036–048 behaviors into Phase V.
+Option-like bead identifiers reach bd as identifier arguments, never options.
+Recovery commands shell-quote literal arguments and escape control, zero-width
+and bidi characters; human attach refusals escape identifier controls.
+Attach graph references match `[A-Za-z0-9_-]{1,32}`, relation step identifiers
+match `[A-Za-z0-9_]{1,64}`, and bd dependency types match
+`[A-Za-z][A-Za-z0-9_-]*` before graph mutation planning. Empty parent/relation
+bead identifiers, or ones containing whitespace/control characters, are refused.
+Rendered-formula destinations with a missing/file parent, or equal to the
+input template, fail before invoking bd. A blocked graph-plan output names
+the failing path in human output and `graph_plan` in JSON `details.field`.
+A missing non-UTF8 request path returns `BEADS_REQUEST_READ_FAILED` without
+breaking diagnostic formatting. Request-shape and pour-authorization errors
+precede graph-identifier errors. Governing contract: [ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md)
+and [ADR-0024](adrs/0024-advanced-beads-pour.md). Pair each refusal with a permitted input;
+do not extend these graph constraints into a generic template-input ban.
+Existing valid bd-compatible inputs remain accepted.
+
+#### Existing FR-24 cross-references
+
+The former background ids remain references to the approved behavior above:
+FR-24.1 (construction and bd ownership) and FR-24.3 (variable rendering) refer
+to FR-24.14–19; FR-24.4 (literal values) refers to FR-24.18;
+FR-24.5 (filters) to FR-24.20; FR-24.6 (include defaults) to FR-24.21;
+FR-24.9 (frontmatter and explicit strictness) to FR-24.28–29;
+FR-24.11 (source-compatible APIs) to FR-24.25–26;
+FR-24.12 (documentation/regressions) to FR-24.30–32. They do not retain the
+superseded legacy-default assumption.
+
+Additional retained contract details are: bead render emits the rendered body
+only and removes frontmatter (historical issue #785); variable validation
+counts only selected brace expressions and does not treat comments, raw bodies,
+Jinja syntax names, or literal data as input variables; JSON/TOML escaping is
+applied once, while expression results and nested values remain data and are
+not reparsed as template source. These are current contract details for V1 to
+pin and V3 to implement, not additional historical corpus or fuzz gates.
+
+#### Design contract and unresolved evidence
+
+ADR-0024 records the additive Rust options/runner signatures, Python keyword
+mapping, direct-CLI request mapping, duplicate/conflict policy and scoped
+default precedence. These are the V1 contract consumed by V3, not choices
+silently deferred to implementation. Public request layouts remain unchanged.
+FR-24.34–35 fix additive existing-node edges and conditional elements;
+ADR-0023 records the atomic-write and provenance contract. The FR-24.24 byte
+comparison remains an evidence input to pin. The user ruling recorded in the
+`comp-phase-v` bead notes on 2026-11-05
+replaces abandoned historical fuzz/corpus recovery with bounded deterministic
+regressions of the current intended contract. Historical FUZZ-171 cases and
+the 229-template corpus were not rerun, recovered, or passed; they are not
+prerequisites for the replacement work. V1 qualifies available inputs, V3
+implements the bounded current-contract regressions, and V7 owns applicable
+final reruns.
+
+The Phase V source anchor records include superseded wording for the legacy
+render default and historical FUZZ/corpus reruns. Their assigned anchor owner
+handles record dispositions through the normal anchor process; this V1
+requirements carry-forward does not edit those separate anchor records.
+
+#### bd variable semantics — observed evidence and limits
+
+Comp ran the commands serially against one throwaway Dolt 2.3.1 server on
+loopback port62058, not shared3308. Exact binary: **bd1.3.2 (dev), commit
+407fe27a282a1b060b7a1ced5a5b464cda2c3963**, sha256
+`0409db260bda64738f23a399367ffa791e8ee7a2d6b332024082f7bcee50fe6d`.
+These are observations for that build, not a released-1.3.2 qualification.
+The author read comp's report and command records; the author did not rerun
+or mutate the server. Source evidence is comp's
+`/Users/randlee/.config/atm/share/sc-compose/bd-132-probe/evidence.md` and
+`commands.jsonl` plus preserved formula/graph inputs. Command paths below
+abbreviate only that recorded throwaway workspace.
+
+| ID | Exact command form on the recorded build | Observed result | sc-compose consequence |
+|---|---|---|---|
+| BD-V1 | `bd mol pour vars-probe --var x=VALUE --json`; `bd list --all -n 0 --json`; `bd cook <vars-probe.formula.toml> --mode=runtime --var x=VALUE --json` | Two pours/runtime cook substitute both tight/padded forms in title/description/notes and root description; labels remain `tight-{{x}}` / `padded-{{ x }}`. | Advanced mode must render supported fields itself; native field behavior is not uniform. The old padded-title defect is NOT reproduced here. |
+| BD-V2 | `bd mol pour vars-probe --var x=VALUE --var y=OVERRIDE --json`; runtime cook with the same values; cook/pour without required x | Default y=DEFAULT works, explicit y=OVERRIDE wins in actual stored output; missing required x exits1 (`missing required variables: x` for pour). | Native `[vars]` is not sc-compose frontmatter; never use its fallback/substitution to implement advanced values. |
+| BD-V3 | `bd cook <undeclared.formula.toml> --mode=runtime --var z=EXTRA --json`; `bd mol pour undeclared --var z=EXTRA --json` | Both exit0; undeclared `{{ z }}` becomes EXTRA in cooked/stored title. Extra unused undeclared keys are accepted. | Declaration policy belongs to an explicit sc-compose contract, not assumed bd rejection. This observation is not automatically an upstream bug. |
+| BD-V4 | `bd cook <literals.formula.toml> --mode=compile --json`; runtime cook and `bd mol pour literals --var key=ALPHA --json` | Compile/no-var pour preserves sample text; runtime cook without key exits1; supplying key changes tight/padded to ALPHA and triple `{{{ key }}}` to `{ALPHA}`, while `{% if key %}` stays literal. Three supplied-value pours agree. `x={{y}}` stayed literal in the tested insertion sample, not a general safety guarantee. | No native substitution in advanced mode; triple braces are not a bd literal escape. |
+| BD-V5 | Recovered sc-compose `bead render --request <sc-request.json> --json`, then `bd mol pour sc-probe --var x=VALUE --json`; `bd cook <flat.formula.toml> --mode=runtime --var x=EXPANDED --json` | Legacy render leaves both ordinary forms; native pour substitutes title. Cook leaves input-file SHA unchanged but changes `literal {{ x }}` to `literal EXPANDED` in returned data. | Neither an unchanged file nor successful cook proves literal-safe returned values. Do not send rendered advanced values back through runtime vars. |
+| BD-V6 | `bd create --graph <graph.json> --json`; `bd create --graph <attach-graph.json> --dry-run --json`, then apply/read; recovered `bead preview-attach` / authorized `attach` | Graph title/description/notes/labels preserve tested tight/padded/triple/control strings. Dry-run changes no ids. Actual sc-compose attach preserves the tested literals after a valid source raw block; an earlier unwrapped invalid-Jinja source failed rendering and is not a graph result. | Graph handoff is a supported candidate literal-safe route for these samples; exact broader escaping/field coverage is still an acceptance obligation. |
+| BD-S1 | Compile cook on extends/loop/expand; runtime cook `--var deploy=false`; actual `bd mol pour condition --var deploy=false --json`; gate pour | Compile expands inheritance, loop ids `iterate.iter1.work`/`iterate.iter2.work` and expansion `check`. Runtime cook retains false-condition deploy while actual pour omits it; gate field survives cook and native pour creates a gate node. | Advanced structure belongs to sc-compose. Source/doc alignment for the condition example is unconfirmed; do not claim all native features or exact cook/pour equivalence. |
+
+Remaining unknowns: arbitrary nested/escaped data, every native field/feature
+combination, native Windows/Linux runs, released binary qualification and the
+new advanced implementation. Repeated samples are not exhaustive proofs.
+`mol pour --help` alone specifies only `--var key=value  Variable substitution`.
+
+#### Known bd variable-substitution defects / candidate upstream reports
+
+**KBD-1 — historical padded placeholder mismatch (#618), not reproduced on the
+recorded1.3.2-dev build.** Minimal report: declare required x; use title
+`tight {{x}}`, description `padded {{ x }}`; run `bd mol pour <name> --var
+x=ALPHA` and read the bead. Expected: both substitute. Historical bd1.3.1-dev
+report/correction: tight substitutes, padded stays literal. Current BD-V1:
+both substitute in title/description/notes. Do not call the old defect
+reproduced on1.3.2. FR-24.1/.3/.7 avoid depending on either native result.
+
+**KBD-2 — observed field inconsistency (candidate upstream bug).** On recorded
+bd1.3.2-dev, vars-probe declares required x and has title `tight={{x}}
+padded={{ x }}` plus labels `["tight-{{x}}", "padded-{{ x }}"]`. Command:
+`bd mol pour vars-probe --var x=VALUE --json`, then `bd list --all -n 0 --json`.
+Expected for the advanced-pour capability: all supported field values are
+materialized. Observed: title/description/notes substitute; labels retain
+both expressions in two pours and runtime cook. Native help does not define
+uniform field coverage, so this is a concrete incompatibility plus candidate
+bug, not an asserted upstream specification violation. FR-24.3/.7/.8 render
+fields in sc-compose and verify real stored labels.
+
+**KBD-3 — literal triple-brace corruption under native substitution.** On the
+same build, literals formula title includes `{{{ key }}}`; `bd mol pour
+literals --var key=ALPHA --json` and runtime cook produce `{ALPHA}` rather
+than the intentionally literal input. Repeated runtime cooks/three pours agree.
+Expected for advanced literal-data preservation: original braces/text survive.
+This is not a claim bd promises triple braces as escaping. FR-24.4/.5/.7/.8
+require no delegated substitution plus a tested literal-safe route.
+
+**KBD-4 — cook/pour condition difference (needs source alignment).** Runtime
+cook of the local condition example with deploy=false retains deploy; native
+pour omits it. The example may not match dev commit407fe27's documentation;
+expected native semantics need matching upstream source/doc before calling it
+a bug. FR-24.1 owns advanced conditions rather than depending on that behavior.
+
+These are candidate upstream reports for the user to decide. No issue has
+been filed. Detailed repro inputs, command labels, exits and outputs remain
+in comp's report; none is presented as an implemented advanced-mode test.
+
+
+### FR-26: External CLI Documentation in Publish Preflight
+
+User-directed docli behavior is also recorded in anchors ANC-014–016.
+The producer is sc-compose reference --json; consumers extract payload.model.
+Use sc-docli as an external CLI-documentation tool, never a workspace crate
+dependency or a competing in-process documentation engine. Generate and check
+references from the actual Clap model. Every publish path invokes the tool
+through supported sc-publish preflight checks; stale CLI references block
+publication. Register the freshness check through the existing sc-publish
+consumer-preflight extension/config. Adopt canonical kit inputs and
+installed helpers without local forks. A deterministic stale-reference case
+and a real consumer-preflight invocation verify the integration; installer
+capability alone is insufficient.
+
+The approved scope is the existing shared sc-publish extension/config and its
+declared consumer-preflight check. It does not require a new shared kit gate or
+rolling workflow changes across eight channels in ten repositories; this follows
+the owner-directed withdrawal of expanded sc-publish proposal #159 before any
+publication or consumer rollout.
+In this repository, the declared check runs
+`scripts/generate_cli_reference.py --check --install-docli` through
+`.github/scripts/run-consumer-preflight.sh` from the Release Preflight workflow.
+It verifies the pinned docli is available and that the generated CLI reference
+matches the current `payload.model`; the controlled consumer test passes with
+fresh outputs and fails on stale outputs without rewriting them. The configured
+publish plan enumerates six active paths and the tests verify those entries,
+the shared Release Preflight runner, and the declared check.
+
+Implementation limitation, recorded separately and not a weaker requirement:
+the evidence above does not yet show that each individual publish workflow is
+gated, because direct manual dispatch of an individual publish workflow does
+not inherit a `needs` dependency on Release Preflight. The every-publish
+guarantee above stays in force and Phase V does not claim it is implemented.
+If the existing supported extension points cannot satisfy every publish path,
+that is a user decision; the requirement is not reworded to Release
+Preflight-only coverage.
+
+### FR-27: Released Analyzer Migration and Existing Violations
+
+Phase V starts from current develop and migrates to released sc-lint 0.8.6.
+Verify the installed version and retain the real boundary owners, including
+sc_compose_native. Run the migrated analyzer on the unchanged product baseline,
+then fix the existing violations it reports without suppressing rules or
+weakening boundary constraints. Dependency integration follows the validated
+lint fixes; advanced Beads changes follow dependency integration. Governing
+boundaries remain ADR-0016 and ADR-0017.
+
+### FR-28: Phase V Release Preparation
+
+Prepare version 1.8.0 across package/distribution manifests and lockstep inputs
+before the final qualifying candidate run. V7 owns the version preparation.
+Production publishing occurs after Phase V, never as sprint work.
+
+### FR-29: Deterministic Tests
+
+Tests use controlled inputs, never race, timing, sleep, event-loop ordering
+or load assumptions. Identified flaky tests are redesigned deterministically.
+
+### FR-30: Windows Cross-Build and Cross-Check
+
+Every Windows-target cross-build/check uses the cargo xwin command prefix,
+with the required x64 or ARM64 target explicit. Native Windows runtime tests
+remain required where the platform-delivery contract calls for them.
 
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
@@ -2070,3 +2538,119 @@ Required integration coverage includes:
 - Multi-panel HTML/XHTML report expansion and wrapper-level output viewing
   behavior remain deferred to the follow-on design track in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)
+
+#### Phase U requirement carry-forward into Phase V
+
+Phase V replaces Phase U. The complete handoff is team-lead ATM
+01M6MK6NABQXTQE42BA3JB6JB7, `phase-u-all-requirements.md` (2026-11-04),
+covering 53 locked and 34 proposed entries plus the 24 approved Beads items.
+All 87 entries are accounted for below. “Proposed” anchor status does not
+remove its underlying requirement. Anchor judge confidence is review evidence,
+not proof of implementation or a reason to discard a requirement.
+The user corrections override stale source copies: advanced rendering is the
+default, Python starts at 3.9 (Windows ARM64 3.11), and abandoned historical
+fuzz/corpus recovery is replaced by bounded deterministic current-contract
+regressions. Literal delimiter-bearing values remain
+literal data; “no template expression” means no executable expression delegated
+to bd, not a ban on those data bytes. The old Phase U sprint order is replaced
+by the Phase V Beads graph; its product obligations are retained.
+
+The intended post-phase release is **1.8.0**. Phase V prepares and rehearses
+its delivery, without production publishing. Every sprint uses controlled,
+deterministic tests; every Windows-target cross-build/check uses `cargo xwin`.
+This table locates requirement ownership; it adds no extra CI gate, ledger,
+review round or duplicate implementation obligation.
+
+| Source entry | Canonical contract | Owning sprint | Disposition |
+| --- | --- | --- | --- |
+| ANC-001 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-002 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-003 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-004 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-014 | FR-26 | V8 | Carried: V4 supplies the live model exporter; V8 supplies the external docli generator. |
+| ANC-015 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. Implementation limitations are recorded under FR-26, not as a weaker guarantee. |
+| ANC-016 | FR-26 | V8 | Carried: V8 owns every-publish wiring and current/stale preflight tests; V6 consumes them on final references. Implementation limitations are recorded under FR-26, not as a weaker guarantee. |
+| ANC-023 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
+| ANC-031 | FR-27 | V4 | Carried: codespell passes; legitimate project terms attributed/allowlisted. |
+| ANC-033 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
+| FR-25.1 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| FR-24.27 | FR-24.27 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.13a | FR-24.13 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.14a | FR-24.14 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.15a | FR-24.15 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.19a | FR-24.19 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.21b | FR-24.21 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.8a | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.8c | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.22a | FR-24.22 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2a | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2b | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2d | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.26b | FR-24.26 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.7a | FR-24.7 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.7b | FR-24.7 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.10a | FR-24.10 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.28b | FR-24.28 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.29b | FR-24.29 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.20a | FR-24.20 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.20b | FR-24.20 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.20c | FR-24.20 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.21a | FR-24.21 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.22b | FR-24.22 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.22c | FR-24.22 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.22d | FR-24.22 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.23b | FR-24.23 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.13b | FR-24.13 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2c | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2f | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.25a | FR-24.25 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.23a | FR-24.23 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.2e | FR-24.2 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.26a | FR-24.26 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.28a | FR-24.28 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.8b | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.8d | FR-24.8 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.24b | FR-24.24 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.30a | FR-24.30 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.31a | FR-24.31 | V7 | Historical FUZZ-171 recovery is superseded by the 2026-11-05 `comp-phase-v` user ruling; historical cases were not recovered or passed. V3 supplies bounded deterministic current-contract regressions; V7 owns final reruns. |
+| FR-24.32a | FR-24.32 | V7 | Historical 229-template corpus recovery is superseded by the 2026-11-05 `comp-phase-v` user ruling; corpus was not recovered or passed. V3 supplies bounded deterministic current-contract regressions; V7 owns final reruns. |
+| FR-24.24c | FR-24.24 | V3 | Carried; V7 reruns the applicable final regressions. |
+| FR-24.29a | FR-24.29 | V3 | Carried; V7 reruns the applicable final regressions. |
+| ANC-005 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-006 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-007 | FR-24.16–21 | V3 | Carried: variables, literal values, filters and include defaults. |
+| ANC-012 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-013 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-017 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-018 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-019 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-020 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-021 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-022 | FR-25.1–3 | V6 | Carried: V5 wheel and V9 Go producers; V7 final qualification. |
+| ANC-024 | FR-25.4 | V6 | Carried: integration matrix manual only; V4 preserves the normal-CI exclusion. |
+| ANC-025 | FR-24.31–32 | V7 | Its historical fuzz/corpus rerun wording is superseded by the 2026-11-05 `comp-phase-v` user ruling; no historical recovery/pass is claimed. V3 covers current-contract regressions; V7 owns final reruns. Anchor-record disposition remains with its owner. |
+| ANC-026 | FR-24.30 | V3 | Carried: canonical requirements/ADR plus worked bead manual examples. |
+| ANC-027 | FR-28 | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
+| ANC-028 | FR-28 | V7 | Carried: prepare 1.8.0; production publication occurs after Phase V. |
+| ANC-029 | FR-29 | All sprints | Carried: controlled deterministic tests in every test-writing or verification sprint. |
+| ANC-030 | FR-30 | All sprints | Carried: cargo xwin for every Windows-target cross-build/check. |
+| ANC-034 | FR-25.2 | V5 | Superseded: Python 3.9+, Windows ARM64 3.11+ (user correction). |
+| ANC-036 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-037 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-038 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-039 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-040 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-041 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-042 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-043 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-044 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-045 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-046 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-047 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| ANC-048 | FR-24.36 | V3 | Carried: paired permitted/refused cases; V7 final rerun. |
+| FR-24.24 | FR-24.13, FR-24.24 | V3 | Superseded default wording: exact v1.7.0 compatibility is selected with --render-by bd. |
+| FR-24.32 | FR-24.32 | V7 | Historical corpus recovery is superseded by the 2026-11-05 `comp-phase-v` user ruling; no historical recovery/pass is claimed. V3 covers bounded deterministic current-contract regressions; V7 owns final reruns. |
+
+Phase V update (2026-11-05): the owner selected the final v0.8.6 release
+(tag commit `6142682313171a7a714edee99942146415329f11`), superseding
+the earlier 0.8.5 migration pin. Analyzer and reporting obligations remain.

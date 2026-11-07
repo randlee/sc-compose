@@ -1,29 +1,9 @@
 use std::fs;
 mod support;
 use support::{
-    CheckedInFixture, TempFixture, normalize_path_str, parse_stdout, sc_compose,
-    try_sc_lint_just_root,
+    CheckedInFixture, TempFixture, installed_sc_lint_path, normalize_path_str, parse_stdout,
+    sc_compose,
 };
-
-const VIEW_UTILITY_FILES: &[&str] = &[
-    "view_findings.py",
-    "view_common.py",
-    "python_adapter.py",
-    "lint_common.py",
-];
-
-fn install_pinned_view_utilities(fixture: &TempFixture) -> bool {
-    let Some(source_dir) = try_sc_lint_just_root(VIEW_UTILITY_FILES) else {
-        return false;
-    };
-    let destination_dir = fixture.path.join(".just");
-    fs::create_dir_all(&destination_dir).expect("utility destination");
-    for file_name in VIEW_UTILITY_FILES {
-        fs::copy(source_dir.join(file_name), destination_dir.join(file_name))
-            .expect("pinned view utility");
-    }
-    true
-}
 
 fn run_view_findings(fixture: &TempFixture) -> std::process::Output {
     sc_compose()
@@ -35,6 +15,8 @@ fn run_view_findings(fixture: &TempFixture) -> std::process::Output {
             "view-findings",
             "--json",
         ])
+        .env("PATH", installed_sc_lint_path(None))
+        .env_remove("PYTHONPATH")
         .output()
         .expect("run sc-compose view findings")
 }
@@ -46,7 +28,6 @@ fn view_findings_pass_preserves_identity_and_materializes_report() {
         name: "pass",
         target: "view-findings",
     });
-    let utilities_available = install_pinned_view_utilities(&fixture);
     let output = run_view_findings(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
@@ -57,38 +38,28 @@ fn view_findings_pass_preserves_identity_and_materializes_report() {
     assert_eq!(payload["raw_payload"]["command"], "view.findings");
     assert!(payload["raw_payload"]["diagnostics"].is_array());
 
-    if utilities_available {
-        assert_eq!(output.status.code(), Some(0));
-        assert_eq!(payload["outcome"], "pass");
-        assert_eq!(payload["exit_status"], 0);
-        assert_eq!(payload["raw_payload"]["data"]["status"], "pass");
-        assert_eq!(
-            payload["raw_payload"]["data"]["summary"],
-            "collated 2 findings artifact set(s)"
-        );
-        assert_eq!(
-            payload["raw_payload"]["data"]["views"]
-                .as_array()
-                .map(Vec::len),
-            Some(2)
-        );
-        assert_eq!(
-            payload["raw_payload"]["data"]["views"][1]["tool"],
-            "sc-lint-runtime"
-        );
-        assert_eq!(
-            payload["raw_payload"]["data"]["views"][1]["finding_count"],
-            1
-        );
-    } else {
-        assert_eq!(output.status.code(), Some(3));
-        assert_eq!(payload["outcome"], "config_error");
-        assert_eq!(payload["diagnostics"][0]["code"], "CLI.CONFIG_ERROR");
-        assert_eq!(
-            payload["raw_payload"]["error"]["code"],
-            "CLI.BACKEND_PROTOCOL_ERROR"
-        );
-    }
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(payload["outcome"], "pass");
+    assert_eq!(payload["exit_status"], 0);
+    assert_eq!(payload["raw_payload"]["data"]["status"], "pass");
+    assert_eq!(
+        payload["raw_payload"]["data"]["summary"],
+        "collated 2 findings artifact set(s)"
+    );
+    assert_eq!(
+        payload["raw_payload"]["data"]["views"]
+            .as_array()
+            .map(Vec::len),
+        Some(2)
+    );
+    assert_eq!(
+        payload["raw_payload"]["data"]["views"][1]["tool"],
+        "sc-lint-runtime"
+    );
+    assert_eq!(
+        payload["raw_payload"]["data"]["views"][1]["finding_count"],
+        1
+    );
 
     let source_summary = fs::read_to_string(
         fixture
@@ -118,7 +89,6 @@ fn view_findings_malformed_payload_stays_non_pass_with_diagnostics() {
         name: "malformed-summary",
         target: "view-findings",
     });
-    let utilities_available = install_pinned_view_utilities(&fixture);
     let output = run_view_findings(&fixture);
     let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
@@ -133,29 +103,18 @@ fn view_findings_malformed_payload_stays_non_pass_with_diagnostics() {
             .is_some_and(|items| !items.is_empty())
     );
     assert_eq!(payload["findings_count"], 0);
-    if utilities_available {
-        assert_eq!(payload["outcome"], "failed");
-        assert_ne!(payload["outcome"], "pass");
-        assert_eq!(output.status.code(), Some(2));
-        assert_eq!(
-            payload["raw_payload"]["error"]["code"],
-            "CLI.BACKEND_PROTOCOL_ERROR"
-        );
-        assert!(
-            payload["raw_payload"]["error"]["message"]
-                .as_str()
-                .is_some_and(|message| message.contains("failed to build findings view"))
-        );
-    } else {
-        assert_eq!(payload["outcome"], "config_error");
-        assert_ne!(payload["outcome"], "pass");
-        assert_eq!(output.status.code(), Some(3));
-        assert_eq!(payload["diagnostics"][0]["code"], "CLI.CONFIG_ERROR");
-        assert_eq!(
-            payload["raw_payload"]["error"]["code"],
-            "CLI.BACKEND_PROTOCOL_ERROR"
-        );
-    }
+    assert_eq!(payload["outcome"], "failed");
+    assert_ne!(payload["outcome"], "pass");
+    assert_eq!(output.status.code(), Some(2));
+    assert_eq!(
+        payload["raw_payload"]["error"]["code"],
+        "CLI.BACKEND_PROTOCOL_ERROR"
+    );
+    assert!(
+        payload["raw_payload"]["error"]["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("failed to build findings view"))
+    );
 
     assert!(
         fixture
@@ -167,9 +126,80 @@ fn view_findings_malformed_payload_stays_non_pass_with_diagnostics() {
     assert!(report.is_file());
     let report_text = fs::read_to_string(report).expect("failed view findings report");
     assert!(report_text.contains("view.findings"));
-    assert!(
-        report_text.contains("CLI.CONFIG_ERROR")
-            || report_text.contains("CLI.BACKEND_PROTOCOL_ERROR")
-    );
+    assert!(report_text.contains("CLI.BACKEND_PROTOCOL_ERROR"));
     assert!(report_text.contains("failed"));
+}
+
+#[test]
+fn view_findings_missing_runtime_is_explicit_and_non_pass() {
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "view-findings",
+        name: "pass",
+        target: "view-findings",
+    });
+    let bin = fixture.path.join("fake-bin");
+    fs::create_dir_all(&bin).unwrap();
+    #[cfg(unix)]
+    {
+        for name in ["python", "python3"] {
+            support::fake_exec::install(
+                &bin.join(name),
+                "#!/bin/sh\necho 'ModuleNotFoundError: No module named sc_lint' >&2\nexit 1\n",
+            );
+        }
+    }
+    #[cfg(windows)]
+    {
+        let source = bin.join("missing-python.rs");
+        let executable = bin.join("python.exe");
+        fs::write(&source, "fn main() { eprintln!(\"ModuleNotFoundError: No module named sc_lint\"); std::process::exit(1); }").unwrap();
+        let status = std::process::Command::new("rustc")
+            .arg(&source)
+            .arg("-o")
+            .arg(&executable)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        fs::copy(&executable, bin.join("python3.exe")).unwrap()
+    };
+    let output = sc_compose()
+        .args([
+            "lint",
+            "--root",
+            fixture.path.to_str().unwrap(),
+            "--target",
+            "view-findings",
+            "--json",
+        ])
+        .env("PATH", fixture.path_with_fake_tools())
+        .output()
+        .unwrap();
+    let envelope = parse_stdout(&output);
+    let payload = &envelope["payload"];
+    assert_eq!(payload["command_id"], "view.findings");
+    assert_eq!(output.status.code(), Some(2));
+    assert_eq!(payload["outcome"], "failed");
+    assert_eq!(
+        payload["raw_payload"]["error"]["code"],
+        "CLI.BACKEND_EXEC_FAILURE"
+    );
+    assert!(
+        payload["raw_payload"]["error"]["cause"]
+            .as_str()
+            .unwrap()
+            .contains("ModuleNotFoundError")
+    );
+    assert!(!payload["diagnostics"].as_array().unwrap().is_empty());
+    assert!(
+        fixture
+            .path
+            .join("reports/latest/sc-lint/raw/view.findings.json")
+            .is_file()
+    );
+    assert!(
+        fixture
+            .path
+            .join("reports/latest/sc-lint/index.html")
+            .is_file()
+    );
 }

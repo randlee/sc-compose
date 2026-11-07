@@ -6,7 +6,7 @@ use time::format_description::well_known::Rfc3339;
 use time::macros::format_description;
 
 use crate::ExpandedTemplate;
-use crate::discovery::{discover_all_pass_tokens, discover_tokens};
+use crate::discovery::{discover_all_pass_tokens_for, discover_tokens_for};
 use crate::frontmatter::{Frontmatter, ParsedTemplate};
 use crate::types::{ComposeRequest, VariableName, VariableSource};
 
@@ -57,11 +57,20 @@ pub(crate) fn collect_validation_state(
     }
 
     declare_builtin_variables(&mut state);
-    populate_pass_validation_maps(&mut state, expanded);
+    populate_pass_validation_maps(
+        &mut state,
+        expanded,
+        request.policy.strict_undeclared_variables,
+    );
     state
 }
 
-fn populate_pass_validation_maps(state: &mut ValidationState, expanded: &ExpandedTemplate) {
+/// `strict` also skips Jinja comments and raw blocks (GH #785); the default scan keeps v1.7.0 tokens.
+fn populate_pass_validation_maps(
+    state: &mut ValidationState,
+    expanded: &ExpandedTemplate,
+    strict: bool,
+) {
     let root_path = expanded.resolved_files.first();
     let root_passes = expanded
         .frontmatters
@@ -73,13 +82,13 @@ fn populate_pass_validation_maps(state: &mut ValidationState, expanded: &Expande
         })
         .unwrap_or_default();
     if root_passes.is_empty() {
-        state.referenced_variables = discover_tokens(&expanded.text);
+        state.referenced_variables = discover_tokens_for(&expanded.text, 2, strict);
         return;
     }
 
     let parsed = ParsedTemplate::from_parts(root_passes, expanded.text.clone());
 
-    let referenced_variables_by_pass = discover_all_pass_tokens(&parsed);
+    let referenced_variables_by_pass = discover_all_pass_tokens_for(&parsed, strict);
     let root_pass_declared = parsed
         .passes()
         .iter()
@@ -87,6 +96,7 @@ fn populate_pass_validation_maps(state: &mut ValidationState, expanded: &Expande
             pass.required_variables()
                 .iter()
                 .chain(pass.defaults().keys())
+                .chain(pass.declared_variables())
                 .cloned()
         })
         .collect::<BTreeSet<_>>();
@@ -111,6 +121,7 @@ fn populate_pass_validation_maps(state: &mut ValidationState, expanded: &Expande
                 .cloned()
                 .chain(pass.required_variables().iter().cloned())
                 .chain(pass.defaults().keys().cloned())
+                .chain(pass.declared_variables().iter().cloned())
                 .collect::<BTreeSet<_>>();
             (usize::from(pass.pass_number()), declared)
         })
@@ -234,6 +245,9 @@ fn merge_frontmatter(
     state: &mut ValidationState,
     is_root: bool,
 ) {
+    state
+        .declared_variables
+        .extend(frontmatter.declared_variables().iter().cloned());
     for variable in frontmatter.required_variables() {
         state
             .required_origins

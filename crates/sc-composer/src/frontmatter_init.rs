@@ -163,7 +163,7 @@ mod tests {
 
         match error {
             ComposeError::Resolve(error) => {
-                assert_eq!(error.code(), crate::DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(error.code(), crate::DiagnosticCode::ErrResolveEscape);
                 assert!(
                     error
                         .message()
