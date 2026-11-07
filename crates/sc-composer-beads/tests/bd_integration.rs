@@ -29,10 +29,12 @@ static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 static PINNED_BD_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
     let Some(pinned_bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let _guard = lock_pinned_bd_scenarios();
     let root = temporary_workspace();
@@ -95,10 +97,12 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
     let Some(pinned_bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let _guard = lock_pinned_bd_scenarios();
     let root = temporary_workspace();
@@ -453,6 +457,12 @@ fn request(
 }
 
 fn initialize_beads(bd: &Path, root: &Path) {
+    // bd discovers a workspace by walking up from the working directory, so an
+    // ancestor `.beads` (for example `$HOME/.beads` when the temp dir lives under
+    // `$HOME`) would otherwise receive this init and later `bd where`. Pin only
+    // the init child to this workspace; the parent process environment is not
+    // touched, and afterwards the workspace's own `.beads` is the nearest one.
+    fs::create_dir_all(root.join(".beads")).expect("create workspace .beads");
     let output = Command::new(bd)
         .args([
             "init",
@@ -461,6 +471,7 @@ fn initialize_beads(bd: &Path, root: &Path) {
             "--skip-agents",
             "--skip-hooks",
         ])
+        .env("BEADS_DIR", root.join(".beads"))
         .current_dir(root)
         .output()
         .expect("start pinned bd init");

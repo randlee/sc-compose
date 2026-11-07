@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use super::directive::{IncludeDirective, parse_include_directive};
 use super::fingerprint::{add_node, canonical_source, next_occurrence};
@@ -28,6 +28,126 @@ impl CurrentIncludeDepth {
     }
 }
 
+/// Include chain from the root template to one source file, inclusive.
+pub(super) type SourceChain = Arc<[PathBuf]>;
+
+/// Source file and one-based line that one line of expanded text came from.
+#[derive(Clone, Debug)]
+pub(super) struct LineOrigin {
+    pub(super) chain: SourceChain,
+    pub(super) line: usize,
+    /// Characters of synthetic conditional-include text (`{% if %}`,
+    /// `{% else %}`, `{% endif %}`) that precede the source text on this
+    /// expanded line. Source columns are expanded columns minus this.
+    pub(super) column_offset: usize,
+    /// Directive line that wrote the synthetic prefix, when there is one.
+    pub(super) directive: Option<(SourceChain, usize)>,
+}
+
+impl LineOrigin {
+    fn new(chain: &SourceChain, line: usize) -> Self {
+        Self {
+            chain: Arc::clone(chain),
+            line,
+            column_offset: 0,
+            directive: None,
+        }
+    }
+}
+
+/// Expanded text plus the origin of each of its lines.
+///
+/// `origins[k]` is the origin of the line that `text.split_inclusive('\n')`
+/// yields at index `k`. When text from several sources shares one expanded
+/// line, the line keeps the origin of the source that started it, except that
+/// synthetic conditional-include text never owns a line that source text
+/// continues: that line takes the origin of the source text, shifted by the
+/// synthetic prefix.
+#[derive(Debug, Default)]
+pub(super) struct ExpandedText {
+    pub(super) text: String,
+    pub(super) origins: Vec<LineOrigin>,
+    /// The last origin belongs to synthetic text on a line that is still open.
+    provisional: bool,
+}
+
+impl ExpandedText {
+    fn push_include(&mut self, child: Self, line: &str, chain: &SourceChain, line_number: usize) {
+        let needs_terminator = !child.text.ends_with(['\n', '\r']);
+        self.push_expanded(child);
+        if needs_terminator {
+            let terminator = if line.ends_with("\r\n") {
+                "\r\n"
+            } else if line.ends_with('\n') {
+                "\n"
+            } else {
+                ""
+            };
+            self.push_source(terminator, chain, line_number);
+        }
+    }
+    fn at_line_start(&self) -> bool {
+        self.text.is_empty() || self.text.ends_with('\n')
+    }
+
+    /// Append text taken from one source, whose first line is `first_line`.
+    fn push_source(&mut self, text: &str, chain: &SourceChain, first_line: usize) {
+        for (offset, piece) in text.split_inclusive('\n').enumerate() {
+            self.push_piece(piece, Some(LineOrigin::new(chain, first_line + offset)));
+        }
+    }
+
+    /// Append already-expanded text, keeping the origins of its lines.
+    fn push_expanded(&mut self, other: Self) {
+        let mut origins = other.origins.into_iter();
+        for piece in other.text.split_inclusive('\n') {
+            self.push_piece(piece, origins.next());
+        }
+    }
+
+    /// Append synthetic conditional-include text written for the directive
+    /// at `line` of `chain`. It has no line break, so it either starts a line
+    /// or continues one.
+    fn push_synthetic(&mut self, text: &str, chain: &SourceChain, line: usize) {
+        let width = text.chars().count();
+        if self.at_line_start() {
+            let mut origin = LineOrigin::new(chain, line);
+            origin.column_offset = width;
+            origin.directive = Some((Arc::clone(chain), line));
+            self.origins.push(origin);
+            self.provisional = true;
+        } else if self.provisional
+            && let Some(last) = self.origins.last_mut()
+        {
+            last.column_offset += width;
+        }
+        self.text.push_str(text);
+    }
+
+    /// Append one piece holding at most one line break, at its end.
+    fn push_piece(&mut self, piece: &str, origin: Option<LineOrigin>) {
+        if piece.is_empty() {
+            return;
+        }
+        if self.at_line_start() {
+            if let Some(origin) = origin {
+                self.origins.push(origin);
+            }
+        } else if self.provisional
+            && let (Some(origin), Some(last)) = (origin, self.origins.last_mut())
+        {
+            // Source text continues a line that synthetic text started.
+            *last = LineOrigin {
+                column_offset: last.column_offset + origin.column_offset,
+                directive: last.directive.take(),
+                ..origin
+            };
+        }
+        self.provisional = false;
+        self.text.push_str(piece);
+    }
+}
+
 /// Hard ceiling for native include-chain recursion, independent of caller
 /// configuration, so depth failures return diagnostics before stack overflow.
 const MAX_SAFE_INCLUDE_DEPTH: u16 = 128;
@@ -50,7 +170,7 @@ pub(super) fn expand(
     template_path: impl AsRef<Path>,
     root: &ConfiningRoot,
     policy: &ComposePolicy,
-) -> Result<(String, ExpansionState), ComposeError> {
+) -> Result<(ExpandedText, ExpansionState), ComposeError> {
     let template_path = canonicalize_include(
         template_path.as_ref(),
         root.as_path(),
@@ -83,7 +203,7 @@ fn expand_file(
     depth: CurrentIncludeDepth,
     stack: &mut Vec<PathBuf>,
     state: &mut ExpansionState,
-) -> Result<String, ComposeError> {
+) -> Result<ExpandedText, ComposeError> {
     let path_buf = path.to_path_buf();
     if depth.get() > max_depth.get() {
         return Err(IncludeError::new(
@@ -128,6 +248,11 @@ fn expand_file(
         state.resolved_seen.insert(path_buf);
     }
 
+    // File line of the first body line: the body follows the frontmatter.
+    let body_first_line = raw
+        .strip_suffix(parsed.body())
+        .map_or(1, |head| head.matches('\n').count() + 1);
+    let chain: SourceChain = stack.clone().into();
     let mut context = ExpansionContext {
         root,
         allowed_roots,
@@ -136,7 +261,7 @@ fn expand_file(
         stack,
         state,
     };
-    let expanded = context.expand_body(parsed.body(), path)?;
+    let expanded = context.expand_body(parsed.body(), path, &chain, body_first_line)?;
 
     stack.pop();
     state.active_chain.clone_from(stack);
@@ -153,12 +278,24 @@ struct ExpansionContext<'a> {
 }
 
 impl ExpansionContext<'_> {
-    fn expand_body(&mut self, body: &str, path: &Path) -> Result<String, ComposeError> {
-        let mut expanded = String::new();
-        for line in body.split_inclusive('\n') {
+    fn expand_body(
+        &mut self,
+        body: &str,
+        path: &Path,
+        chain: &SourceChain,
+        body_first_line: usize,
+    ) -> Result<ExpandedText, ComposeError> {
+        let mut expanded = ExpandedText::default();
+        for (index, line) in body.split_inclusive('\n').enumerate() {
+            let line_number = body_first_line + index;
             match parse_include_directive(line) {
                 Some(IncludeDirective::Static(target)) if is_static_target(&target) => {
-                    expanded.push_str(&self.expand_candidate(&target, path)?);
+                    expanded.push_include(
+                        self.expand_candidate(&target, path)?,
+                        line,
+                        chain,
+                        line_number,
+                    );
                 }
                 Some(IncludeDirective::Conditional {
                     condition,
@@ -177,23 +314,28 @@ impl ExpansionContext<'_> {
                             .expect("conditional include has an else candidate"),
                         path,
                     )?;
-                    let _ = write!(
-                        expanded,
-                        "{{% if {condition} %}}{first}{{% else %}}{second}{{% endif %}}"
-                    );
+                    expanded.push_synthetic(&format!("{{% if {condition} %}}"), chain, line_number);
+                    expanded.push_include(first, line, chain, line_number);
+                    expanded.push_synthetic("{% else %}", chain, line_number);
+                    expanded.push_include(second, line, chain, line_number);
+                    expanded.push_synthetic("{% endif %}", chain, line_number);
                 }
                 Some(IncludeDirective::Dynamic | IncludeDirective::Static(_)) | None
                     if line.trim_start().starts_with("@<") =>
                 {
                     return Err(dynamic_include_error(self.stack));
                 }
-                _ => expanded.push_str(line),
+                _ => expanded.push_source(line, chain, line_number),
             }
         }
         Ok(expanded)
     }
 
-    fn expand_candidate(&mut self, target: &str, path: &Path) -> Result<String, ComposeError> {
+    fn expand_candidate(
+        &mut self,
+        target: &str,
+        path: &Path,
+    ) -> Result<ExpandedText, ComposeError> {
         let resolved =
             resolve_include_path(target, path, self.root, self.allowed_roots, self.stack)?;
         let parent = canonical_source(path, self.root, self.allowed_roots)?;

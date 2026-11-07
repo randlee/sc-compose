@@ -11,6 +11,8 @@ mod directive;
 mod expansion;
 mod fingerprint;
 mod path;
+#[cfg(test)]
+mod source_location_tests;
 
 pub use fingerprint::CompositionFingerprint;
 
@@ -31,6 +33,106 @@ pub struct ExpandedTemplate {
     pub composition_fingerprint: Option<CompositionFingerprint>,
 }
 
+/// Source file, line and include chain that one line of expanded text came from.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceLocation {
+    /// File the line was read from.
+    pub path: PathBuf,
+    /// One-based line number in that file, counting its frontmatter lines.
+    pub line: usize,
+    /// Include chain from the root template to `path`, inclusive.
+    pub include_chain: Vec<PathBuf>,
+}
+
+impl ExpandedTemplate {
+    /// Find the source file and line of a one-based line of [`Self::text`].
+    ///
+    /// `template_path`, `root` and `policy` must be the values the template
+    /// was expanded with. A template with includes is expanded again to
+    /// recover the line origins; the result is `None` when that expansion
+    /// fails or no longer produces exactly [`Self::text`], or when `line` is
+    /// outside the text.
+    #[must_use]
+    pub fn source_location(
+        &self,
+        template_path: &Path,
+        root: &ConfiningRoot,
+        policy: &ComposePolicy,
+        line: usize,
+    ) -> Option<SourceLocation> {
+        self.source_location_at(template_path, root, policy, line, None)
+            .map(|(location, _)| location)
+    }
+
+    /// Find the source location of a one-based line and optional one-based
+    /// column of [`Self::text`], returning the column in the source line.
+    ///
+    /// A conditional include writes `{% if %}`, `{% else %}` and
+    /// `{% endif %}` text that is in no source file. A column inside that
+    /// text locates the directive line, without a column; a column after it
+    /// locates the source text that follows, shifted to that text's columns.
+    pub(crate) fn source_location_at(
+        &self,
+        template_path: &Path,
+        root: &ConfiningRoot,
+        policy: &ComposePolicy,
+        line: usize,
+        column: Option<usize>,
+    ) -> Option<(SourceLocation, Option<usize>)> {
+        let index = line.checked_sub(1)?;
+        if self.resolved_files.len() == 1 {
+            return self
+                .single_file_location(index)
+                .map(|location| (location, column));
+        }
+        let (expanded, _) = expansion::expand(template_path, root, policy).ok()?;
+        if expanded.text != self.text {
+            return None;
+        }
+        let origin = expanded.origins.get(index)?;
+        let (chain, line, column) = match (column, &origin.directive) {
+            (Some(column), Some((directive, directive_line))) if column <= origin.column_offset => {
+                (directive, *directive_line, None)
+            }
+            (column, _) => (
+                &origin.chain,
+                origin.line,
+                column.map(|column| column - origin.column_offset),
+            ),
+        };
+        Some((
+            SourceLocation {
+                path: chain.last()?.clone(),
+                line,
+                include_chain: chain.to_vec(),
+            },
+            column,
+        ))
+    }
+
+    /// Locate a line of a template without includes: its text is the body of
+    /// its single source file.
+    fn single_file_location(&self, index: usize) -> Option<SourceLocation> {
+        let path = self.resolved_files.first()?;
+        let head = self
+            .source_texts
+            .get(path)?
+            .strip_suffix(self.text.as_str())?;
+        if index >= self.text.split_inclusive('\n').count() {
+            return None;
+        }
+        Some(SourceLocation {
+            path: path.clone(),
+            line: head.matches('\n').count() + 1 + index,
+            include_chain: self
+                .include_chains
+                .get(path)
+                .cloned()
+                .unwrap_or_else(|| vec![path.clone()]),
+        })
+    }
+}
+
 /// Expand `@<path>` directives starting from the provided template path.
 ///
 /// # Errors
@@ -43,11 +145,11 @@ pub fn expand_includes(
     root: &ConfiningRoot,
     policy: &ComposePolicy,
 ) -> Result<ExpandedTemplate, ComposeError> {
-    let (text, state) = expansion::expand(template_path, root, policy)?;
+    let (expanded, state) = expansion::expand(template_path, root, policy)?;
     let composition_fingerprint = state.composition_fingerprint()?;
 
     Ok(ExpandedTemplate {
-        text,
+        text: expanded.text,
         resolved_files: state.resolved_files,
         frontmatters: state.frontmatters,
         include_chains: state.include_chains,
@@ -57,7 +159,12 @@ pub fn expand_includes(
 }
 
 #[cfg(test)]
+#[path = "include/d12_binary_target_test.rs"]
+mod d12_binary_target_test;
+
+#[cfg(test)]
 mod tests {
+
     use std::fs;
     use std::ops::Deref;
     use std::path::{Path, PathBuf};

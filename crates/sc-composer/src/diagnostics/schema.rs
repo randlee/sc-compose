@@ -31,6 +31,8 @@ impl fmt::Display for DiagnosticSeverity {
 pub enum DiagnosticCode {
     /// No matching template or profile was found.
     ErrResolveNotFound,
+    /// The template path escapes the configured roots.
+    ErrResolveEscape,
     /// Multiple matching templates or profiles were found.
     ErrResolveAmbiguous,
     /// An include path escaped the configured confinement root.
@@ -97,6 +99,8 @@ pub enum DiagnosticCode {
     InfoValDefaultUsed,
     /// The CLI attempted to read stdin twice for incompatible inputs.
     ErrRenderStdinDoubleRead,
+    /// Template syntax or engine evaluation failed.
+    ErrRenderTemplate,
     /// Output writing or materialization failed.
     ErrRenderWrite,
     /// JSON Lines append requires one JSON object.
@@ -211,6 +215,7 @@ impl DiagnosticCode {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::ErrResolveNotFound => "ERR_RESOLVE_NOT_FOUND",
+            Self::ErrResolveEscape => "ERR_RESOLVE_ESCAPE",
             Self::ErrResolveAmbiguous => "ERR_RESOLVE_AMBIGUOUS",
             Self::ErrIncludeEscape => "ERR_INCLUDE_ESCAPE",
             Self::ErrIncludeNotFound => "ERR_INCLUDE_NOT_FOUND",
@@ -241,6 +246,7 @@ impl DiagnosticCode {
             Self::ErrValUnboundVariable => "ERR_VAL_UNBOUND_VARIABLE",
             Self::InfoValDefaultUsed => "INFO_VAL_DEFAULT_USED",
             Self::ErrRenderStdinDoubleRead => "ERR_RENDER_STDIN_DOUBLE_READ",
+            Self::ErrRenderTemplate => "ERR_RENDER_TEMPLATE",
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
             Self::ErrRenderAppendNotObject => "ERR_RENDER_APPEND_NOT_OBJECT",
             Self::ErrRenderAppendNoFinalNewline => "ERR_RENDER_APPEND_NO_FINAL_NEWLINE",
@@ -334,6 +340,7 @@ mod tests {
 
         let codes = [
             (ErrResolveNotFound, "ERR_RESOLVE_NOT_FOUND"),
+            (ErrResolveEscape, "ERR_RESOLVE_ESCAPE"),
             (ErrResolveAmbiguous, "ERR_RESOLVE_AMBIGUOUS"),
             (ErrIncludeEscape, "ERR_INCLUDE_ESCAPE"),
             (ErrIncludeNotFound, "ERR_INCLUDE_NOT_FOUND"),
@@ -379,6 +386,7 @@ mod tests {
             (ErrValUnboundVariable, "ERR_VAL_UNBOUND_VARIABLE"),
             (InfoValDefaultUsed, "INFO_VAL_DEFAULT_USED"),
             (ErrRenderStdinDoubleRead, "ERR_RENDER_STDIN_DOUBLE_READ"),
+            (ErrRenderTemplate, "ERR_RENDER_TEMPLATE"),
             (ErrRenderWrite, "ERR_RENDER_WRITE"),
             (ErrRenderAppendNotObject, "ERR_RENDER_APPEND_NOT_OBJECT"),
             (
@@ -494,7 +502,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 84);
+        assert_eq!(codes.len(), 86);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(

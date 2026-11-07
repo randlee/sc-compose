@@ -294,8 +294,9 @@ fn both_drains_finish_before_wait() {
 
 fn with_workspace(test: impl FnOnce(&Workspace)) {
     let Some(binary) = std::env::var_os("BD_EXECUTABLE") else {
-        eprintln!("skipping graph integration: BD_EXECUTABLE not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     if let Some(root) = std::env::var_os(WORKSPACE_CHILD_ENV) {
         let root = PathBuf::from(root);
@@ -347,6 +348,7 @@ fn graph_integration_refuses_ambient_beads_dir_before_launching_bd() {
     let mut child = Command::new(std::env::current_exe().expect("test executable"));
     child
         .args([
+            "--ignored",
             "--exact",
             "uc1_render_and_pour_outside_registry",
             "--nocapture",
@@ -363,6 +365,7 @@ fn graph_integration_refuses_ambient_beads_dir_before_launching_bd() {
     );
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc1_render_and_pour_outside_registry() {
     with_workspace(|w| {
         let r = w.request(BeadOperation::Render, None);
@@ -396,6 +399,7 @@ fn uc1_render_and_pour_outside_registry() {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn graph_pour_ignores_same_name_toml_and_json_registry_formulas() {
     with_workspace(|w| {
         let registry = w.root.join(".beads/formulas");
@@ -415,6 +419,7 @@ fn graph_pour_ignores_same_name_toml_and_json_registry_formulas() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc2_attach_children_directly_under_parent() {
     with_workspace(|w| {
         let parent = w.parent();
@@ -431,6 +436,7 @@ fn uc2_attach_children_directly_under_parent() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc3_preview_creates_no_beads() {
     with_workspace(|w| {
         let r = w.request(BeadOperation::PreviewAttach, Some(w.parent()));
@@ -442,6 +448,7 @@ fn uc3_preview_creates_no_beads() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc4_rerun_preserves_closed_annotated_beads() {
     with_workspace(|w| {
         let r = w.request(BeadOperation::Attach, Some(w.parent()));
@@ -471,6 +478,7 @@ fn uc4_rerun_preserves_closed_annotated_beads() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc5_resume_recreates_only_missing_child() {
     with_workspace(|w| {
         let r = w.request(BeadOperation::Attach, Some(w.parent()));
@@ -488,6 +496,7 @@ fn uc5_resume_recreates_only_missing_child() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc6_changed_revision_scope_and_relations_are_refused() {
     with_workspace(|w| {
         let mut r = w.request(BeadOperation::Attach, Some(w.parent()));
@@ -508,6 +517,7 @@ fn uc6_changed_revision_scope_and_relations_are_refused() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc7_relations_in_both_directions_preserve_external_fields() {
     with_workspace(|w| {
         let mut r = w.request(BeadOperation::Attach, Some(w.parent()));
@@ -531,6 +541,7 @@ fn uc7_relations_in_both_directions_preserve_external_fields() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc8_template_loop_and_hyphenated_ref() {
     with_workspace(|w| {
         let mut r = w.request(BeadOperation::Attach, Some(w.parent()));
@@ -546,6 +557,7 @@ fn uc8_template_loop_and_hyphenated_ref() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc9_attach_one_workflow_under_three_parents() {
     with_workspace(|w| {
         let parents = [w.parent(), w.parent(), w.parent()];
@@ -560,6 +572,7 @@ fn uc9_attach_one_workflow_under_three_parents() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn uc10_receipt_maps_every_generated_id_and_parent() {
     with_workspace(|w| {
         let g = w
@@ -580,6 +593,7 @@ fn uc10_receipt_maps_every_generated_id_and_parent() {
     });
 }
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn inherited_steps_attach_and_bd_loop_is_refused() {
     with_workspace(|w| {
         fs::create_dir_all(w.root.join(".beads/formulas")).expect("registry");
@@ -597,6 +611,7 @@ fn inherited_steps_attach_and_bd_loop_is_refused() {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn refusals_preserve_beads_and_edges() {
     with_workspace(|w| {
         let parent = w.parent();
@@ -650,7 +665,8 @@ fn refusals_preserve_beads_and_edges() {
 }
 
 #[test]
-fn advanced_transport_renders_source_and_preserves_literal_data() {
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn real_bd_advanced_transport_preserves_fields_and_replay_state() {
     with_workspace(|w| {
         let template = w.root.join("release.formula.toml.j2");
         fs::write(&template, "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n{% for item in items %}[[steps]]\nid = \"{{ item }}\"\ntitle = \"{{ item }} {{ literal }}\"\ndescription = \"{{ value | lower }}:{{ value | length }}:{{ value[:3] }}\"\nlabels = [\"label-{{ item }}\"]\n{% endfor %}").unwrap();
@@ -717,6 +733,7 @@ fn advanced_transport_renders_source_and_preserves_literal_data() {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn advanced_conditional_nodes_preview_without_pruning_or_unqualified_apply() {
     with_workspace(|w| {
         let template = w.root.join("release.formula.toml.j2");

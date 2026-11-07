@@ -1331,25 +1331,35 @@ fn advanced_graph_and_attach_accept_bead_inputs() {
 
 #[test]
 fn bd_owned_graph_and_attach_retain_input_refusals() {
+    let options = sc_composer_beads::BeadExecutionOptions {
+        render_by: sc_composer_beads::BeadRenderBy::Bd,
+        strict: false,
+    };
+    // Retain both inputs from the former graph and contract attach tests.
+    for (key, value) in [("value", "ready"), ("title", "value")] {
+        let mut fixture =
+            AdvancedFixture::new("formula = \"sample\"\n", BeadOperation::PreviewAttach);
+        fixture
+            .request
+            .bead_variables
+            .insert(key.into(), value.into());
+        let runner = AdvancedRunner::default();
+        let error = sc_composer_beads::execute_bead_request_with_options_and_runner(
+            &fixture.request,
+            &options,
+            &runner,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("attach forbids bead_variables"));
+        assert!(runner.calls.lock().unwrap().is_empty());
+    }
+
     let mut fixture = AdvancedFixture::new("formula = \"sample\"\n", BeadOperation::PreviewAttach);
     fixture
         .request
         .bead_variables
         .insert("value".into(), "ready".into());
     let runner = AdvancedRunner::default();
-    let options = sc_composer_beads::BeadExecutionOptions {
-        render_by: sc_composer_beads::BeadRenderBy::Bd,
-        strict: false,
-    };
-    let error = sc_composer_beads::execute_bead_request_with_options_and_runner(
-        &fixture.request,
-        &options,
-        &runner,
-    )
-    .unwrap_err();
-    assert!(error.to_string().contains("attach forbids bead_variables"));
-    assert!(runner.calls.lock().unwrap().is_empty());
-
     std::fs::create_dir(fixture.root.join(".beads")).unwrap();
     fixture.request.operation = BeadOperation::PreviewPour;
     fixture.request.parent = None;

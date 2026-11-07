@@ -180,7 +180,7 @@ fn load_vars_merges_inline_and_var_file_inputs() {
 
     assert_eq!(
         vars.get(&VariableName::new("name".to_owned()).unwrap()),
-        Some(&InputValue::String("yaml-world".to_owned()))
+        Some(&InputValue::String("inline-world".to_owned()))
     );
     assert_eq!(
         vars.get(&VariableName::new("count".to_owned()).unwrap()),
@@ -243,6 +243,37 @@ fn collect_pass_union_reads_inline_and_var_file_values() {
     assert_eq!(
         vars.get(&VariableName::new("owner".to_owned()).unwrap()),
         Some(&InputValue::String("team".to_owned()))
+    );
+}
+
+#[test]
+fn collect_pass_union_keeps_inline_values_ahead_of_var_files() {
+    let root = temp_root("pass-inline-var-precedence");
+    let first_file = root.join("first.json");
+    write_file(&first_file, r#"{"x":"first-file","first_only":"retained"}"#);
+    let second_file = root.join("second.json");
+    write_file(&second_file, r#"{"x":"second-file"}"#);
+    let pass_inputs = vec![PassInputArgs {
+        pass_number: 1,
+        vars: vec![
+            ("x".to_owned(), "first-cli".to_owned()),
+            ("x".to_owned(), "last-cli".to_owned()),
+        ],
+        var_files: vec![
+            first_file.display().to_string(),
+            second_file.display().to_string(),
+        ],
+    }];
+
+    let vars = collect_pass_union(&pass_inputs).unwrap();
+
+    assert_eq!(
+        vars.get(&VariableName::new("x".to_owned()).unwrap()),
+        Some(&InputValue::String("last-cli".to_owned()))
+    );
+    assert_eq!(
+        vars.get(&VariableName::new("first_only".to_owned()).unwrap()),
+        Some(&InputValue::String("retained".to_owned()))
     );
 }
 

@@ -84,17 +84,13 @@ directory. Install the selected Rust target and C toolchain first. Cross-Go
 execution settings are rejected; foreign targets use the manual integration
 matrix instead. Released modules need only Go and the matching CGo compiler.
 
-The peer installer input remains `release/go-native-module-install.json`
-(package `0.1.0`). It was reinstalled and checked byte-for-byte using upstream
-`sc-publish` merge revision `2497ac5a5f426876893387cc3a11dc1307036ac4`
-(randlee/sc-publish#165, which lets a Go-only native triple use the runner and
-archive of the core release rows for the same Go OS/architecture, so
-`aarch64-pc-windows-gnullvm` needs no Rust CLI build row; #161's exact-LF
-`VERSION` staging is included). The core kit pin in
-`release/sc-publish-pin.toml` and `sc_publish_pin` in
-`release/sc-publish-install.json` both name the later merged producer revision
-`c619f225ebd1bfb3e20a59b91b1fc6e0e59fd07c`, which contains #165 (#165 itself
-changes only the peer package files: helper, its tests and README):
+The peer installer input is `release/go-native-module-install.json` (package
+`0.1.0`). The canonical core-kit revision is selected by
+`release/sc-publish-pin.toml` and the `sc_publish_pin` field in
+`release/sc-publish-install.json`; those files are the authoritative sources
+for the selected revision. This pin reference describes configuration only:
+it does not assert that generated assets match the installer or that release
+qualification is complete.
 
 ```sh
 python3 <pinned-sc-publish>/plugins/go-native-module/install.py \

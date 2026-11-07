@@ -483,10 +483,12 @@ fn authorized_failed_pour_reports_its_exact_r1_stage_code() {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn pinned_bd_validates_the_canonical_cli_fixture_when_configured() {
     let Some(pinned_bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping pinned bd CLI integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let fixture = TempFixture::new("bead-pinned-bd");
     initialize_beads_workspace(&fixture.path, &pinned_bd);
@@ -650,10 +652,12 @@ impl GraphCliWorkspace {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn direct_plan_fix_pour_persists_values_and_declared_dependency() {
     let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping direct pour integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let workspace = GraphCliWorkspace::new(bd);
     let root = &workspace.fixture.path;
@@ -860,10 +864,12 @@ fn assert_direct_pour_refusals_preserve_state(workspace: &GraphCliWorkspace) {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn pinned_bd_graph_pour_and_attach_run_the_release_example_with_text_and_exit_contracts() {
     let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping graph CLI integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let workspace = GraphCliWorkspace::new(bd);
     let root = &workspace.fixture.path;
@@ -1193,10 +1199,12 @@ fn direct_pour_receipt_flags_staged_paths_removed_on_exit() {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn direct_bd_owned_registry_pour_passes_variables_to_bd() {
     let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping direct bd-owned integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let workspace = GraphCliWorkspace::new(bd);
     let root = &workspace.fixture.path;
@@ -1251,10 +1259,12 @@ fn direct_bd_owned_registry_pour_passes_variables_to_bd() {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn direct_named_user_registry_snapshots_confined_includes() {
     let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping external registry integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let workspace = GraphCliWorkspace::new(bd);
     let home = TempFixture::new("bead-registry-home");
@@ -1314,6 +1324,7 @@ fn direct_named_user_registry_snapshots_confined_includes() {
         .current_dir(&workspace.fixture.path)
         .env("PATH", workspace.fixture.path_with_fake_tools())
         .env("HOME", &home.path)
+        .env("USERPROFILE", &home.path)
         .env("GT_ROOT", &home.path)
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
@@ -1337,6 +1348,7 @@ fn direct_named_user_registry_snapshots_confined_includes() {
         .current_dir(&workspace.fixture.path)
         .env("PATH", workspace.fixture.path_with_fake_tools())
         .env("HOME", &home.path)
+        .env("USERPROFILE", &home.path)
         .env("GT_ROOT", &home.path)
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
@@ -1359,6 +1371,7 @@ fn run_external_registry_pour(workspace: &GraphCliWorkspace, home: &Path) -> ser
         .current_dir(&workspace.fixture.path)
         .env("PATH", workspace.fixture.path_with_fake_tools())
         .env("HOME", home)
+        .env("USERPROFILE", home)
         .env("GT_ROOT", home)
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
@@ -1369,10 +1382,12 @@ fn run_external_registry_pour(workspace: &GraphCliWorkspace, home: &Path) -> ser
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn advanced_attach_missing_edge_previews_and_refuses_unqualified_apply_without_mutation() {
     let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping atomic refusal integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let workspace = GraphCliWorkspace::new(bd);
     let root = &workspace.fixture.path;

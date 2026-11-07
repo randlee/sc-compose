@@ -114,6 +114,7 @@ in records come from your inputs; sc-compose adds none.
   profile could not be resolved uniquely.
 - `ERR_VAL_MISSING_REQUIRED`, `ERR_VAL_UNDECLARED_TOKEN`, and related
   `ERR_VAL_*` diagnostics identify input or strict-validation failures.
+- `ERR_RENDER_TEMPLATE` identifies a template syntax or engine evaluation failure.
 - `ERR_RENDER_WRITE` identifies an output-file, standard-output, append-lock
   or append-write failure. Invalid option combinations and malformed pass groups use
   `ERR_CONFIG_PARSE`.

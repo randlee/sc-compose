@@ -47,7 +47,7 @@
     "scoop": {"workflow": "scoop-publish.yml", "dispatch_inputs": {}, "bucket_repository": "randlee/scoop-bucket", "manifest_path": "sc-compose.json", "manifest_template": "release/scoop/manifest.json.j2", "installer_target": "x86_64-pc-windows-msvc", "binary": "bin/sc-compose.exe", "renderer_target": "x86_64-unknown-linux-gnu"},
     "winget": {"workflow": "winget-publish.yml", "dispatch_inputs": {}, "identifier": "randlee.sc-compose", "installer_target": "x86_64-pc-windows-msvc"}
   },
-  "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "c619f225ebd1bfb3e20a59b91b1fc6e0e59fd07c"},
+  "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "9bcf20ad8d0ef18da8f639d8fde6472291638acf"},
   "preflight_workflows": [
     {"id": "install-matrix", "description": "Full five-family x six-coordinate install matrix on real target runners", "uses": "./.github/workflows/go-native-preflight.yml"}
   ],
