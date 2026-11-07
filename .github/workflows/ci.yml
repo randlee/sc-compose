@@ -249,8 +249,8 @@ jobs:
       - name: Run controlled Go release-layout fixtures
         run: python3 bindings/sc-sha-go/tests/test_release_layout.py
 
-      - name: Run real Beads CLI integration
-        run: cargo test -p sc-compose --test cli bead
+      - name: Run real-bd qualification (ignored tests; fails if bd is absent)
+        run: python3 scripts/test_real_bd.py
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
@@ -289,6 +289,11 @@ jobs:
         # targets keep its CLI-dependent integration tests in the lint-bearing
         # matrix while this job exercises every remaining workspace test natively.
         run: cargo test --workspace
+        env:
+          BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
+
+      - name: Run real-bd qualification (ignored tests; fails if bd is absent)
+        run: python3 scripts/test_real_bd.py
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 

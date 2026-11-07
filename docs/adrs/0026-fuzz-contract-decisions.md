@@ -2,8 +2,10 @@
 
 ## Status
 
-Accepted (2026-11-06). Implementation is pending for every decision. No fix
-has landed, and the two new error codes are not emitted yet.
+Accepted (2026-11-06). D1 and D2 are implemented on the Phase V candidate at
+`f3d523e0`; integration landing and phase-wide acceptance remain pending. This
+status records D1/D2 only and does not assert implementation of the other
+decisions.
 
 ## Approval provenance
 
