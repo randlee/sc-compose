@@ -179,12 +179,7 @@ fn render_with_custom_delimiters(
                     code: error.code(),
                 });
             })
-            .map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!(error),
-                    sc_composer::DiagnosticCode::ErrConfigParse,
-                )
-            })?;
+            .map_err(|error| CommandError::compose(error.into()))?;
     observer.on_render_outcome(&RenderOutcomeEvent {
         rendered_bytes: Some(rendered_text.len()),
         code: None,
