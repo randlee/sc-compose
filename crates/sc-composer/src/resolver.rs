@@ -39,6 +39,7 @@ pub fn resolve_template_path(request: &ComposeRequest) -> Result<ResolveResult, 
             name,
             request.runtime,
             &request.policy.resolver_policy,
+            &request.policy.allowed_roots,
         ),
         ComposeMode::File { template_path } => {
             let resolved_path = canonicalize_with_roots(
@@ -90,6 +91,7 @@ pub fn resolve_profile_with_observer(
                 name,
                 request.runtime,
                 &request.policy.resolver_policy,
+                &request.policy.allowed_roots,
             );
             match &result {
                 Ok(resolve_result) => observer.on_resolve_outcome(&ResolveOutcomeEvent {
@@ -174,7 +176,7 @@ pub(crate) fn canonicalize_with_roots(
             .into())
         }
         Err(ContainmentEscape { candidate }) => Err(ResolveError::new(
-            DiagnosticCode::ErrResolveNotFound,
+            DiagnosticCode::ErrResolveEscape,
             format!(
                 "template path escapes configured roots: {}",
                 candidate.display()
@@ -191,6 +193,7 @@ fn resolve_profile_impl(
     name: &ProfileName,
     runtime: Option<RuntimeKind>,
     resolver_policy: &ResolverPolicy,
+    allowed_roots: &[ConfiningRoot],
 ) -> Result<ResolveResult, ComposeError> {
     let candidate_directories = candidate_directories(root, kind, runtime, resolver_policy);
     let probes = filename_probes(kind, name, resolver_policy);
@@ -206,18 +209,17 @@ fn resolve_profile_impl(
             if attempted_seen.insert(candidate.clone()) {
                 attempted_paths.push(candidate.clone());
             }
-            if candidate.is_file() {
-                let canonical = std::fs::canonicalize(&candidate).map_err(|error| {
-                    ResolveError::new(
-                        DiagnosticCode::ErrResolveNotFound,
-                        format!("failed to canonicalize candidate: {}", candidate.display()),
-                        vec![candidate.clone()],
-                    )
-                    .with_source(error)
-                })?;
-                if matched_seen.insert(canonical.clone()) {
-                    matches.push(canonical);
+            let canonical = match canonicalize_with_roots(&candidate, root, allowed_roots) {
+                Ok(path) => path,
+                Err(ComposeError::Resolve(error))
+                    if error.code() == DiagnosticCode::ErrResolveNotFound =>
+                {
+                    continue;
                 }
+                Err(error) => return Err(error),
+            };
+            if canonical.is_file() && matched_seen.insert(canonical.clone()) {
+                matches.push(canonical);
             }
         }
     }
@@ -395,6 +397,7 @@ mod tests {
             &ProfileName::new("agent").unwrap(),
             None,
             &crate::types::ResolverPolicy::default(),
+            &[],
         )
         .unwrap();
         let command = resolve_profile_impl(
@@ -403,6 +406,7 @@ mod tests {
             &ProfileName::new("command").unwrap(),
             Some(crate::types::RuntimeKind::Claude),
             &crate::types::ResolverPolicy::default(),
+            &[],
         )
         .unwrap();
         let skill = resolve_profile_impl(
@@ -411,6 +415,7 @@ mod tests {
             &ProfileName::new("skill").unwrap(),
             Some(crate::types::RuntimeKind::Codex),
             &crate::types::ResolverPolicy::default(),
+            &[],
         )
         .unwrap();
 
@@ -452,6 +457,7 @@ mod tests {
             &ProfileName::new("hermes").unwrap(),
             Some(RuntimeKind::Hermes),
             &policy,
+            &[],
         )
         .unwrap();
         let command = resolve_profile_impl(
@@ -460,6 +466,7 @@ mod tests {
             &ProfileName::new("shared").unwrap(),
             Some(RuntimeKind::Hermes),
             &policy,
+            &[],
         )
         .unwrap();
         let skill = resolve_profile_impl(
@@ -468,6 +475,7 @@ mod tests {
             &ProfileName::new("fallback").unwrap(),
             Some(RuntimeKind::Hermes),
             &policy,
+            &[],
         )
         .unwrap();
 
@@ -496,6 +504,7 @@ mod tests {
             &ProfileName::new("name").unwrap(),
             None,
             &crate::types::ResolverPolicy::default(),
+            &[],
         )
         .unwrap_err();
 
@@ -593,8 +602,8 @@ mod tests {
 
         match (missing_error, existing_error) {
             (ComposeError::Resolve(missing), ComposeError::Resolve(existing)) => {
-                assert_eq!(missing.code(), DiagnosticCode::ErrResolveNotFound);
-                assert_eq!(existing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(missing.code(), DiagnosticCode::ErrResolveEscape);
+                assert_eq!(existing.code(), DiagnosticCode::ErrResolveEscape);
                 assert_eq!(missing.message(), existing.message());
             }
             (missing, existing) => panic!("unexpected errors: {missing}, {existing}"),
@@ -642,8 +651,8 @@ mod tests {
 
         match (existing_error, missing_error) {
             (ComposeError::Resolve(existing), ComposeError::Resolve(missing)) => {
-                assert_eq!(existing.code(), DiagnosticCode::ErrResolveNotFound);
-                assert_eq!(missing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(existing.code(), DiagnosticCode::ErrResolveEscape);
+                assert_eq!(missing.code(), DiagnosticCode::ErrResolveEscape);
                 assert_eq!(existing.message(), missing.message());
                 assert!(
                     existing
@@ -671,8 +680,8 @@ mod tests {
 
         match (existing_error, missing_error) {
             (ComposeError::Resolve(existing), ComposeError::Resolve(missing)) => {
-                assert_eq!(existing.code(), DiagnosticCode::ErrResolveNotFound);
-                assert_eq!(missing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(existing.code(), DiagnosticCode::ErrResolveEscape);
+                assert_eq!(missing.code(), DiagnosticCode::ErrResolveEscape);
                 assert_eq!(existing.message(), missing.message());
                 assert!(
                     existing
@@ -702,6 +711,29 @@ mod tests {
     }
 
     #[test]
+    fn profile_lookup_accepts_a_configured_allowed_root() {
+        let root = temp_root("resolver_profile_root");
+        let allowed = temp_root("resolver_profile_allowed");
+        let candidate = allowed.join("example.md");
+        write_file(&candidate, "hello");
+        let policy = crate::types::ResolverPolicy {
+            candidate_directories: vec![allowed.clone()],
+            filename_probes: vec!["example.md".to_owned()],
+            ..Default::default()
+        };
+        let resolved = resolve_profile_impl(
+            &root,
+            ProfileKind::Agent,
+            &ProfileName::new("example").unwrap(),
+            None,
+            &policy,
+            &[ConfiningRoot::new(&allowed).unwrap()],
+        )
+        .unwrap();
+        assert_eq!(resolved.resolved_path, candidate.canonicalize().unwrap());
+    }
+
+    #[test]
     fn symlink_escape_is_rejected_with_resolver_error_surface() {
         let root = temp_root("resolver_symlink_escape");
         let outside = root.parent().unwrap().join("resolver-symlink-outside.md");
@@ -715,7 +747,7 @@ mod tests {
 
         match error {
             ComposeError::Resolve(error) => {
-                assert_eq!(error.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(error.code(), DiagnosticCode::ErrResolveEscape);
                 assert!(
                     error
                         .message()

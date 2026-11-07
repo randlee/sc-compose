@@ -31,6 +31,8 @@ impl fmt::Display for DiagnosticSeverity {
 pub enum DiagnosticCode {
     /// No matching template or profile was found.
     ErrResolveNotFound,
+    /// The template path escapes the configured roots.
+    ErrResolveEscape,
     /// Multiple matching templates or profiles were found.
     ErrResolveAmbiguous,
     /// An include path escaped the configured confinement root.
@@ -213,6 +215,7 @@ impl DiagnosticCode {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::ErrResolveNotFound => "ERR_RESOLVE_NOT_FOUND",
+            Self::ErrResolveEscape => "ERR_RESOLVE_ESCAPE",
             Self::ErrResolveAmbiguous => "ERR_RESOLVE_AMBIGUOUS",
             Self::ErrIncludeEscape => "ERR_INCLUDE_ESCAPE",
             Self::ErrIncludeNotFound => "ERR_INCLUDE_NOT_FOUND",
@@ -337,6 +340,7 @@ mod tests {
 
         let codes = [
             (ErrResolveNotFound, "ERR_RESOLVE_NOT_FOUND"),
+            (ErrResolveEscape, "ERR_RESOLVE_ESCAPE"),
             (ErrResolveAmbiguous, "ERR_RESOLVE_AMBIGUOUS"),
             (ErrIncludeEscape, "ERR_INCLUDE_ESCAPE"),
             (ErrIncludeNotFound, "ERR_INCLUDE_NOT_FOUND"),
@@ -498,7 +502,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 85);
+        assert_eq!(codes.len(), 86);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(
