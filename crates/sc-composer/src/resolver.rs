@@ -202,6 +202,7 @@ fn resolve_profile_impl(
     let mut attempted_seen = BTreeSet::new();
     let mut matches = Vec::new();
     let mut matched_seen = BTreeSet::new();
+    let mut first_invalid = None;
 
     for directory in candidate_directories {
         for probe in &probes {
@@ -216,7 +217,12 @@ fn resolve_profile_impl(
                 {
                     continue;
                 }
-                Err(error) => return Err(error),
+                Err(error) => {
+                    if first_invalid.is_none() {
+                        first_invalid = Some(error);
+                    }
+                    continue;
+                }
             };
             if canonical.is_file() && matched_seen.insert(canonical.clone()) {
                 matches.push(canonical);
@@ -230,12 +236,15 @@ fn resolve_profile_impl(
             attempted_paths,
             ambiguity_candidates: Vec::new(),
         }),
-        [] => Err(ResolveError::new(
-            DiagnosticCode::ErrResolveNotFound,
-            format!("no {kind:?} profile named `{name}` was found"),
-            attempted_paths,
-        )
-        .into()),
+        [] => match first_invalid {
+            Some(error) => Err(error),
+            None => Err(ResolveError::new(
+                DiagnosticCode::ErrResolveNotFound,
+                format!("no {kind:?} profile named `{name}` was found"),
+                attempted_paths,
+            )
+            .into()),
+        },
         _ => Err(ResolveError::new(
             DiagnosticCode::ErrResolveAmbiguous,
             format!("multiple {kind:?} profiles named `{name}` matched; specify a runtime"),
@@ -718,6 +727,31 @@ mod tests {
         write_file(&candidate, "hello");
         let policy = crate::types::ResolverPolicy {
             candidate_directories: vec![allowed.clone()],
+            filename_probes: vec!["example.md".to_owned()],
+            ..Default::default()
+        };
+        let resolved = resolve_profile_impl(
+            &root,
+            ProfileKind::Agent,
+            &ProfileName::new("example").unwrap(),
+            None,
+            &policy,
+            &[ConfiningRoot::new(&allowed).unwrap()],
+        )
+        .unwrap();
+        assert_eq!(resolved.resolved_path, candidate.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn invalid_candidate_does_not_mask_configured_allowed_root() {
+        let root = temp_root("resolver_profile_fallback_root");
+        let denied = temp_root("resolver_profile_fallback_denied");
+        let allowed = temp_root("resolver_profile_fallback_allowed");
+        write_file(&denied.join("example.md"), "denied");
+        let candidate = allowed.join("example.md");
+        write_file(&candidate, "allowed");
+        let policy = crate::types::ResolverPolicy {
+            candidate_directories: vec![denied, allowed.clone()],
             filename_probes: vec!["example.md".to_owned()],
             ..Default::default()
         };

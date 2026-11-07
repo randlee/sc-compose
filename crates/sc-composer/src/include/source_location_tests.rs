@@ -153,19 +153,131 @@ fn conditional_include_lines_map_to_each_candidate() {
         expanded.text,
         "top\n{% if mode == \"x\" %}x1\nx2\n{% else %}y1\ny2\n{% endif %}end\n"
     );
-    // A line started by the directive's `{% if %}`, `{% else %}` or
-    // `{% endif %}` text keeps the directive line; other lines keep the
-    // candidate file's own numbers.
+    // The directive's `{% if %}`, `{% else %}` and `{% endif %}` text is in
+    // no source file, so a line it starts belongs to the source text that
+    // follows it on that line: the candidate's first line, or the parent line
+    // after the directive.
     assert_eq!(
         fixture.origins(&main, &expanded),
         owned(&[
             ("main.md", 1),
-            ("main.md", 2),
+            ("x.md", 1),
             ("x.md", 2),
-            ("main.md", 2),
+            ("y.md", 1),
             ("y.md", 2),
-            ("main.md", 2),
+            ("main.md", 3),
         ])
+    );
+}
+
+/// Locate `(file, line, column)` for one line and column of expanded text.
+fn locate_at(
+    fixture: &Fixture,
+    template: &Path,
+    expanded: &ExpandedTemplate,
+    line: usize,
+    column: usize,
+) -> (String, usize, Option<usize>) {
+    let (location, column) = expanded
+        .source_location_at(
+            template,
+            &fixture.confining_root(),
+            &ComposePolicy::default(),
+            line,
+            Some(column),
+        )
+        .unwrap();
+    let name = location
+        .path
+        .strip_prefix(&fixture.root)
+        .unwrap()
+        .display()
+        .to_string();
+    (name, location.line, column)
+}
+
+#[test]
+fn parent_line_after_a_conditional_include_keeps_its_line_and_column() {
+    // A candidate without a final newline gets the directive's terminator
+    // (ADR-0026 D8), so `{% endif %}` starts the parent's next line.
+    for (x, y) in [("x1", "y1"), ("x1\n", "y1\n"), ("x1\r\n", "y1")] {
+        let fixture = Fixture::new("conditional-following");
+        let main = fixture.write(
+            "main.md",
+            "T\n@<{{ \"x.md\" if flag else \"y.md\" }}>\n{{ 1 + }}\n",
+        );
+        fixture.write("x.md", x);
+        fixture.write("y.md", y);
+        let expanded = fixture.expand(&main);
+        let last = expanded.text.split_inclusive('\n').count();
+        let last_line = expanded.text.split_inclusive('\n').next_back().unwrap();
+        assert_eq!(last_line, "{% endif %}{{ 1 + }}\n", "{x:?} {y:?}");
+        let prefix = "{% endif %}".len();
+        // `}}` of `{{ 1 + }}` is source column 8.
+        assert_eq!(
+            locate_at(&fixture, &main, &expanded, last, prefix + 8),
+            ("main.md".to_owned(), 3, Some(8)),
+            "{x:?} {y:?}"
+        );
+        // A column inside the synthetic text locates the directive line.
+        assert_eq!(
+            locate_at(&fixture, &main, &expanded, last, 3),
+            ("main.md".to_owned(), 2, None),
+            "{x:?} {y:?}"
+        );
+        // Each candidate's first line follows `{% if %}` or `{% else %}`.
+        let if_width = "{% if flag %}".len();
+        assert_eq!(
+            locate_at(&fixture, &main, &expanded, 2, if_width + 1),
+            ("x.md".to_owned(), 1, Some(1)),
+            "{x:?} {y:?}"
+        );
+        assert_eq!(
+            locate_at(&fixture, &main, &expanded, 3, "{% else %}".len() + 2),
+            ("y.md".to_owned(), 1, Some(2)),
+            "{x:?} {y:?}"
+        );
+    }
+}
+
+#[test]
+fn nested_conditional_include_lines_keep_their_own_files() {
+    let fixture = Fixture::new("conditional-nested");
+    let main = fixture.write("main.md", "top\n@<mid.md>\nend\n");
+    fixture.write(
+        "mid.md",
+        "m1\n@<{{ \"leaf.md\" if deep else \"flat.md\" }}>\nm3\n",
+    );
+    fixture.write("leaf.md", "g1\ng2");
+    fixture.write("flat.md", "f1");
+    let expanded = fixture.expand(&main);
+    assert_eq!(
+        expanded.text,
+        "top\nm1\n{% if deep %}g1\ng2\n{% else %}f1\n{% endif %}m3\nend\n"
+    );
+    assert_eq!(
+        fixture.origins(&main, &expanded),
+        owned(&[
+            ("main.md", 1),
+            ("mid.md", 1),
+            ("leaf.md", 1),
+            ("leaf.md", 2),
+            ("flat.md", 1),
+            ("mid.md", 3),
+            ("main.md", 3),
+        ])
+    );
+    let location = expanded
+        .source_location(
+            &main,
+            &fixture.confining_root(),
+            &ComposePolicy::default(),
+            6,
+        )
+        .unwrap();
+    assert_eq!(
+        location.include_chain,
+        vec![fixture.root.join("main.md"), fixture.root.join("mid.md")]
     );
 }
 

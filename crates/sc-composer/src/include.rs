@@ -60,20 +60,54 @@ impl ExpandedTemplate {
         policy: &ComposePolicy,
         line: usize,
     ) -> Option<SourceLocation> {
+        self.source_location_at(template_path, root, policy, line, None)
+            .map(|(location, _)| location)
+    }
+
+    /// Find the source location of a one-based line and optional one-based
+    /// column of [`Self::text`], returning the column in the source line.
+    ///
+    /// A conditional include writes `{% if %}`, `{% else %}` and
+    /// `{% endif %}` text that is in no source file. A column inside that
+    /// text locates the directive line, without a column; a column after it
+    /// locates the source text that follows, shifted to that text's columns.
+    pub(crate) fn source_location_at(
+        &self,
+        template_path: &Path,
+        root: &ConfiningRoot,
+        policy: &ComposePolicy,
+        line: usize,
+        column: Option<usize>,
+    ) -> Option<(SourceLocation, Option<usize>)> {
         let index = line.checked_sub(1)?;
         if self.resolved_files.len() == 1 {
-            return self.single_file_location(index);
+            return self
+                .single_file_location(index)
+                .map(|location| (location, column));
         }
         let (expanded, _) = expansion::expand(template_path, root, policy).ok()?;
         if expanded.text != self.text {
             return None;
         }
         let origin = expanded.origins.get(index)?;
-        Some(SourceLocation {
-            path: origin.chain.last()?.clone(),
-            line: origin.line,
-            include_chain: origin.chain.to_vec(),
-        })
+        let (chain, line, column) = match (column, &origin.directive) {
+            (Some(column), Some((directive, directive_line))) if column <= origin.column_offset => {
+                (directive, *directive_line, None)
+            }
+            (column, _) => (
+                &origin.chain,
+                origin.line,
+                column.map(|column| column - origin.column_offset),
+            ),
+        };
+        Some((
+            SourceLocation {
+                path: chain.last()?.clone(),
+                line,
+                include_chain: chain.to_vec(),
+            },
+            column,
+        ))
     }
 
     /// Locate a line of a template without includes: its text is the body of
