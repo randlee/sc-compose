@@ -85,7 +85,8 @@ fn assert_located(
         column.map_or(Value::Null, Value::from)
     );
     assert_eq!(diagnostic["include_chain"], chain(root, files));
-    let location = format!("(in {file}:{line})");
+    let native_file = file.split('/').collect::<PathBuf>();
+    let location = format!("(in {}:{line})", native_file.display());
     assert!(
         diagnostic["message"].as_str().unwrap().contains(&location),
         "{diagnostic}"

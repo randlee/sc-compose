@@ -70,7 +70,8 @@ pub(crate) fn canonicalize_within_roots(
                         .flatten()
                 })
                 .collect::<Vec<_>>();
-            if !is_within_any(&normalize_path(&candidate), &normalized_roots)
+            if !(is_within_any(&normalize_path(&candidate), &normalized_roots)
+                || starts_with_root_alias(&candidate, &normalized_roots))
                 || !is_within_any(&normalized_candidate, &normalized_roots)
             {
                 return Err(ContainmentEscape { candidate });
@@ -78,6 +79,29 @@ pub(crate) fn canonicalize_within_roots(
             Ok(Canonicalization::Missing { candidate, source })
         }
     }
+}
+
+/// An existing prefix may be a filesystem alias for a canonical approved root.
+/// Once that boundary is reached, a parent component may not leave it.
+fn starts_with_root_alias(candidate: &Path, roots: &[PathBuf]) -> bool {
+    let mut prefix = PathBuf::new();
+    let components = candidate.components().collect::<Vec<_>>();
+    for (index, component) in components.iter().enumerate() {
+        prefix.push(component.as_os_str());
+        if std::fs::canonicalize(&prefix).is_ok_and(|canonical| roots.contains(&canonical)) {
+            let mut depth = 0usize;
+            for remainder in &components[index + 1..] {
+                match remainder {
+                    Component::Normal(_) => depth += 1,
+                    Component::ParentDir if depth == 0 => return false,
+                    Component::ParentDir => depth -= 1,
+                    _ => {}
+                }
+            }
+            return true;
+        }
+    }
+    false
 }
 
 /// Resolve symlinks in the existing prefix even when the final target is missing.
@@ -149,6 +173,45 @@ mod tests {
 
     use super::{Canonicalization, canonicalize_within_roots};
     use crate::types::ConfiningRoot;
+
+    #[cfg(unix)]
+    #[test]
+    fn missing_root_alias_is_allowed_but_escape_is_rejected() {
+        use std::os::unix::fs::symlink;
+        let base = std::env::temp_dir().join(format!(
+            "ci1016-alias-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let real = base.join("real");
+        let alias = base.join("alias");
+        fs::create_dir_all(&real).unwrap();
+        symlink(&real, &alias).unwrap();
+        let root = ConfiningRoot::new(&real).unwrap();
+        assert!(matches!(
+            canonicalize_within_roots(alias.join("missing"), &root, &[]),
+            Ok(Canonicalization::Missing { .. })
+        ));
+        let _escape = canonicalize_within_roots(alias.join("../outside"), &root, &[])
+            .expect_err("parent traversal must leave the approved root");
+        let _escape = canonicalize_within_roots(real.join("../alias/missing"), &root, &[])
+            .expect_err("leaving and re-entering a root alias must be rejected");
+        symlink(base.join("outside"), real.join("dangling")).unwrap();
+        let _escape = canonicalize_within_roots(alias.join("dangling/file"), &root, &[])
+            .expect_err("a dangling symlink outside the root must be rejected");
+        let allowed = base.join("allowed");
+        let allowed_alias = base.join("allowed-alias");
+        fs::create_dir_all(&allowed).unwrap();
+        symlink(&allowed, &allowed_alias).unwrap();
+        let extra_root = ConfiningRoot::new(&allowed).unwrap();
+        assert!(matches!(
+            canonicalize_within_roots(allowed_alias.join("missing"), &root, &[extra_root]),
+            Ok(Canonicalization::Missing { .. })
+        ));
+    }
 
     #[test]
     fn missing_paths_compare_normalized_approved_roots() {
