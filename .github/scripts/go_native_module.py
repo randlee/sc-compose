@@ -186,15 +186,53 @@ def _runner_matches_go_target(entry: dict[str, str]) -> bool:
     return expected is not None and entry["os"].startswith(expected[0]) and entry["archive"] == expected[1]
 
 
+_TRIPLE_GOARCH = {"x86_64": "amd64", "aarch64": "arm64"}
+_TRIPLE_GOOS = (("-linux-", "linux"), ("-apple-darwin", "darwin"), ("-windows-", "windows"))
+
+
+def _triple_coordinate(triple: str) -> tuple[str, str] | None:
+    """Return the Go (goos, goarch) a Rust target triple builds for, or None when unknown."""
+    goarch = _TRIPLE_GOARCH.get(triple.split("-", 1)[0])
+    goos = next((name for marker, name in _TRIPLE_GOOS if marker in triple), None)
+    return (goos, goarch) if goos and goarch else None
+
+
+def _release_runner(release_targets: dict[str, dict[str, str]], native: dict[str, str]) -> dict[str, str]:
+    """Pick the core runner/archive for one native target.
+
+    An exact release target row always wins. Without one, the native target
+    builds on the runner of the core rows for the same Go OS/architecture, so a
+    Go-only triple (for example a different Windows ABI) does not need its own
+    CLI build row. Rows on that coordinate must agree on runner and archive.
+    """
+    exact = release_targets.get(native["target"])
+    if exact is not None:
+        return exact
+    coordinate = (native["goos"], native["goarch"])
+    runners = sorted(
+        {
+            (release["os"], release["archive"])
+            for release in release_targets.values()
+            if _triple_coordinate(release["target"]) == coordinate
+        }
+    )
+    if not runners:
+        raise ContractError(f"native target lacks a generic release target: {native['target']}")
+    if len(runners) > 1:
+        raise ContractError(
+            f"native target {native['target']} has no exact release target and its "
+            f"{coordinate[0]}/{coordinate[1]} release targets disagree on runner/archive: {runners}"
+        )
+    return {"target": native["target"], "os": runners[0][0], "archive": runners[0][1]}
+
+
 def target_matrix(manifest_path: Path, config_path: Path) -> dict[str, list[dict[str, str]]]:
     """Join binding targets to generic release runner/archive entries."""
     config = load_config(config_path)
     release_targets = _release_targets(manifest_path)
     include: list[dict[str, str]] = []
     for native in config["targets"]:
-        release = release_targets.get(native["target"])
-        if release is None:
-            raise ContractError(f"native target lacks a generic release target: {native['target']}")
+        release = _release_runner(release_targets, native)
         entry = {
             **release,
             "goos": native["goos"],
@@ -266,7 +304,8 @@ def stage(config_path: Path, target_name: str, native_library: Path, output: Pat
         native_destination = temporary / "native" / target_name
         native_destination.mkdir()
         shutil.copy2(library, native_destination / target["library"])
-        (temporary / "VERSION").write_text(f"{version}\n", encoding="utf-8")
+        # Exact bytes, not text mode: write_text would turn "\n" into "\r\n" on Windows.
+        (temporary / "VERSION").write_bytes(f"{version}\n".encode("utf-8"))
         temporary.rename(destination)
     except Exception:
         shutil.rmtree(temporary, ignore_errors=True)

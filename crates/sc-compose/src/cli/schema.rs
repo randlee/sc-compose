@@ -21,6 +21,8 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    #[command(about = "Export the CLI reference model")]
+    Reference(ReferenceArgs),
     #[command(about = "Run an allowlisted sc-lint target and write its report")]
     Lint(ScLintArgs),
     #[command(about = "Show a feature manual, or list available manual topics")]
@@ -61,6 +63,15 @@ pub(crate) enum Command {
 }
 
 #[derive(Debug, Clone, Args)]
+pub(crate) struct ReferenceArgs {
+    #[arg(
+        long,
+        help = "Emit the reference model in the diagnostic JSON envelope"
+    )]
+    pub(crate) json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
 pub(crate) struct BeadArgs {
     #[command(subcommand)]
     pub(crate) command: BeadSubcommand,
@@ -87,14 +98,38 @@ pub(crate) struct BeadRequestArgs {
     #[arg(
         long,
         value_name = "JSON",
+        required_unless_present = "formula",
+        conflicts_with_all = ["formula", "vars"],
         help = "Complete sc-compose/beads/v1 request file"
     )]
-    pub(crate) request: PathBuf,
+    pub(crate) request: Option<PathBuf>,
+    #[arg(
+        value_name = "FORMULA",
+        help = "Formula template path or registry name for direct pour"
+    )]
+    pub(crate) formula: Option<String>,
+    #[arg(long = "var", value_parser = super::parse_var, action = clap::ArgAction::Append, help = "Supply a direct pour variable as key=value")]
+    pub(crate) vars: Vec<(String, String)>,
+    #[arg(
+        long,
+        value_enum,
+        default_value = "sc-compose",
+        help = "Choose the formula renderer"
+    )]
+    pub(crate) render_by: BeadRenderByArg,
+    #[arg(long, help = "Enable schema-scoped undeclared-variable validation")]
+    pub(crate) strict: bool,
     #[arg(
         long,
         help = "Emit the Beads receipt in the standard diagnostic JSON envelope"
     )]
     pub(crate) json: bool,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub(crate) enum BeadRenderByArg {
+    ScCompose,
+    Bd,
 }
 
 #[derive(Debug, Clone, Args)]

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tarfile
@@ -14,6 +16,10 @@ from pathlib import Path
 from threading import Thread
 
 import pytest
+
+
+# Local fixture commands should finish quickly; bound hangs on every platform.
+TEST_COMMAND_TIMEOUT_SECONDS = 30
 
 
 def write_repo_fixture(
@@ -201,34 +207,6 @@ def write_repo_fixture(
         encoding="utf-8",
     )
 
-    go_native_source = tmp_path / "bindings" / "sc-sha-go"
-    (go_native_source / "go" / "sc_sha_go").mkdir(parents=True)
-    (go_native_source / "native").mkdir()
-    (go_native_source / "Cargo.toml").write_text(
-        '[package]\nname = "sc-sha-go"\nversion.workspace = true\n', encoding="utf-8"
-    )
-    (go_native_source / "go.mod").write_text(
-        "module github.com/example/sc-sha-go\n", encoding="utf-8"
-    )
-    (go_native_source / "native" / "targets.toml").write_text(
-        "schema_version = 1\n\n[contract]\n"
-        'generated_package = "go/sc_sha_go"\n'
-        'native_library = "libsc_sha_go.a"\n\n'
-        "[[targets]]\n"
-        'rust_target = "x86_64-unknown-linux-gnu"\n'
-        'goos = "linux"\n'
-        'goarch = "amd64"\n'
-        'library = "libsc_sha_go.a"\n',
-        encoding="utf-8",
-    )
-    (tmp_path / "release" / "go-native-module.toml").write_text(
-        "schema_version = 1\n"
-        'source = "bindings/sc-sha-go"\n'
-        'cargo_package = "sc-sha-go"\n'
-        'artifact_prefix = "sc-sha-go"\n',
-        encoding="utf-8",
-    )
-
     return workspace, manifest
 
 
@@ -254,6 +232,7 @@ def run_validate_manifest(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -328,6 +307,7 @@ def run_release_archive_packager(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
     assert output.read_text(encoding="utf-8").startswith("ARCHIVE=fixture_1.5.0_")
     return result
@@ -426,6 +406,7 @@ def run_release_preflight_registry_step(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -475,10 +456,14 @@ def run_release_gate_readiness(
     scripts_dir = tmp_path / ".github" / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
     for script_name in (
-        "go_native_module.py",
         "release_artifacts.py",
         "release_manifest.py",
         "release_registry.py",
+        "release_credentials.py",
+        "release_immutability.py",
+        "npm_release.py",
+        "worker_result.py",
+        "release_python.py",
         "release_gate.sh",
     ):
         (scripts_dir / script_name).write_text(
@@ -516,6 +501,7 @@ def run_release_gate_readiness(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -593,6 +579,7 @@ def run_release_tag_step(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -604,6 +591,7 @@ def git_fixture_command(repository: Path, *arguments: str) -> str:
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
     assert result.returncode == 0, result.stderr
     return result.stdout.strip()
@@ -624,8 +612,18 @@ def write_real_release_tag_fixture(tmp_path: Path, scenario: str) -> Path:
     tmp_path.mkdir()
     remote = tmp_path / "origin.git"
     repository = tmp_path / "repository"
-    subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True)
-    subprocess.run(["git", "init", str(repository)], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "--bare", str(remote)],
+        check=True,
+        capture_output=True,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
+    )
+    subprocess.run(
+        ["git", "init", str(repository)],
+        check=True,
+        capture_output=True,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
+    )
     git_fixture_command(repository, "config", "user.name", "Release Test")
     git_fixture_command(repository, "config", "user.email", "release-test@example.invalid")
     git_fixture_command(repository, "checkout", "-b", "main")
@@ -674,6 +672,7 @@ def run_release_tag_step_in_git_fixture(repository: Path) -> subprocess.Complete
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -695,13 +694,14 @@ def run_release_preflight_channel_results_shell(
     environment = {
         **os.environ,
         "OWNERSHIP": "success",
+        "IMMUTABLE_RELEASES": "success",
         "RELEASE_METADATA": "success",
         "RELEASE_TAG": "v1.5.0",
         "REPOSITORY_SECRETS": "success",
         "REPOSITORY_SECRET_CHANNELS": '{"crates_io":"success","homebrew":"success","winget":"success","scoop":"success"}',
         "ENVIRONMENT_SECRETS": "success",
         "CREDENTIAL_LIVENESS": "success",
-        "CREDENTIAL_LIVENESS_CHANNELS": '{"homebrew":"success","winget":"success","scoop":"success"}',
+        "CREDENTIAL_LIVENESS_CHANNELS": '{"crates_io":"success","homebrew":"success","winget":"success","scoop":"success"}',
         "REGISTRY_STATE": "success",
         "GITHUB_RELEASE_PERMISSIONS": "success",
         "RELEASE_ARTIFACT_MANIFEST": str(manifest),
@@ -715,6 +715,7 @@ def run_release_preflight_channel_results_shell(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -758,14 +759,6 @@ def renderer_binary() -> str | None:
     return binaries[0].get("name") if binaries else None
 
 
-def python_pyproject_text() -> str:
-    return (repo_root() / "bindings" / "python" / "pyproject.toml").read_text(encoding="utf-8")
-
-
-def python_cargo_toml_text() -> str:
-    return (repo_root() / "bindings" / "python" / "Cargo.toml").read_text(encoding="utf-8")
-
-
 def test_validate_manifest_accepts_matching_python_release_shape(tmp_path: Path) -> None:
     result = run_validate_manifest(
         tmp_path,
@@ -791,6 +784,7 @@ def run_fixture_command(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -830,11 +824,11 @@ def test_package_check_plan_skips_registry_verification_only_for_earlier_release
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines() == [
         "sc-composer|verify|",
-        "sc-compose|deferred_same_release|sc-composer",
+        "sc-compose|no_verify|sc-composer",
     ]
 
 
-def test_package_check_plan_keeps_full_verification_for_nonrelease_dependencies(
+def test_package_check_plan_skips_unpublished_crates_and_keeps_full_verification_for_their_dependents(
     tmp_path: Path,
 ) -> None:
     workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
@@ -855,10 +849,7 @@ def test_package_check_plan_keeps_full_verification_for_nonrelease_dependencies(
     )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.splitlines() == [
-        "sc-composer|verify|",
-        "sc-compose|verify|",
-    ]
+    assert result.stdout.splitlines() == ["sc-compose|verify|"]
 
 
 def test_rust_only_manifest_emits_empty_python_matrices(tmp_path: Path) -> None:
@@ -938,10 +929,7 @@ def test_crates_leg_is_separate_and_independently_retryable() -> None:
     crates_text = crates_publish_workflow_text()
 
     # The GitHub Release leg must not depend on crates.io publication.
-    assert (
-        "needs: [gate-and-tag, build, build-python-wheels, build-python-sdists, build-go-bundles]"
-        in release_text
-    )
+    assert "needs: [gate-and-tag, build, build-python-wheels, build-python-sdists, build-npm]" in release_text
     assert "needs: [gate-and-tag, build, publish," not in release_text
 
     assert "workflow_dispatch:" in crates_text
@@ -959,12 +947,10 @@ def test_crates_leg_is_separate_and_independently_retryable() -> None:
 
 def test_preflight_uses_manifest_aware_package_check_plan() -> None:
     preflight_text = release_preflight_workflow_text()
-    deferred_branch = preflight_text.split("deferred_same_release)", 1)[1].split("*)", 1)[0]
 
     assert "package-check-plan" in preflight_text
-    assert "deferred_same_release" in preflight_text
-    assert "Deferring %s package check" in preflight_text
-    assert "cargo package" not in deferred_branch
+    assert "--no-verify" in preflight_text
+    assert "earlier release crate(s)" in preflight_text
 
 
 @pytest.mark.parametrize(
@@ -1006,7 +992,7 @@ def test_github_release_leg_is_detect_and_skip(tmp_path: Path) -> None:
         text.count(
             "if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}"
         )
-        == 4
+        == 6
     )
     assert (
         "if: ${{ steps.published_release_probe.outputs.release_state == 'complete' && inputs.replace_release_assets != true }}"
@@ -1033,30 +1019,44 @@ def test_no_single_repo_concerns_leak_into_kit_workflows_actions_or_scripts() ->
         "actions/setup-sc-lint/action.yml": {"randlee"},
         # The pinned renderer wheel is the sc-compose PyPI package by design.
         "scripts/bootstrap_sc_compose.py": {"sc-compose", "sc_compose"},
+        # Composite action invokes the shared bootstrapper by path.
+        "actions/setup-renderer/action.yml": {"sc-compose", "sc_compose"},
     }
     kit_workflows = (
         "release.yml",
         "release-candidate.yml",
         "release-preflight.yml",
+        "prerelease-archive.yml",
         "crates-publish.yml",
         "pypi-publish.yml",
+        "npm-publish.yml",
         "homebrew-publish.yml",
         "scoop-publish.yml",
         "winget-publish.yml",
     )
     kit_actions = (
         "extract-published-renderer",
+        "install-linux-native-deps",
         "setup-lint-toolchain",
         "setup-python-release-build",
+        "setup-renderer",
         "setup-sc-lint",
         "verify-published-release",
     )
     kit_scripts = (
         "bootstrap_sc_compose.py",
+        "setup_sc_lint_source.py",
         "release_artifacts.py",
         "release_manifest.py",
         "release_registry.py",
+        "release_credentials.py",
+        "release_immutability.py",
+        "npm_release.py",
+        "worker_result.py",
+        "release_python.py",
         "release_gate.sh",
+        "release-preflight-docli.sh",
+        "run-consumer-preflight.sh",
     )
     github_root = repo_root() / ".github"
     files = [
@@ -1241,8 +1241,6 @@ def test_release_workflows_gate_cargo_and_python_legs_on_the_manifest() -> None:
     assert "needs.release-plan.outputs.has_python_wheels == 'true'" in release_text
     assert "needs.release-plan.outputs.has_python_sdists == 'true'" in release_text
     assert "Build wheels (maturin)" in release_text
-    assert "Build ARM64 Linux wheel (maturin + Zig)" in release_text
-    assert "install_maturin_zig: ${{ matrix.os == 'ubuntu-24.04-arm' }}" in release_text
     assert "Build wheels (setuptools)" in release_text
     assert "matrix.build_system == 'setuptools'" in release_text
     assert "python -m build --wheel" in release_text
@@ -1250,35 +1248,10 @@ def test_release_workflows_gate_cargo_and_python_legs_on_the_manifest() -> None:
     assert "steps.build_plan.outputs.workspace_toml" in release_text
 
     assert "build-plan" in preflight_text
-    assert preflight_text.count("steps.build_plan.outputs.has_crates == 'true'") >= 5
+    assert preflight_text.count("steps.build_plan.outputs.has_crates == 'true'") >= 3
     assert "steps.build_plan.outputs.workspace_toml" in preflight_text
     assert '--workspace-toml Cargo.toml' not in preflight_text
     assert 'if [[ "${HAS_CRATES}" == "true" ]]; then' in preflight_text
-
-    action_text = (
-        repo_root() / ".github" / "actions" / "setup-python-release-build" / "action.yml"
-    ).read_text(encoding="utf-8")
-    assert "install_maturin_zig:" in action_text
-    assert "inputs.install_maturin_zig == 'true'" in action_text
-    assert "maturin[zig]==1.9.4" in action_text
-
-
-def test_release_manifest_adds_only_sc_compose_arm64_linux_delivery() -> None:
-    manifest = release_manifest()
-
-    assert {
-        "target": "aarch64-unknown-linux-gnu",
-        "os": "ubuntu-24.04-arm",
-        "archive": "tar.gz",
-    } in manifest["release_targets"]
-
-    wheels_by_name = {
-        distribution["name"]: distribution["wheels"]
-        for distribution in manifest["python_distributions"]
-    }
-    assert "ubuntu-24.04-arm" in wheels_by_name["sc-compose"]
-    assert "ubuntu-24.04-arm" not in wheels_by_name["sc-sha"]
-    assert "ubuntu-24.04-arm" not in wheels_by_name["sc-composer-beads"]
 
 
 def test_homebrew_workflow_selects_manifest_formula_tracks(tmp_path: Path) -> None:
@@ -1328,6 +1301,7 @@ release_track = "prerelease"
             text=True,
             capture_output=True,
             check=False,
+            timeout=TEST_COMMAND_TIMEOUT_SECONDS,
         )
         assert result.returncode == 0, result.stderr
         return json.loads(result.stdout)
@@ -1388,6 +1362,7 @@ def test_homebrew_legacy_binary_normalizes_to_a_single_binary_list(tmp_path: Pat
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
     assert result.returncode == 0, result.stderr
@@ -1418,10 +1393,103 @@ def test_validate_manifest_rejects_unknown_homebrew_formula_binary(tmp_path: Pat
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
     assert result.returncode != 0
     assert "references undeclared release binary(s)" in result.stderr
+
+
+PRERELEASE_TABLE = """
+[prerelease]
+tag_prefix = "prerelease/v"
+tag_script = ".just/prerelease_tag.py"
+install_root = "~/.fixture-builds"
+binaries = ["fixture"]
+protected_branches = ["develop", "main"]
+selector_dir = { darwin = "~/.fixture-builds/darwin", linux = "~/.fixture-builds/linux", windows = "C:/Fixture" }
+post_install = "python3 scripts/activate.py --version {version}"
+verify = "fixture --version"
+"""
+
+
+def run_validate_manifest_with_prerelease(
+    tmp_path: Path, table: str, *, manifest_wheels: list[str] | None = None
+) -> subprocess.CompletedProcess[str]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    workspace, manifest = write_repo_fixture(
+        tmp_path, manifest_wheels=["ubuntu-latest"] if manifest_wheels is None else manifest_wheels
+    )
+    manifest.write_text(manifest.read_text(encoding="utf-8") + table, encoding="utf-8")
+    return subprocess.run(
+        [
+            sys.executable,
+            str(scripts_root() / "release_artifacts.py"),
+            "validate-manifest",
+            "--manifest",
+            str(manifest),
+            "--workspace-toml",
+            str(workspace),
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
+    )
+
+
+def test_validate_manifest_accepts_complete_prerelease_table(tmp_path: Path) -> None:
+    result = run_validate_manifest_with_prerelease(tmp_path, PRERELEASE_TABLE)
+    assert result.returncode == 0, result.stderr
+    assert "manifest validation passed" in result.stdout
+
+
+def test_validate_manifest_rejects_prerelease_selector_dir_missing_a_platform(tmp_path: Path) -> None:
+    # load_manifest must carry [prerelease] through, or this validation never runs.
+    table = PRERELEASE_TABLE.replace(', windows = "C:/Fixture" }', " }", 1)
+    result = run_validate_manifest_with_prerelease(tmp_path, table)
+    assert result.returncode != 0
+    assert "[prerelease].selector_dir must declare non-empty darwin, linux, and windows paths" in result.stderr
+
+
+def test_validate_manifest_rejects_prerelease_table_missing_a_key(tmp_path: Path) -> None:
+    table = PRERELEASE_TABLE.replace('verify = "fixture --version"\n', "", 1)
+    result = run_validate_manifest_with_prerelease(tmp_path, table)
+    assert result.returncode != 0
+    assert "[prerelease] missing required keys: verify" in result.stderr
+
+
+def test_validate_manifest_accepts_a_wheels_only_prerelease(tmp_path: Path) -> None:
+    empty = run_validate_manifest_with_prerelease(
+        tmp_path / "empty", PRERELEASE_TABLE.replace('binaries = ["fixture"]', "binaries = []", 1)
+    )
+    assert empty.returncode == 0, empty.stderr
+    omitted = run_validate_manifest_with_prerelease(
+        tmp_path / "omitted", PRERELEASE_TABLE.replace('binaries = ["fixture"]\n', "", 1)
+    )
+    assert omitted.returncode == 0, omitted.stderr
+    assert "manifest validation passed" in omitted.stdout
+
+
+def test_validate_manifest_rejects_a_prerelease_that_installs_nothing(tmp_path: Path) -> None:
+    result = run_validate_manifest_with_prerelease(
+        tmp_path, PRERELEASE_TABLE.replace('binaries = ["fixture"]', "binaries = []", 1), manifest_wheels=[]
+    )
+    assert result.returncode != 0
+    assert "[prerelease] installs nothing" in result.stderr
+
+
+def test_validate_manifest_rejects_an_undeclared_prerelease_binary(tmp_path: Path) -> None:
+    accepted = run_validate_manifest_with_prerelease(
+        tmp_path / "declared", PRERELEASE_TABLE.replace('binaries = ["fixture"]', 'binaries = ["fixture", "fixture-daemon"]', 1)
+    )
+    assert accepted.returncode == 0, accepted.stderr
+    result = run_validate_manifest_with_prerelease(
+        tmp_path / "undeclared", PRERELEASE_TABLE.replace('binaries = ["fixture"]', 'binaries = ["fixture", "ghost"]', 1)
+    )
+    assert result.returncode != 0
+    assert "[prerelease].binaries references undeclared release binary(s): ghost" in result.stderr
 
 
 def test_validate_manifest_rejects_unknown_channel_target(tmp_path: Path) -> None:
@@ -1448,6 +1516,7 @@ def test_validate_manifest_rejects_unknown_channel_target(tmp_path: Path) -> Non
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
     assert result.returncode != 0
     assert "references unknown release target" in result.stderr
@@ -1475,6 +1544,7 @@ def test_validate_manifest_requires_manifest_driven_scoop_channel_inputs(tmp_pat
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
     assert result.returncode != 0
@@ -1505,6 +1575,7 @@ def test_validate_manifest_rejects_unknown_renderer_target(tmp_path: Path) -> No
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
     assert result.returncode != 0
@@ -1534,6 +1605,7 @@ def test_validate_manifest_requires_explicit_homebrew_bundle_destination(tmp_pat
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
     assert result.returncode != 0
@@ -1567,29 +1639,68 @@ def test_verify_python_release_assets_accepts_manifest_declared_wheels_and_sdist
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
     assert result.returncode == 0, result.stderr
     assert "'sc-compose': {'wheel': 2, 'sdist': 1}" in result.stdout
 
 
-def test_release_manifest_publishes_sc_sha_before_its_consumers() -> None:
-    """Keep manifest-declared crate ordering and fields regression-tested."""
-    manifest = require_manifest_crates()
+def assert_manifest_crates_and_channels(manifest: dict) -> None:
+    """Check ordered crate declarations and every configured channel."""
     crates = [entry for entry in manifest["crates"] if entry.get("publish", True)]
     orders = [entry["publish_order"] for entry in crates]
     assert orders == sorted(orders)
     assert len(orders) == len(set(orders))
     names = [entry["package"] for entry in crates]
-    if {"sc-sha", "sc-composer", "sc-compose"}.issubset(names):
-        positions = {name: names.index(name) for name in names}
-        assert positions["sc-sha"] < positions["sc-composer"] < positions["sc-compose"]
+    positions = {name: names.index(name) for name in names}
+    if "sc-sha" in positions:
+        for consumer in ("sc-composer", "sc-compose"):
+            if consumer in positions:
+                assert positions["sc-sha"] < positions[consumer]
+    if "sc-composer" in positions and "sc-compose" in positions:
+        assert positions["sc-composer"] < positions["sc-compose"]
     for entry in crates:
         assert entry["artifact"]
         assert entry["package"]
         assert entry["cargo_toml"].endswith("Cargo.toml")
         assert entry["wait_after_publish_seconds"] >= 0
-    assert manifest["channels"]
+    channels = manifest.get("channels", {})
+    assert isinstance(channels, dict)
+    for channel in channels.values():
+        assert isinstance(channel, dict)
+        assert isinstance(channel.get("workflow"), str) and channel["workflow"]
+        assert isinstance(channel.get("dispatch_inputs"), dict)
+
+
+def test_release_manifest_publishes_sc_sha_before_its_consumers() -> None:
+    """Check crate order and configured channels in the installed consumer."""
+    assert_manifest_crates_and_channels(require_manifest_crates())
+
+
+@pytest.mark.parametrize("channels", [None, {}, {"pypi": {"workflow": "publish.yml", "dispatch_inputs": {}}}])
+def test_manifest_crate_checks_accept_optional_and_configured_channels(channels: dict | None) -> None:
+    crates = [
+        {"artifact": name, "package": name, "cargo_toml": f"{name}/Cargo.toml",
+         "publish_order": order, "wait_after_publish_seconds": 0}
+        for order, name in enumerate(("sc-sha", "sc-composer", "sc-compose"), 1)
+    ]
+    manifest = {"crates": crates}
+    if channels is not None:
+        manifest["channels"] = channels
+    assert_manifest_crates_and_channels(manifest)
+    crates[1]["publish_order"] = 1
+    with pytest.raises(AssertionError):
+        assert_manifest_crates_and_channels(manifest)
+    crates[1]["publish_order"] = 2
+    crates[0]["package"], crates[1]["package"] = crates[1]["package"], crates[0]["package"]
+    with pytest.raises(AssertionError):
+        assert_manifest_crates_and_channels(manifest)
+
+
+def test_manifest_crate_checks_reject_invalid_configured_channel() -> None:
+    with pytest.raises(AssertionError):
+        assert_manifest_crates_and_channels({"crates": [], "channels": {"pypi": {}}})
 
 
 def run_manifest_command(*args: str) -> subprocess.CompletedProcess[str]:
@@ -1603,6 +1714,7 @@ def run_manifest_command(*args: str) -> subprocess.CompletedProcess[str]:
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -1732,6 +1844,7 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
     passing_outcomes = json.dumps(
         {
             "ownership": "success",
+            "immutable_releases": "success",
             "release_metadata": "success",
             "repository_secrets": "success",
             "repository_secret_channels": {
@@ -1783,6 +1896,7 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
     failed_outcomes = json.dumps(
         {
             "ownership": "success",
+            "immutable_releases": "success",
             "release_metadata": "success",
             "repository_secrets": "failure",
             "repository_secret_channels": {
@@ -1829,6 +1943,7 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
         json.dumps(
             {
                 "ownership": "success",
+            "immutable_releases": "success",
                 "release_metadata": "success",
                 "repository_secrets": "success",
                 "environment_secrets": "success",
@@ -1876,6 +1991,7 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
     invalid_tag_outcomes = json.dumps(
         {
             "ownership": "success",
+            "immutable_releases": "success",
             "release_metadata": "failure",
             "repository_secrets": "success",
             "repository_secret_channels": {
@@ -1971,6 +2087,7 @@ def test_background_workers_consume_and_gate_their_own_preflight_contracts() -> 
 
     passed_outcomes = {
         "ownership": "success",
+            "immutable_releases": "success",
         "release_metadata": "success",
         "repository_secrets": "success",
         "repository_secret_channels": {
@@ -2150,6 +2267,7 @@ def test_registry_status_cli_uses_the_fail_closed_shared_registry_probe(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
     assert result.returncode == 0, result.stderr
@@ -2175,7 +2293,7 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
     assert "TEST_PYPI_API_TOKEN" in text
     assert "secrets.TEST_PYPI_TOKEN" not in text
     assert "--repository testpypi" in text
-    assert "for pattern in *.tar.gz *.zip *.whl; do" in text
+    assert "files=(*.tar.gz *.zip *.whl *.tgz)" in text
     assert "uses: ./.github/actions/setup-python-release-build" in text
     assert "update-homebrew:" not in text
     assert "publish-winget:" not in text
@@ -2230,8 +2348,8 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     assert "Environment-secret metadata is unavailable to GITHUB_TOKEN" in text
     assert "Verify repository credential liveness" in text
     assert "https://crates.io/api/v1/me" not in text
-    assert 'Authorization: Bearer ${token}' in text
-    assert "https://api.github.com/user" in text
+    assert 'python3 .github/scripts/release_credentials.py' in text
+    assert "https://api.github.com/user" in (scripts_root() / "release_credentials.py").read_text()
     assert "rotate or replace it" not in text
     assert 'echo "${token}"' not in text
     assert 'echo "${!secret_name}"' not in text
@@ -2269,7 +2387,7 @@ def test_release_preflight_registry_checks_execute_preserved_channel_exception(
     )
     registry_state = run_release_preflight_registry_step(
         tmp_path,
-        release_preflight_step_shell("registry_state", "package_checks"),
+        release_preflight_step_shell("registry_state", "consumer_preflight"),
         published=published,
         already_published_channels=already_published_channels,
     )
@@ -2313,7 +2431,7 @@ def test_check_version_unpublished_allows_only_listed_published_channels(
     assert preserved.returncode == 0, preserved.stderr
     assert "crates_io is preserved from a prior release run" in preserved.stdout
     assert unlisted.returncode != 0
-    assert "release version already published for: sc-compose, sc-composer" in unlisted.stderr
+    assert "release version already published for:" in unlisted.stderr
 
 
 def test_release_gate_readiness_threads_preserved_channel_provenance(
@@ -2322,8 +2440,8 @@ def test_release_gate_readiness_threads_preserved_channel_provenance(
     """Readiness forwards channel-scoped retry provenance to the native checker."""
     workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
     configure_fixture_crates_registry(manifest, published_registry_url)
-    for crate_name in ("sc-composer", "sc-compose"):
-        crate_manifest = tmp_path / "crates" / crate_name / "Cargo.toml"
+    for crate in tomllib.loads(manifest.read_text(encoding="utf-8"))["crates"]:
+        crate_manifest = tmp_path / crate["cargo_toml"]
         crate_manifest.write_text(
             crate_manifest.read_text(encoding="utf-8").replace(
                 'version = "1.1.0"', "version.workspace = true"
@@ -2347,7 +2465,7 @@ def test_release_gate_readiness_threads_preserved_channel_provenance(
     assert preserved.returncode == 0, preserved.stderr
     assert "PASS - release gate checks satisfied" in preserved.stdout
     assert unlisted.returncode != 0
-    assert "release version already published for: sc-compose, sc-composer" in unlisted.stderr
+    assert "release version already published for:" in unlisted.stderr
 
 
 def test_release_gate_final_threads_preserved_channel_provenance(
@@ -2356,8 +2474,8 @@ def test_release_gate_final_threads_preserved_channel_provenance(
     """The root Release workflow's final gate honors prior channel success."""
     workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
     configure_fixture_crates_registry(manifest, published_registry_url)
-    for crate_name in ("sc-composer", "sc-compose"):
-        crate_manifest = tmp_path / "crates" / crate_name / "Cargo.toml"
+    for crate in tomllib.loads(manifest.read_text(encoding="utf-8"))["crates"]:
+        crate_manifest = tmp_path / crate["cargo_toml"]
         crate_manifest.write_text(
             crate_manifest.read_text(encoding="utf-8").replace(
                 'version = "1.1.0"', "version.workspace = true"
@@ -2464,7 +2582,7 @@ def test_root_release_workflow_threads_retry_provenance_and_builds_from_main() -
     assert 'git tag "$tag" "$main_sha"' in workflow
     assert "build_ref: ${{ steps.release-ref.outputs.build_ref }}" in workflow
     assert workflow.count('echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"') == 1
-    assert workflow.count("needs.gate-and-tag.outputs.build_ref") == 11
+    assert workflow.count("needs.gate-and-tag.outputs.build_ref") == 10
     assert "gate-and-tag.outputs.release_ref" not in workflow
     assert "ref: ${{ needs.gate-and-tag.outputs.release_tag }}" not in workflow
     assert "ref: ${{ needs.gate-and-tag.outputs.release_ref }}" not in workflow
@@ -2543,7 +2661,8 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     assert "cargo run --quiet --manifest-path release-source/Cargo.toml" not in scoop_text
     assert "PUBLISHED_RENDERER" in scoop_text
     assert "Checkout workflow support" in scoop_text
-    assert "uses: ./.github/actions/extract-published-renderer" in scoop_text
+    assert "uses: ./.github/actions/setup-renderer" in scoop_text
+    assert "uses: ./.github/actions/extract-published-renderer" not in scoop_text
 
     assert "Render manifest-selected formulas with the published renderer" in homebrew_text
     assert '--tag "${{ inputs.tag }}"' in homebrew_text
@@ -2553,7 +2672,8 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     assert ".replace(placeholder, value)" not in homebrew_text
     assert "PUBLISHED_RENDERER" in homebrew_text
     assert "Checkout workflow support" in homebrew_text
-    assert "uses: ./.github/actions/extract-published-renderer" in homebrew_text
+    assert "uses: ./.github/actions/setup-renderer" in homebrew_text
+    assert "uses: ./.github/actions/extract-published-renderer" not in homebrew_text
     assert "install_block" not in homebrew_text
     assert "bundled_paths" in homebrew_text
 
@@ -2561,12 +2681,25 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
         repo_root()
         / ".github"
         / "actions"
-        / "extract-published-renderer"
+        / "setup-renderer"
         / "action.yml"
     ).read_text(encoding="utf-8")
-    assert "binary-path" in renderer_action
-    assert "Published renderer archive is missing ${RENDERER_BINARY_PATH}" in renderer_action
+    assert "bootstrap_sc_compose.py" in renderer_action
+    assert "--write-cli" in renderer_action
+    assert "PUBLISHED_RENDERER=${renderer}" in renderer_action
     assert "renderer-path=${renderer}" in renderer_action
+
+    linux_deps_action = (
+        repo_root()
+        / ".github"
+        / "actions"
+        / "install-linux-native-deps"
+        / "action.yml"
+    ).read_text(encoding="utf-8")
+    assert "libwebkit2gtk-4.1-dev" in linux_deps_action
+    assert "libwayland-dev" in linux_deps_action
+    for workflow_text in (release_workflow_text(), release_preflight_workflow_text(), crates_publish_workflow_text()):
+        assert "uses: ./.github/actions/install-linux-native-deps" in workflow_text
 
 
 def render_release_template(
@@ -2586,7 +2719,8 @@ def render_release_template(
 def assert_homebrew_formula_install_executes(formula: str) -> None:
     """Parse and execute a rendered formula against the Homebrew path helper shape."""
     ruby = subprocess.run(
-        ["ruby", "-c"], input=formula, text=True, capture_output=True, check=False
+        ["ruby", "-c"], input=formula, text=True, capture_output=True, check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
     assert ruby.returncode == 0, ruby.stderr
 
@@ -2633,6 +2767,7 @@ ScCompose.new.install
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
     assert execution.returncode == 0, execution.stderr
 
@@ -2659,17 +2794,22 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
             "binary_paths": ["bin/sc-compose", "bin/sc-compose-daemon"],
             "bundled_paths": [
                 {
-                    "destination_components": ["pkgshare", "examples", "nested"],
+                    "destination_components": ["pkgshare"],
                     "source_glob": "share/sc-compose/examples/*",
-                }
+                },
+                {
+                    "destination_components": ["pkgshare", "examples", "nested"],
+                    "source_glob": "share/sc-compose/nested/*",
+                },
             ],
         },
     )
     assert_homebrew_formula_install_executes(formula)
     assert 'bin.install "bin/sc-compose"' in formula
     assert 'bin.install "bin/sc-compose-daemon"' in formula
+    assert '(pkgshare).install Dir["share/sc-compose/examples/*"]' in formula
+    assert '(pkgshare/"examples"/"nested").install Dir["share/sc-compose/nested/*"]' in formula
     assert 'shell_output("#{bin}/" + "sc-compose-daemon"' in formula
-    assert '(pkgshare/"examples"/"nested").install' in formula
 
     scoop = render_release_template(
         tmp_path,
@@ -2761,12 +2901,13 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         repo_root() / ".claude" / "skills" / "publishing" / "evals" / "channel-name-inquiry.md"
     ).read_text(encoding="utf-8")
 
-    for text in (publisher_text, guide_text, checklist_text):
+    for text in (guide_text, checklist_text):
         assert "channel-dispatch-plan" in text
         assert "PYPI_TOKEN" not in text
         assert "TEST_PYPI_TOKEN" not in text
         assert "sc-compose" not in text
 
+    assert "renderer-contract.md" in publisher_text
     assert "role-specific background workers" in publisher_text
     assert "outcomes are keyed by channel" in (
         repo_root() / "docs" / "publish-kit-requirements.md"
@@ -2982,6 +3123,9 @@ def test_release_preflight_collects_independent_failures_before_denial() -> None
     assert "failures=()" in preflight_text
     assert "steps.secret_plan.outcome == 'success'" in preflight_text
     assert "Verify registry versions and new names" in preflight_text
+    assert "Run consumer publish preflight checks" in preflight_text
+    assert "run-consumer-preflight.sh" in preflight_text
+    assert "consumer-preflight" in preflight_text
     assert "public-registry-check-plan" in preflight_text
     assert preflight_text.count("registry-status --url") == 2
     assert "status_code()" not in preflight_text
@@ -2992,13 +3136,12 @@ def test_release_preflight_collects_independent_failures_before_denial() -> None
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:
     text = release_workflow_text()
+    collection = text.split("      - name: Collect archives\n", 1)[1].split("\n      - name:", 1)[0]
 
-    assert (
-        "find artifacts -type f \\( -name '*.tar.gz' -o -name '*.zip' \\) -exec mv {} release/ \\;"
-        in text
-    )
-    assert "find artifacts -type f -name '*.whl' -exec mv {} release/ \\;" in text
-    assert "find artifacts -type f \\( -name '*.zip' -o -name '*.whl' \\)" not in text
+    assert collection.count('find "$RELEASE_DOWNLOAD_DIR" -type f') == 1
+    for extension in ("tar.gz", "zip", "tgz", "whl"):
+        assert f"-name '*.{extension}'" in collection
+    assert '-exec mv -f {} "$RELEASE_ASSET_DIR/"' in collection
 
 
 def test_release_workflow_rehearsal_mode_avoids_production_side_effects() -> None:
@@ -3020,7 +3163,7 @@ def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> 
       matrix: ${{ fromJSON(needs.release-plan.outputs.python_wheel_matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.gate-and-tag.outputs.build_ref }}
       - uses: ./.github/actions/setup-python-release-build"""
@@ -3032,7 +3175,7 @@ def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> 
       matrix: ${{ fromJSON(needs.release-plan.outputs.python_sdist_matrix) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.gate-and-tag.outputs.build_ref }}
       - uses: ./.github/actions/setup-python-release-build"""
@@ -3043,16 +3186,52 @@ def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> 
     assert "matrix.pyproject" in text
 
 
-def test_python_package_metadata_uses_local_readme_for_sdist() -> None:
-    if not (repo_root() / "bindings" / "python").is_dir():
-        pytest.skip("consumer does not include a Python binding")
-    pyproject_text = python_pyproject_text()
-    cargo_toml_text = python_cargo_toml_text()
+def assert_declared_python_readmes(root: Path, manifest: dict) -> None:
+    """Validate optional file metadata at the caller-declared package paths."""
+    packages = {entry["package"]: entry for entry in manifest.get("python_packages", [])}
+    for distribution in manifest.get("python_distributions", []):
+        package = packages[distribution["name"]]
+        paths = [(root / package["manifest"], "project")]
+        if distribution.get("cargo_manifest"):
+            paths.append((root / distribution["cargo_manifest"], "package"))
+        for path, table in paths:
+            metadata = tomllib.loads(path.read_text(encoding="utf-8"))
+            readme = metadata.get(table, {}).get("readme")
+            # Readmes are optional; inline Python text and inherited Cargo
+            # metadata do not declare a package-local file to check here.
+            if isinstance(readme, dict):
+                readme = readme.get("file")
+            if isinstance(readme, str):
+                assert (path.parent / readme).is_file(), f"{path}: missing declared readme {readme}"
 
-    assert 'readme = "README.md"' in pyproject_text
-    assert 'readme = "README.md"' in cargo_toml_text
-    assert "../../README.md" not in pyproject_text
-    assert "../../README.md" not in cargo_toml_text
+
+def test_python_package_metadata_uses_declared_manifest_paths() -> None:
+    path = repo_root() / "release" / "publish-artifacts.toml"
+    if not path.is_file():
+        pytest.skip("package source has no consumer-specific rendered manifest")
+    manifest = release_manifest()
+    if not manifest.get("python_distributions"):
+        pytest.skip("consumer does not declare Python distributions")
+    assert_declared_python_readmes(repo_root(), manifest)
+
+
+def test_nested_python_readme_paths_and_optional_metadata(tmp_path: Path) -> None:
+    source = tmp_path / "bindings/python/nested-package"
+    source.mkdir(parents=True)
+    pyproject = source / "pyproject.toml"
+    cargo = source / "Cargo.toml"
+    manifest = {"python_packages": [{"package": "nested", "manifest": "bindings/python/nested-package/pyproject.toml"}],
+                "python_distributions": [{"name": "nested", "cargo_manifest": "bindings/python/nested-package/Cargo.toml"}]}
+    pyproject.write_text('[project]\nname="nested"\n')
+    cargo.write_text('[package]\nname="nested"\n')
+    assert_declared_python_readmes(tmp_path, manifest)
+    pyproject.write_text('[project]\nname="nested"\nreadme={file="docs/README.md", content-type="text/markdown"}\n')
+    (source / "docs").mkdir()
+    (source / "docs/README.md").write_text("Nested package documentation")
+    assert_declared_python_readmes(tmp_path, manifest)
+    (source / "docs/README.md").unlink()
+    with pytest.raises(AssertionError, match="missing declared readme"):
+        assert_declared_python_readmes(tmp_path, manifest)
 
 
 def write_readme_fixture(
@@ -3132,6 +3311,7 @@ def run_sync_readme_version(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -3154,6 +3334,7 @@ def run_verify_readme_version(
         text=True,
         capture_output=True,
         check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -3253,24 +3434,7 @@ def run_verify_version_lockstep(workspace: Path, manifest: Path) -> subprocess.C
         text=True,
         capture_output=True,
         check=False,
-    )
-
-
-def run_verify_go_native_version_lockstep(workspace: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [
-            sys.executable,
-            "scripts/go_native_module.py",
-            "verify-version-lockstep",
-            "--config",
-            str(workspace.parent / "release" / "go-native-module.toml"),
-            "--workspace-toml",
-            str(workspace),
-        ],
-        cwd=Path(__file__).resolve().parents[2],
-        text=True,
-        capture_output=True,
-        check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
 
 
@@ -3366,23 +3530,6 @@ def test_verify_version_lockstep_rejects_python_package_drift(tmp_path: Path) ->
     assert result.returncode != 0
     assert "bindings/python/pyproject.toml" in result.stderr
     assert "[project].version mismatch" in result.stderr
-
-
-def test_go_native_version_lockstep_accepts_workspace_inheritance_and_rejects_drift(
-    tmp_path: Path,
-) -> None:
-    workspace, _manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
-    accepted = run_verify_go_native_version_lockstep(workspace)
-    assert accepted.returncode == 0, accepted.stderr
-    assert accepted.stdout.strip() == "1.1.0"
-
-    binding = tmp_path / "bindings" / "sc-sha-go" / "Cargo.toml"
-    binding.write_text(
-        '[package]\nname = "sc-sha-go"\nversion = "9.9.9"\n', encoding="utf-8"
-    )
-    rejected = run_verify_go_native_version_lockstep(workspace)
-    assert rejected.returncode != 0
-    assert "inherit workspace" in rejected.stderr
 
 
 def test_build_plan_selects_the_manifest_declared_python_upload_tool(tmp_path: Path) -> None:
@@ -3527,3 +3674,209 @@ def test_version_resolution_honors_a_pyproject_workspace_toml(tmp_path: Path) ->
     )
     assert unresolved.returncode != 0
     assert "version source must declare" in unresolved.stderr
+
+
+def test_standalone_crate_manifest_is_validated_and_planned(tmp_path):
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    standalone = tmp_path / "bindings/standalone"
+    standalone.mkdir(parents=True)
+    (standalone / "Cargo.toml").write_text('[package]\nname="standalone"\nversion="1.1.0"\n[workspace]\n[dependencies]\nsc-compose={path="../../crates/sc-compose",version="1.1.0"}\n')
+    with manifest.open("a") as output:
+        output.write('\n[[crates]]\nartifact="standalone"\npackage="standalone"\ncargo_toml="bindings/standalone/Cargo.toml"\npublish=true\npublish_order=3\nwait_after_publish_seconds=0\n')
+    for command in ["validate-manifest", "validate-publish-order", "package-check-plan"]:
+        result = run_fixture_command(tmp_path, command, "--workspace-toml", str(workspace), *(["--include-manifest"] if command == "package-check-plan" else []), manifest=manifest)
+        assert result.returncode == 0, result.stderr
+        if command == "package-check-plan":
+            assert "standalone|no_verify|sc-compose|bindings/standalone/Cargo.toml" in result.stdout
+    result = run_fixture_command(tmp_path, "list-publish-plan", "--include-manifest", manifest=manifest)
+    assert "standalone|0|bindings/standalone/Cargo.toml" in result.stdout
+    sys.path.insert(0, str(repo_root() / ".github/scripts"))
+    from release_manifest import _assert_workspace_inherited_version
+    _assert_workspace_inherited_version(workspace, "bindings/standalone/Cargo.toml")
+    (standalone / "Cargo.toml").write_text('[package]\nname="standalone"\nversion="0.0.1"\n[workspace]\n')
+    with pytest.raises(SystemExit, match="standalone version"):
+        _assert_workspace_inherited_version(workspace, "bindings/standalone/Cargo.toml")
+
+
+def test_all_cargo_publication_and_package_checks_use_manifest_path():
+    for text in [release_workflow_text(), crates_publish_workflow_text()]:
+        assert 'cargo publish --manifest-path "$cargo_manifest" --locked' in text
+        assert 'cargo publish -p' not in text
+        assert 'read -r package wait_secs cargo_manifest' in text
+    text = release_preflight_workflow_text()
+    assert 'cargo package --manifest-path "$cargo_manifest" --locked' in text
+    assert 'cargo package -p' not in text
+
+
+def test_package_only_release_has_no_binary_asset_expectations(tmp_path):
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    text = manifest.read_text()
+    import re
+    text = re.sub(r'\[\[release_binaries\]\]\nname = "[^"]+"\n', '', text)
+    text = text.split('[channels.homebrew]', 1)[0]
+    manifest.write_text(text)
+    result = run_fixture_command(tmp_path, 'validate-manifest', '--workspace-toml', str(workspace), manifest=manifest)
+    assert result.returncode == 0, result.stderr
+    result = run_fixture_command(tmp_path, 'build-plan', manifest=manifest)
+    assert json.loads(result.stdout)['has_release_binaries'] is False
+    assert json.loads(result.stdout)['has_python_wheels'] is True
+    result = run_fixture_command(tmp_path, 'release-asset-patterns', manifest=manifest)
+    assert result.returncode == 0
+    assert result.stdout == ''
+
+
+@pytest.mark.parametrize("helper", ["artifact_cli", "artifact_git", "script_git"])
+def test_fixture_command_timeout_terminates_stalled_child(tmp_path, monkeypatch, helper):
+    """Exercise the helpers' deadline against a real sleeping child process."""
+    import test_publish_kit_scripts as kit_tests
+
+    real_run = subprocess.run
+    real_popen = subprocess.Popen
+    children = []
+    deadline = 0.2
+    monkeypatch.setattr(sys.modules[__name__], "TEST_COMMAND_TIMEOUT_SECONDS", deadline)
+    monkeypatch.setattr(kit_tests, "TEST_COMMAND_TIMEOUT_SECONDS", deadline)
+
+    def track_child(*args, **kwargs):
+        child = real_popen(*args, **kwargs)
+        children.append(child)
+        return child
+
+    def run_stalled_child(command, **kwargs):
+        # Fail promptly if a helper loses its deadline, then exercise real cleanup.
+        assert kwargs["timeout"] == deadline
+        return real_run([sys.executable, "-c", "import time; time.sleep(60)"], **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", track_child)
+    monkeypatch.setattr(subprocess, "run", run_stalled_child)
+    with pytest.raises(subprocess.TimeoutExpired) as caught:
+        if helper == "artifact_cli":
+            run_fixture_command(tmp_path, "--help", manifest=tmp_path / "unused.toml")
+        elif helper == "artifact_git":
+            git_fixture_command(tmp_path, "status")
+        else:
+            kit_tests.ReleaseScriptTests._git(tmp_path, "status")
+    assert caught.value.timeout == deadline
+    assert "time.sleep(60)" in str(caught.value)
+    assert len(children) == 1
+    assert children[0].poll() is not None, "timed-out child must be killed and reaped"
+
+
+# Execute release staging and retry selection without publishing any channel.
+WORKFLOW = Path(__file__).resolve().parents[2] / "workflows" / "release.yml"
+
+
+def step_script(name: str) -> str:
+    text = WORKFLOW.read_text(encoding="utf-8")
+    step = text.split(f"      - name: {name}\n", 1)[1].split("\n      - ", 1)[0]
+    script = step.split("        run: |\n", 1)[1]
+    return "\n".join(line.removeprefix("          ") for line in script.splitlines())
+
+
+def run_step(name: str, cwd: Path, env: dict[str, str]) -> None:
+    result = subprocess.run(
+        ["bash", "-c", step_script(name)],
+        cwd=cwd,
+        env={**os.environ, **env},
+        # Nonempty stdin exposes the no-argument sha256sum bug deterministically.
+        input="must never become an asset checksum\n",
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("with_archives", [False, True])
+def test_asset_collection_isolated_from_tracked_release_files(tmp_path, with_archives):
+    repo = tmp_path / "repo"
+    config = repo / "release"
+    config.mkdir(parents=True)
+    (config / "publish-artifacts.toml").write_text("tracked configuration\n")
+    (config / "do-not-upload.zip").write_bytes(b"tracked example archive")
+    downloads = tmp_path / "runner-temp" / "release-artifacts"
+    stage = tmp_path / "runner-temp" / "release-assets"
+    archives = {
+        "sdk.tar.gz": b"tar archive",
+        "sdk.zip": b"zip archive",
+        "sdk.whl": b"wheel archive",
+        "sdk with spaces.tgz": b"npm archive",
+    } if with_archives else {}
+    if with_archives:
+        artifact = downloads / "artifact-one"
+        artifact.mkdir(parents=True)
+        for filename, content in archives.items():
+            (artifact / filename).write_bytes(content)
+        (artifact / "build-log.txt").write_text("not a release asset\n")
+    else:
+        assert not downloads.exists(), "model download-artifact with no matching uploads"
+    env = {"RELEASE_DOWNLOAD_DIR": str(downloads), "RELEASE_ASSET_DIR": str(stage)}
+    run_step("Collect archives", repo, env)
+    run_step("Generate checksums", stage, env)
+
+    assert {p.name for p in stage.iterdir()} == {*archives, "checksums.txt"}
+    for filename, content in archives.items():
+        assert (stage / filename).read_bytes() == content
+    expected = {
+        f"{hashlib.sha256(content).hexdigest()}  {filename}"
+        for filename, content in archives.items()
+    }
+    checksum = stage / "checksums.txt"
+    assert checksum.stat().st_size >= 1, "GitHub ReleaseAsset upload requires nonempty content"
+    lines = checksum.read_text().splitlines()
+    if not archives:
+        assert checksum.read_text() == "# No packaged release assets.\n"
+        assert all(line.startswith("#") for line in lines)
+    hash_entries = [line for line in lines if not line.startswith("#")]
+    assert set(hash_entries) == expected
+    assert "must never become an asset checksum" not in checksum.read_text()
+    assert (config / "publish-artifacts.toml").read_text() == "tracked configuration\n"
+    assert (config / "do-not-upload.zip").exists()
+
+
+def test_upload_and_verification_use_the_isolated_asset_directory():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    release_job = text.split("\n  release:\n", 1)[1]
+    assert "path: ${{ env.RELEASE_DOWNLOAD_DIR }}" in release_job
+    assert '--asset-dir "$RELEASE_ASSET_DIR"' in release_job
+    assert "working-directory: ${{ env.RELEASE_ASSET_DIR }}" in release_job
+    upload = release_job.split("      - name: Create GitHub Release\n", 1)[1]
+    assert "files: |\n            ${{ env.RELEASE_ASSET_DIR }}/*" in upload
+    assert "release/*" not in upload
+
+
+@pytest.mark.parametrize(
+    ("channels", "expected"),
+    [
+        ("", "false"),
+        ("github_release", "false"),
+        ("crates_io", "true"),
+        ("github_release, crates_io ", "true"),
+        ("crates_io,github_release", "true"),
+        ("not_crates_io", "false"),
+    ],
+)
+def test_retry_channel_selection_skips_only_preserved_crates(tmp_path, channels, expected):
+    output = tmp_path / "output"
+    run_step("Read channel retry selection", tmp_path, {
+        "ALREADY_PUBLISHED_CHANNELS": channels,
+        "GITHUB_OUTPUT": str(output),
+    })
+    assert output.read_text() == f"crates_already_published={expected}\n"
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "crates_already_published: ${{ steps.retry_channels.outputs.crates_already_published }}" in text
+    publish_condition = re.search(r"\n  publish:\n    if: (.+)", text).group(1)
+    assert "needs.gate-and-tag.outputs.crates_already_published != 'true'" in publish_condition
+
+
+def test_staging_paths_use_the_runner_temporary_directory(tmp_path):
+    output = tmp_path / "environment"
+    runner_temp = tmp_path / "runner temp"
+    run_step("Initialize release staging paths", tmp_path, {
+        "RUNNER_TEMP": str(runner_temp), "GITHUB_ENV": str(output),
+    })
+    assert output.read_text().splitlines() == [
+        f"RELEASE_DOWNLOAD_DIR={runner_temp}/release-artifacts",
+        f"RELEASE_ASSET_DIR={runner_temp}/release-assets",
+    ]

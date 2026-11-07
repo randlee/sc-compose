@@ -203,7 +203,12 @@ fn repo_keeps_standalone_boundary_rules() {
 }
 
 fn assert_source_boundary_rules(root: &Path, violations: &mut Vec<String>) {
-    let forbidden_env = concat!("ATM", "_HOME");
+    let policy: serde_json::Value =
+        serde_json::from_str(include_str!("../../../.sc-lint/install.json"))
+            .expect("identity policy");
+    let forbidden_env = policy["identities"]["forbidden_literals"][7]
+        .as_str()
+        .expect("forbidden environment name");
     let forbidden_atm_import = concat!("use ", "atm", "_");
     let forbidden_agent_import = concat!("use ", "agent_", "team_", "mail::");
     let forbidden_research_refs = [concat!("reverse", "_extract")];

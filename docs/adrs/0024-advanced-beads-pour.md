@@ -57,12 +57,12 @@ No ATM runtime dependency or duplicate parser/framework is introduced.
 
 The public sc-composer ComposeRequest in crates/sc-composer/src/types.rs
 gets no new public field; its existing layout is unchanged. The additive
-BeadRenderBy and BeadExecutionOptions types are defined in
+BeadRenderBy and BeadExecutionOptions types will be defined by V3 in
 crates/sc-composer-beads/src/contract.rs and re-exported from lib.rs;
-options/runner entrypoints are in execute.rs. BeadComposeRequest is unchanged.
+options/runner entrypoints will be in execute.rs. BeadComposeRequest is unchanged.
 
 The request layout stays unchanged. Rendering owner and strictness are
-additive execution options; the existing functions delegate to the same
+additive execution options; the existing functions will delegate to the same
 engine with the advanced default. Explicit Bd options select the preserved
 v1.7.0 path. There is no second renderer, parser or process engine.
 
@@ -88,13 +88,25 @@ new facade/composition roots to the Beads and Python boundary manifests;
 allowed crate dependency edges are unchanged. The runner option provides
 controlled inputs in tests, not another execution path.
 
-Python retains the positional request, adding keyword-only options to its
-existing execute/render/validate/preview/pour/attach functions:
+Python retains the positional request and adds the same keyword-only execution
+options to each existing entrypoint. The convenience entrypoints continue to
+select their named operation; `execute` honors `request.operation`:
 
 ```python
 execute(request, *, render_by="sc-compose", strict=False)
+render(request, *, render_by="sc-compose", strict=False)
+validate(request, *, render_by="sc-compose", strict=False)
+preview_pour(request, *, render_by="sc-compose", strict=False)
 pour(request, *, render_by="sc-compose", strict=False)
+preview_attach(request, *, render_by="sc-compose", strict=False)
+attach(request, *, render_by="sc-compose", strict=False)
 ```
+
+`render_by` accepts `"sc-compose"` or `"bd"` and maps to
+`BeadRenderBy::ScCompose` or `BeadRenderBy::Bd`; `strict` maps to
+`BeadExecutionOptions::strict`. The default is advanced sc-compose rendering
+with strict checks disabled. These are additive keyword-only arguments; the
+existing positional request and its layout do not change.
 
 CLI and JSON requests map to these options. `--request` is mutually exclusive
 with a positional formula and direct --var inputs; it is not silently merged.
@@ -138,11 +150,18 @@ Jinja. FR-24.34–35 and the ADR-0023 Phase V amendment govern provenance v2,
 state preservation, conditional selection and one atomic apply. V1 must
 verify/pin the bd transaction capability before V3's affected apply work;
 that is an implementation dependency, not an unresolved product decision.
+An unsupported capability is recorded on `comp-v-1-bd-ownership` for phase-end
+discussion and blocks only the affected apply acceptance, as ADR-0023 states.
 
-The bytes compared under FR-24.24, corpus identity and FUZZ-171 case-to-test
-mapping must be pinned from the preserved sources. Missing evidence remains
-a narrow unresolved acceptance input; it is never treated as a passing test.
-Historical bd probes stay version-qualified.
+The FUZZ-171 cases and the 229-template corpus are unavailable historical
+evidence. They are never counted as recovered, rerun or passing, and their
+recovery is not a prerequisite for any current work. The 2026-11-05 user
+ruling replaces them with bounded, deterministic regressions of the current
+approved contract, owned by V3, with final reruns owned by V7. The only
+remaining pinning obligation is the v1.7.0 byte compatibility compared under
+FR-24.24: those bytes must be pinned from the preserved sources, and missing
+evidence there stays a narrow unresolved acceptance input, never a passing
+test. Historical bd probes stay version-qualified.
 
 ## Consequences
 

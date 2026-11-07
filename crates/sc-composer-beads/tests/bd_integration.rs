@@ -9,12 +9,15 @@ use std::sync::{
     Mutex,
     atomic::{AtomicU64, Ordering},
 };
-use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+#[cfg(unix)]
+#[path = "../../test-support/fake_exec.rs"]
+mod fake_exec;
 
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeRequest, BeadOperation, BeadOutcome, PourAuthorization,
-    execute_bead_request,
+    BEADS_SCHEMA_V1, BeadComposeRequest, BeadExecutionOptions, BeadOperation, BeadOutcome,
+    BeadRenderBy, PourAuthorization, execute_bead_request_with_options,
 };
 use serde_json::{Map, json};
 
@@ -26,10 +29,12 @@ static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 static PINNED_BD_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
     let Some(pinned_bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let _guard = lock_pinned_bd_scenarios();
     let root = temporary_workspace();
@@ -92,10 +97,12 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
 }
 
 #[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
     let Some(pinned_bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
-        eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
-        return;
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
     };
     let _guard = lock_pinned_bd_scenarios();
     let root = temporary_workspace();
@@ -136,96 +143,107 @@ fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
     remove_temporary_workspace(&root).expect("remove temporary Beads workspace");
 }
 
+fn execute_bead_request(
+    request: &BeadComposeRequest,
+) -> Result<sc_composer_beads::BeadComposeReceipt, sc_composer_beads::BeadComposeError> {
+    execute_bead_request_with_options(
+        request,
+        &BeadExecutionOptions {
+            render_by: BeadRenderBy::Bd,
+            strict: false,
+        },
+    )
+}
+
 fn remove_temporary_workspace(root: &Path) -> io::Result<()> {
-    #[cfg(windows)]
-    const ATTEMPTS: usize = 120;
-    #[cfg(not(windows))]
-    const ATTEMPTS: usize = 1;
-
-    remove_dir_all_with_retry(root, ATTEMPTS, Duration::from_millis(250), |path| {
-        fs::remove_dir_all(path)
-    })
+    cleanup_once(root, |path| fs::remove_dir_all(path))
 }
 
-fn remove_dir_all_with_retry<F>(
-    root: &Path,
-    attempts: usize,
-    retry_delay: Duration,
-    mut remove_dir_all: F,
-) -> io::Result<()>
-where
-    F: FnMut(&Path) -> io::Result<()>,
-{
-    debug_assert!(attempts > 0, "cleanup must make at least one attempt");
-
-    for attempt in 0..attempts {
-        match remove_dir_all(root) {
-            Ok(()) => return Ok(()),
-            Err(error)
-                if is_retryable_workspace_cleanup_error(&error) && attempt + 1 < attempts =>
-            {
-                thread::sleep(retry_delay);
-            }
-            Err(error) => return Err(error),
-        }
-    }
-
-    unreachable!("the final cleanup attempt returns or propagates its error")
-}
-
-fn is_retryable_workspace_cleanup_error(error: &io::Error) -> bool {
-    // Windows reports a sharing violation as raw OS error 32 when `bd` has
-    // only just released a file in the isolated test workspace.
-    error.raw_os_error() == Some(32)
-}
-
-#[test]
-fn cleanup_retries_transient_file_locks() {
-    let mut calls = 0;
-    remove_dir_all_with_retry(Path::new("temporary-workspace"), 3, Duration::ZERO, |_| {
-        calls += 1;
-        if calls < 3 {
-            Err(io::Error::from_raw_os_error(32))
-        } else {
+fn cleanup_once(root: &Path, remove: impl FnOnce(&Path) -> io::Result<()>) -> io::Result<()> {
+    match remove(root) {
+        // A detached Windows file handle can defer cleanup; do not make the
+        // behavior test depend on how soon the OS releases it.
+        Err(error) if error.raw_os_error() == Some(32) => {
+            eprintln!("temporary workspace cleanup deferred: {}", root.display());
             Ok(())
         }
-    })
-    .expect("transient cleanup failure is retried");
-    assert_eq!(calls, 3);
+        result => result,
+    }
 }
 
 #[test]
-fn cleanup_does_not_retry_unrelated_errors() {
+fn cleanup_does_not_depend_on_lock_release_timing() {
     let mut calls = 0;
-    let error =
-        remove_dir_all_with_retry(Path::new("temporary-workspace"), 3, Duration::ZERO, |_| {
-            calls += 1;
-            Err(io::Error::from(io::ErrorKind::PermissionDenied))
-        })
-        .expect_err("non-sharing cleanup failures must not be hidden by retries");
-
-    assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+    cleanup_once(Path::new("temporary-workspace"), |_| {
+        calls += 1;
+        Err(io::Error::from_raw_os_error(32))
+    })
+    .unwrap();
     assert_eq!(calls, 1);
+    let error = cleanup_once(Path::new("temporary-workspace"), |_| {
+        Err(io::Error::from(io::ErrorKind::PermissionDenied))
+    })
+    .unwrap_err();
+    assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+}
+
+// FTQ-001: a fork on another libtest thread can inherit a just-written
+// script's write descriptor. Holding such a descriptor open reproduces that
+// interleaving deterministically instead of waiting for it.
+#[cfg(unix)]
+#[test]
+fn fake_executable_runs_while_its_written_script_is_held_open_for_writing() {
+    let root = temporary_workspace();
+    let fake = root.join("fake-bd");
+    fake_exec::install(&fake, "printf '%s' \"ran:$1\"\n");
+    let _inherited_writer = fs::OpenOptions::new()
+        .append(true)
+        .open(root.join("fake-bd.sh"))
+        .expect("hold the script's write descriptor open");
+    let output = Command::new(&fake)
+        .arg("cook")
+        .output()
+        .expect("spawn fake executable");
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(output.stdout, b"ran:cook");
+    remove_temporary_workspace(&root).expect("remove temporary workspace");
+}
+
+// Control for the test above: the replaced write-then-exec pattern fails with
+// ETXTBSY under the same held descriptor. Linux enforces ETXTBSY on exec;
+// macOS does not, so the control runs on Linux only.
+#[cfg(target_os = "linux")]
+#[test]
+fn exec_of_a_script_held_open_for_writing_fails_with_etxtbsy() {
+    use std::io::Write;
+    use std::os::unix::fs::PermissionsExt;
+
+    const ETXTBSY: i32 = 26;
+    let root = temporary_workspace();
+    let script = root.join("written-then-exec");
+    let mut writer = fs::File::create(&script).expect("create script");
+    writer
+        .write_all(b"#!/bin/sh\nexit 0\n")
+        .expect("write script");
+    fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).expect("chmod script");
+    let error = Command::new(&script)
+        .status()
+        .expect_err("exec must fail while a write descriptor is open");
+    assert_eq!(error.raw_os_error(), Some(ETXTBSY), "{error}");
+    drop(writer);
+    remove_temporary_workspace(&root).expect("remove temporary workspace");
 }
 
 #[cfg(unix)]
 fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
-    use std::os::unix::fs::PermissionsExt;
-
     let wrapper = root.join("bd-no-daemon");
-    fs::write(
+    fake_exec::install(
         &wrapper,
-        format!(
+        &format!(
             "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexec {} \"$@\"\n",
             shell_quote(bd)
         ),
-    )
-    .expect("write no-daemon Beads wrapper");
-    let mut permissions = fs::metadata(&wrapper)
-        .expect("no-daemon wrapper metadata")
-        .permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&wrapper, permissions).expect("make no-daemon wrapper executable");
+    );
     wrapper
 }
 
@@ -265,21 +283,15 @@ fn unauthorized_pour_does_not_start_the_pinned_beads_binary(root: &Path, bd: &Pa
 
 #[cfg(unix)]
 fn process_probe(root: &Path, bd: &Path, marker: &Path) -> PathBuf {
-    use std::os::unix::fs::PermissionsExt;
-
     let probe = root.join("bd-process-probe");
-    fs::write(
+    fake_exec::install(
         &probe,
-        format!(
+        &format!(
             "#!/bin/sh\nprintf 'started\\n' > {}\nexec {} \"$@\"\n",
             shell_quote(marker),
             shell_quote(bd)
         ),
-    )
-    .expect("write process probe");
-    let mut permissions = fs::metadata(&probe).expect("probe metadata").permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&probe, permissions).expect("make process probe executable");
+    );
     probe
 }
 
@@ -445,6 +457,12 @@ fn request(
 }
 
 fn initialize_beads(bd: &Path, root: &Path) {
+    // bd discovers a workspace by walking up from the working directory, so an
+    // ancestor `.beads` (for example `$HOME/.beads` when the temp dir lives under
+    // `$HOME`) would otherwise receive this init and later `bd where`. Pin only
+    // the init child to this workspace; the parent process environment is not
+    // touched, and afterwards the workspace's own `.beads` is the nearest one.
+    fs::create_dir_all(root.join(".beads")).expect("create workspace .beads");
     let output = Command::new(bd)
         .args([
             "init",
@@ -453,6 +471,7 @@ fn initialize_beads(bd: &Path, root: &Path) {
             "--skip-agents",
             "--skip-hooks",
         ])
+        .env("BEADS_DIR", root.join(".beads"))
         .current_dir(root)
         .output()
         .expect("start pinned bd init");

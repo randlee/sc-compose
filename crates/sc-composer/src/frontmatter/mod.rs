@@ -1,5 +1,6 @@
 //! Typed YAML frontmatter parsing and normalization.
 
+mod duplicates;
 mod model;
 mod normalizer;
 mod parser;
@@ -195,6 +196,8 @@ mod tests {
         let explicit = super::Frontmatter {
             pass_number: 2,
             has_explicit_pass_number: true,
+            has_variable_schema: false,
+            declared_variables: std::collections::BTreeSet::new(),
             required_variables: Vec::new(),
             defaults: BTreeMap::new(),
             metadata: BTreeMap::new(),
@@ -212,6 +215,26 @@ mod tests {
                 .to_string()
                 .contains("duplicate explicit pass number in stacked frontmatter")
         );
+    }
+
+    #[test]
+    fn schema_presence_distinguishes_explicit_empty_from_absent() {
+        for header in [
+            "required_variables: []",
+            "variables: {}",
+            "defaults: {}",
+            "input_defaults: {}",
+        ] {
+            let document =
+                super::parse_template_document(&format!("---\n{header}\n---\nbody")).unwrap();
+            assert!(
+                document.frontmatter().unwrap().has_variable_schema(),
+                "{header}"
+            );
+        }
+        let document = super::parse_template_document("---\nmetadata: {}\n---\nbody").unwrap();
+        assert!(!document.frontmatter().unwrap().has_variable_schema());
+        super::parse_template_document("---\nrequired_variables: null\n---\nbody").unwrap_err();
     }
 
     #[test]

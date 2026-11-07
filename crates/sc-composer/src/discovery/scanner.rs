@@ -18,9 +18,15 @@ impl ExpressionDelimiters {
     }
 }
 
+/// Walk the tags of `text`, calling `visit` for each expression or statement.
+///
+/// `strict` additionally skips Jinja comments and raw-block bodies, which
+/// render nothing. Only strict discovery sets it (GH #785); the default scan
+/// keeps the v1.7.0 behavior of reporting tokens inside them (FR-24.2).
 pub(super) fn walk_template<F>(
     text: &str,
     expression_delimiters: &ExpressionDelimiters,
+    strict: bool,
     mut visit: F,
 ) where
     F: FnMut(Delimiter, &str) -> bool,
@@ -28,7 +34,10 @@ pub(super) fn walk_template<F>(
     let mut cursor = text;
     while let Some((delimiter, start)) = next_delimiter(cursor, expression_delimiters) {
         // A comment renders nothing, so nothing inside it is a reference.
-        if let Some(comment) = cursor.find("{#").filter(|comment| *comment < start) {
+        if let Some(comment) = cursor
+            .find("{#")
+            .filter(|comment| strict && *comment < start)
+        {
             let Some(end) = cursor[comment + 2..].find("#}") else {
                 break;
             };
@@ -44,13 +53,17 @@ pub(super) fn walk_template<F>(
             Delimiter::Statement => "%}",
         };
         let after_start = &cursor[start + start_delimiter.len()..];
-        let end = match delimiter {
-            Delimiter::Expression => find_exact_delimiter(after_start, end_delimiter),
-            Delimiter::Statement => after_start.find(end_delimiter),
-        };
+        let end = find_closing_delimiter(
+            after_start,
+            end_delimiter,
+            matches!(delimiter, Delimiter::Expression),
+        );
         let Some(end) = end else { break };
         let raw_content = &after_start[..end];
-        let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);
+        let without_leading_marker = raw_content
+            .strip_prefix('-')
+            .or_else(|| raw_content.strip_prefix('+'))
+            .unwrap_or(raw_content);
         let without_markers = without_leading_marker
             .strip_suffix('-')
             .or_else(|| without_leading_marker.strip_suffix('+'))
@@ -58,7 +71,7 @@ pub(super) fn walk_template<F>(
         let expression = without_markers.trim();
         cursor = &after_start[end + end_delimiter.len()..];
         // A raw block renders its body literally, so it holds no references.
-        if matches!(delimiter, Delimiter::Statement) && expression == "raw" {
+        if strict && matches!(delimiter, Delimiter::Statement) && expression == "raw" {
             let Some(body_end) = find_endraw(cursor) else {
                 break;
             };
@@ -69,6 +82,50 @@ pub(super) fn walk_template<F>(
             break;
         }
     }
+}
+
+/// Find a tag's closing delimiter while respecting quoted string literals.
+///
+/// A delimiter-looking sequence inside a Jinja string is ordinary string
+/// content.  This intentionally only performs lexical quote handling; the
+/// renderer remains responsible for reporting malformed expressions.
+fn find_closing_delimiter(text: &str, delimiter: &str, exact: bool) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let delimiter = delimiter.as_bytes();
+    let mut quote = None;
+    let mut escaped = false;
+    let mut cursor = 0;
+
+    while cursor < bytes.len() {
+        let byte = bytes[cursor];
+        if let Some(quote_byte) = quote {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == quote_byte {
+                quote = None;
+            }
+            cursor += 1;
+            continue;
+        }
+
+        if matches!(byte, b'\'' | b'\"') {
+            quote = Some(byte);
+            cursor += 1;
+            continue;
+        }
+        if bytes[cursor..].starts_with(delimiter) {
+            if exact && bytes.get(cursor + delimiter.len()) == delimiter.first() {
+                cursor += delimiter.len();
+                continue;
+            }
+            return Some(cursor);
+        }
+        cursor += 1;
+    }
+
+    None
 }
 
 fn next_delimiter(
@@ -100,12 +157,44 @@ fn find_exact_delimiter(text: &str, delimiter: &str) -> Option<usize> {
             .get(after)
             .is_some_and(|byte| *byte == repeated_byte)
         {
+            // With normal double-brace syntax, `{{{"key": value}` starts a
+            // variable expression followed by a dictionary literal.  Keep
+            // the leftmost opening delimiter when that third brace clearly
+            // starts a quoted dictionary key; otherwise a longer brace run
+            // belongs to a higher-brace pass.
+            if delimiter == "{{" && starts_quoted_dictionary_key(&text[after + 1..]) {
+                return Some(absolute);
+            }
             cursor = after;
             continue;
         }
         return Some(absolute);
     }
     None
+}
+
+fn starts_quoted_dictionary_key(text: &str) -> bool {
+    let text = text.trim_start();
+    let Some(quote) = text
+        .chars()
+        .next()
+        .filter(|character| matches!(character, '\'' | '\"'))
+    else {
+        return false;
+    };
+    let mut escaped = false;
+    for (index, character) in text[quote.len_utf8()..].char_indices() {
+        if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == quote {
+            return text[quote.len_utf8() + index + character.len_utf8()..]
+                .trim_start()
+                .starts_with(':');
+        }
+    }
+    false
 }
 
 /// Return the offset just past the `{% endraw %}` tag (with optional

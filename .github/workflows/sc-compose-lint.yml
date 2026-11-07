@@ -1,0 +1,80 @@
+name: sc-lint
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+jobs:
+  sc-lint:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-24.04", "macos-latest", "windows-latest"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+          components: rustfmt, clippy
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: ./.github/actions/setup-sc-lint-managed
+      - run: just setup
+      - name: Install LLVM for Windows cross compilation
+        if: runner.os == 'Linux'
+        run: |
+          llvm_version='1:19.1.7~++20250804090312+cd708029e0b2-1~exp1~20250804210325.79'
+          llvm_key="$(mktemp)"
+          curl --fail --silent --show-error https://apt.llvm.org/llvm-snapshot.gpg.key --output "$llvm_key"
+          fingerprint="$(gpg --show-keys --with-colons "$llvm_key" | awk -F: '$1 == "fpr" { print $10; exit }')"
+          test "$fingerprint" = '6084F3CF814B57C1CF12EFD515CF4D18AF4F7421'
+          sudo install -d -m 0755 /usr/share/keyrings
+          gpg --dearmor --output - "$llvm_key" | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+          rm "$llvm_key"
+          echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/noble/ llvm-toolchain-noble-19 main' | sudo tee /etc/apt/sources.list.d/llvm-19.list
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            "clang-19=$llvm_version" \
+            "clang-tools-19=$llvm_version" \
+            "lld-19=$llvm_version" \
+            "llvm-19=$llvm_version" \
+            "llvm-19-tools=$llvm_version"
+          echo /usr/lib/llvm-19/bin >> "$GITHUB_PATH"
+          {
+            echo 'CC=/usr/lib/llvm-19/bin/clang'
+            echo 'CXX=/usr/lib/llvm-19/bin/clang++'
+            echo 'AR=/usr/lib/llvm-19/bin/llvm-ar'
+            echo 'CC_x86_64_pc_windows_msvc=/usr/lib/llvm-19/bin/clang-cl'
+            echo 'CXX_x86_64_pc_windows_msvc=/usr/lib/llvm-19/bin/clang-cl'
+            echo 'AR_x86_64_pc_windows_msvc=/usr/lib/llvm-19/bin/llvm-lib'
+            echo 'CC_aarch64_pc_windows_msvc=/usr/lib/llvm-19/bin/clang-cl'
+            echo 'CXX_aarch64_pc_windows_msvc=/usr/lib/llvm-19/bin/clang-cl'
+            echo 'AR_aarch64_pc_windows_msvc=/usr/lib/llvm-19/bin/llvm-lib'
+          } >> "$GITHUB_ENV"
+          export PATH="/usr/lib/llvm-19/bin:$PATH"
+          clang --version | grep --fixed-strings 'clang version 19.1.7'
+          clang++ --version | grep --fixed-strings 'clang version 19.1.7'
+          clang-cl --version | grep --fixed-strings 'clang version 19.1.7'
+          llvm-ar --version | grep --fixed-strings 'LLVM version 19.1.7'
+          test "$(dpkg-query --show --showformat='${Version}' clang-19)" = "$llvm_version"
+          test "$(dpkg-query --show --showformat='${Version}' clang-tools-19)" = "$llvm_version"
+          test "$(dpkg-query --show --showformat='${Version}' llvm-19)" = "$llvm_version"
+          test -x /usr/lib/llvm-19/bin/clang-cl
+          test -x /usr/lib/llvm-19/bin/llvm-lib
+      - name: Check both Windows architectures
+        if: runner.os == 'Linux'
+        env:
+          PYO3_CROSS_PYTHON_VERSION: '3.11'
+        run: |
+          command -v llvm-lib
+          cargo xwin check --workspace --target x86_64-pc-windows-msvc
+          cargo xwin check --workspace --target aarch64-pc-windows-msvc
+      - run: just lint ci all
+        if: runner.os == 'Linux'
+      - run: just lint ci
+        if: runner.os != 'Linux'
+      - run: just test

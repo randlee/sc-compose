@@ -20,7 +20,7 @@ inputs:
     required: false
     default: "maturin"
   install_maturin_zig:
-    description: Install maturin's Zig support for an ARM64 manylinux wheel build.
+    description: Install the proven maturin Zig linker support for manylinux builds.
     required: false
     default: "false"
   rust_toolchain:
@@ -36,16 +36,26 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         ref: ${{ inputs.release_ref }}
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: ${{ inputs.python_version }}
     - uses: dtolnay/rust-toolchain@master
       if: ${{ inputs.build_system == 'maturin' }}
       with:
         toolchain: ${{ inputs.rust_toolchain }}
+    - name: Select installed release Rust toolchain
+      if: ${{ inputs.build_system == 'maturin' }}
+      shell: bash
+      env:
+        RELEASE_RUST_TOOLCHAIN: ${{ inputs.rust_toolchain }}
+      run: |
+        # A default toolchain does not override repository rust-toolchain.toml.
+        # Select the installed release toolchain for rustup and maturin's Cargo
+        # subprocesses without changing the repository's development policy.
+        echo "RUSTUP_TOOLCHAIN=${RELEASE_RUST_TOOLCHAIN}" >> "$GITHUB_ENV"
     - name: Install maturin
       if: ${{ inputs.build_system == 'maturin' && inputs.install_maturin_zig != 'true' }}
       shell: bash

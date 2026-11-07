@@ -10,10 +10,18 @@ import sys
 import pytest
 import sc_composer_beads as beads
 
+SUBPROCESS_TIMEOUT_SECONDS = 120
+
 
 def _worker(root: Path, bd: str) -> None:
     def run(*args: str) -> str:
-        result = subprocess.run([bd, *args], cwd=root, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(
+            [bd, *args],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT_SECONDS,
+        )
         assert result.returncode == 0, result.stderr
         return result.stdout
 
@@ -54,6 +62,38 @@ def _worker(root: Path, bd: str) -> None:
     assert "plan_path" not in repeated["graph"]
     assert snapshot() == before
     assert not (root / ".beads" / "formulas").exists()
+    run("dep", "remove", expected["verify"], expected["build"])
+    before = snapshot()
+    preview_missing = beads.preview_attach(request).to_json()
+    assert preview_missing["outcome"] == "succeeded"
+    assert any(edge["from"] == expected["verify"] and edge["to"] == expected["build"] and edge["action"] == "add" for edge in preview_missing["graph"]["edges"])
+    assert snapshot() == before
+    refused = beads.attach(request).to_json()
+    assert refused["outcome"]["refused"]["code"] == "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE"
+    assert snapshot() == before
+
+
+@pytest.mark.parametrize("operation_name", ["attach", "preview_attach"])
+def test_attach_rejects_invalid_render_by_with_typed_request_error(
+    tmp_path: Path, operation_name: str
+) -> None:
+    request = beads.BeadComposeRequest(
+        tmp_path,
+        tmp_path / "release.formula.toml.j2",
+        tmp_path / "release.formula.toml",
+        {},
+        operation="attach",
+        pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+        parent="proj-1",
+        ref="release",
+    )
+
+    with pytest.raises(beads.BeadComposeError) as raised:
+        getattr(beads, operation_name)(request, render_by="invalid")
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+    assert raised.value.message == "render_by must be sc-compose or bd"
 
 
 def test_installed_wheel_attach_and_repeat_preserve_ids_and_existing_beads(tmp_path: Path) -> None:
@@ -62,8 +102,13 @@ def test_installed_wheel_attach_and_repeat_preserve_ids_and_existing_beads(tmp_p
         pytest.skip("BD_EXECUTABLE is not configured")
     # Configure only this process tree, so other pytest tests never inherit fixture state.
     env = dict(os.environ, BEADS_DIR=str(tmp_path / ".beads"), BEADS_NO_DAEMON="1")
-    result = subprocess.run([sys.executable, str(Path(__file__).resolve()), str(tmp_path), bd],
-                            env=env, capture_output=True, text=True, timeout=180)
+    result = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), str(tmp_path), bd],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=SUBPROCESS_TIMEOUT_SECONDS,
+    )
     assert result.returncode == 0, result.stdout + result.stderr
 
 

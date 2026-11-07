@@ -30,10 +30,36 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             json!({ "path": path.to_string_lossy(), "kind": format!("{:?}", source.kind()) }),
             "Check that the request path names an existing UTF-8 JSON file and that you have permission to read it.",
         )),
+        BeadComposeError::DirectStagingFailed { path, source }
+        | BeadComposeError::DirectSourceFailed { path, source }
+        | BeadComposeError::DirectSnapshotFailed { path, source } => Some((
+            json!({ "path": path.to_string_lossy(), "cause": source.to_string() }),
+            "Check the reported path, source includes, and filesystem permissions, then retry.",
+        )),
         BeadComposeError::OutputPathInvalid { path, rule } => Some((
             json!({ "field": "rendered_formula", "value": path.to_string_lossy(), "rule": rule }),
             "Choose a rendered_formula path whose parent directory exists inside working_directory.",
         )),
+        BeadComposeError::GraphPlanPathInvalid { path, rule } => Some((
+            json!({ "field": "graph_plan", "value": path.to_string_lossy(), "rule": rule }),
+            "Choose a writable graph plan path beside rendered_formula.",
+        )),
+        _ => graph_error_context(error),
+    };
+    let (details, recovery) = match context {
+        Some((details, recovery)) => (Some(details), Some(recovery)),
+        None => (None, None),
+    };
+    ErrorEnvelope {
+        code: error.code(),
+        message: error.to_string(),
+        details,
+        recovery,
+    }
+}
+
+fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)> {
+    match error {
         BeadComposeError::GraphParentNotFound { parent } => Some((
             json!({ "parent": parent }),
             "Create the parent or name an existing bead.",
@@ -71,6 +97,10 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             json!({ "edges": edges }),
             "For each missing edge, run bd dep add <from> <to> --type <type>, then retry.",
         )),
+        BeadComposeError::GraphAtomicUpdateUnavailable => Some((
+            json!({}),
+            "Use a qualified bd transaction with ownership preconditions; no mutation was attempted.",
+        )),
         BeadComposeError::GraphReadFailed {
             command,
             status,
@@ -93,20 +123,28 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
             "bd exited 0, so beads may have been created. Reconcile before pouring again: run bd show on the listed ids (bd list when none are listed); a retry can create a second molecule.",
         )),
         _ => None,
-    };
-    let (details, recovery) = match context {
-        Some((details, recovery)) => (Some(details), Some(recovery)),
-        None => (None, None),
-    };
-    ErrorEnvelope {
-        code: error.code(),
-        message: error.to_string(),
-        details,
-        recovery,
     }
 }
 
 impl crate::BeadDiagnostic {
+    /// Retain a refused receipt's structured diagnostic when available.
+    #[must_use]
+    pub fn refused(error: &BeadComposeError) -> Option<Self> {
+        match error {
+            BeadComposeError::GraphIdInvalid { .. } => Self::graph_id_invalid(error),
+            BeadComposeError::GraphPlanPathInvalid { .. } => {
+                let envelope = error_envelope(error);
+                Some(Self {
+                    code: envelope.code.into(),
+                    message: envelope.message,
+                    details: envelope.details,
+                    recovery: envelope.recovery.map(str::to_owned),
+                })
+            }
+            _ => None,
+        }
+    }
+
     /// Retain a canonical identifier diagnostic, including its native rule.
     /// Returns `None` for errors outside the identifier-refusal contract.
     #[must_use]

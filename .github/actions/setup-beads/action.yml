@@ -37,8 +37,9 @@ runs:
         download_dir="${RUNNER_TEMP}/sc-compose-beads/${BEADS_VERSION}/${RUNNER_OS}-${RUNNER_ARCH}"
         install_dir="${download_dir}/install"
         mkdir -p "${download_dir}" "${install_dir}"
-        curl --fail --location --retry 3 --retry-all-errors --output "${download_dir}/${archive}" "${release_url}/${archive}"
-        curl --fail --location --retry 3 --retry-all-errors --output "${download_dir}/checksums.txt" "${release_url}/checksums.txt"
+        source "${GITHUB_WORKSPACE}/.github/actions/setup-beads/download.sh"
+        download_beads_release "${release_url}/${archive}" "${download_dir}/${archive}"
+        download_beads_release "${release_url}/checksums.txt" "${download_dir}/checksums.txt"
 
         expected_sha="$(awk -v archive="${archive}" '$2 == archive { print $1 }' "${download_dir}/checksums.txt")"
         if [[ -z "${expected_sha}" ]]; then

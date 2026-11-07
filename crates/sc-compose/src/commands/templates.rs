@@ -14,7 +14,7 @@ use crate::{CommandError, print_json};
 
 pub(crate) fn run_templates_list(args: &ListArgs) -> Result<i32, CommandError> {
     let store = TemplateStore::templates()
-        .map_err(|error| store_root_error(error, "SC_COMPOSE_TEMPLATE_DIR"))?;
+        .map_err(|error| store_root_error(error, crate::template_store::TEMPLATE_DIR_ENV))?;
     let packs = store
         .list()
         .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
@@ -31,7 +31,7 @@ pub(crate) fn run_templates_render(
         .as_deref()
         .ok_or_else(|| CommandError::usage(anyhow!("missing template pack name")))?;
     let store = TemplateStore::templates()
-        .map_err(|error| store_root_error(error, "SC_COMPOSE_TEMPLATE_DIR"))?;
+        .map_err(|error| store_root_error(error, crate::template_store::TEMPLATE_DIR_ENV))?;
     let pack = match store.get_template(name) {
         Ok(Some(pack)) => pack,
         Ok(None) => {
@@ -61,7 +61,7 @@ pub(crate) fn run_templates_render(
 
 pub(crate) fn run_templates_add(args: &TemplatesAddArgs) -> Result<i32, CommandError> {
     let store = TemplateStore::templates()
-        .map_err(|error| store_root_error(error, "SC_COMPOSE_TEMPLATE_DIR"))?;
+        .map_err(|error| store_root_error(error, crate::template_store::TEMPLATE_DIR_ENV))?;
     let result = match store.add(&args.src, args.name.as_deref()) {
         Ok(result) => result,
         Err(AddError::AlreadyExists { destination }) => {

@@ -8,8 +8,8 @@ phase t planning). Extends
 is withdrawn.
 
 The Phase V advanced-mode amendment at the end supersedes the legacy
-missing-edge, provenance and write restrictions only for advanced rendering.
-The original rules remain the bd-owned compatibility contract.
+bead-input, missing-edge, provenance and write restrictions only for advanced
+rendering. The original rules remain the bd-owned compatibility contract.
 
 ## Context
 
@@ -95,7 +95,17 @@ forked Beads.
    calculate_hash` re-export (ADR-0018). Everything uses bd v1.3.1 commands;
    no capability probe, fork build or proto is involved.
 
-The sections below are the normative contract.
+The numbered decision above describes the original graph-creation contract.
+The Phase V amendment below adds requirements for existing-node edge changes
+and transaction-boundary ownership checks. The graph-creation transaction
+alone does not establish those additional guarantees: bd 1.3.1 has no
+qualified ownership-precondition interface for that apply path. Until a
+supported operation satisfies the amendment, advanced apply must refuse the
+unsupported mutation before writing; the original creation and preview
+contracts remain in force. The required capability is tracked in
+[Beads #8155](https://github.com/gastownhall/beads/issues/8155).
+
+The sections below, including the Phase V amendment, are the normative contract.
 
 ## Use cases
 
@@ -324,8 +334,9 @@ command `bd dep add <from> <to> --type <type>`. Each `reason` is a closed
 exactly the rows of the Conflict rules, Relation validation and Formula
 grammar tables; the CLI prints its text form.
 
-Request errors (`Err(BeadComposeError)`: Rust `Err`, Python exception, CLI exit
-3) are only request-shape problems found before any stage: serde failures;
+On the preserved bd-owned path, request errors (`Err(BeadComposeError)`:
+Rust `Err`, Python exception, CLI exit 3) are only request-shape problems found
+before any stage: serde failures;
 `parent` / `ref` missing on an attach op or present on another op;
 non-empty `relations` on render or validate; non-empty `bead_variables` on an
 attach op (`RequestDeserializationFailed`); and the existing Phase R request
@@ -335,12 +346,15 @@ A `BeadId`, `GraphRef` or `StepId` that fails its newtype rule instead returns
 `GraphIdInvalid` (refused / exit 2, with field, value and rule), not
 `RequestDeserializationFailed`.
 
-A pour learns its mode only after resolving the active registry (see
+A bd-owned pour learns its mode only after resolving the active registry (see
 "Stages"), so its two mode-dependent misuses are refused receipts, before any
 write: non-empty
 `bead_variables` in graph mode is `GraphFormulaUnsupported`
 (`bead_variables_set`), and non-empty `relations` in registry mode is
 `GraphRelationInvalid` (`registry_pour`).
+
+FR-24.8 permits caller bead inputs for advanced graph pour and attach. The
+restrictions above remain in effect when `--render-by bd` is selected.
 
 Scope: the top-level `parent` and `ref` are authoritative. A template may also
 receive them through `compose_variables` to bake them into text; any such value
@@ -712,6 +726,12 @@ A capability refusal is the planned typed code
 BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE, exit 2, before any mutation. V1 records
 the exact supported command/schema/version in the existing implementation PR once verified;
 V3 cannot dispatch this apply path against an unspecified protocol.
+
+V1 is contract verification only. Qualifying the bd ownership capability for
+pure-edge and mixed node-edge apply is not implemented by V1. An unsupported
+capability is recorded on the bead `comp-v-1-bd-ownership` for phase-end
+discussion. It blocks only the affected apply acceptance, never V1 or
+independent downstream development, and adds no new ledger.
 
 ### Conditional graph and required cases
 

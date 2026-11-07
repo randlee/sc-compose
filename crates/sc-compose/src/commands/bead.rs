@@ -1,99 +1,605 @@
 //! Thin command-line presentation for the versioned Beads request protocol.
 
 use std::fs;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadDiagnostic, BeadErrorClass,
-    BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadStageOutcome,
-    RefusedBeadComposeReceipt, RequestParseOutcome, execute_bead_request_with_diagnostics,
-    parse_request_for_operation,
+    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadComposeRequest, BeadDiagnostic,
+    BeadErrorClass, BeadExecutionOptions, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode,
+    BeadRenderBy, BeadStageOutcome, CommandSpec, FormulaName, PourAuthorization, ProcessRunner,
+    RefusedBeadComposeReceipt, RequestParseOutcome, StdProcessRunner,
+    execute_bead_request_with_options_and_diagnostics, parse_request_for_operation,
 };
 
 use crate::CommandError;
-use crate::cli::{BeadArgs, BeadSubcommand};
+use crate::cli::{BeadArgs, BeadRenderByArg, BeadRequestArgs, BeadSubcommand};
 use crate::exit_codes;
 use crate::print_json;
 
 /// Run one Beads request selected by the CLI subcommand.
 pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
-    let (request_path, operation, json) = match &args.command {
-        BeadSubcommand::Render(args) => (&args.request, BeadOperation::Render, args.json),
-        BeadSubcommand::Validate(args) => (&args.request, BeadOperation::Validate, args.json),
-        BeadSubcommand::PreviewPour(args) => (&args.request, BeadOperation::PreviewPour, args.json),
-        BeadSubcommand::PreviewAttach(args) => {
-            (&args.request, BeadOperation::PreviewAttach, args.json)
-        }
-        BeadSubcommand::Pour(args) => (&args.request, BeadOperation::Pour, args.json),
-        BeadSubcommand::Attach(args) => (&args.request, BeadOperation::Attach, args.json),
+    let (args, operation) = match &args.command {
+        BeadSubcommand::Render(args) => (args, BeadOperation::Render),
+        BeadSubcommand::Validate(args) => (args, BeadOperation::Validate),
+        BeadSubcommand::PreviewPour(args) => (args, BeadOperation::PreviewPour),
+        BeadSubcommand::PreviewAttach(args) => (args, BeadOperation::PreviewAttach),
+        BeadSubcommand::Pour(args) => (args, BeadOperation::Pour),
+        BeadSubcommand::Attach(args) => (args, BeadOperation::Attach),
     };
-    let input = match fs::read_to_string(request_path) {
-        Ok(input) => input,
-        Err(error) => {
-            let error = BeadComposeError::RequestReadFailed {
-                path: request_path.clone(),
-                source: error,
-            };
-            return print_bead_error(&error, operation, json);
-        }
+    let json = args.json;
+    let options = BeadExecutionOptions {
+        render_by: match args.render_by {
+            BeadRenderByArg::ScCompose => BeadRenderBy::ScCompose,
+            BeadRenderByArg::Bd => BeadRenderBy::Bd,
+        },
+        strict: args.strict,
     };
-    let mut request = match parse_request_for_operation(&input, operation) {
-        Ok(RequestParseOutcome::Ready(request)) => request,
-        Ok(RequestParseOutcome::Refused(mut receipt)) => {
-            receipt.receipt.operation = operation;
-            return print_refused_receipt(receipt, json);
-        }
-        // An identifier error that survives parsing is outside the attach
-        // family (attach identifiers become refused receipts): ADR-0023 calls
-        // it a request error, exit 3, keeping the native typed error.
-        Err(error @ BeadComposeError::GraphIdInvalid { .. }) => {
-            return print_bead_error_with_exit(&error, operation, json, exit_codes::USAGE_FAIL);
-        }
-        Err(error) => return print_bead_error(&error, operation, json),
+    let (request, staging) = match request_from_args(args, operation, json) {
+        Ok(prepared) => prepared,
+        Err(response) => return response,
     };
-    request.operation = operation;
-
     let mut diagnostics = Vec::new();
-    let mut identifier_diagnostic = None;
-    let result = execute_bead_request_with_diagnostics(&request, &mut |error| {
-        identifier_diagnostic = BeadDiagnostic::graph_id_invalid(error);
-        if !json {
-            diagnostics.push(serde_json::to_value(error));
-        }
-    });
+    let mut refusal_diagnostic = None;
+    let result =
+        execute_bead_request_with_options_and_diagnostics(&request, &options, &mut |error| {
+            refusal_diagnostic = BeadDiagnostic::refused(error);
+            if !json {
+                diagnostics.push(serde_json::to_value(error));
+            }
+        });
+    // The staged files are removed before the receipt is printed, so any
+    // receipt path inside the staging directory is flagged as ephemeral.
+    let ephemeral = match (&result, &staging) {
+        (Ok(receipt), Some(staging)) => staging.ephemeral_fields(receipt),
+        _ => Vec::new(),
+    };
+    drop(staging);
     match result {
         Ok(receipt) => {
-            if let Some(error) = identifier_diagnostic {
-                return print_refused_receipt(RefusedBeadComposeReceipt { receipt, error }, json);
+            if let Some(error) = refusal_diagnostic {
+                return print_refused_receipt(
+                    &RefusedBeadComposeReceipt { receipt, error },
+                    json,
+                    &ephemeral,
+                );
             }
             let diagnostics = diagnostics
                 .into_iter()
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|error| CommandError::usage(error.into()))?;
-            print_receipt(receipt, json, &diagnostics)
+            print_receipt(&receipt, json, &diagnostics, &ephemeral)
         }
         Err(error) => print_bead_error(&error, operation, json),
     }
 }
 
-fn print_refused_receipt(
-    receipt: RefusedBeadComposeReceipt,
+fn request_from_args(
+    args: &BeadRequestArgs,
+    operation: BeadOperation,
     json: bool,
+) -> Result<(BeadComposeRequest, Option<DirectStaging>), Result<i32, CommandError>> {
+    let mut staging = None;
+    let mut request = if let Some(request_path) = &args.request {
+        let input = match fs::read_to_string(request_path) {
+            Ok(input) => input,
+            Err(error) => {
+                let error = BeadComposeError::RequestReadFailed {
+                    path: request_path.clone(),
+                    source: error,
+                };
+                return Err(print_bead_error(&error, operation, json));
+            }
+        };
+        match parse_request_for_operation(&input, operation) {
+            Ok(RequestParseOutcome::Ready(request)) => request,
+            Ok(RequestParseOutcome::Refused(mut receipt)) => {
+                receipt.receipt.operation = operation;
+                return Err(print_refused_receipt(&receipt, json, &[]));
+            }
+            // An identifier error that survives parsing is outside the attach
+            // family (attach identifiers become refused receipts): ADR-0023 calls
+            // it a request error, exit 3, keeping the native typed error.
+            Err(error @ BeadComposeError::GraphIdInvalid { .. }) => {
+                return Err(print_bead_error_with_exit(
+                    &error,
+                    operation,
+                    json,
+                    exit_codes::USAGE_FAIL,
+                ));
+            }
+            Err(error) => return Err(print_bead_error(&error, operation, json)),
+        }
+    } else {
+        match direct_pour_request(args, operation) {
+            Ok((request, dir)) => {
+                staging = Some(dir);
+                request
+            }
+            Err(error) => return Err(print_bead_error(&error, operation, json)),
+        }
+    };
+    request.operation = operation;
+    Ok((request, staging))
+}
+
+static STAGING_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+/// Receipt fields a direct pour reports inside its private staging directory.
+const RENDERED_FORMULA_FIELD: &str = "rendered_formula";
+const PLAN_PATH_FIELD: &str = "graph.plan_path";
+
+/// Private staging directory of a direct pour, removed when the command ends.
+struct DirectStaging {
+    path: PathBuf,
+    /// Every spelling a receipt path inside this directory can take: the
+    /// requested path and its canonical form, each without a Windows verbatim
+    /// prefix. The engine canonicalizes the output parent and prints it through
+    /// its public display, so on Windows a receipt names the canonical long path
+    /// without `\\?\`, which neither the raw (possibly 8.3) path nor the raw
+    /// canonical (`\\?\`-prefixed) path matches.
+    spellings: Vec<String>,
+}
+
+impl DirectStaging {
+    /// Takes ownership of an already created staging directory; it is removed
+    /// on drop even when resolving its canonical spelling fails.
+    fn new(path: PathBuf) -> std::io::Result<Self> {
+        let mut staging = Self {
+            path,
+            spellings: Vec::new(),
+        };
+        let canonical = fs::canonicalize(&staging.path)?;
+        staging.spellings = [staging.path.as_path(), canonical.as_path()]
+            .into_iter()
+            .map(|spelling| without_verbatim_prefix(&spelling.to_string_lossy()).into_owned())
+            .collect();
+        Ok(staging)
+    }
+
+    fn contains(&self, path: &Path) -> bool {
+        path.starts_with(&self.path) || staging_contains(&self.spellings, path)
+    }
+
+    /// Receipt fields whose paths are removed with this staging directory.
+    fn ephemeral_fields(&self, receipt: &BeadComposeReceipt) -> Vec<&'static str> {
+        let plan_path = receipt
+            .graph
+            .as_ref()
+            .and_then(|graph| graph.plan_path.as_deref());
+        [
+            (
+                RENDERED_FORMULA_FIELD,
+                Some(receipt.rendered_formula.as_path()),
+            ),
+            (PLAN_PATH_FIELD, plan_path),
+        ]
+        .into_iter()
+        .filter_map(|(field, path)| path.filter(|path| self.contains(path)).map(|_| field))
+        .collect()
+    }
+}
+
+/// Whether `path`, compared without a Windows verbatim prefix, is one of the
+/// staging `spellings` or lies beneath one. Pure string comparison so the
+/// Windows spellings are exercised identically on every host.
+fn staging_contains(spellings: &[String], path: &Path) -> bool {
+    let text = path.to_string_lossy();
+    let candidate = without_verbatim_prefix(&text);
+    spellings.iter().any(|spelling| {
+        let dir = spelling.trim_end_matches(['/', '\\']);
+        !dir.is_empty()
+            && candidate
+                .strip_prefix(dir)
+                .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '\\']))
+    })
+}
+
+/// The spelling the engine's public path display gives a canonical Windows
+/// path: `\\?\C:\x` becomes `C:\x` and `\\?\UNC\server\share\x` becomes
+/// `\\server\share\x`; every other spelling is unchanged.
+fn without_verbatim_prefix(text: &str) -> std::borrow::Cow<'_, str> {
+    if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+        return std::borrow::Cow::Owned(format!(r"\\{rest}"));
+    }
+    match text.strip_prefix(r"\\?\") {
+        Some(rest)
+            if rest.as_bytes().first().is_some_and(u8::is_ascii_alphabetic)
+                && rest.as_bytes().get(1) == Some(&b':') =>
+        {
+            std::borrow::Cow::Borrowed(rest)
+        }
+        _ => std::borrow::Cow::Borrowed(text),
+    }
+}
+
+impl Drop for DirectStaging {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
+/// Creates the private staging directory of a direct pour under `root`. The
+/// returned value owns the directory and removes it on drop, including when
+/// resolving its canonical spelling fails after creation.
+fn create_direct_staging(root: &Path) -> Result<DirectStaging, BeadComposeError> {
+    let dir = root.join(format!(
+        ".sc-compose-pour-{}-{}",
+        std::process::id(),
+        STAGING_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&dir).map_err(|source| BeadComposeError::DirectStagingFailed {
+        path: dir.clone(),
+        source: Box::new(source),
+    })?;
+    DirectStaging::new(dir.clone()).map_err(|source| BeadComposeError::DirectStagingFailed {
+        path: dir,
+        source: Box::new(source),
+    })
+}
+
+fn direct_variables(
+    args: &BeadRequestArgs,
+) -> Result<std::collections::BTreeMap<String, String>, BeadComposeError> {
+    let mut variables = std::collections::BTreeMap::new();
+    for (key, value) in &args.vars {
+        if variables.insert(key.clone(), value.clone()).is_some() {
+            return Err(BeadComposeError::BeadVariableKeyDuplicate { key: key.clone() });
+        }
+    }
+    Ok(variables)
+}
+
+/// Resolves the direct formula operand to its source path and canonical spelling.
+fn resolve_direct_source(
+    root: &Path,
+    operand: &str,
+) -> Result<(PathBuf, PathBuf), BeadComposeError> {
+    let source = resolve_direct_formula(root, operand).ok_or_else(|| {
+        BeadComposeError::DirectSourceFailed {
+            path: PathBuf::from(operand),
+            source: Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "formula source not found",
+            )),
+        }
+    })?;
+    let original_source =
+        fs::canonicalize(&source).map_err(|error| BeadComposeError::DirectSourceFailed {
+            path: source.clone(),
+            source: Box::new(error),
+        })?;
+    Ok((source, original_source))
+}
+
+/// A bd-rendered pour writes beside an active registry source; otherwise it stays staged.
+fn direct_rendered_formula(
+    args: &BeadRequestArgs,
+    root: &Path,
+    original_source: &Path,
+    registry_file: &str,
+    staged_output: PathBuf,
+) -> PathBuf {
+    if !matches!(args.render_by, BeadRenderByArg::Bd) {
+        return staged_output;
+    }
+    active_formulas(root)
+        .filter(|registry| {
+            original_source
+                .parent()
+                .and_then(|parent| fs::canonicalize(parent).ok())
+                == fs::canonicalize(registry).ok()
+        })
+        .map_or(staged_output, |registry| registry.join(registry_file))
+}
+
+fn direct_pour_request(
+    args: &BeadRequestArgs,
+    operation: BeadOperation,
+) -> Result<(BeadComposeRequest, DirectStaging), BeadComposeError> {
+    let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
+    if operation != BeadOperation::Pour {
+        return Err(bad("a direct formula is supported only by bead pour".into()));
+    }
+    let variables = direct_variables(args)?;
+    let root = std::env::current_dir().map_err(|source| BeadComposeError::DirectStagingFailed {
+        path: PathBuf::from("."),
+        source: Box::new(source),
+    })?;
+    let operand = args
+        .formula
+        .as_deref()
+        .ok_or_else(|| bad("formula is required".into()))?;
+    let (mut source, original_source) = resolve_direct_source(&root, operand)?;
+    let canonical_root =
+        fs::canonicalize(&root).map_err(|error| BeadComposeError::DirectStagingFailed {
+            path: root.clone(),
+            source: Box::new(error),
+        })?;
+    let external_snapshot = capture_external_source(&original_source, &canonical_root, operand)?;
+    let name = direct_formula_name(&source)?;
+    let formula_name = FormulaName::new(&name)?;
+    let staging = create_direct_staging(&root)?;
+    let dir = staging.path.clone();
+    if let Some((source_root, files)) = external_snapshot {
+        source = write_source_snapshot(&dir, &source_root, &original_source, files)?;
+    }
+    let extension = if source.to_string_lossy().ends_with(".formula.json.j2")
+        || source.to_string_lossy().ends_with(".formula.json")
+    {
+        "json"
+    } else {
+        "toml"
+    };
+    let registry_file = format!("{name}.formula.{extension}");
+    let rendered_formula = direct_rendered_formula(
+        args,
+        &root,
+        &original_source,
+        &registry_file,
+        dir.join(&registry_file),
+    );
+    let request = BeadComposeRequest {
+        schema: BEADS_SCHEMA_V1.into(),
+        operation,
+        working_directory: root,
+        template: source,
+        rendered_formula,
+        compose_variables: serde_json::Map::new(),
+        formula_name: Some(formula_name),
+        bead_variables: variables,
+        bd_executable: None,
+        pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
+        parent: None,
+        ref_: None,
+        relations: Vec::new(),
+    };
+    Ok((request, staging))
+}
+
+type SourceSnapshot = (PathBuf, std::collections::BTreeMap<PathBuf, String>);
+
+fn capture_external_source(
+    source: &Path,
+    workspace: &Path,
+    operand: &str,
+) -> Result<Option<SourceSnapshot>, BeadComposeError> {
+    if source.starts_with(workspace) || operand.contains(['/', '\\']) {
+        return Ok(None);
+    }
+    let failure = |path: &Path, error: Box<dyn std::error::Error + Send + Sync>| {
+        BeadComposeError::DirectSnapshotFailed {
+            path: path.to_path_buf(),
+            source: error,
+        }
+    };
+    let root = source
+        .parent()
+        .ok_or_else(|| {
+            failure(
+                source,
+                Box::new(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "formula source has no parent",
+                )),
+            )
+        })?
+        .to_path_buf();
+    let confined =
+        sc_composer::ConfiningRoot::new(&root).map_err(|error| failure(&root, Box::new(error)))?;
+    let expanded =
+        sc_composer::expand_includes(source, &confined, &sc_composer::ComposePolicy::default())
+            .map_err(|error| failure(source, Box::new(error)))?;
+    Ok(Some((root, expanded.source_texts)))
+}
+
+fn direct_formula_name(source: &Path) -> Result<String, BeadComposeError> {
+    source
+        .file_name()
+        .and_then(|value| value.to_str())
+        .and_then(|value| {
+            value
+                .strip_suffix(".formula.toml.j2")
+                .or_else(|| value.strip_suffix(".formula.json.j2"))
+                .or_else(|| value.strip_suffix(".formula.toml"))
+                .or_else(|| value.strip_suffix(".formula.json"))
+        })
+        .map(str::to_owned)
+        .ok_or_else(|| BeadComposeError::FormulaExtensionUnsupported {
+            path: source.to_path_buf(),
+        })
+}
+
+fn write_source_snapshot(
+    dir: &Path,
+    source_root: &Path,
+    source: &Path,
+    files: std::collections::BTreeMap<PathBuf, String>,
+) -> Result<PathBuf, BeadComposeError> {
+    let failure = |path: &Path, error: Box<dyn std::error::Error + Send + Sync>| {
+        BeadComposeError::DirectSnapshotFailed {
+            path: path.to_path_buf(),
+            source: error,
+        }
+    };
+    let snapshot_root = dir.join("source");
+    for (path, contents) in files {
+        let relative = path
+            .strip_prefix(source_root)
+            .map_err(|error| failure(&path, Box::new(error)))?;
+        let destination = snapshot_root.join(relative);
+        let parent = destination.parent().ok_or_else(|| {
+            failure(
+                &destination,
+                Box::new(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "formula snapshot has no parent",
+                )),
+            )
+        })?;
+        fs::create_dir_all(parent)
+            .and_then(|()| fs::write(&destination, contents))
+            .map_err(|error| failure(&destination, Box::new(error)))?;
+    }
+    let relative = source
+        .strip_prefix(source_root)
+        .map_err(|error| failure(source, Box::new(error)))?;
+    Ok(snapshot_root.join(relative))
+}
+
+fn active_formulas(root: &Path) -> Option<PathBuf> {
+    active_formulas_with_runner(root, Path::new("bd"), &StdProcessRunner)
+}
+
+fn active_formulas_with_runner(
+    root: &Path,
+    executable: &Path,
+    runner: &dyn ProcessRunner,
+) -> Option<PathBuf> {
+    let output = runner
+        .run(&CommandSpec {
+            executable: executable.to_path_buf(),
+            args: vec!["where".into(), "--json".into()],
+            working_directory: root.to_path_buf(),
+        })
+        .ok()?;
+    if output.exit_status != Some(0) {
+        return None;
+    }
+    let value: serde_json::Value = serde_json::from_str(&output.stdout).ok()?;
+    value
+        .get("path")
+        .and_then(serde_json::Value::as_str)
+        .map(|path| PathBuf::from(path).join("formulas"))
+}
+
+fn resolve_direct_formula(root: &Path, operand: &str) -> Option<PathBuf> {
+    let path = Path::new(operand);
+    let explicit = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        root.join(path)
+    };
+    if explicit.is_file() {
+        return Some(explicit);
+    }
+    if operand.contains(['/', '\\']) {
+        return None;
+    }
+    let active = active_formulas(root);
+    let mut directories = Vec::new();
+    if let Some(active) = active {
+        directories.push(active);
+    }
+    directories.push(root.join(".beads/formulas"));
+    if let Some(home) = platform_home_directory() {
+        directories.push(home.join(".beads/formulas"));
+    }
+    if let Some(shared) = std::env::var_os("GT_ROOT") {
+        directories.push(PathBuf::from(shared).join(".beads/formulas"));
+    }
+    let native = native_formula_source(root, operand);
+    for directory in directories {
+        for suffix in ["formula.toml.j2", "formula.json.j2"] {
+            let path = directory.join(format!("{operand}.{suffix}"));
+            if path.is_file() {
+                return Some(path);
+            }
+        }
+        if let Some(path) = &native
+            && path
+                .parent()
+                .and_then(|parent| fs::canonicalize(parent).ok())
+                == fs::canonicalize(&directory).ok()
+        {
+            return Some(path.clone());
+        }
+    }
+    native
+}
+
+fn platform_home_directory() -> Option<PathBuf> {
+    std::env::home_dir()
+}
+
+fn native_formula_source(root: &Path, operand: &str) -> Option<PathBuf> {
+    native_formula_source_with_runner(root, operand, Path::new("bd"), &StdProcessRunner)
+}
+
+fn native_formula_source_with_runner(
+    root: &Path,
+    operand: &str,
+    executable: &Path,
+    runner: &dyn ProcessRunner,
+) -> Option<PathBuf> {
+    let output = runner
+        .run(&CommandSpec {
+            executable: executable.to_path_buf(),
+            args: vec!["formula".into(), "list".into(), "--json".into()],
+            working_directory: root.to_path_buf(),
+        })
+        .ok()?;
+    if output.exit_status != Some(0) {
+        return None;
+    }
+    let values: serde_json::Value = serde_json::from_str(&output.stdout).ok()?;
+    values
+        .as_array()?
+        .iter()
+        .find(|entry| entry.get("name").and_then(serde_json::Value::as_str) == Some(operand))
+        .and_then(|entry| entry.get("source").and_then(serde_json::Value::as_str))
+        .map(PathBuf::from)
+}
+
+fn print_refused_receipt(
+    receipt: &RefusedBeadComposeReceipt,
+    json: bool,
+    ephemeral: &[&str],
 ) -> Result<i32, CommandError> {
     if json {
-        print_json(receipt, Vec::new()).map_err(CommandError::usage)?;
+        print_json(with_ephemeral_paths(receipt, ephemeral)?, Vec::new())
+            .map_err(CommandError::usage)?;
     } else {
         let diagnostic = serde_json::to_value(&receipt.error)
             .map_err(|error| CommandError::usage(error.into()))?;
-        print_human_receipt(&receipt.receipt, &[diagnostic]);
+        print_human_receipt(&receipt.receipt, &[diagnostic], ephemeral);
     }
     Ok(exit_codes::VALIDATION_OR_RENDER_FAIL)
 }
 
+/// The JSON receipt plus an additive `ephemeral_paths` list naming the
+/// receipt fields whose files were removed when the command ended. The field
+/// is absent when every reported path is kept.
+fn with_ephemeral_paths(
+    receipt: &impl serde::Serialize,
+    ephemeral: &[&str],
+) -> Result<serde_json::Value, CommandError> {
+    let mut value =
+        serde_json::to_value(receipt).map_err(|error| CommandError::usage(error.into()))?;
+    if !ephemeral.is_empty()
+        && let Some(fields) = value.as_object_mut()
+    {
+        fields.insert("ephemeral_paths".into(), serde_json::json!(ephemeral));
+    }
+    Ok(value)
+}
+
+/// Human label for a receipt path, flagged when the command removed it.
+fn human_path(path: &Path, field: &str, ephemeral: &[&str]) -> String {
+    let text = escape_human_text(&path.display().to_string());
+    if ephemeral.contains(&field) {
+        format!("{text} (ephemeral: removed when this command exited)")
+    } else {
+        text
+    }
+}
+
 fn print_receipt(
-    receipt: BeadComposeReceipt,
+    receipt: &BeadComposeReceipt,
     json: bool,
     diagnostics: &[serde_json::Value],
+    ephemeral: &[&str],
 ) -> Result<i32, CommandError> {
     let exit_code = match &receipt.outcome {
         BeadOutcome::Succeeded => exit_codes::SUCCESS,
@@ -102,9 +608,10 @@ fn print_receipt(
         }
     };
     if json {
-        print_json(receipt, Vec::new()).map_err(CommandError::usage)?;
+        print_json(with_ephemeral_paths(receipt, ephemeral)?, Vec::new())
+            .map_err(CommandError::usage)?;
     } else {
-        print_human_receipt(&receipt, diagnostics);
+        print_human_receipt(receipt, diagnostics, ephemeral);
     }
     Ok(exit_code)
 }
@@ -182,10 +689,14 @@ fn human_error_fields(envelope: &serde_json::Value) -> String {
     output
 }
 
-fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::Value]) {
+fn print_human_receipt(
+    receipt: &BeadComposeReceipt,
+    diagnostics: &[serde_json::Value],
+    ephemeral: &[&str],
+) {
     println!(
         "rendered_formula: {}",
-        escape_human_text(&receipt.rendered_formula.display().to_string())
+        human_path(&receipt.rendered_formula, RENDERED_FORMULA_FIELD, ephemeral)
     );
     if let Some(mode) = receipt.pour_mode {
         let mode = match mode {
@@ -245,7 +756,7 @@ fn print_human_receipt(receipt: &BeadComposeReceipt, diagnostics: &[serde_json::
         if let Some(plan_path) = &graph.plan_path {
             println!(
                 "plan_path: {}",
-                escape_human_text(&plan_path.display().to_string())
+                human_path(plan_path, PLAN_PATH_FIELD, ephemeral)
             );
         }
     }
@@ -274,12 +785,251 @@ fn missing_edge_recovery_commands(
 
 #[cfg(test)]
 mod tests {
-    use super::{human_bead_error, missing_edge_recovery_commands};
+    use super::{
+        DirectStaging, PLAN_PATH_FIELD, RENDERED_FORMULA_FIELD, human_bead_error,
+        missing_edge_recovery_commands, staging_contains, without_verbatim_prefix,
+    };
     use sc_composer_beads::{
         BeadComposeError, BeadComposeReceipt, BeadId, GraphConflictReason, GraphDependencyType,
         GraphIdField, MissingEdge,
     };
     use serde_json::json;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn direct_discovery_uses_controlled_runner_and_selected_executable() {
+        use sc_composer_beads::{CommandSpec, ProcessOutput, ProcessRunner};
+        use std::{io, sync::Mutex, time::Duration};
+        struct Fake {
+            calls: Mutex<Vec<CommandSpec>>,
+        }
+        impl ProcessRunner for Fake {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                self.calls.lock().unwrap().push(spec.clone());
+                let stdout = if spec.args[0] == "where" {
+                    r#"{"path":"/registry"}"#
+                } else {
+                    r#"[{"name":"found","source":"/registry/formulas/found.formula.toml"}]"#
+                };
+                Ok(ProcessOutput {
+                    exit_status: Some(0),
+                    stdout: stdout.into(),
+                    stderr: String::new(),
+                    elapsed: Duration::ZERO,
+                })
+            }
+        }
+        let fake = Fake {
+            calls: Mutex::new(Vec::new()),
+        };
+        let root = Path::new("/workspace");
+        let executable = Path::new("/chosen/bd");
+        assert_eq!(
+            super::active_formulas_with_runner(root, executable, &fake),
+            Some(PathBuf::from("/registry/formulas"))
+        );
+        assert_eq!(
+            super::native_formula_source_with_runner(root, "found", executable, &fake),
+            Some(PathBuf::from("/registry/formulas/found.formula.toml"))
+        );
+        let calls = fake.calls.lock().unwrap();
+        assert_eq!(calls.len(), 2);
+        assert!(
+            calls
+                .iter()
+                .all(|call| call.executable == executable && call.working_directory == root)
+        );
+        assert_eq!(calls[0].args, ["where", "--json"]);
+        assert_eq!(calls[1].args, ["formula", "list", "--json"]);
+    }
+
+    #[test]
+    fn direct_io_failures_preserve_code_cause_and_recovery() {
+        use std::error::Error;
+        use std::fs;
+        let root = std::env::temp_dir().join(format!("sc-compose-typed-io-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        let not_directory = root.join("file");
+        fs::write(&not_directory, "file").unwrap();
+        let staging = super::create_direct_staging(&not_directory)
+            .err()
+            .expect("staging must fail");
+        let snapshot = super::capture_external_source(
+            &root.join("missing.formula.toml"),
+            Path::new("/unrelated-workspace"),
+            "missing",
+        )
+        .unwrap_err();
+        for (error, code) in [
+            (staging, "BEADS_DIRECT_STAGING_FAILED"),
+            (snapshot, "BEADS_DIRECT_SNAPSHOT_FAILED"),
+        ] {
+            assert_eq!(error.code(), code);
+            assert!(error.source().is_some());
+            let json = serde_json::to_value(&error).unwrap();
+            assert!(json["details"]["path"].as_str().is_some());
+            assert!(json["details"]["cause"].as_str().is_some());
+            assert!(json["recovery"].as_str().is_some());
+            assert_eq!(super::bead_error_exit_code(&error), 2);
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    /// Staging directory spelling of the hosted Windows failure (PR954 run
+    /// 42196008975): `fs::canonicalize` returns the verbatim form.
+    const WINDOWS_CANONICAL_STAGING: &str = r"\\?\C:\Users\runneradmin\AppData\Local\Temp\sc-compose-fixture-bead-graph-e2e-6748-1793958490840348900-11\.sc-compose-pour-212-0";
+    /// The engine's receipt spelling of a file in that directory.
+    const WINDOWS_RECEIPT_FORMULA: &str = r"C:\Users\runneradmin\AppData\Local\Temp\sc-compose-fixture-bead-graph-e2e-6748-1793958490840348900-11\.sc-compose-pour-212-0\plan-fix.formula.toml";
+
+    /// Staging spellings as `DirectStaging::new` derives them from a raw path
+    /// and its canonical form.
+    fn spellings(raw: &str, canonical: &str) -> Vec<String> {
+        [raw, canonical]
+            .into_iter()
+            .map(|spelling| without_verbatim_prefix(spelling).into_owned())
+            .collect()
+    }
+
+    /// A staging value with controlled spellings whose drop touches nothing:
+    /// its own path names a directory this test never creates.
+    fn controlled_staging(raw: &str, canonical: &str) -> DirectStaging {
+        DirectStaging {
+            path: std::env::temp_dir().join(format!(
+                "sc-compose-never-created-staging-{}",
+                std::process::id()
+            )),
+            spellings: spellings(raw, canonical),
+        }
+    }
+
+    #[test]
+    fn verbatim_prefix_is_removed_like_the_engine_public_display() {
+        for (input, expected) in [
+            (r"\\?\C:\Users\a\b", r"C:\Users\a\b"),
+            (r"\\?\d:\x", r"d:\x"),
+            (r"\\?\UNC\server\share\x", r"\\server\share\x"),
+            (r"C:\Users\a", r"C:\Users\a"),
+            (r"\\server\share\x", r"\\server\share\x"),
+            (r"\\?\Volume{0000}\x", r"\\?\Volume{0000}\x"),
+            ("/tmp/x", "/tmp/x"),
+        ] {
+            assert_eq!(without_verbatim_prefix(input), expected, "{input}");
+        }
+    }
+
+    #[test]
+    fn windows_receipt_spelling_inside_verbatim_canonical_staging_is_contained() {
+        // The raw spelling is the 8.3 TEMP form; only the canonical one names
+        // the long path the engine prints.
+        let staging = spellings(
+            r"C:\Users\RUNNER~1\AppData\Local\Temp\sc-compose-fixture-bead-graph-e2e-6748-1793958490840348900-11\.sc-compose-pour-212-0",
+            WINDOWS_CANONICAL_STAGING,
+        );
+        for receipt in [
+            WINDOWS_RECEIPT_FORMULA,
+            &format!("{WINDOWS_RECEIPT_FORMULA}.graph.json"),
+            &format!(r"\\?\{WINDOWS_RECEIPT_FORMULA}"),
+            &WINDOWS_CANONICAL_STAGING[4..],
+        ] {
+            assert!(staging_contains(&staging, Path::new(receipt)), "{receipt}");
+        }
+    }
+
+    #[test]
+    fn verbatim_unc_staging_contains_unc_receipt_spelling() {
+        let staging = spellings(
+            r"\\server\share\ws\.sc-compose-pour-1-0",
+            r"\\?\UNC\server\share\ws\.sc-compose-pour-1-0",
+        );
+        assert!(staging_contains(
+            &staging,
+            Path::new(r"\\server\share\ws\.sc-compose-pour-1-0\f.formula.toml")
+        ));
+    }
+
+    #[test]
+    fn paths_outside_staging_are_not_contained() {
+        let staging = spellings(WINDOWS_CANONICAL_STAGING, WINDOWS_CANONICAL_STAGING);
+        let (outside_root, _) = WINDOWS_CANONICAL_STAGING[4..]
+            .rsplit_once('\\')
+            .expect("staging parent");
+        for path in [
+            // Sibling staging directories sharing a name prefix.
+            format!(
+                "{}0\\plan-fix.formula.toml",
+                &WINDOWS_CANONICAL_STAGING[4..]
+            ),
+            format!(
+                "{}-x\\plan-fix.formula.toml",
+                &WINDOWS_CANONICAL_STAGING[4..]
+            ),
+            format!("{outside_root}\\plan-fix.formula.toml"),
+            r"D:\Users\runneradmin\plan-fix.formula.toml".to_owned(),
+            "plan-fix.formula.toml".to_owned(),
+        ] {
+            assert!(!staging_contains(&staging, Path::new(&path)), "{path}");
+        }
+        assert!(!staging_contains(&[String::new()], Path::new("anything")));
+    }
+
+    #[test]
+    fn hosted_windows_receipt_flags_both_ephemeral_fields() {
+        let staging = controlled_staging(
+            r"C:\Users\RUNNER~1\AppData\Local\Temp\x\.sc-compose-pour-212-0",
+            WINDOWS_CANONICAL_STAGING,
+        );
+        let receipt = |formula: &str| -> BeadComposeReceipt {
+            serde_json::from_value(json!({
+                "schema": "sc-compose/beads/v1",
+                "operation": "pour",
+                "rendered_formula": formula,
+                "outcome": "succeeded",
+                "graph": {
+                    "mode": "pour", "formula": "plan-fix", "revision": "sha256:fb4897d9ac390385c62c7012c02b8c003aeceac7bbdcabbbd944c32865fa44cc",
+                    "parent": "cli-73p", "ids": {}, "nodes": [], "edges": [],
+                    "plan_path": format!("{formula}.graph.json")
+                },
+                "stages": []
+            }))
+            .expect("receipt")
+        };
+        assert_eq!(
+            staging.ephemeral_fields(&receipt(WINDOWS_RECEIPT_FORMULA)),
+            [RENDERED_FORMULA_FIELD, PLAN_PATH_FIELD]
+        );
+        assert!(
+            staging
+                .ephemeral_fields(&receipt(r"C:\Users\runneradmin\kept.formula.toml"))
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn real_staging_directory_flags_canonical_children_and_is_removed() {
+        let dir = std::env::temp_dir().join(format!(
+            "sc-compose-staging-unit-{}-{}",
+            std::process::id(),
+            line!()
+        ));
+        std::fs::create_dir(&dir).expect("create staging");
+        let staging = DirectStaging::new(dir.clone()).expect("staging");
+        let canonical: PathBuf = std::fs::canonicalize(&dir).expect("canonical");
+        assert!(staging.contains(&dir.join("f.formula.toml")));
+        assert!(staging.contains(&canonical.join("f.formula.toml")));
+        assert!(!staging.contains(&dir.with_extension("other").join("f.formula.toml")));
+        drop(staging);
+        assert!(!dir.exists(), "staging must be removed on drop");
+    }
+
+    #[test]
+    fn unresolvable_staging_directory_is_an_explicit_error() {
+        let missing = std::env::temp_dir().join(format!(
+            "sc-compose-staging-missing-{}-{}",
+            std::process::id(),
+            line!()
+        ));
+        assert!(DirectStaging::new(missing).is_err());
+    }
 
     #[test]
     fn recovery_commands_ignore_missing_reworded_and_unrelated_stderr() {
@@ -317,7 +1067,7 @@ mod tests {
     }
     #[test]
     fn missing_edge_recovery_commands_escape_controls_and_bidi_for_posix_sh() {
-        let from = "source'\\\u{7}\u{7f}\u{80}\u{202e}$(literal)$HOME`literal`";
+        let from = "source'\\\u{202e}$(literal)$HOME`literal`";
         let to = "target\u{202a}\u{202b}\u{202c}\u{202d}\u{202e}\u{2066}\u{2067}\u{2068}\u{2069}\u{200e}\u{200f}";
         let receipt: BeadComposeReceipt = serde_json::from_value(json!({
             "schema": "sc-compose/beads/v1",
@@ -344,6 +1094,9 @@ mod tests {
         let separators = "line\u{2028}paragraph\u{2029}end";
         let escaped = super::shell_quote(separators);
         assert!(!escaped.contains(['\u{2028}', '\u{2029}']));
+        let escaped_controls = super::shell_quote("\u{7}\u{7f}\u{80}");
+        assert!(!escaped_controls.chars().any(char::is_control));
+        assert!(escaped_controls.contains("\\007\\177\\302\\200"));
         assert!(!arguments.contains("$'"), "{arguments}");
         #[cfg(unix)]
         {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+import inspect
 import json
 import os
 import shutil
@@ -105,6 +106,36 @@ def test_import_surface_exposes_versioned_beads_contract() -> None:
         "BEADS_GRAPH_APPLY_FAILED": "BEADS_GRAPH_APPLY_FAILED",
         "BEADS_GRAPH_APPLY_UNCONFIRMED": "BEADS_GRAPH_APPLY_UNCONFIRMED",
     }
+
+
+def test_bead_exception_constructor_preserves_native_contract() -> None:
+    error = beads.BeadComposeError("CODE", "message", "render", {"b": "2", "a": "1"})
+    assert isinstance(error, Exception)
+    assert error.args == ("CODE", "message", "render", {"b": "2", "a": "1"})
+    assert str(error) == "message"
+    assert (error.code, error.message, error.stage, error.details) == (
+        "CODE", "message", "render", {"a": "1", "b": "2"}
+    )
+    assert str(inspect.signature(beads.BeadComposeError)) == "(code, message, stage=None, details=None)"
+    for attribute in ("code", "message", "stage", "details"):
+        with pytest.raises(AttributeError):
+            setattr(error, attribute, "changed")
+    with pytest.raises(TypeError):
+        beads.BeadComposeError(code="CODE", message="message")
+    with pytest.raises(TypeError):
+        beads.BeadComposeError("CODE", "message", None, {"bad": 1})
+    for details in ([("a", "1")], (("a", "1"),)):
+        with pytest.raises(TypeError):
+            beads.BeadComposeError("CODE", "message", None, details)
+    supplied = {"a": "1"}
+    copied = beads.BeadComposeError("CODE", "message", None, supplied)
+    supplied["a"] = "changed"
+    assert copied.details == {"a": "1"}
+    result = copied.details
+    result["a"] = "local"
+    assert copied.details == {"a": "1"}
+    with pytest.raises(TypeError):
+        type("Derived", (beads.BeadComposeError,), {})
 
 
 @pytest.mark.parametrize(
@@ -266,8 +297,8 @@ def test_graph_receipt_conversion_failures_raise_bead_compose_error(
     with pytest.raises(beads.BeadComposeError) as raised:
         beads.BeadComposeReceipt.from_json(wire)
 
-    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
-    assert raised.value.stage == "request"
+    assert raised.value.code == "BEADS_OUTPUT_SERIALIZATION_FAILED"
+    assert raised.value.stage == "output"
     assert message in raised.value.message
 
 
@@ -275,7 +306,7 @@ def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
     executable, trace = _write_fake_bd(tmp_path)
 
     validated = beads.validate(_request(tmp_path, executable))
-    previewed = beads.preview_pour(_request(tmp_path, executable))
+    previewed = beads.preview_pour(_request(tmp_path, executable), render_by="bd")
 
     assert validated.operation == "validate"
     assert [stage.stage for stage in validated.stages] == ["render", "validate"]
@@ -637,3 +668,52 @@ def test_receipt_exposes_missing_edges_without_to_json() -> None:
     assert receipt.to_json()["missing_edges"] == edges
     registry = json.loads((GRAPH_FIXTURE_ROOT / "receipt-registry.json").read_text(encoding="utf-8"))
     assert beads.BeadComposeReceipt.from_json(json.dumps(registry)).missing_edges == []
+
+
+def test_python_render_modes_keep_literal_values_and_bd_placeholders(tmp_path: Path) -> None:
+    executable, trace = _write_fake_bd(tmp_path)
+    request = _request(tmp_path, executable, operation="render")
+    advanced = beads.render(request)
+    assert advanced.outcome.kind == "succeeded"
+    rendered = Path(advanced.rendered_formula).read_text(encoding="utf-8")
+    assert "1.5.0" in rendered
+    assert "{{ release_name }}" not in rendered
+    legacy = beads.render(request, render_by="bd")
+    assert legacy.outcome.kind == "succeeded"
+    assert "{{ release_name }}" in Path(legacy.rendered_formula).read_text(encoding="utf-8")
+    assert not trace.exists()
+
+
+def test_advanced_attach_authorization_and_variable_conflicts_write_nothing(tmp_path: Path) -> None:
+    executable, trace = _write_fake_bd(tmp_path)
+    template = tmp_path / "release.formula.toml.j2"
+    template.write_text('formula = "release"\n', encoding="utf-8")
+    destination = tmp_path / "release.formula.toml"
+    unauthorized = beads.BeadComposeRequest(
+        tmp_path, template, destination, {}, operation="attach", parent="proj-1", ref="release",
+        bd_executable=executable,
+    )
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.attach(unauthorized)
+    assert raised.value.code == "BEADS_POUR_AUTH_REQUIRED"
+    assert not destination.exists() and not trace.exists()
+
+    duplicate = beads.BeadComposeRequest(
+        tmp_path, template, destination, {"name": "first"}, operation="preview_attach",
+        parent="proj-1", ref="release", bead_variables={"name": "second"}, bd_executable=executable,
+    )
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.preview_attach(duplicate)
+    assert raised.value.code == "BEADS_VARIABLE_KEY_DUPLICATE"
+    assert not destination.exists() and not trace.exists()
+
+
+def test_python_strict_is_explicit_and_schema_scoped(tmp_path: Path) -> None:
+    template = tmp_path / "strict.formula.toml.j2"
+    destination = tmp_path / "strict.formula.toml"
+    template.write_text('---\nrequired_variables: []\n---\ntitle = "{{ value }}"\n', encoding="utf-8")
+    request = beads.BeadComposeRequest(tmp_path, template, destination, {"value": "allowed"}, operation="render")
+    assert beads.render(request).outcome.kind == "succeeded"
+    assert beads.render(request, strict=True).outcome.kind == "failed"
+    template.write_text('title = "{{ value }}"\n', encoding="utf-8")
+    assert beads.render(request, strict=True).outcome.kind == "succeeded"

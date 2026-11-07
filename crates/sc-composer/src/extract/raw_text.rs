@@ -177,25 +177,7 @@ pub(crate) fn match_raw_text(
         })
         .count();
     if variables == 0 {
-        let expected = input
-            .segments
-            .iter()
-            .find_map(|segment| match segment {
-                RawTextSegment::Static(value) if !value.is_empty() => Some(*value),
-                _ => None,
-            })
-            .unwrap_or_default();
-        if input.rendered_candidate != expected {
-            return Err(static_mismatch(
-                "rendered static content does not match the known template",
-                None,
-            ));
-        }
-        return Ok(RawTextMatch {
-            captures: Vec::new(),
-            ambiguity: None,
-            static_matches: usize::from(!expected.is_empty()),
-        });
+        return match_static_text(input);
     }
 
     let mut cursor = 0;
@@ -261,6 +243,28 @@ pub(crate) fn match_raw_text(
         captures,
         ambiguity: None,
         static_matches,
+    })
+}
+
+fn match_static_text(input: &RawTextMatchInput<'_>) -> Result<RawTextMatch, RawTextMatchError> {
+    let expected = input
+        .segments
+        .iter()
+        .find_map(|segment| match segment {
+            RawTextSegment::Static(value) if !value.is_empty() => Some(*value),
+            _ => None,
+        })
+        .unwrap_or_default();
+    if input.rendered_candidate != expected {
+        return Err(static_mismatch(
+            "rendered static content does not match the known template",
+            None,
+        ));
+    }
+    Ok(RawTextMatch {
+        captures: Vec::new(),
+        ambiguity: None,
+        static_matches: usize::from(!expected.is_empty()),
     })
 }
 

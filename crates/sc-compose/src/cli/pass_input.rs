@@ -41,35 +41,17 @@ where
 
         match arg.as_ref() {
             "--pass" => {
-                if let Some(group) = current.take() {
-                    parsed.push(group);
-                }
                 let Some(value) = args.next() else {
                     return Err("--pass requires a numeric pass number".to_owned());
                 };
-                let value = value.to_string_lossy();
-                let pass_number = value
-                    .parse::<u8>()
-                    .map_err(|error| format!("invalid pass number `{value}`: {error}"))?;
-                current = Some(PassInputArgs {
-                    pass_number,
-                    vars: Vec::new(),
-                    var_files: Vec::new(),
-                });
+                begin_pass(&mut current, &mut parsed, &value.to_string_lossy())?;
             }
             _ if arg.starts_with("--pass=") => {
-                if let Some(group) = current.take() {
-                    parsed.push(group);
-                }
-                let value = arg.strip_prefix("--pass=").unwrap_or(arg.as_ref());
-                let pass_number = value
-                    .parse::<u8>()
-                    .map_err(|error| format!("invalid pass number `{value}`: {error}"))?;
-                current = Some(PassInputArgs {
-                    pass_number,
-                    vars: Vec::new(),
-                    var_files: Vec::new(),
-                });
+                begin_pass(
+                    &mut current,
+                    &mut parsed,
+                    arg.strip_prefix("--pass=").unwrap_or(arg.as_ref()),
+                )?;
             }
             "--var" => {
                 let Some(value) = args.next() else {
@@ -117,6 +99,25 @@ where
     }
 
     Ok(parsed)
+}
+
+fn begin_pass(
+    current: &mut Option<PassInputArgs>,
+    parsed: &mut Vec<PassInputArgs>,
+    value: &str,
+) -> Result<(), String> {
+    if let Some(group) = current.take() {
+        parsed.push(group);
+    }
+    let pass_number = value
+        .parse::<u8>()
+        .map_err(|error| format!("invalid pass number `{value}`: {error}"))?;
+    *current = Some(PassInputArgs {
+        pass_number,
+        vars: Vec::new(),
+        var_files: Vec::new(),
+    });
+    Ok(())
 }
 
 pub(crate) fn parse_cli_from<I>(args: I) -> Result<Cli, clap::Error>

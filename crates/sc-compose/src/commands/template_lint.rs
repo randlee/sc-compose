@@ -247,24 +247,7 @@ fn lint_repository_template(
 ) -> Result<RepositoryTemplateLint, CommandError> {
     let expanded = expand_includes(template, confining_root, &ComposePolicy::default())
         .map_err(CommandError::compose)?;
-    let canonical_template = template
-        .canonicalize()
-        .unwrap_or_else(|_| template.to_path_buf());
-    let mode = expanded
-        .frontmatters
-        .iter()
-        .find_map(|(path, passes)| {
-            (path == template || path == &canonical_template)
-                .then(|| {
-                    passes
-                        .first()
-                        .and_then(sc_composer::Frontmatter::json_escape_mode)
-                })
-                .flatten()
-        })
-        .map_or(JsonEscapeMode::Auto, |declared| {
-            resolve_json_escape_mode(None, Some(declared))
-        });
+    let mode = template_json_escape_mode(template, &expanded);
     let mode_name = match mode {
         JsonEscapeMode::Auto => "auto",
         JsonEscapeMode::Legacy => "legacy",
@@ -327,6 +310,30 @@ fn lint_repository_template(
         diagnostics,
         error_count,
     })
+}
+
+fn template_json_escape_mode(
+    template: &Path,
+    expanded: &sc_composer::ExpandedTemplate,
+) -> JsonEscapeMode {
+    let canonical_template = template
+        .canonicalize()
+        .unwrap_or_else(|_| template.to_path_buf());
+    expanded
+        .frontmatters
+        .iter()
+        .find_map(|(path, passes)| {
+            (path == template || path == &canonical_template)
+                .then(|| {
+                    passes
+                        .first()
+                        .and_then(sc_composer::Frontmatter::json_escape_mode)
+                })
+                .flatten()
+        })
+        .map_or(JsonEscapeMode::Auto, |declared| {
+            resolve_json_escape_mode(None, Some(declared))
+        })
 }
 
 /// Traverse the repository for JSON templates in the configured lint scope.

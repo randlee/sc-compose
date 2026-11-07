@@ -58,7 +58,13 @@ docs/phase-D/.review-findings.json
 .repowise/.augment-warned
 /.just/
 /artifacts/
+/.sc-lint/venv/
 
 # Per-worktree execution checklist; implementation evidence belongs in the sprint/PR.
 .p1-local-task-checklist.md
 .p2-local-task-checklist.md
+
+# Track the empty function-length baseline required by the sc-lint helper.
+!/.just/
+/.just/*
+!/.just/function-length-baseline.tsv

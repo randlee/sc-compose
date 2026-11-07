@@ -697,6 +697,7 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
     "source_glob": "share/quoted\"component/examples/*"
   }],
   "binary": "sc-compose",
+  "test_binary": "sc-compose",
   "test_command": "--help",
   "test_output": "A \"quoted\" result"
 }"#,
@@ -726,6 +727,7 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
     assert!(formula.contains("desc \"A \\\"quoted\\\" description\""));
     assert!(formula.contains("assert_match \"A \\\"quoted\\\" result\""));
     assert!(formula.contains("bin.install \"bin/sc-compose\""));
+    assert!(formula.contains("shell_output(\"#{bin}/\" + \"sc-compose\" + \" \" + \"--help\")"));
     // Windows-latest currently includes Ruby, but this cross-platform Rust
     // suite does not declare it as a toolchain dependency. The top-level
     // Python regression owns execution of this multi-component expression.
@@ -1037,6 +1039,102 @@ fn render_uses_json_var_file_inputs() {
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
         "hello json-world"
+    );
+}
+
+#[test]
+fn render_inline_vars_override_files_independent_of_argument_order() {
+    let root = temp_root("inline-var-precedence");
+    write_file(
+        &root.join("template.md.j2"),
+        "x={{ x }}; file_only={{ file_only }}\n",
+    );
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, r#"{"x":"from-file","file_only":"retained"}"#);
+
+    for inputs in [
+        vec![
+            "--var",
+            "x=from-cli",
+            "--var-file",
+            vars_file.to_str().unwrap(),
+        ],
+        vec![
+            "--var-file",
+            vars_file.to_str().unwrap(),
+            "--var",
+            "x=from-cli",
+        ],
+    ] {
+        let output = sc_compose()
+            .arg("render")
+            .arg("--mode")
+            .arg("file")
+            .arg("--root")
+            .arg(&root)
+            .arg("--file")
+            .arg("template.md.j2")
+            .args(inputs)
+            .output()
+            .unwrap();
+
+        assert!(
+            output.status.success(),
+            "stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout),
+            "x=from-cli; file_only=retained\n"
+        );
+    }
+}
+
+#[test]
+fn render_last_inline_var_and_later_var_file_win() {
+    let root = temp_root("explicit-var-repeated-precedence");
+    write_file(
+        &root.join("template.md.j2"),
+        "x={{ x }}; first_only={{ first_only }}; second_only={{ second_only }}\n",
+    );
+    let first_file = root.join("first.json");
+    write_file(
+        &first_file,
+        r#"{"x":"first-file","first_only":"first-retained","second_only":"from-first"}"#,
+    );
+    let second_file = root.join("second.json");
+    write_file(
+        &second_file,
+        r#"{"x":"second-file","second_only":"second-retained"}"#,
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("x=first-cli")
+        .arg("--var-file")
+        .arg(&first_file)
+        .arg("--var")
+        .arg("x=last-cli")
+        .arg("--var-file")
+        .arg(&second_file)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "x=last-cli; first_only=first-retained; second_only=second-retained\n"
     );
 }
 

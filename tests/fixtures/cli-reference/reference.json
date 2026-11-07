@@ -1,0 +1,2858 @@
+{
+  "diagnostics": [],
+  "payload": {
+    "model": {
+      "arguments": [],
+      "description": "Standalone template composition CLI",
+      "epilogue": "Detailed feature manuals ship with this CLI — run `sc-compose help` (or `sc-compose help <topic>`) to read them, starting from the exit-code contract.",
+      "long_description": "",
+      "name": "sc-compose",
+      "options": [],
+      "subcommands": [
+        {
+          "arguments": [],
+          "description": "Render, validate, preview, or persist a Beads formula request",
+          "epilogue": "",
+          "long_description": "",
+          "name": "bead",
+          "options": [],
+          "subcommands": [
+            {
+              "arguments": [],
+              "description": "Render, validate, and persist authorized Beads graph attachment",
+              "epilogue": "",
+              "long_description": "",
+              "name": "attach",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "Emit the Beads receipt in the standard diagnostic JSON envelope",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "Complete sc-compose/beads/v1 request file",
+                  "long": "--request",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "request",
+                  "required": true,
+                  "short": null,
+                  "value_name": "JSON"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose bead attach [OPTIONS] --request <JSON>",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Render, validate, and persist an authorized Beads formula pour",
+              "epilogue": "",
+              "long_description": "",
+              "name": "pour",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "Emit the Beads receipt in the standard diagnostic JSON envelope",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "Complete sc-compose/beads/v1 request file",
+                  "long": "--request",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "request",
+                  "required": true,
+                  "short": null,
+                  "value_name": "JSON"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose bead pour [OPTIONS] --request <JSON>",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Render, validate, and preview Beads graph attachment",
+              "epilogue": "",
+              "long_description": "",
+              "name": "preview-attach",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "Emit the Beads receipt in the standard diagnostic JSON envelope",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "Complete sc-compose/beads/v1 request file",
+                  "long": "--request",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "request",
+                  "required": true,
+                  "short": null,
+                  "value_name": "JSON"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose bead preview-attach [OPTIONS] --request <JSON>",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Render, validate, and preview a Beads formula pour",
+              "epilogue": "",
+              "long_description": "",
+              "name": "preview-pour",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "Emit the Beads receipt in the standard diagnostic JSON envelope",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "Complete sc-compose/beads/v1 request file",
+                  "long": "--request",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "request",
+                  "required": true,
+                  "short": null,
+                  "value_name": "JSON"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose bead preview-pour [OPTIONS] --request <JSON>",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Render a Beads formula request without invoking bd",
+              "epilogue": "",
+              "long_description": "",
+              "name": "render",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "Emit the Beads receipt in the standard diagnostic JSON envelope",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "Complete sc-compose/beads/v1 request file",
+                  "long": "--request",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "request",
+                  "required": true,
+                  "short": null,
+                  "value_name": "JSON"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose bead render [OPTIONS] --request <JSON>",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Render and validate a Beads formula request",
+              "epilogue": "",
+              "long_description": "",
+              "name": "validate",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "Emit the Beads receipt in the standard diagnostic JSON envelope",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "Complete sc-compose/beads/v1 request file",
+                  "long": "--request",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "request",
+                  "required": true,
+                  "short": null,
+                  "value_name": "JSON"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose bead validate [OPTIONS] --request <JSON>",
+              "version": null
+            }
+          ],
+          "usage": "Usage: sc-compose bead <COMMAND>",
+          "version": null
+        },
+        {
+          "arguments": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Bundled example pack name to render",
+              "name": "name",
+              "required": false
+            }
+          ],
+          "description": "List or render bundled example templates",
+          "epilogue": "",
+          "long_description": "",
+          "name": "examples",
+          "options": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Append one rendered JSON object to a JSON Lines file",
+              "long": "--append",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "append",
+              "required": false,
+              "short": null,
+              "value_name": "APPEND"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Check rendered output before emitting stdout or writing a file",
+              "long": "--check-render",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "check_render",
+              "required": false,
+              "short": null,
+              "value_name": "CHECK_RENDER"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Report the derived output target without writing files",
+              "long": "--dry-run",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "dry_run",
+              "required": false,
+              "short": null,
+              "value_name": "DRY_RUN"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Absorb environment variables that match the given prefix",
+              "long": "--env-prefix",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "env_prefix",
+              "required": false,
+              "short": null,
+              "value_name": "ENV_PREFIX"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Append a guidance block after the rendered body",
+              "long": "--guidance",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "guidance",
+              "required": false,
+              "short": null,
+              "value_name": "GUIDANCE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Read the guidance block from a file or stdin",
+              "long": "--guidance-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "guidance_file",
+              "required": false,
+              "short": null,
+              "value_name": "GUIDANCE_FILE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Emit machine-readable JSON output",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Write rendered output to the given path instead of stdout",
+              "long": "--output",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "output",
+              "required": false,
+              "short": null,
+              "value_name": "OUTPUT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Append a user prompt block after the rendered body and guidance",
+              "long": "--prompt",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "prompt",
+              "required": false,
+              "short": null,
+              "value_name": "PROMPT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Read the user prompt block from a file or stdin",
+              "long": "--prompt-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "prompt_file",
+              "required": false,
+              "short": null,
+              "value_name": "PROMPT_FILE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Treat undeclared referenced variables as errors",
+              "long": "--strict",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "strict",
+              "required": false,
+              "short": null,
+              "value_name": "STRICT"
+            },
+            {
+              "choices": [
+                "error",
+                "warn",
+                "ignore"
+              ],
+              "default_value": "ignore",
+              "help": "Control how extra caller-provided and referenced-but-unbound variables are reported",
+              "long": "--unknown-var-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "unknown_var_mode",
+              "required": false,
+              "short": null,
+              "value_name": "UNKNOWN_VAR_MODE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Load input variables from a JSON or YAML object file",
+              "long": "--var-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "var_file",
+              "required": false,
+              "short": null,
+              "value_name": "VAR_FILE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Provide one explicit input variable as key=value",
+              "long": "--var",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "vars",
+              "required": false,
+              "short": null,
+              "value_name": "VARS"
+            }
+          ],
+          "subcommands": [
+            {
+              "arguments": [],
+              "description": "List bundled example packs",
+              "epilogue": "",
+              "long_description": "",
+              "name": "list",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "Emit machine-readable JSON output",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose examples list [OPTIONS]",
+              "version": null
+            }
+          ],
+          "usage": "Usage: sc-compose examples [OPTIONS] [NAME]\n       sc-compose examples <COMMAND>",
+          "version": null
+        },
+        {
+          "arguments": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Rendered output file (required)",
+              "name": "rendered",
+              "required": true
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Known template file (required)",
+              "name": "template",
+              "required": true
+            }
+          ],
+          "description": "Extract variables from a known template and rendered output",
+          "epilogue": "",
+          "long_description": "",
+          "name": "extract",
+          "options": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Exclude this variable; repeat for multiple names",
+              "long": "--exclude",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "exclude",
+              "required": false,
+              "short": null,
+              "value_name": "NAME"
+            },
+            {
+              "choices": [
+                "xml",
+                "json",
+                "yaml",
+                "toml",
+                "raw"
+              ],
+              "default_value": "xml",
+              "help": "Rendered format: xml, json, yaml, toml, or raw known-template text",
+              "long": "--format",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "format",
+              "required": false,
+              "short": null,
+              "value_name": "FORMAT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Only recover this variable; repeat for multiple names",
+              "long": "--include",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "include",
+              "required": false,
+              "short": null,
+              "value_name": "NAME"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Emit machine-readable JSON output (format is XML by default)",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose extract [OPTIONS] <TEMPLATE> <RENDERED>",
+          "version": null
+        },
+        {
+          "arguments": [],
+          "description": "Insert minimal frontmatter for referenced variables",
+          "epilogue": "",
+          "long_description": "",
+          "name": "frontmatter-init",
+          "options": [
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--dry-run",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "dry_run",
+              "required": false,
+              "short": null,
+              "value_name": "DRY_RUN"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "",
+              "long": "--file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "file",
+              "required": true,
+              "short": null,
+              "value_name": "FILE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--force",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "force",
+              "required": false,
+              "short": null,
+              "value_name": "FORCE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose frontmatter-init [OPTIONS] --file <FILE>",
+          "version": null
+        },
+        {
+          "arguments": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Manual topic to display",
+              "name": "topic",
+              "required": false
+            }
+          ],
+          "description": "Show a feature manual, or list available manual topics",
+          "epilogue": "",
+          "long_description": "",
+          "name": "help",
+          "options": [
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Emit the manual response as a diagnostic JSON envelope",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "List available manual topics",
+              "long": "--list",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "list",
+              "required": false,
+              "short": null,
+              "value_name": "LIST"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose help [OPTIONS] [TOPIC]",
+          "version": null
+        },
+        {
+          "arguments": [],
+          "description": "Bootstrap a workspace for composed outputs",
+          "epilogue": "",
+          "long_description": "",
+          "name": "init",
+          "options": [
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--dry-run",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "dry_run",
+              "required": false,
+              "short": null,
+              "value_name": "DRY_RUN"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            },
+            {
+              "choices": [],
+              "default_value": ".",
+              "help": "",
+              "long": "--root",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "root",
+              "required": false,
+              "short": null,
+              "value_name": "ROOT"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose init [OPTIONS]",
+          "version": null
+        },
+        {
+          "arguments": [],
+          "description": "Run an allowlisted sc-lint target and write its report",
+          "epilogue": "",
+          "long_description": "",
+          "name": "lint",
+          "options": [
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Emit the sc-lint envelope as machine-readable JSON",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            },
+            {
+              "choices": [],
+              "default_value": ".",
+              "help": "Repository root passed to sc-lint",
+              "long": "--root",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "root",
+              "required": false,
+              "short": null,
+              "value_name": "ROOT"
+            },
+            {
+              "choices": [],
+              "default_value": "full",
+              "help": "Allowlisted sc-lint target",
+              "long": "--target",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "target",
+              "required": false,
+              "short": null,
+              "value_name": "TARGET"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose lint [OPTIONS]",
+          "version": null
+        },
+        {
+          "arguments": [],
+          "description": "Report process-local logging health",
+          "epilogue": "",
+          "long_description": "",
+          "name": "observability-health",
+          "options": [
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose observability-health [OPTIONS]",
+          "version": null
+        },
+        {
+          "arguments": [],
+          "description": "Export the CLI reference model",
+          "epilogue": "",
+          "long_description": "",
+          "name": "reference",
+          "options": [
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Emit the reference model in the diagnostic JSON envelope",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose reference [OPTIONS]",
+          "version": null
+        },
+        {
+          "arguments": [],
+          "description": "Render a template or resolved profile",
+          "epilogue": "",
+          "long_description": "",
+          "name": "render",
+          "options": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Profile name in profile mode",
+              "long": "--agent",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "agent",
+              "required": false,
+              "short": null,
+              "value_name": "AGENT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Alias for --agent",
+              "long": "--agent-type",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "agent_type",
+              "required": false,
+              "short": null,
+              "value_name": "AGENT_TYPE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Render all stacked template passes",
+              "long": "--all",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "all",
+              "required": false,
+              "short": null,
+              "value_name": "ALL"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Append one rendered JSON object to a JSON Lines file",
+              "long": "--append",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "append",
+              "required": false,
+              "short": null,
+              "value_name": "APPEND"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Render with custom brace-count delimiters (for example 3 => {{{ }}})",
+              "long": "--brace-count",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "brace_count",
+              "required": false,
+              "short": null,
+              "value_name": "BRACE_COUNT"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Check rendered output before emitting stdout or writing a file",
+              "long": "--check-render",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "check_render",
+              "required": false,
+              "short": null,
+              "value_name": "CHECK_RENDER"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Report the derived output target without writing files",
+              "long": "--dry-run",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "dry_run",
+              "required": false,
+              "short": null,
+              "value_name": "DRY_RUN"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Absorb environment variables that match the given prefix",
+              "long": "--env-prefix",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "env_prefix",
+              "required": false,
+              "short": null,
+              "value_name": "ENV_PREFIX"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Template path in file mode",
+              "long": "--file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "file",
+              "required": false,
+              "short": null,
+              "value_name": "FILE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Append a guidance block after the rendered body",
+              "long": "--guidance",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "guidance",
+              "required": false,
+              "short": null,
+              "value_name": "GUIDANCE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Read the guidance block from a file or stdin",
+              "long": "--guidance-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "guidance_file",
+              "required": false,
+              "short": null,
+              "value_name": "GUIDANCE_FILE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Emit machine-readable JSON output",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            },
+            {
+              "choices": [
+                "auto",
+                "legacy"
+              ],
+              "default_value": null,
+              "help": "Select JSON interpolation mode; default is auto unless frontmatter declares one",
+              "long": "--json-escape-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json_escape_mode",
+              "required": false,
+              "short": null,
+              "value_name": "JSON_ESCAPE_MODE"
+            },
+            {
+              "choices": [
+                "agent",
+                "command",
+                "skill"
+              ],
+              "default_value": "agent",
+              "help": "Choose the profile kind in profile mode",
+              "long": "--kind",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "kind",
+              "required": false,
+              "short": null,
+              "value_name": "KIND"
+            },
+            {
+              "choices": [
+                "profile",
+                "file"
+              ],
+              "default_value": "file",
+              "help": "Choose file or profile resolution mode",
+              "long": "--mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "mode",
+              "required": false,
+              "short": null,
+              "value_name": "MODE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Write rendered output to the given path instead of stdout",
+              "long": "--output",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "output",
+              "required": false,
+              "short": null,
+              "value_name": "OUTPUT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Append a user prompt block after the rendered body and guidance",
+              "long": "--prompt",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "prompt",
+              "required": false,
+              "short": null,
+              "value_name": "PROMPT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Read the user prompt block from a file or stdin",
+              "long": "--prompt-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "prompt_file",
+              "required": false,
+              "short": null,
+              "value_name": "PROMPT_FILE"
+            },
+            {
+              "choices": [],
+              "default_value": ".",
+              "help": "Workspace root for resolution and confinement",
+              "long": "--root",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "root",
+              "required": false,
+              "short": null,
+              "value_name": "ROOT"
+            },
+            {
+              "choices": [
+                "claude",
+                "hermes",
+                "codex",
+                "gemini",
+                "opencode"
+              ],
+              "default_value": null,
+              "help": "Optional runtime selector in profile mode",
+              "long": "--runtime",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "runtime",
+              "required": false,
+              "short": null,
+              "value_name": "RUNTIME"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Treat undeclared referenced variables as errors",
+              "long": "--strict",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "strict",
+              "required": false,
+              "short": null,
+              "value_name": "STRICT"
+            },
+            {
+              "choices": [
+                "error",
+                "warn",
+                "ignore"
+              ],
+              "default_value": "ignore",
+              "help": "Control how extra caller-provided and referenced-but-unbound variables are reported",
+              "long": "--unknown-var-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "unknown_var_mode",
+              "required": false,
+              "short": null,
+              "value_name": "UNKNOWN_VAR_MODE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Load input variables from a JSON or YAML object file",
+              "long": "--var-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "var_file",
+              "required": false,
+              "short": null,
+              "value_name": "VAR_FILE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Render with explicit variable delimiters",
+              "long": "--variable-delimiters",
+              "long_help": "",
+              "max_values": 2,
+              "min_values": 2,
+              "name": "variable_delimiters",
+              "required": false,
+              "short": null,
+              "value_name": "OPEN"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Provide one explicit input variable as key=value",
+              "long": "--var",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "vars",
+              "required": false,
+              "short": null,
+              "value_name": "VARS"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose render [OPTIONS]",
+          "version": null
+        },
+        {
+          "arguments": [],
+          "description": "Initialize and run shared report scaffolds",
+          "epilogue": "",
+          "long_description": "",
+          "name": "reports",
+          "options": [],
+          "subcommands": [
+            {
+              "arguments": [],
+              "description": "Write shared report metadata and archive outputs for one producer result",
+              "epilogue": "",
+              "long_description": "",
+              "name": "finalize",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--archive",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "archive",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ARCHIVE"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--artifact",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "artifacts",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ARTIFACTS"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--entrypoint",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "entrypoint",
+                  "required": true,
+                  "short": null,
+                  "value_name": "ENTRYPOINT"
+                },
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--kind",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "kind",
+                  "required": true,
+                  "short": null,
+                  "value_name": "KIND"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--report-id",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "report_id",
+                  "required": true,
+                  "short": null,
+                  "value_name": "REPORT_ID"
+                },
+                {
+                  "choices": [],
+                  "default_value": ".",
+                  "help": "",
+                  "long": "--root",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "root",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ROOT"
+                },
+                {
+                  "choices": [],
+                  "default_value": "pass",
+                  "help": "",
+                  "long": "--status",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "status",
+                  "required": false,
+                  "short": null,
+                  "value_name": "STATUS"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose reports finalize [OPTIONS] --report-id <REPORT_ID> --kind <KIND> --entrypoint <ENTRYPOINT>",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Summarize latest report entrypoints and sidecars",
+              "epilogue": "",
+              "long_description": "",
+              "name": "index",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": ".",
+                  "help": "",
+                  "long": "--root",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "root",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ROOT"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose reports index [OPTIONS]",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Initialize the shared reports scaffold",
+              "epilogue": "",
+              "long_description": "",
+              "name": "init",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": ".",
+                  "help": "",
+                  "long": "--root",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "root",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ROOT"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose reports init [OPTIONS]",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Write one machine-readable publish manifest for current report outputs",
+              "epilogue": "",
+              "long_description": "",
+              "name": "publish-manifest",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": ".",
+                  "help": "",
+                  "long": "--root",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "root",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ROOT"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose reports publish-manifest [OPTIONS]",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Render one semantic diagram spec to Mermaid output",
+              "epilogue": "",
+              "long_description": "",
+              "name": "render-spec",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--archive",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "archive",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ARCHIVE"
+                },
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": ".",
+                  "help": "",
+                  "long": "--root",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "root",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ROOT"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--spec",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "spec_path",
+                  "required": true,
+                  "short": null,
+                  "value_name": "SPEC_PATH"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose reports render-spec [OPTIONS] --spec <SPEC_PATH>",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Run the shared smoke-report fixture harness",
+              "epilogue": "",
+              "long_description": "",
+              "name": "smoke",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--archive",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "archive",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ARCHIVE"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--fixture",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "fixture",
+                  "required": true,
+                  "short": null,
+                  "value_name": "FIXTURE"
+                },
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": ".",
+                  "help": "",
+                  "long": "--root",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "root",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ROOT"
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--vars",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "vars",
+                  "required": true,
+                  "short": null,
+                  "value_name": "VARS"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose reports smoke [OPTIONS] --fixture <FIXTURE> --vars <VARS>",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "Verify required report evidence from the catalog",
+              "epilogue": "",
+              "long_description": "",
+              "name": "verify",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                },
+                {
+                  "choices": [],
+                  "default_value": ".",
+                  "help": "",
+                  "long": "--root",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "root",
+                  "required": false,
+                  "short": null,
+                  "value_name": "ROOT"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose reports verify [OPTIONS]",
+              "version": null
+            }
+          ],
+          "usage": "Usage: sc-compose reports <COMMAND>",
+          "version": null
+        },
+        {
+          "arguments": [],
+          "description": "Resolve a profile name to a concrete template path",
+          "epilogue": "",
+          "long_description": "",
+          "name": "resolve",
+          "options": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Profile name in profile mode",
+              "long": "--agent",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "agent",
+              "required": false,
+              "short": null,
+              "value_name": "AGENT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Alias for --agent",
+              "long": "--agent-type",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "agent_type",
+              "required": false,
+              "short": null,
+              "value_name": "AGENT_TYPE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Absorb environment variables that match the given prefix",
+              "long": "--env-prefix",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "env_prefix",
+              "required": false,
+              "short": null,
+              "value_name": "ENV_PREFIX"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Template path in file mode",
+              "long": "--file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "file",
+              "required": false,
+              "short": null,
+              "value_name": "FILE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            },
+            {
+              "choices": [
+                "auto",
+                "legacy"
+              ],
+              "default_value": null,
+              "help": "Select JSON interpolation mode; default is auto unless frontmatter declares one",
+              "long": "--json-escape-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json_escape_mode",
+              "required": false,
+              "short": null,
+              "value_name": "JSON_ESCAPE_MODE"
+            },
+            {
+              "choices": [
+                "agent",
+                "command",
+                "skill"
+              ],
+              "default_value": "agent",
+              "help": "Choose the profile kind in profile mode",
+              "long": "--kind",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "kind",
+              "required": false,
+              "short": null,
+              "value_name": "KIND"
+            },
+            {
+              "choices": [
+                "profile",
+                "file"
+              ],
+              "default_value": "file",
+              "help": "Choose file or profile resolution mode",
+              "long": "--mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "mode",
+              "required": false,
+              "short": null,
+              "value_name": "MODE"
+            },
+            {
+              "choices": [],
+              "default_value": ".",
+              "help": "Workspace root for resolution and confinement",
+              "long": "--root",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "root",
+              "required": false,
+              "short": null,
+              "value_name": "ROOT"
+            },
+            {
+              "choices": [
+                "claude",
+                "hermes",
+                "codex",
+                "gemini",
+                "opencode"
+              ],
+              "default_value": null,
+              "help": "Optional runtime selector in profile mode",
+              "long": "--runtime",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "runtime",
+              "required": false,
+              "short": null,
+              "value_name": "RUNTIME"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Treat undeclared referenced variables as errors",
+              "long": "--strict",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "strict",
+              "required": false,
+              "short": null,
+              "value_name": "STRICT"
+            },
+            {
+              "choices": [
+                "error",
+                "warn",
+                "ignore"
+              ],
+              "default_value": "ignore",
+              "help": "Control how extra caller-provided and referenced-but-unbound variables are reported",
+              "long": "--unknown-var-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "unknown_var_mode",
+              "required": false,
+              "short": null,
+              "value_name": "UNKNOWN_VAR_MODE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Load input variables from a JSON or YAML object file",
+              "long": "--var-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "var_file",
+              "required": false,
+              "short": null,
+              "value_name": "VAR_FILE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Provide one explicit input variable as key=value",
+              "long": "--var",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "vars",
+              "required": false,
+              "short": null,
+              "value_name": "VARS"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose resolve [OPTIONS]",
+          "version": null
+        },
+        {
+          "arguments": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Concrete file to convert into a template",
+              "name": "file",
+              "required": true
+            }
+          ],
+          "description": "Convert a concrete file into a template using pass-scoped replacements",
+          "epilogue": "",
+          "long_description": "",
+          "name": "template-init",
+          "options": [
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--dry-run",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "dry_run",
+              "required": false,
+              "short": null,
+              "value_name": "DRY_RUN"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--force",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "force",
+              "required": false,
+              "short": null,
+              "value_name": "FORCE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose template-init [OPTIONS] <FILE>",
+          "version": null
+        },
+        {
+          "arguments": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "User template pack name to render",
+              "name": "name",
+              "required": false
+            }
+          ],
+          "description": "List, add, or render user template packs",
+          "epilogue": "",
+          "long_description": "",
+          "name": "templates",
+          "options": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Append one rendered JSON object to a JSON Lines file",
+              "long": "--append",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "append",
+              "required": false,
+              "short": null,
+              "value_name": "APPEND"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Check rendered output before emitting stdout or writing a file",
+              "long": "--check-render",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "check_render",
+              "required": false,
+              "short": null,
+              "value_name": "CHECK_RENDER"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Report the derived output target without writing files",
+              "long": "--dry-run",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "dry_run",
+              "required": false,
+              "short": null,
+              "value_name": "DRY_RUN"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Absorb environment variables that match the given prefix",
+              "long": "--env-prefix",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "env_prefix",
+              "required": false,
+              "short": null,
+              "value_name": "ENV_PREFIX"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Append a guidance block after the rendered body",
+              "long": "--guidance",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "guidance",
+              "required": false,
+              "short": null,
+              "value_name": "GUIDANCE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Read the guidance block from a file or stdin",
+              "long": "--guidance-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "guidance_file",
+              "required": false,
+              "short": null,
+              "value_name": "GUIDANCE_FILE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Emit machine-readable JSON output",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Write rendered output to the given path instead of stdout",
+              "long": "--output",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "output",
+              "required": false,
+              "short": null,
+              "value_name": "OUTPUT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Append a user prompt block after the rendered body and guidance",
+              "long": "--prompt",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "prompt",
+              "required": false,
+              "short": null,
+              "value_name": "PROMPT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Read the user prompt block from a file or stdin",
+              "long": "--prompt-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "prompt_file",
+              "required": false,
+              "short": null,
+              "value_name": "PROMPT_FILE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Treat undeclared referenced variables as errors",
+              "long": "--strict",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "strict",
+              "required": false,
+              "short": null,
+              "value_name": "STRICT"
+            },
+            {
+              "choices": [
+                "error",
+                "warn",
+                "ignore"
+              ],
+              "default_value": "ignore",
+              "help": "Control how extra caller-provided and referenced-but-unbound variables are reported",
+              "long": "--unknown-var-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "unknown_var_mode",
+              "required": false,
+              "short": null,
+              "value_name": "UNKNOWN_VAR_MODE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Load input variables from a JSON or YAML object file",
+              "long": "--var-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "var_file",
+              "required": false,
+              "short": null,
+              "value_name": "VAR_FILE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Provide one explicit input variable as key=value",
+              "long": "--var",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "vars",
+              "required": false,
+              "short": null,
+              "value_name": "VARS"
+            }
+          ],
+          "subcommands": [
+            {
+              "arguments": [
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "Optional pack name override",
+                  "name": "name",
+                  "required": false
+                },
+                {
+                  "choices": [],
+                  "default_value": null,
+                  "help": "Source file or directory to import as one template pack",
+                  "name": "src",
+                  "required": true
+                }
+              ],
+              "description": "Import a file or directory as one user template pack",
+              "epilogue": "",
+              "long_description": "",
+              "name": "add",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "Emit machine-readable JSON output",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose templates add [OPTIONS] <SRC> [NAME]",
+              "version": null
+            },
+            {
+              "arguments": [],
+              "description": "List user template packs",
+              "epilogue": "",
+              "long_description": "",
+              "name": "list",
+              "options": [
+                {
+                  "choices": [
+                    "true",
+                    "false"
+                  ],
+                  "default_value": null,
+                  "help": "Emit machine-readable JSON output",
+                  "long": "--json",
+                  "long_help": "",
+                  "max_values": null,
+                  "min_values": null,
+                  "name": "json",
+                  "required": false,
+                  "short": null,
+                  "value_name": "JSON"
+                }
+              ],
+              "subcommands": [],
+              "usage": "Usage: sc-compose templates list [OPTIONS]",
+              "version": null
+            }
+          ],
+          "usage": "Usage: sc-compose templates [OPTIONS] [NAME]\n       sc-compose templates <COMMAND>",
+          "version": null
+        },
+        {
+          "arguments": [],
+          "description": "Validate templates without rendering output",
+          "epilogue": "",
+          "long_description": "",
+          "name": "validate",
+          "options": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Profile name in profile mode",
+              "long": "--agent",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "agent",
+              "required": false,
+              "short": null,
+              "value_name": "AGENT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Alias for --agent",
+              "long": "--agent-type",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "agent_type",
+              "required": false,
+              "short": null,
+              "value_name": "AGENT_TYPE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Validate all stacked template passes",
+              "long": "--all",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "all",
+              "required": false,
+              "short": null,
+              "value_name": "ALL"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Render in memory and check the exact output without emitting a body or file",
+              "long": "--check-render",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "check_render",
+              "required": false,
+              "short": null,
+              "value_name": "CHECK_RENDER"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Absorb environment variables that match the given prefix",
+              "long": "--env-prefix",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "env_prefix",
+              "required": false,
+              "short": null,
+              "value_name": "ENV_PREFIX"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Template path in file mode",
+              "long": "--file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "file",
+              "required": false,
+              "short": null,
+              "value_name": "FILE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            },
+            {
+              "choices": [
+                "auto",
+                "legacy"
+              ],
+              "default_value": null,
+              "help": "Select JSON interpolation mode; default is auto unless frontmatter declares one",
+              "long": "--json-escape-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json_escape_mode",
+              "required": false,
+              "short": null,
+              "value_name": "JSON_ESCAPE_MODE"
+            },
+            {
+              "choices": [
+                "agent",
+                "command",
+                "skill"
+              ],
+              "default_value": "agent",
+              "help": "Choose the profile kind in profile mode",
+              "long": "--kind",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "kind",
+              "required": false,
+              "short": null,
+              "value_name": "KIND"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Report redundant filter chains and other lint findings with source locations",
+              "long": "--lint",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "lint",
+              "required": false,
+              "short": null,
+              "value_name": "LINT"
+            },
+            {
+              "choices": [
+                "profile",
+                "file"
+              ],
+              "default_value": "file",
+              "help": "Choose file or profile resolution mode",
+              "long": "--mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "mode",
+              "required": false,
+              "short": null,
+              "value_name": "MODE"
+            },
+            {
+              "choices": [],
+              "default_value": ".",
+              "help": "Workspace root for resolution and confinement",
+              "long": "--root",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "root",
+              "required": false,
+              "short": null,
+              "value_name": "ROOT"
+            },
+            {
+              "choices": [
+                "claude",
+                "hermes",
+                "codex",
+                "gemini",
+                "opencode"
+              ],
+              "default_value": null,
+              "help": "Optional runtime selector in profile mode",
+              "long": "--runtime",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "runtime",
+              "required": false,
+              "short": null,
+              "value_name": "RUNTIME"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Treat undeclared referenced variables as errors",
+              "long": "--strict",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "strict",
+              "required": false,
+              "short": null,
+              "value_name": "STRICT"
+            },
+            {
+              "choices": [
+                "error",
+                "warn",
+                "ignore"
+              ],
+              "default_value": "ignore",
+              "help": "Control how extra caller-provided and referenced-but-unbound variables are reported",
+              "long": "--unknown-var-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "unknown_var_mode",
+              "required": false,
+              "short": null,
+              "value_name": "UNKNOWN_VAR_MODE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Load input variables from a JSON or YAML object file",
+              "long": "--var-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "var_file",
+              "required": false,
+              "short": null,
+              "value_name": "VAR_FILE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Provide one explicit input variable as key=value",
+              "long": "--var",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "vars",
+              "required": false,
+              "short": null,
+              "value_name": "VARS"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose validate [OPTIONS]",
+          "version": null
+        },
+        {
+          "arguments": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Concrete deployed file to compare against",
+              "name": "deployed",
+              "required": true
+            }
+          ],
+          "description": "Verify deployed output matches a rendered template",
+          "epilogue": "",
+          "long_description": "",
+          "name": "verify",
+          "options": [
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Template path in file mode",
+              "long": "--against",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "against",
+              "required": false,
+              "short": null,
+              "value_name": "AGAINST"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Profile name in profile mode",
+              "long": "--agent",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "agent",
+              "required": false,
+              "short": null,
+              "value_name": "AGENT"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Alias for --agent",
+              "long": "--agent-type",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "agent_type",
+              "required": false,
+              "short": null,
+              "value_name": "AGENT_TYPE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Verify all stacked template passes",
+              "long": "--all",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "all",
+              "required": false,
+              "short": null,
+              "value_name": "ALL"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Override one builtin variable as key=value for deterministic verification",
+              "long": "--builtin-var",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "builtin_vars",
+              "required": false,
+              "short": null,
+              "value_name": "BUILTIN_VARS"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Absorb environment variables that match the given prefix",
+              "long": "--env-prefix",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "env_prefix",
+              "required": false,
+              "short": null,
+              "value_name": "ENV_PREFIX"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Template path in file mode",
+              "long": "--file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "file",
+              "required": false,
+              "short": null,
+              "value_name": "FILE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Emit machine-readable JSON output",
+              "long": "--json",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json",
+              "required": false,
+              "short": null,
+              "value_name": "JSON"
+            },
+            {
+              "choices": [
+                "auto",
+                "legacy"
+              ],
+              "default_value": null,
+              "help": "Select JSON interpolation mode; default is auto unless frontmatter declares one",
+              "long": "--json-escape-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "json_escape_mode",
+              "required": false,
+              "short": null,
+              "value_name": "JSON_ESCAPE_MODE"
+            },
+            {
+              "choices": [
+                "agent",
+                "command",
+                "skill"
+              ],
+              "default_value": "agent",
+              "help": "Choose the profile kind in profile mode",
+              "long": "--kind",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "kind",
+              "required": false,
+              "short": null,
+              "value_name": "KIND"
+            },
+            {
+              "choices": [
+                "profile",
+                "file"
+              ],
+              "default_value": "file",
+              "help": "Choose file or profile resolution mode",
+              "long": "--mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "mode",
+              "required": false,
+              "short": null,
+              "value_name": "MODE"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Suppress diff output when drift is detected",
+              "long": "--quiet",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "quiet",
+              "required": false,
+              "short": null,
+              "value_name": "QUIET"
+            },
+            {
+              "choices": [],
+              "default_value": ".",
+              "help": "Workspace root for resolution and confinement",
+              "long": "--root",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "root",
+              "required": false,
+              "short": null,
+              "value_name": "ROOT"
+            },
+            {
+              "choices": [
+                "claude",
+                "hermes",
+                "codex",
+                "gemini",
+                "opencode"
+              ],
+              "default_value": null,
+              "help": "Optional runtime selector in profile mode",
+              "long": "--runtime",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "runtime",
+              "required": false,
+              "short": null,
+              "value_name": "RUNTIME"
+            },
+            {
+              "choices": [
+                "true",
+                "false"
+              ],
+              "default_value": null,
+              "help": "Treat undeclared referenced variables as errors",
+              "long": "--strict",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "strict",
+              "required": false,
+              "short": null,
+              "value_name": "STRICT"
+            },
+            {
+              "choices": [
+                "error",
+                "warn",
+                "ignore"
+              ],
+              "default_value": "ignore",
+              "help": "Control how extra caller-provided and referenced-but-unbound variables are reported",
+              "long": "--unknown-var-mode",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "unknown_var_mode",
+              "required": false,
+              "short": null,
+              "value_name": "UNKNOWN_VAR_MODE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Load input variables from a JSON or YAML object file",
+              "long": "--var-file",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "var_file",
+              "required": false,
+              "short": null,
+              "value_name": "VAR_FILE"
+            },
+            {
+              "choices": [],
+              "default_value": null,
+              "help": "Provide one explicit input variable as key=value",
+              "long": "--var",
+              "long_help": "",
+              "max_values": null,
+              "min_values": null,
+              "name": "vars",
+              "required": false,
+              "short": null,
+              "value_name": "VARS"
+            }
+          ],
+          "subcommands": [],
+          "usage": "Usage: sc-compose verify [OPTIONS] <DEPLOYED>",
+          "version": null
+        }
+      ],
+      "usage": "Usage: sc-compose <COMMAND>",
+      "version": "1.7.0"
+    }
+  },
+  "schema_version": "1"
+}

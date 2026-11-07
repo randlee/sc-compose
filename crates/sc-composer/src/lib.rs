@@ -84,7 +84,7 @@ pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
 #[doc(inline)]
 pub use frontmatter_init::frontmatter_init;
 #[doc(inline)]
-pub use include::{CompositionFingerprint, ExpandedTemplate, expand_includes};
+pub use include::{CompositionFingerprint, ExpandedTemplate, SourceLocation, expand_includes};
 #[doc(inline)]
 pub use init_workspace::{init_workspace, read_optional_text_file};
 #[doc(inline)]
@@ -130,8 +130,8 @@ pub use types::{
 };
 #[doc(inline)]
 pub use validate::{
-    validate, validate_with_observer, validate_with_observer_and_delimiters,
-    validate_with_observer_and_delimiters_with_expansion,
+    validate, validate_expanded_with_context, validate_with_observer,
+    validate_with_observer_and_delimiters, validate_with_observer_and_delimiters_with_expansion,
 };
 pub use validation::BUILTIN_VARIABLE_NAMES;
 #[doc(inline)]

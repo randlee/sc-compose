@@ -40,9 +40,6 @@ fn fixture_cleanup_survives_a_panicking_assertion() {
     assert!(!log_root.expect("log root").exists());
 }
 
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
-
 fn fake_sc_lint_bin(root: &Path) -> PathBuf {
     let bin_dir = root.join("bin");
     fs::create_dir_all(&bin_dir).expect("fake bin directory");
@@ -61,14 +58,10 @@ fn fake_sc_lint_bin(root: &Path) -> PathBuf {
     #[cfg(unix)]
     {
         let path = bin_dir.join("sc-lint");
-        fs::write(
+        support::fake_exec::install(
             &path,
             "#!/bin/sh\nprintf '%s\\n' '{\"ok\":true,\"command\":\"lint.sc-boundary\",\"data\":{\"findings\":[]},\"diagnostics\":[]}'\n",
-        )
-        .expect("fake sc-lint");
-        let mut permissions = fs::metadata(&path).expect("fake metadata").permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&path, permissions).expect("fake executable");
+        );
         path
     }
 }
@@ -130,6 +123,91 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
             .join("reports/latest/sc-lint/index.html")
             .is_file()
     );
+}
+
+// A concurrent fork inheriting a write descriptor on a fake's script must not
+// break its exec (ETXTBSY): the descriptor is held open while sc-compose runs
+// the fake, and the run is unchanged.
+#[cfg(unix)]
+#[test]
+fn runner_execs_fake_sc_lint_while_its_script_is_held_open_for_writing() {
+    let root = TempFixture::new("sc-lint-runner-held-writer");
+    write_file(
+        &root.path.join(".sc/sc-lint/targets/sc-boundary.toml"),
+        "command = \"lint.sc-boundary\"\nreport_kind = \"lint\"\n",
+    );
+    let fake_bin = fake_sc_lint_bin(&root.path);
+    let _inherited_writer = fs::OpenOptions::new()
+        .append(true)
+        .open(support::fake_exec::script_path(&fake_bin))
+        .expect("hold the fake script's write descriptor open");
+    let output = sc_compose()
+        .args([
+            "lint",
+            "--root",
+            root.path.to_str().expect("UTF-8 root"),
+            "--target",
+            "sc-boundary",
+            "--json",
+        ])
+        .env(
+            "PATH",
+            path_with_fake_bin(fake_bin.parent().expect("fake bin parent")),
+        )
+        .output()
+        .expect("run sc-compose lint");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "sc-compose lint failed; stderr: {}",
+        String::from_utf8_lossy(&output.stderr),
+    );
+    assert_eq!(
+        parse_stdout(&output)["payload"]["raw_payload"]["command"],
+        "lint.sc-boundary"
+    );
+}
+
+// Every shared fake tool is exec'd through the committed shim; no file the
+// test wrote is itself executable.
+#[cfg(unix)]
+#[test]
+fn shared_fake_tools_are_links_to_the_committed_shim() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = TempFixture::new("sc-lint-runner-fake-links");
+    support::write_fake_cargo(
+        &root.path,
+        support::FakeCargoOptions {
+            xwin_available: true,
+            test_failure: false,
+            fail_closed: false,
+        },
+    );
+    support::write_fake_cargo_deny(&root.path);
+    let shim = fs::canonicalize(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../test-support/fake-exec"
+    ))
+    .expect("committed shim");
+    let fakes = [
+        root.path.join("fake-bin/cargo"),
+        root.path.join("fake-bin/cargo-deny"),
+        fake_sc_lint_bin(&root.path),
+    ];
+    for fake in fakes {
+        assert_eq!(
+            fs::canonicalize(&fake).expect("fake target"),
+            shim,
+            "{fake:?}"
+        );
+        let script = fs::metadata(support::fake_exec::script_path(&fake)).expect("fake script");
+        assert_eq!(
+            script.permissions().mode() & 0o111,
+            0,
+            "{fake:?} script is executable"
+        );
+    }
 }
 
 #[test]

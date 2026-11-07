@@ -213,3 +213,13 @@ The ARM64.2 implementation is complete only when all of the following are green:
   Winget, Scoop, or Homebrew.
 - No change is made to sc-lint; its lack of a Linux ARM64 release remains an
   explicit reason to keep the dedicated CI job separate from the lint matrix.
+
+## Wheel tag policy (recorded exception)
+
+Linux arm64 wheels use `--compatibility manylinux2014 --zig` in `ci.yml`,
+`release.yml` and `go-native-preflight.yml`, and the produced tag is asserted as
+`manylinux2014_aarch64`. `.github/scripts/release_python.py` requires
+`manylinux 2_28` only for explicit wheel target objects; the manifest declares
+runner labels, so that rule does not apply. If a manifest later declares
+explicit Linux targets, they must use `2_28` and the workflows must change with
+them. Pinned by `.github/scripts/tests/test_release_wheel_contract.py`.

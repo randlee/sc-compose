@@ -31,7 +31,7 @@ jobs:
     env:
       RELEASE_ARTIFACT_MANIFEST: release/publish-artifacts.toml
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -46,6 +46,15 @@ jobs:
             echo "Preflight must be executed by publisher agent. Got run_by_agent='$runner'" >&2
             exit 1
           fi
+
+      - id: immutable_releases
+        name: Verify immutable release prerequisite (read-only)
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 .github/scripts/release_immutability.py --tag "$RELEASE_VERSION"
 
       - id: secret_plan
         name: Read non-disclosing credential plan from release manifest
@@ -162,6 +171,7 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           SECRET_PLAN: ${{ steps.secret_plan.outputs.plan }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
@@ -171,20 +181,11 @@ jobs:
           failures=()
           channel_outcomes='{}'
           while IFS=$'\t' read -r channel secret_name check_kind; do
-            token="${!secret_name:-}"
             channel_status=success
-            case "${check_kind}" in
-              github)
-                command=(curl --fail --silent --show-error --header "Authorization: Bearer ${token}" --header "Accept: application/vnd.github+json" https://api.github.com/user)
-                ;;
-              *)
-                failures+=("Unsupported credential liveness check kind: ${check_kind}")
-                channel_status=failure
-                continue
-                ;;
-            esac
-            if ! "${command[@]}" >/dev/null; then
-              failures+=("GitHub Actions secret ${secret_name} is present but rejected by its publish service.")
+            if ! python3 .github/scripts/release_credentials.py \
+              --manifest "${RELEASE_ARTIFACT_MANIFEST}" --channel "${channel}" \
+              --kind "${check_kind}" --secret-name "${secret_name}"; then
+              failures+=("Credential authentication not established for channel ${channel} (${secret_name}).")
               channel_status=failure
             fi
             channel_outcomes="$(jq -c --arg channel "${channel}" --arg status "${channel_status}" '.[$channel]=$status' <<<"${channel_outcomes}")"
@@ -194,23 +195,22 @@ jobs:
             printf '%s\n' "${failures[@]}" >&2
             exit 1
           fi
-          echo "All manifest-required repository credentials are accepted by their publish services."
+          echo "All manifest-required repository credentials authenticated; publish permissions require channel verification."
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
-
-      - name: Set up lint toolchain
-        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
-        uses: ./.github/actions/setup-lint-toolchain
 
       - name: Install Rust toolchain
         if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ steps.build_plan.outputs.rust_toolchain }}
-          components: rustfmt, clippy
+
+      - name: Install Linux native build deps
+        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
+        uses: ./.github/actions/install-linux-native-deps
 
       - name: Normalize version input
         id: meta
@@ -227,24 +227,6 @@ jobs:
           fi
           echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
           echo "release_version=${tag#v}" >> "$GITHUB_OUTPUT"
-
-      - id: formatting
-        name: Check formatting
-        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
-        continue-on-error: true
-        run: cargo fmt --all --check
-
-      - id: clippy
-        name: Run clippy
-        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
-        continue-on-error: true
-        run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - id: workspace_tests
-        name: Run workspace tests
-        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
-        continue-on-error: true
-        run: cargo test --workspace
 
       - id: manifest
         name: Validate manifest completeness
@@ -285,9 +267,6 @@ jobs:
           python3 .github/scripts/release_artifacts.py verify-version-lockstep \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
-          python3 .github/scripts/go_native_module.py verify-version-lockstep \
-            --config release/go-native-module.toml \
-            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - id: release_candidate_provenance
         name: Verify release-candidate provenance
@@ -325,6 +304,7 @@ jobs:
           failures=()
           channel_is_preserved() {
             local expected="$1" channel
+            [[ -n "${ALREADY_PUBLISHED_CHANNELS:-}" ]] || return 1
             IFS=',' read -r -a channels <<<"${ALREADY_PUBLISHED_CHANNELS:-}"
             for channel in "${channels[@]}"; do
               channel="$(tr -d '[:space:]' <<<"${channel}")"
@@ -370,6 +350,15 @@ jobs:
             exit 1
           fi
 
+      - id: consumer_preflight
+        name: Run consumer publish preflight checks
+        if: ${{ always() }}
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/run-consumer-preflight.sh
+
       - id: package_checks
         name: Run dependency-aware package checks
         if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
@@ -377,23 +366,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          while IFS='|' read -r package mode earlier_release_dependencies; do
+          plan="$(python3 .github/scripts/release_artifacts.py package-check-plan --include-manifest \
+            --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
+            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}')"
+          while IFS='|' read -r package mode earlier_release_dependencies cargo_manifest; do
             case "${mode}" in
               verify)
-                cargo package -p "$package" --locked --allow-dirty
+                cargo package --manifest-path "$cargo_manifest" --locked --allow-dirty
                 ;;
-              deferred_same_release)
-                printf 'Deferring %s package check until earlier same-release crate(s) publish: %s\n' \
+              no_verify)
+                printf 'Validating %s without registry verification; waiting for earlier release crate(s): %s\n' \
                   "$package" "$earlier_release_dependencies"
+                # Check the real local dependency graph, including standalone crates.
+                cargo check --manifest-path "$cargo_manifest" --locked
+                # --no-verify alone still resolves registry versions for Cargo.lock.
+                # This preflight-only archive is never uploaded; publication retains
+                # normal lockfile generation and registry-backed verification.
+                cargo package --manifest-path "$cargo_manifest" --locked --allow-dirty --no-verify --exclude-lockfile
                 ;;
               *)
                 printf 'Unknown package-check mode for %s: %s\n' "$package" "$mode" >&2
                 exit 1
                 ;;
             esac
-          done < <(python3 .github/scripts/release_artifacts.py package-check-plan \
-            --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
-            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}')
+          done <<<"${plan}"
 
       - id: github_release_permissions
         name: Verify GitHub Release workflow permissions
@@ -415,6 +411,7 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
+          IMMUTABLE_RELEASES: ${{ steps.immutable_releases.outcome }}
           OWNERSHIP: ${{ steps.ownership.outcome }}
           RELEASE_METADATA: ${{ steps.meta.outcome }}
           RELEASE_TAG: ${{ steps.meta.outputs.release_tag }}
@@ -436,6 +433,7 @@ jobs:
           jq -e 'type == "object"' <<<"${credential_liveness_channels_json}" >/dev/null \
             || { echo 'CREDENTIAL_LIVENESS_CHANNELS must be a JSON object.' >&2; exit 1; }
           outcomes="$(jq -nc \
+            --arg immutable_releases "${IMMUTABLE_RELEASES}" \
             --arg ownership "${OWNERSHIP}" \
             --arg release_metadata "${RELEASE_METADATA}" \
             --arg repository_secrets "${REPOSITORY_SECRETS}" \
@@ -445,7 +443,7 @@ jobs:
             --argjson credential_liveness_channels "${credential_liveness_channels_json}" \
             --arg registry_state "${REGISTRY_STATE}" \
             --arg github_release_permissions "${GITHUB_RELEASE_PERMISSIONS}" \
-            '{ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, repository_secret_channels: $repository_secret_channels, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, credential_liveness_channels: $credential_liveness_channels, registry_state: $registry_state, github_release_permissions: $github_release_permissions}')"
+            '{immutable_releases: $immutable_releases, ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, repository_secret_channels: $repository_secret_channels, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, credential_liveness_channels: $credential_liveness_channels, registry_state: $registry_state, github_release_permissions: $github_release_permissions}')"
           results="$(python3 .github/scripts/release_artifacts.py channel-preflight-results \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --outcomes "${outcomes}" \
@@ -461,6 +459,7 @@ jobs:
         if: ${{ always() }}
         shell: bash
         env:
+          IMMUTABLE_RELEASES: ${{ steps.immutable_releases.outcome }}
           OWNERSHIP: ${{ steps.ownership.outcome }}
           SECRET_PLAN: ${{ steps.secret_plan.outcome }}
           BUILD_PLAN: ${{ steps.build_plan.outcome }}
@@ -471,9 +470,6 @@ jobs:
           CREDENTIAL_LIVENESS: ${{ steps.credential_liveness.outcome }}
           REGISTRY_STATE: ${{ steps.registry_state.outcome }}
           META: ${{ steps.meta.outcome }}
-          FORMATTING: ${{ steps.formatting.outcome }}
-          CLIPPY: ${{ steps.clippy.outcome }}
-          WORKSPACE_TESTS: ${{ steps.workspace_tests.outcome }}
           MANIFEST: ${{ steps.manifest.outcome }}
           PUBLISH_ORDER: ${{ steps.publish_order.outcome }}
           HELPERS: ${{ steps.helpers.outcome }}
@@ -481,6 +477,7 @@ jobs:
           VERSION_LOCKSTEP: ${{ steps.version_lockstep.outcome }}
           RELEASE_CANDIDATE_PROVENANCE: ${{ steps.release_candidate_provenance.outcome }}
           UNPUBLISHED: ${{ steps.unpublished.outcome }}
+          CONSUMER_PREFLIGHT: ${{ steps.consumer_preflight.outcome }}
           PACKAGE_CHECKS: ${{ steps.package_checks.outcome }}
           GITHUB_RELEASE_PERMISSIONS: ${{ steps.github_release_permissions.outcome }}
           CHANNEL_RESULTS: ${{ steps.channel_results.outcome }}
@@ -496,6 +493,7 @@ jobs:
               *) failed+=("${name}") ;;
             esac
           }
+          record immutable-releases "${IMMUTABLE_RELEASES}"
           record ownership "${OWNERSHIP}"
           record secret-plan "${SECRET_PLAN}"
           record build-plan "${BUILD_PLAN}"
@@ -504,12 +502,10 @@ jobs:
           record github-environments "${GITHUB_ENVIRONMENTS}"
           record credential-liveness "${CREDENTIAL_LIVENESS}"
           record registry-state "${REGISTRY_STATE}"
+          record consumer-preflight "${CONSUMER_PREFLIGHT}"
           record version-input "${META}"
           # Cargo checks only apply when the manifest declares [[crates]].
           if [[ "${HAS_CRATES}" == "true" ]]; then
-            record formatting "${FORMATTING}"
-            record clippy "${CLIPPY}"
-            record workspace-tests "${WORKSPACE_TESTS}"
             record package-checks "${PACKAGE_CHECKS}"
           fi
           record manifest "${MANIFEST}"
@@ -526,3 +522,37 @@ jobs:
           if [[ "${#failed[@]}" -gt 0 || "${#blocked[@]}" -gt 0 ]]; then
             exit 1
           fi
+
+  consumer_workflow_install-matrix:
+    name: "Full five-family x six-coordinate install matrix on real target runners"
+    uses: "./.github/workflows/go-native-preflight.yml"
+    with:
+      version: ${{ inputs.version }}
+      candidate_sha: ${{ github.sha }}
+
+  consumer_workflows:
+    name: Record consumer preflight workflow outcomes
+    if: ${{ always() }}
+    needs: [consumer_workflow_install-matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deny release unless every consumer preflight workflow succeeded
+        shell: bash
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+
+          needs = json.loads(os.environ["NEEDS"])
+          rows = [f"| {job} | {need['result']} |" for job, need in sorted(needs.items())]
+          summary = "\n".join(["| Consumer preflight workflow | Result |", "|---|---|", *rows])
+          print(summary)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(summary + "\n")
+          failed = [job for job, need in sorted(needs.items()) if need["result"] != "success"]
+          if failed:
+              raise SystemExit(f"Consumer preflight workflow(s) did not succeed: {', '.join(failed)}")
+          PY

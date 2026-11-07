@@ -2,6 +2,9 @@
 
 use super::support::{parse_stdout, sc_compose, temp_root, write_file};
 
+#[cfg(unix)]
+use crate::support::fake_exec;
+
 /// Writes a `bead render` request for `template` and returns its absolute path.
 fn write_bead_render_request(root: &std::path::Path, template: &str) -> std::path::PathBuf {
     let request = root.join("request.json");
@@ -68,17 +71,15 @@ fn fuzz_039_human_preview_attach_prints_parent_refusal_reason() {
 
 #[cfg(unix)]
 fn human_graph_request(label: &str, stdout: &str, stderr: &str, status: i32) -> std::path::PathBuf {
-    use std::os::unix::fs::PermissionsExt;
     let root = temp_root(label);
     let bd = root.join("fake-bd");
     let cooked = r#"{"formula":"m","type":"workflow","steps":[{"id":"a","title":"A"}]}"#;
-    write_file(
+    fake_exec::install(
         &bd,
         &format!(
             "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{cooked}' ;;\n show) printf '%s' '{stdout}'; printf '%s' '{stderr}' >&2; exit {status} ;;\nesac\n"
         ),
     );
-    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
     write_file(&root.join("m.formula.toml.j2"), "formula = \"m\"\n");
     let request = root.join("request.json");
     write_file(&request, &serde_json::json!({"schema":"sc-compose/beads/v1","operation":"preview_attach","working_directory":root,"template":"m.formula.toml.j2","rendered_formula":root.join("out.formula.toml"),"compose_variables":{},"bead_variables":{},"parent":"nosuch","ref":"r","bd_executable":bd}).to_string());
@@ -142,17 +143,15 @@ fn fuzz_039_human_receipts_preserve_conflict_id_and_read_cause() {
 #[cfg(unix)]
 #[test]
 fn fuzz_053_human_preview_attach_suppresses_successful_stage_stderr() {
-    use std::os::unix::fs::PermissionsExt;
     let root = temp_root("fuzz-053-human-success-stderr");
     let bd = root.join("fake-bd");
     let cooked = r#"{"formula":"m","type":"workflow","steps":[{"id":"a","title":"A"}]}"#;
-    write_file(
+    fake_exec::install(
         &bd,
         &format!(
             "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{cooked}' ;;\n show) printf '%s' '[{{\"id\":\"proj-1\"}}]'; printf '%s' 'Hint: harmless' >&2 ;;\nesac\n"
         ),
     );
-    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
     write_file(
         &root.join("m.formula.toml.j2"),
         "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
@@ -347,15 +346,12 @@ fn fuzz_021_invalid_attach_ref_is_typed_validation_error() {
 #[cfg(unix)]
 #[test]
 fn fuzz_040_human_attach_refusals_escape_identifier_controls_without_changing_json() {
-    use std::os::unix::fs::PermissionsExt;
-
     let root = temp_root("fuzz-040-human-identifier-controls");
     let bd = root.join("fake-bd");
-    write_file(
+    fake_exec::install(
         &bd,
         "#!/bin/sh\ncase \"$1\" in\n cook) printf '%s' '{\"formula\":\"m\",\"type\":\"workflow\",\"steps\":[{\"id\":\"a\",\"title\":\"A\"}]}' ;;\n show) if [ \"$4\" = proj-1 ]; then printf '%s' '[{\"id\":\"proj-1\"}]'; else printf '%s' '[]'; fi ;;\nesac\n",
     );
-    std::fs::set_permissions(&bd, std::fs::Permissions::from_mode(0o755)).unwrap();
     write_file(
         &root.join("m.formula.toml.j2"),
         "formula = \"m\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"a\"\ntitle = \"A\"\n",
@@ -787,11 +783,13 @@ fn fuzz_021_cooked_step_refusal_has_canonical_error_and_legacy_receipt() {
         input["operation"] = serde_json::json!(command.replace('-', "_"));
         input["pour_authorization"] = serde_json::json!("CreatePersistentBeads");
         write_file(&request, &input.to_string());
-        let bd = std::path::Path::new(input["bd_executable"].as_str().unwrap());
-        let script = std::fs::read_to_string(bd)
+        let bd = fake_exec::script_path(std::path::Path::new(
+            input["bd_executable"].as_str().unwrap(),
+        ));
+        let script = std::fs::read_to_string(&bd)
             .unwrap()
             .replace("\"id\":\"a\"", "\"id\":\"bad-step\"");
-        write_file(bd, &script);
+        write_file(&bd, &script);
         for json in [true, false] {
             let mut process = sc_compose();
             process.args(["bead", command, "--request"]).arg(&request);
@@ -821,5 +819,138 @@ fn fuzz_021_cooked_step_refusal_has_canonical_error_and_legacy_receipt() {
                 );
             }
         }
+    }
+}
+
+/// FUZZ-007: outside `--strict`, schema-less templates keep v1.7.0 token discovery, so tokens
+/// inside Jinja comments and raw blocks still count (FR-24.2); only `--strict` skips them.
+mod schemaless_comment_and_raw_tokens {
+    use super::{parse_stdout, sc_compose, temp_root, write_file};
+
+    const COMMENT: &str = "x{# {{ b }} #}y\n";
+    const RAW: &str = "{% raw %}{{ a }}{% endraw %}\n";
+
+    fn diagnostic_codes(value: &serde_json::Value) -> Vec<String> {
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|diagnostic| diagnostic["code"].as_str().unwrap().to_owned())
+            .collect()
+    }
+
+    fn undeclared_tokens(value: &serde_json::Value) -> Vec<String> {
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|diagnostic| diagnostic["code"] == "ERR_VAL_UNDECLARED_TOKEN")
+            .map(|diagnostic| diagnostic["message"].as_str().unwrap().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn unknown_var_mode_error_counts_a_token_inside_a_comment() {
+        let root = temp_root("fuzz-007-comment-unbound");
+        write_file(&root.join("cmt.md.j2"), COMMENT);
+
+        let output = sc_compose()
+            .args(["render", "--root"])
+            .arg(&root)
+            .args(["--file", "cmt.md.j2", "--unknown-var-mode", "error"])
+            .output()
+            .unwrap();
+
+        assert_eq!(output.status.code(), Some(2));
+        let combined = format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(combined.contains("ERR_VAL_UNBOUND_VARIABLE"), "{combined}");
+        assert!(!String::from_utf8_lossy(&output.stdout).contains("xy"));
+    }
+
+    #[test]
+    fn default_validate_warns_for_tokens_inside_a_comment_and_a_raw_block() {
+        let root = temp_root("fuzz-007-default-validate");
+        write_file(&root.join("cmt.md.j2"), COMMENT);
+        write_file(&root.join("raw.md.j2"), RAW);
+
+        let validate = |file: &str| {
+            let output = sc_compose()
+                .args(["validate", "--root"])
+                .arg(&root)
+                .args(["--file", file, "--json"])
+                .output()
+                .unwrap();
+            parse_stdout(&output)
+        };
+
+        assert_eq!(
+            undeclared_tokens(&validate("cmt.md.j2")),
+            ["undeclared referenced token: b"]
+        );
+        assert_eq!(
+            undeclared_tokens(&validate("raw.md.j2")),
+            [
+                "undeclared referenced token: a",
+                "undeclared referenced token: endraw",
+                "undeclared referenced token: raw"
+            ]
+        );
+    }
+
+    #[test]
+    fn frontmatter_init_writes_the_v170_required_variables_for_a_raw_block() {
+        let root = temp_root("fuzz-007-frontmatter-init");
+        let template = root.join("raw.md.j2");
+        write_file(&template, RAW);
+
+        let output = sc_compose()
+            .arg("frontmatter-init")
+            .arg("--file")
+            .arg(&template)
+            .args(["--dry-run", "--json"])
+            .output()
+            .unwrap();
+
+        assert!(output.status.success());
+        let value = parse_stdout(&output);
+        assert_eq!(
+            value["payload"]["vars"],
+            serde_json::json!(["a", "endraw", "raw"])
+        );
+    }
+
+    #[test]
+    fn strict_still_skips_tokens_inside_a_comment_and_a_raw_block() {
+        let root = temp_root("fuzz-007-strict-skip");
+        write_file(&root.join("cmt.md.j2"), COMMENT);
+        write_file(&root.join("raw.md.j2"), RAW);
+
+        for file in ["cmt.md.j2", "raw.md.j2"] {
+            let output = sc_compose()
+                .args(["validate", "--root"])
+                .arg(&root)
+                .args(["--file", file, "--strict", "--json"])
+                .output()
+                .unwrap();
+            let value = parse_stdout(&output);
+            assert!(undeclared_tokens(&value).is_empty(), "{file}: {value}");
+            assert!(
+                !diagnostic_codes(&value).contains(&"ERR_VAL_UNBOUND_VARIABLE".to_owned()),
+                "{file}: {value}"
+            );
+        }
+
+        let output = sc_compose()
+            .args(["render", "--root"])
+            .arg(&root)
+            .args(["--file", "cmt.md.j2", "--strict"])
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        assert_eq!(String::from_utf8_lossy(&output.stdout), "xy\n");
     }
 }

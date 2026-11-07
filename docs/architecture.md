@@ -155,6 +155,24 @@ keeps generated binding code separate from release orchestration: the binding
 owns its module and native-target contract, while the peer package owns matrix
 selection, staging, and version-lockstep validation.
 
+#### Cross-target verification
+
+The shipped Go contract (`native_loader.go`) links `libsc_sha_go.a` for six
+coordinates, with Windows as `x86_64-pc-windows-gnu` (amd64) and
+`aarch64-pc-windows-gnullvm` (arm64). The required cross-check for that
+contract is `just check-sc-sha-go-cross`, which runs `cargo check -p sc-sha-go`
+for exactly those two triples. The msvc `cargo xwin` checks (`check.xwin`,
+`clippy.xwin`) verify the Windows CLI contract, not the Go one, and do not
+satisfy it.
+
+These are compile-time checks only. Linking and running Go is a manual
+preflight step (ANC-023, FR-25.4): the host-native `go test` runs through
+`just prepare-sc-sha-go-native` on the operator's host, and the recorded run to
+date is darwin/arm64 only. The other five coordinates are covered by the Python
+fixture tests plus `cargo check`; the Linux `-lpthread` and Windows static link
+libraries are therefore not executed in CI or in manual preflight until a host
+of that coordinate runs the Go test.
+
 ### 3.6 `sc-composer-beads`
 
 `sc-composer-beads` is the host-neutral Beads formula-composition library. It
@@ -1042,7 +1060,7 @@ Command-specific rules:
   - accepts `file` mode and `profile` mode,
   - requires `--file <path>` in file mode,
   - accepts optional guidance and user prompt blocks,
-  - writes to stdout by default unless an output path is chosen.
+  - writes to stdout by default unless an output path is chosen; with an output path nothing is written to stdout (ADR-0026 D4).
 - `resolve`
   - is defined for `profile` mode only,
   - fails for `file` mode.
@@ -1788,9 +1806,10 @@ Canonical failures must map to stable error families and stable codes.
 | Failure condition | Error type | Stable code |
 | --- | --- | --- |
 | Template not found | `ResolveError` | `ERR_RESOLVE_NOT_FOUND` |
+| Template path outside the allowed roots (ADR-0026 D1; implemented on the Phase V candidate at `f3d523e0`, integration pending) | `ResolveError` | `ERR_RESOLVE_ESCAPE` |
 | Ambiguous template match | `ResolveError` | `ERR_RESOLVE_AMBIGUOUS` |
 | Include target not found | `IncludeError` | `ERR_INCLUDE_NOT_FOUND` |
-| Include path escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
+| Include path or its resolved target (including a dangling symlink target) escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
 | Include cycle detected | `IncludeError` | `ERR_INCLUDE_CYCLE` |
 | Include depth exceeds limit | `IncludeError` | `ERR_INCLUDE_DEPTH` |
 | Include target cannot be exhaustively enumerated as a static dependency | `IncludeError` | `ERR_INCLUDE_DYNAMIC_UNRESOLVED` |
@@ -1803,6 +1822,7 @@ Canonical failures must map to stable error families and stable codes.
 | Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
+| Template syntax or engine evaluation error (ADR-0026 D2; implemented on the Phase V candidate at `f3d523e0`, integration pending) | `RenderError` | `ERR_RENDER_TEMPLATE` |
 | JSON Lines append rendered a non-object value | `RenderError` | `ERR_RENDER_APPEND_NOT_OBJECT` |
 | JSON Lines append target has no final newline | `RenderError` | `ERR_RENDER_APPEND_NO_FINAL_NEWLINE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
@@ -1818,6 +1838,7 @@ Canonical failures must map to stable error families and stable codes.
 | Help topic name is not registered | `ConfigError` | `ERR_CONFIG_HELP_TOPIC_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
+| Python Beads adapter cannot serialize a value it returns to its caller (receipt, graph or relations); stage `output`; an adapter-level code, not a `BeadComposeError` variant | Python adapter error (`BeadComposeError::OUTPUT_SERIALIZATION_FAILED_CODE`) | `BEADS_OUTPUT_SERIALIZATION_FAILED` |
 
 The legacy `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` code is governed by
 [ADR-E1](#61-adr-e1-recursive-structured-input-contract-2026-07-29). It remains
@@ -2261,5 +2282,8 @@ V8 owns registration and current/stale production-path tests of the supported
 consumer preflight_checks entry; V6 consumes it after V8 on final references.
 The supported entry runs the same --check command
 on every publish. No separate documentation engine or competing generator.
+Current implementation limitation, separate from this guarantee: individual
+publish workflows are not yet mechanically gated by the Release Preflight
+entry (FR-26).
 
 Model/CLI reference: [official docli usage](https://github.com/randlee/docli).

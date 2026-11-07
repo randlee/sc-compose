@@ -1,0 +1,5 @@
+#!/bin/sh
+# Committed shim for test-only fake executables (see fake_exec.rs). A test
+# links its fake path here and writes the behavior to "<link>.sh"; sh reads
+# that file as a script, so no file the test process wrote is ever exec'd.
+exec /bin/sh "$0.sh" "$@"

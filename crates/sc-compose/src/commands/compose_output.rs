@@ -18,47 +18,30 @@ pub(super) fn emit_render_output(
     checked_output: &sc_composer::CheckedOutput,
     warnings: Vec<Diagnostic>,
     render_check: Option<sc_composer::RenderCheckReport>,
+    includes: bool,
 ) -> Result<(), CommandError> {
     let rendered_text = checked_output.body();
+    let add_stdout_newline = !(includes
+        && request.guidance_block.as_deref().is_none_or(str::is_empty)
+        && request.user_prompt.as_deref().is_none_or(str::is_empty)
+        && rendered_text.ends_with("\r\n"));
     let output_path: Option<&Path> = args.output.as_deref().or(args.append.as_deref());
     let derived_path = derived_output_path(request, output_path);
-    let would_change = render_would_change(&derived_path, rendered_text);
+    let would_change = if args.dry_run {
+        render_would_change(&derived_path, rendered_text)?
+    } else {
+        false
+    };
     let bytes_written = if args.dry_run {
         None
     } else if let Some(output) = args.append.as_ref() {
         Some(append_json_record(output, resolved_path, rendered_text)?)
     } else if let Some(output) = output_path {
-        let mut file = std::fs::File::create(output).map_err(|error| {
-            CommandError::render_write(
-                anyhow!(error).context(format!("failed to write {}", output.display())),
-            )
-        })?;
-        checked_output.emit(&mut file).map_err(|error| {
-            CommandError::render_write(
-                anyhow!(error).context(format!("failed to write {}", output.display())),
-            )
-        })?;
-        Some(
-            usize::try_from(
-                std::fs::metadata(output)
-                    .map_err(|error| {
-                        CommandError::render_write(
-                            anyhow!(error).context(format!("failed to stat {}", output.display())),
-                        )
-                    })?
-                    .len(),
-            )
-            .map_err(|error| {
-                CommandError::render_write(
-                    anyhow!(error)
-                        .context(format!("output too large to report {}", output.display())),
-                )
-            })?,
-        )
+        Some(write_checked_output(checked_output, output)?)
     } else {
         // Plain stdout uses println!, so the logical render target includes
         // its trailing newline even though the JSON body does not.
-        Some(rendered_text.len() + 1)
+        Some(rendered_text.len() + usize::from(add_stdout_newline))
     };
 
     if args.json {
@@ -69,7 +52,7 @@ pub(super) fn emit_render_output(
                 "template": to_forward_slash(resolved_path),
                 "rendered_preview": rendered_text,
             });
-            add_render_check(&mut payload, render_check);
+            add_render_check(&mut payload, render_check)?;
             payload
         } else if output_path.is_none() {
             let mut payload = serde_json::json!({
@@ -78,7 +61,7 @@ pub(super) fn emit_render_output(
                 "template": to_forward_slash(resolved_path),
                 "body": rendered_text,
             });
-            add_render_check(&mut payload, render_check);
+            add_render_check(&mut payload, render_check)?;
             payload
         } else {
             let mut payload = serde_json::json!({
@@ -90,7 +73,7 @@ pub(super) fn emit_render_output(
             if args.append.is_some() {
                 payload["appended"] = serde_json::Value::Bool(true);
             }
-            add_render_check(&mut payload, render_check);
+            add_render_check(&mut payload, render_check)?;
             payload
         };
         print_json(payload, warnings).map_err(CommandError::usage)?;
@@ -104,15 +87,58 @@ pub(super) fn emit_render_output(
         }
         println!();
         println!("{rendered_text}");
-    } else {
-        let mut stdout = std::io::stdout().lock();
-        checked_output
-            .emit(&mut stdout)
-            .and_then(|()| writeln!(stdout))
-            .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+    } else if output_path.is_none() {
+        emit_stdout(checked_output, add_stdout_newline)?;
     }
 
     Ok(())
+}
+
+fn emit_stdout(
+    checked_output: &sc_composer::CheckedOutput,
+    add_newline: bool,
+) -> Result<(), CommandError> {
+    let mut stdout = std::io::stdout().lock();
+    checked_output
+        .emit(&mut stdout)
+        .and_then(|()| {
+            if add_newline {
+                writeln!(stdout)
+            } else {
+                Ok(())
+            }
+        })
+        .map_err(|error| CommandError::render_write(anyhow!(error)))
+}
+
+fn write_checked_output(
+    checked_output: &sc_composer::CheckedOutput,
+    output: &Path,
+) -> Result<usize, CommandError> {
+    let mut file = std::fs::File::create(output).map_err(|error| {
+        CommandError::render_write(
+            anyhow!(error).context(format!("failed to write {}", output.display())),
+        )
+    })?;
+    checked_output.emit(&mut file).map_err(|error| {
+        CommandError::render_write(
+            anyhow!(error).context(format!("failed to write {}", output.display())),
+        )
+    })?;
+    usize::try_from(
+        std::fs::metadata(output)
+            .map_err(|error| {
+                CommandError::render_write(
+                    anyhow!(error).context(format!("failed to stat {}", output.display())),
+                )
+            })?
+            .len(),
+    )
+    .map_err(|error| {
+        CommandError::render_write(
+            anyhow!(error).context(format!("output too large to report {}", output.display())),
+        )
+    })
 }
 
 fn append_json_record(
@@ -120,38 +146,7 @@ fn append_json_record(
     template_path: &Path,
     rendered: &str,
 ) -> Result<usize, CommandError> {
-    let checked = sc_composer::check_rendered_output(
-        sc_composer::OutputFormat::Json,
-        template_path,
-        rendered,
-    )
-    .map_err(CommandError::render_check)?;
-    // The body already passed JSON syntax validation. Inspect only its root
-    // token, avoiding a numeric conversion that would reject valid exponents.
-    if !checked.body().trim_start().starts_with('{') {
-        return Err(CommandError::render_append(
-            anyhow!("--append requires the rendered output to be a JSON object"),
-            DiagnosticCode::ErrRenderAppendNotObject,
-            vec![RecoveryHint::new(RecoveryHintKind::InspectInput {
-                description: "the rendered output; --append requires a JSON object".to_owned(),
-            })],
-        ));
-    }
-    let object: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
-        serde_json::from_str(checked.body()).map_err(|error| {
-            CommandError::render_append(
-                anyhow!(error).context(format!(
-                    "failed to parse checked JSON from template {}",
-                    template_path.display()
-                )),
-                DiagnosticCode::ErrRenderJsonMalformed,
-                Vec::new(),
-            )
-        })?;
-    let mut line = serde_json::to_string(&object)
-        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
-    compact_json_whitespace(&mut line);
-    line.push('\n');
+    let line = render_json_record(template_path, rendered)?;
     let mut file = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -198,6 +193,42 @@ fn append_json_record(
         return Err(append_failure(path, error, rollback));
     }
     Ok(line.len())
+}
+
+fn render_json_record(template_path: &Path, rendered: &str) -> Result<String, CommandError> {
+    let checked = sc_composer::check_rendered_output(
+        sc_composer::OutputFormat::Json,
+        template_path,
+        rendered,
+    )
+    .map_err(CommandError::render_check)?;
+    // The body already passed JSON syntax validation. Inspect only its root
+    // token, avoiding a numeric conversion that would reject valid exponents.
+    if !checked.body().trim_start().starts_with('{') {
+        return Err(CommandError::render_append(
+            anyhow!("--append requires the rendered output to be a JSON object"),
+            DiagnosticCode::ErrRenderAppendNotObject,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectInput {
+                description: "the rendered output; --append requires a JSON object".to_owned(),
+            })],
+        ));
+    }
+    let object: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
+        serde_json::from_str(checked.body()).map_err(|error| {
+            CommandError::render_append(
+                anyhow!(error).context(format!(
+                    "failed to parse checked JSON from template {}",
+                    template_path.display()
+                )),
+                DiagnosticCode::ErrRenderJsonMalformed,
+                Vec::new(),
+            )
+        })?;
+    let mut line = serde_json::to_string(&object)
+        .map_err(|error| CommandError::render_write(anyhow!(error)))?;
+    compact_json_whitespace(&mut line);
+    line.push('\n');
+    Ok(line)
 }
 
 /// Map a failed append write, and the result of rolling the file back, to the
@@ -251,15 +282,13 @@ fn compact_json_whitespace(json: &mut String) {
 fn add_render_check(
     payload: &mut serde_json::Value,
     report: Option<sc_composer::RenderCheckReport>,
-) {
+) -> Result<(), CommandError> {
     if let Some(report) = report {
-        payload["render_check"] = serde_json::to_value(report).unwrap_or_else(|_| {
-            serde_json::json!({
-                "state": "contract_invalid",
-                "diagnostics": []
-            })
-        });
+        payload["render_check"] = serde_json::to_value(report).map_err(|error| {
+            CommandError::usage(anyhow!(error).context("failed to serialize render_check"))
+        })?;
     }
+    Ok(())
 }
 
 pub(super) fn emit_single_pass_all_warning(observer: &mut dyn CompositionObserver) {
@@ -315,10 +344,13 @@ fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> Pat
     }
 }
 
-fn render_would_change(output_path: &Path, rendered_text: &str) -> bool {
+fn render_would_change(output_path: &Path, rendered_text: &str) -> Result<bool, CommandError> {
     match std::fs::read(output_path) {
-        Ok(existing) => existing != rendered_text.as_bytes(),
-        Err(_) => true,
+        Ok(existing) => Ok(existing != rendered_text.as_bytes()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Err(error) => Err(CommandError::render_write(
+            anyhow!(error).context(format!("failed to read {}", output_path.display())),
+        )),
     }
 }
 
@@ -337,7 +369,7 @@ fn strip_j2_suffix(path: &Path) -> PathBuf {
 
 #[cfg(test)]
 mod append_failure_tests {
-    use super::append_failure;
+    use super::{append_failure, render_would_change};
     use sc_composer::{DiagnosticCode, RecoveryHint, RecoveryHintKind};
     use std::io::{Error, ErrorKind};
     use std::path::Path;
@@ -403,5 +435,33 @@ mod append_failure_tests {
         );
         assert!(error.recovery_hints.is_empty());
         assert!(format!("{:#}", error.error).contains("restored append target"));
+    }
+
+    #[test]
+    fn render_would_change_reports_missing_same_and_different_files() {
+        let dir = std::env::temp_dir().join(format!(
+            "sc-compose-would-change-{}",
+            ulid::Ulid::generate()
+        ));
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        let file = dir.join("out.md");
+        assert!(render_would_change(&file, "body").expect("missing file is a change"));
+        std::fs::write(&file, "body").expect("write file");
+        assert!(!render_would_change(&file, "body").expect("same content"));
+        assert!(render_would_change(&file, "other").expect("different content"));
+        std::fs::remove_dir_all(&dir).expect("cleanup");
+    }
+
+    #[test]
+    fn render_would_change_surfaces_read_errors_instead_of_assuming_a_change() {
+        let dir = std::env::temp_dir().join(format!(
+            "sc-compose-would-change-{}",
+            ulid::Ulid::generate()
+        ));
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        // Reading a directory fails with an error that is not NotFound.
+        let error = render_would_change(&dir, "body").expect_err("unreadable target must fail");
+        assert!(format!("{error:?}").contains("failed to read"));
+        std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 }

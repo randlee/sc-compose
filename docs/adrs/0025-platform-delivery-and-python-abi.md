@@ -35,8 +35,9 @@ The canonical publish kit and optional Go peer remain upstream-owned under
 ADR-0022; use their supported installer inputs and immutable releases. V4 owns the generic command-model exporter; V8 owns reusable external
 docli/kit consumer adapters, V9 the Go-native adapter,
 and V6 final command-reference refresh and artifact composition. FR-26
-requires docli on every publish and stale-reference refusal. Recovery does
-not perform public publication.
+requires docli on every publish and stale-reference refusal. Implementation
+limitation, separate from that guarantee: individual publish workflows are not
+yet mechanically gated (FR-26). Recovery does not perform public publication.
 
 ## References
 
