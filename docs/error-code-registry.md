@@ -253,15 +253,20 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 | `BEADS_RECEIPT_DESERIALIZATION_FAILED` | adapter | a receipt document cannot be parsed back; an adapter-level code (`BeadComposeError::RECEIPT_DESERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
 | `BEADS_OUTPUT_SERIALIZATION_FAILED` | adapter | a value the adapter returns to its caller (receipt, graph, relations) cannot be serialized; reported with stage `output`; an adapter-level code (`BeadComposeError::OUTPUT_SERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
 
-### Phase V planned graph capability refusal
+### Phase V graph apply refusal (shipped; superseded by the 1.8.0 contract)
 
-`BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` is the shipped execution refusal
-(CLI exit 2) for two advanced `attach`/`pour` plan shapes: a `Create` plan
+`BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` is currently emitted (CLI exit 2,
+before any write) for two advanced `attach`/`pour` plan shapes: a `Create` plan
 containing any existing node, and a `Noop` plan containing an edge marked
-`Add`. The refusal is unconditional and happens before any write; the current
-implementation does not probe the selected bd binary for mixed-update
-capability. Fresh creates and exact replays are unaffected. Mixed graph
-updates requiring a qualified atomic transaction with ownership preconditions
-remain undelivered; this refusal is not evidence that such updates are
-supported. FR-24.34–35 and the ADR-0023 advanced-mode amendment remain the
-required contract.
+`Add`. The refusal is unconditional and does not probe the selected bd binary.
+
+This behaviour is superseded by the ADR-0023 amendment of 2026-11-07. Apply is
+specified as convergent and single-writer: it creates only nodes absent from
+the stored graph, adds only edges absent from it, never mutates an existing
+bead, and reads back what it did. Both refused shapes therefore become
+supported work rather than refusals. 1.8.0 implements that contract and retires
+the code for them; until that lands, this entry describes shipped behaviour and
+no release note may claim re-pour on a changing plan.
+
+Preservation-safe preconditions (upstream gastownhall/beads#8155) are optional
+hardening for a future second writer, not a prerequisite.

@@ -1741,7 +1741,10 @@ beads retain their state. Conflicting edge types and foreign-owned planned
 ids are refused. Explicit external relation endpoints remain governed by
 ADR-0023; they are not adopted as operation-owned beads.
 The operation validates rendered references and applies its allowed node/edge
-additions atomically. Added relations alone must not invalidate ownership of
+additions convergently: it creates only nodes absent from the stored graph,
+adds only edges absent from it, never mutates an existing bead, and reads back
+what it did. A re-run completes an interrupted apply and adds nothing on a
+replay. Added relations alone must not invalidate ownership of
 unchanged nodes. Changed node definitions are a conflict, not implicit field
 updates. Preview and failed validation write nothing. Replays do not duplicate
 edges, reset status/notes/assignee, or remove prior graph state.
