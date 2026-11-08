@@ -701,31 +701,53 @@ explain the missing migration proof. No unowned or foreign planned id is
 adopted. Existing explicitly named external endpoints remain references,
 with the prior authorization/validation rules; their fields are untouched.
 
-### One atomic apply
+### One convergent apply (single writer)
 
 Preview renders and validates the complete selected graph and reports its
 node/edge additions without persistent writes. Apply requires the existing
-CreatePersistentBeads authorization. Use one transactional bd operation for
-the allowed additions, including the mixed case of new nodes and edges among
-existing nodes. Verify existing-node ownership preconditions at the apply
-boundary. Any error rolls back the whole mutation; an ambiguous response is
-GraphApplyUnconfirmed and requires readback/reconciliation, never blind retry.
+CreatePersistentBeads authorization.
 
-The current bd CLI exposes bulk `bd dep add --file edges.jsonl` for a pure
-edge batch and `bd create --graph` for graph creation. V1 verifies the selected
-binary's transactional guarantees with controlled failures and checks whether
-one supported graph primitive can handle the mixed case and ownership
-preconditions. Help output is not that proof. If the required primitive is
-missing, coordinate its minimal canonical bd extension and adopt the supported
-version before V3's apply acceptance. Do not patch a local fork, invent a
-storage writer, split create+edges into two commits, or loop per edge with
-best-effort rollback. This dependency blocks only the affected apply path;
-it cannot be reported as automatic-edge completion.
+Apply is **convergent, not transactional**. One rule makes the mixed case safe:
+**apply never mutates an existing bead.** It creates only nodes absent from the
+stored graph, adds only edges absent from it, then reads back and reports. Node
+definitions, status, notes, assignee and existing edge metadata are not
+rewritten, so there is nothing to precondition against and no partial state that
+a re-run cannot finish. An interrupted apply is completed by running it again;
+a replay adds nothing.
 
-A capability refusal is the planned typed code
-BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE, exit 2, before any mutation. V1 records
-the exact supported command/schema/version in the existing implementation PR once verified;
-V3 cannot dispatch this apply path against an unspecified protocol.
+The mixed case does not need a new primitive either. As this ADR already
+records in its decision section, `bd create --graph` writes a set of beads and
+their edges **in one storage transaction**, and a plan node may name an existing
+bead as `parent_id` and carry edges to existing beads by id. That is exactly
+"new nodes plus edges among existing nodes". What the primitive lacks is a
+precondition predicate over the existing nodes — and the never-mutate rule makes
+that predicate unnecessary, because the operation has nothing to verify it is
+about to overwrite. For edges between beads that both already exist,
+`bd dep add --file edges.jsonl` applies the batch in one command with bd's own
+whole-graph cycle check before commit.
+
+The delta is already computed today — the current binary detects missing edges
+and hands the operator `bd dep add` commands instead of running them. 1.8.0
+closes that gap by running them. Conflicting edge types, foreign-owned planned
+ids, changed node definitions and dangling references are refusals decided
+before any write, as elsewhere in this ADR; they are not atomicity concerns.
+
+**Concurrency is explicitly single-writer per clone.** Two planners pouring the
+same graph in the same clone at the same moment is unsupported. It is also
+already bounded: planners working from a separate Dolt clone or branch meet at
+merge time, where bd's merge decides, and that is the realistic multi-writer
+case. Pouring onto a fresh branch to obtain isolation is not required and is
+explicitly rejected as overkill. If the unsupported case does happen, the
+failure mode is a duplicate bead or a redundant edge — visible on readback and
+cleared by re-running — not corruption and not a silent overwrite.
+
+The planned `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` refusal is therefore retired
+as a gate on this path. It is retained only for a shape V1 cannot converge, and
+V1 must state which shape that is before using it; otherwise the code is
+removed. A preservation-safe precondition primitive (upstream
+gastownhall/beads#8155) is optional hardening for the day a second writer
+exists, not a prerequisite for re-pour.
+
 
 V1 is contract verification only. Qualifying the bd ownership capability for
 pure-edge and mixed node-edge apply is not implemented by V1. An unsupported
@@ -745,7 +767,8 @@ V3 must exercise: fresh graph; existing owned endpoints with a missing edge;
 newly declared same-type relation with unchanged node definitions; enabled
 optional node plus edges to existing nodes; conflicting edge type; changed
 node/provenance identity; foreign planned id; dangling conditional reference;
-unauthorized request; controlled atomic-apply failure; ambiguous response;
+unauthorized request; an interrupted apply that a re-run completes; a re-pour
+that adds a redundant edge without duplicating it;
 verified v1 ownership migration and missing-proof refusal; and successful
 no-op replay preserving status/notes/assignee. Positive cases
 verify actual typed directed edges in bd, without manual dependency commands.
@@ -758,4 +781,4 @@ FR-24.36 governs typed identifier/path constraints, safe argv and recovery rende
 non-UTF8 path diagnostics and error precedence. It does not authorize extra
 restrictions on valid bd-compatible inputs. Transaction qualification runs
 and exact binary/schema evidence are recorded in the existing implementation PR;
-this ADR specifies the required atomic capability rather than becoming a run log.
+this ADR specifies the convergent apply contract rather than becoming a run log.
