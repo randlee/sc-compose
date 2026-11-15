@@ -203,6 +203,26 @@ impl ProcessRunner for FakeBd {
 }
 
 impl FakeBd {
+    fn list_dependencies(&self, id: &str, up: bool) -> ProcessOutput {
+        let store = self.store.lock().unwrap();
+        let mut rows: Vec<Value> = store.deps.iter()
+            .filter(|(from, to, _)| if up { to == id } else { from == id })
+            .map(|(from, to, kind)| json!({"id": if up { from } else { to }, "dependency_type": kind}))
+            .collect();
+        if up {
+            rows.extend(
+                store
+                    .parents
+                    .iter()
+                    .filter(|(_, parent)| parent.as_str() == id)
+                    .map(|(child, _)| json!({"id": child, "dependency_type": "parent-child"})),
+            );
+        } else if let Some(parent) = store.parents.get(id) {
+            rows.push(json!({"id": parent, "dependency_type": "parent-child"}));
+        }
+        reply(0, &Value::Array(rows).to_string(), "")
+    }
+
     fn dispatch(&self, spec: &CommandSpec) -> ProcessOutput {
         let args = &spec.args;
         self.calls.lock().unwrap().push(args.clone());
@@ -243,36 +263,9 @@ impl FakeBd {
                 let (status, stdout, stderr) = &*self.sql.lock().unwrap();
                 reply(*status, stdout, stderr)
             }
-            ["dep", "list", "--json", "--", id] => {
-                let store = self.store.lock().unwrap();
-                let mut rows: Vec<Value> = store
-                    .deps
-                    .iter()
-                    .filter(|(from, _, _)| from == id)
-                    .map(|(_, to, kind)| json!({"id": to, "dependency_type": kind}))
-                    .collect();
-                if let Some(parent) = store.parents.get(*id) {
-                    rows.push(json!({"id": parent, "dependency_type": "parent-child"}));
-                }
-                reply(0, &Value::Array(rows).to_string(), "")
-            }
+            ["dep", "list", "--json", "--", id] => self.list_dependencies(id, false),
             ["dep", "list", direction, "--json", "--", id] => {
-                let store = self.store.lock().unwrap();
-                let mut rows: Vec<Value> = store
-                    .deps
-                    .iter()
-                    .filter(|(from, to, _)| if *direction == "--direction=up" { to == id } else { from == id })
-                    .map(|(from, to, kind)| json!({"id": if *direction == "--direction=up" { from } else { to }, "dependency_type": kind}))
-                    .collect();
-                if *direction == "--direction=down" {
-                    if let Some(parent) = store.parents.get(*id) {
-                        rows.push(json!({"id": parent, "dependency_type": "parent-child"}));
-                    }
-                } else {
-                    rows.extend(store.parents.iter().filter(|(_, parent)| parent.as_str() == *id)
-                        .map(|(child, _)| json!({"id": child, "dependency_type": "parent-child"})));
-                }
-                reply(0, &Value::Array(rows).to_string(), "")
+                self.list_dependencies(id, *direction == "--direction=up")
             }
             ["create", "--graph", path, ..] => {
                 if words.contains(&"--dry-run") {
@@ -1116,8 +1109,8 @@ fn preview_and_apply_reverse_an_edge_and_keep_both_external_directions() {
     {
         let mut store = bd.store.lock().unwrap();
         store.deps.push(dep("outside-gate", build, "blocks"));
-        store.deps.push(dep(verify, "outside-task", "blocks"));
-    }
+        store.deps.push(dep(verify, "outside-task", "blocks"))
+    };
     bd.cook(&json!([
         {"id":"build","title":"Build","description":"compile","needs":["verify"]},
         {"id":"verify","title":"Verify"}
