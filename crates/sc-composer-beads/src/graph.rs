@@ -82,7 +82,7 @@ pub(crate) fn execute(
     );
     result.graph = graph;
     result.missing_edges = missing_edges;
-    result.pour_mode = (!attach).then_some(BeadPourMode::Graph);
+    result.pour_mode = (graph_mode_is_pour(request)).then_some(BeadPourMode::Graph);
     restore_public_formula_paths(&mut result, formula_input, normalized);
     Ok(result)
 }
@@ -130,6 +130,11 @@ fn restore_public_formula_paths(
         stage.stderr_excerpt = stage.stderr_excerpt.replace(snapshot.as_str(), &source);
         stage.stdout_excerpt = stage.stdout_excerpt.replace(snapshot.as_str(), &source);
     }
+}
+
+fn graph_mode_is_pour(request: &BeadComposeRequest) -> bool {
+    !(is_attach(request.operation)
+        || request.operation == BeadOperation::Repour && request.ref_.is_some())
 }
 
 fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
@@ -277,7 +282,19 @@ fn confirm_readback(
     graph: &BeadGraph,
     runtime: &mut Runtime<'_>,
 ) -> Result<(), BeadComposeError> {
-    match plan::plan(validated, advanced, runtime)? {
+    let readback = plan::plan(validated, advanced, runtime).map_err(|error| match error {
+        BeadComposeError::GraphReadFailed {
+            command,
+            status,
+            cause,
+        } => BeadComposeError::GraphApplyFailed {
+            command,
+            status,
+            cause: format!("read-back failed after writes: {cause}"),
+        },
+        error => error,
+    })?;
+    match readback {
         GraphPlan::Noop(_) => Ok(()),
         GraphPlan::Create(_) => Err(BeadComposeError::GraphApplyUnconfirmed {
             command: Vec::new(),

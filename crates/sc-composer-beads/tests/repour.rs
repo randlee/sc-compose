@@ -30,6 +30,7 @@ struct FakeBd {
     store: Mutex<Store>,
     cooked: Mutex<String>,
     mutations: Mutex<Vec<Vec<String>>>,
+    calls: Mutex<Vec<Vec<String>>>,
     fail_at: Mutex<Option<usize>>,
 }
 
@@ -48,6 +49,7 @@ impl FakeBd {
             store: Mutex::new(Store::default()),
             cooked: Mutex::new(String::new()),
             mutations: Mutex::new(Vec::new()),
+            calls: Mutex::new(Vec::new()),
             fail_at: Mutex::new(None),
         }
     }
@@ -201,6 +203,7 @@ impl ProcessRunner for FakeBd {
 impl FakeBd {
     fn dispatch(&self, spec: &CommandSpec) -> ProcessOutput {
         let args = &spec.args;
+        self.calls.lock().unwrap().push(args.clone());
         let words: Vec<&str> = args.iter().map(String::as_str).collect();
         match words.as_slice() {
             ["where", "--json"] => reply(
@@ -688,6 +691,7 @@ fn repour_by_parent_and_ref_updates_creates_and_adds_edges_in_one_run() {
     bd.fail_nth_mutation(None);
     let receipt = execute_bead_request_with_runner(&w.request, &bd).unwrap();
     assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+    assert_eq!(receipt.pour_mode, None, "attach repour has no pour mode");
     let store = bd.snapshot();
     assert_eq!(store.rows.len(), beads + 1);
     assert_eq!(bd.row(build)["title"], "Build release");
@@ -811,6 +815,17 @@ fn attach_repour_refuses_foreign_and_unowned_planned_ids_before_any_write() {
     );
     assert_eq!(bd.mutation_count(), 0);
     assert_eq!(bd.snapshot(), before);
+    let reason = &receipt.stages.last().unwrap().stderr_excerpt;
+    assert!(
+        reason.contains("not owned") || reason.contains("not_owned"),
+        "{reason}"
+    );
+    let conflict = BeadComposeError::GraphConflict {
+        id: BeadId::new("proj-1.rel-build").unwrap(),
+        reason: GraphConflictReason::NotOwned,
+    };
+    assert_eq!(conflict.code(), "BEADS_GRAPH_CONFLICT");
+    assert_eq!(conflict.class(), BeadErrorClass::Execution);
 
     // Foreign: provenance of another attachment.
     let mut foreign = saved;
@@ -901,7 +916,9 @@ fn a_blocked_graph_plan_path_refuses_a_repour_before_any_bd_command() {
     // The earlier pour left a plan file; a directory now blocks the path.
     let _ = fs::remove_file(&plan);
     fs::create_dir(&plan).unwrap();
+    bd.calls.lock().unwrap().clear();
     assert_refused_without_writes(&mut w, &bd, &root, "BEADS_OUTPUT_PATH_INVALID");
+    assert!(bd.calls.lock().unwrap().is_empty(), "no bd command may run");
     assert!(plan.is_dir());
 }
 
@@ -922,4 +939,71 @@ fn repour_without_persistent_bead_authorization_is_refused_before_any_bd_command
     assert_eq!(bd.mutation_count(), 0);
     assert_eq!(bd.snapshot(), before);
     assert_eq!(w.leftovers(), Vec::<String>::new());
+}
+
+struct FailReadback<'a>(&'a FakeBd);
+impl ProcessRunner for FailReadback<'_> {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if self.0.mutation_count() > 0 && spec.args.first().is_some_and(|s| s == "show") {
+            return Ok(reply(1, "", "injected read failure"));
+        }
+        Ok(self.0.dispatch(spec))
+    }
+}
+
+#[test]
+fn failed_readback_reports_possible_prior_writes() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    bd.cook(&plan_v2());
+    bd.fail_nth_mutation(None);
+    w.request.operation = BeadOperation::Repour;
+    w.request.parent = Some(BeadId::new(&root).unwrap());
+    let receipt = execute_bead_request_with_runner(&w.request, &FailReadback(&bd)).unwrap();
+    assert!(
+        matches!(&receipt.outcome, BeadOutcome::Failed { code } if code == "BEADS_GRAPH_APPLY_FAILED")
+    );
+    let evidence = &receipt.stages.last().unwrap().stderr_excerpt;
+    assert!(
+        evidence.contains("read-back failed after writes"),
+        "{evidence}"
+    );
+    assert!(evidence.contains("rerun"), "{evidence}");
+    assert!(!evidence.contains("nothing was written"), "{evidence}");
+}
+
+struct FailDryRun<'a>(&'a FakeBd);
+impl ProcessRunner for FailDryRun<'_> {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args.first().is_some_and(|s| s == "create")
+            && spec.args.iter().any(|arg| arg == "--dry-run")
+        {
+            return Ok(reply(1, "", "injected dry-run failure"));
+        }
+        Ok(self.0.dispatch(spec))
+    }
+}
+
+#[test]
+fn failed_preview_reports_no_graph_write() {
+    let mut w = Workspace::new();
+    let bd = FakeBd::new();
+    bd.add_parent("proj-1");
+    bd.cook(&plan_v1());
+    w.request.operation = BeadOperation::PreviewAttach;
+    w.request.parent = Some(BeadId::new("proj-1").unwrap());
+    w.request.ref_ = Some(GraphRef::new("rel").unwrap());
+    let receipt = execute_bead_request_with_runner(&w.request, &FailDryRun(&bd)).unwrap();
+    assert!(
+        matches!(&receipt.outcome, BeadOutcome::Failed { code } if code == "BEADS_GRAPH_APPLY_FAILED")
+    );
+    let evidence = &receipt.stages.last().unwrap().stderr_excerpt;
+    assert!(
+        evidence.contains("no graph write was attempted"),
+        "{evidence}"
+    );
+    assert!(
+        !evidence.contains("writes before the failure may"),
+        "{evidence}"
+    );
+    assert_eq!(bd.mutation_count(), 0);
 }

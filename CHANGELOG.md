@@ -42,15 +42,14 @@ configuration, not qualified deliverables.
 - `sc-compose reference [--json]` exports the live CLI reference model.
   Routine CI checks that the generated CLI reference is up to date.
 
-### Added
-
 - `sc-compose bead repour FORMULA --root <bead-id>` updates an already poured
   or attached plan in place (an attach by request file with `parent` and `ref`). Plan-owned fields are updated, missing nodes and edges are
   created, and ids and runtime state (status, notes, assignee, close state)
   are kept. Nodes and edges removed from the plan are left in place and
   reported as retained. `pour` and `attach` no longer refuse a run that mixes
   new and existing beads; the retired refusal code is
-  `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`.
+  `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`. Receipt actions add `update`,
+  `updated`, and `retained`.
 
 ### Known limitations
 
@@ -128,7 +127,7 @@ configuration, not qualified deliverables.
 - `sc-compose bead attach` and `preview-attach`: attach the steps of a rendered
   Beads formula under an existing bead with one `bd create --graph`
   transaction. Requires `parent`, `ref` and `pour_authorization`
-  (`CreatePersistentBeads`). Existing beads are never edited; a re-run
+  (`CreatePersistentBeads`). In this release existing beads are not edited; a re-run
   classifies each planned bead and edge as created or existing, and missing
   edges are reported with `bd dep add` recovery commands. Relations between
   steps and existing beads are supported. Receipts carry `pour_mode`, `graph`
