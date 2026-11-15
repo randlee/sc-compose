@@ -28,9 +28,5 @@ forbidden = ["ATM_HOME", "agent_team_mail", "atm_core"]
 allowed_test_double_paths = []
 forbidden_test_bypasses = []
 
-[enforcement]
-lint_rules = ["LINT-SC-SHA-MINIMAL-DEPENDENCIES"]
-review_gates = ["shared_library_boundary"]
-
 [status]
 state = "concrete_landed"
