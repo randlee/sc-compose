@@ -15,7 +15,7 @@ use sc_composer_beads::{
 };
 
 use crate::CommandError;
-use crate::cli::{BeadArgs, BeadRenderByArg, BeadRequestArgs, BeadSubcommand};
+use crate::cli::{BeadArgs, BeadRenderByArg, BeadRequestArgs, BeadSubcommand, ParsedBeadRoot};
 use crate::exit_codes;
 use crate::print_json;
 
@@ -23,6 +23,10 @@ use crate::print_json;
 pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     let (args, operation, root, allow_uncommitted) = revision_arguments(args);
     let json = args.json;
+    let root = match root.map(ParsedBeadRoot::get).transpose() {
+        Ok(root) => root,
+        Err(error) => return print_bead_error(&error, operation, json),
+    };
     let options = BeadExecutionOptions {
         render_by: match args.render_by {
             BeadRenderByArg::ScCompose => BeadRenderBy::ScCompose,
@@ -73,7 +77,14 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     }
 }
 
-fn revision_arguments(args: &BeadArgs) -> (&BeadRequestArgs, BeadOperation, Option<&BeadId>, bool) {
+fn revision_arguments(
+    args: &BeadArgs,
+) -> (
+    &BeadRequestArgs,
+    BeadOperation,
+    Option<&ParsedBeadRoot>,
+    bool,
+) {
     match &args.command {
         BeadSubcommand::Render(args) => (args, BeadOperation::Render, None, false),
         BeadSubcommand::Validate(args) => (args, BeadOperation::Validate, None, false),

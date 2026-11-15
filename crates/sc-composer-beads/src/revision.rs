@@ -59,10 +59,6 @@ pub fn revision_options_for_request(
     root: Option<BeadId>,
     allow_uncommitted: bool,
 ) -> Option<GraphRevisionOptions> {
-    if let Some(root) = root {
-        request.parent = Some(root);
-        request.ref_ = None;
-    }
     if !matches!(
         request.operation,
         crate::BeadOperation::Pour
@@ -71,6 +67,10 @@ pub fn revision_options_for_request(
             | crate::BeadOperation::PreviewRepour
     ) {
         return None;
+    }
+    if let Some(root) = root {
+        request.parent = Some(root);
+        request.ref_ = None;
     }
     let parent = request.parent.clone()?;
     let target = match &request.ref_ {

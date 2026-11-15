@@ -4,6 +4,7 @@ import builtins
 import inspect
 import json
 import os
+import shlex
 import shutil
 import stat
 import subprocess
@@ -745,9 +746,11 @@ def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> 
     executable = tmp_path / "fake-revision-bd"
     script = executable.with_name(executable.name + ".sh")
     executable.symlink_to(REPOSITORY_ROOT / "crates/test-support/fake-exec")
+    trace = tmp_path / "trace"
     script.write_text(
         "#!/bin/sh\n"
-        'case "$1" in\n'
+        + f"printf '%s\\n' \"$*\" >> {shlex.quote(str(trace))}\n"
+        + 'case "$1" in\n'
         "cook) printf '%s' '{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{\"id\":\"build\",\"title\":\"Build\"}]}' ;;\n"
         "show) printf '%s' '[{\"id\":\"proj-1\",\"title\":\"old\",\"description\":\"\",\"status\":\"open\",\"metadata\":{\"sc_compose_graph\":{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}]' ;;\n"
         "children|dep) printf '[]' ;;\n"
@@ -790,6 +793,30 @@ def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> 
     assert partial.value.details["applied"]
     assert "pending" in partial.value.details
     assert "rerun" in partial.value.recovery
+    # Known-dirty apply refuses without writing; an explicit override reaches apply.
+    trace.unlink()
+    body = script.read_text(encoding="utf-8").replace(
+        "sql) printf 'probe unsupported' >&2; exit 1 ;;",
+        "sql) printf '%s' '[{\"table_name\":\"issues\",\"staged\":false,\"status\":\"modified\"}]' ;;",
+    )
+    script.write_text(body, encoding="utf-8")
+    with pytest.raises(beads.BeadComposeError) as dirty:
+        beads.repour(request)
+    assert dirty.value.code == beads.BEADS_GRAPH_DIRTY
+    assert "bd dolt commit" in dirty.value.recovery and "--allow-uncommitted" in dirty.value.recovery
+    assert not any(line.startswith(("create ", "update ", "dep add ", "dep remove ")) for line in trace.read_text().splitlines())
+    with pytest.raises(beads.BeadComposeError) as overridden:
+        beads.repour(request, allow_uncommitted=True)
+    assert overridden.value.code == beads.BEADS_GRAPH_APPLY_PARTIAL
+    assert any(line.startswith("create ") for line in trace.read_text().splitlines())
+    # Validation failure occurs before any bead or dependency write.
+    trace.unlink()
+    body = body.replace('case "$1" in', 'if [ "$1" = cook ]; then echo invalid >&2; exit 1; fi\ncase "$1" in', 1)
+    script.write_text(body, encoding="utf-8")
+    invalid = beads.repour(request, allow_uncommitted=True)
+    assert invalid.outcome.kind == "failed" and invalid.outcome.code == "BEADS_COOK_FAILED"
+    assert invalid.graph is None
+    assert not any(line.startswith(("create ", "update ", "dep add ", "dep remove ")) for line in trace.read_text().splitlines())
 
 
 def test_revision_receipt_preserves_fields_and_external_edges() -> None:
@@ -850,8 +877,18 @@ esac
     )
     changes = beads.preview_repour(request, allow_uncommitted=True).graph["changes"]
     assert {"change": "add_node", "step": "build"} in changes
+    assert {"change": "add_node", "step": "verify"} in changes
     assert {"change": "add_edge", "from": "step:verify", "to": "step:build", "kind": "blocks"} in changes
     assert {"change": "remove_internal_edge", "from": "proj-3", "to": "proj-1", "kind": "blocks"} in changes
     assert {"change": "retain_external_edge", "from": "outside-1", "to": "proj-3", "kind": "blocks"} in changes
     assert {"change": "retain_external_edge", "from": "proj-3", "to": "outside-2", "kind": "blocks"} in changes
     assert {"change": "mark_removed_node", "bead": "proj-3", "status": "closed", "remove_command": "bd delete -- 'proj-3'"} in changes
+
+
+def test_pour_and_repour_expose_the_documented_revision_controls() -> None:
+    pour_parameters = inspect.signature(beads.pour).parameters
+    repour_parameters = inspect.signature(beads.repour).parameters
+    assert "root" in pour_parameters and "dry_run" in pour_parameters
+    assert "allow_uncommitted" not in pour_parameters
+    assert "root" in repour_parameters and "dry_run" in repour_parameters
+    assert "allow_uncommitted" in repour_parameters

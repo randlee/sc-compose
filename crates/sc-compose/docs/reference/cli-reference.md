@@ -56,12 +56,11 @@ Usage: sc-compose bead pour [OPTIONS] [FORMULA]
 
 **Options:**
 
-- `--allow-uncommitted <ALLOW_UNCOMMITTED>` — choices: `true, false` — Allow repour when database changes are uncommitted or unknown
 - `--dry-run <DRY_RUN>` — choices: `true, false` — Preview graph changes without writing beads
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
-- `--root <BEAD_ID>` — Existing pour root to compare or revise
+- `--root <BEAD_ID>` — Existing pour root to compare
 - `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
@@ -99,12 +98,11 @@ Usage: sc-compose bead preview-pour [OPTIONS] [FORMULA]
 
 **Options:**
 
-- `--allow-uncommitted <ALLOW_UNCOMMITTED>` — choices: `true, false` — Allow repour when database changes are uncommitted or unknown
 - `--dry-run <DRY_RUN>` — choices: `true, false` — Preview graph changes without writing beads
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
-- `--root <BEAD_ID>` — Existing pour root to compare or revise
+- `--root <BEAD_ID>` — Existing pour root to compare
 - `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 

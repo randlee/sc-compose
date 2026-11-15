@@ -1552,3 +1552,23 @@ fn local_plan_preparation_failure_is_not_an_uncertain_write() {
     assert_eq!(wire["details"]["field"], "graph_plan");
     assert!(bd.calls.lock().unwrap().is_empty());
 }
+
+#[test]
+fn revision_routing_owns_target_policy_and_non_revision_decisions() {
+    let workspace = Workspace::new();
+    let mut request = workspace.request.clone();
+    assert!(revision_options_for_request(&mut request, None, false).is_none());
+    let root = BeadId::new("proj-1").unwrap();
+    let revision = revision_options_for_request(&mut request, Some(root.clone()), true).unwrap();
+    assert!(matches!(revision.target, ExistingGraphTarget::PourRoot(id) if id == root));
+    assert_eq!(revision.uncommitted, UncommittedPolicy::Allow);
+    request.operation = BeadOperation::Repour;
+    request.ref_ = Some(GraphRef::new("attached").unwrap());
+    let revision = revision_options_for_request(&mut request, None, false).unwrap();
+    assert!(
+        matches!(revision.target, ExistingGraphTarget::Attach { parent, reference } if parent == root && reference.as_str() == "attached")
+    );
+    assert_eq!(revision.uncommitted, UncommittedPolicy::Refuse);
+    request.operation = BeadOperation::Render;
+    assert!(revision_options_for_request(&mut request, None, false).is_none());
+}

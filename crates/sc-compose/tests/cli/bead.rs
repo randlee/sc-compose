@@ -1943,7 +1943,7 @@ fn revision_help_points_to_both_manual_topics() {
 #[cfg(unix)]
 fn configure_revision_graph(fixture: &TempFixture) {
     let script = fake_exec::script_path(&fixture.path.join("fake-revision-bd"));
-    fs::write(&script, r##"#!/bin/sh
+    fs::write(&script, r#"#!/bin/sh
 case "$1" in
 cook) printf '%s' '{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"},{"id":"verify","title":"Verify","needs":["build"]}]}' ;;
 show) printf '%s' '[{"id":"proj-1","title":"old","description":"","status":"open","metadata":{"sc_compose_graph":{"mode":"pour","formula":"sample","step":null}}}]' ;;
@@ -1957,7 +1957,7 @@ dep)
 create) printf '{}' ;;
 *) printf 'unexpected command' >&2; exit 1 ;;
 esac
-"##).unwrap();
+"#).unwrap();
 }
 
 #[cfg(unix)]
@@ -1976,6 +1976,7 @@ fn revision_cli_reports_exact_graph_change_variants() {
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     let changes = value["payload"]["graph"]["changes"].as_array().unwrap();
     assert!(changes.contains(&json!({"change":"add_node", "step":"build"})));
+    assert!(changes.contains(&json!({"change":"add_node", "step":"verify"})));
     assert!(changes.contains(
         &json!({"change":"add_edge", "from":"step:verify", "to":"step:build", "kind":"blocks"})
     ));
