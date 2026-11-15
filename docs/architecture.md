@@ -181,7 +181,8 @@ stage ordering, authorization checks, and direct executable invocation. It
 depends on `sc-composer`, workspace serde/error support, and the approved
 `process-wrap` platform-containment dependency. Beads formula parsing,
 validation, runtime-variable semantics, and persistent state remain owned by
-the `bd` executable.
+the `bd` executable. Dolt dirty state is read only through `bd sql` via the
+injected runner; the crate invokes no separate Dolt executable.
 
 It must not depend on `sc-compose`, a Python or Go adapter, Beads source or a
 Beads database library, ATM/runtime code, or any CLI argument type. The CLI
