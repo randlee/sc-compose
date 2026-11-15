@@ -81,11 +81,12 @@ forked Beads.
    conditionals and includes.
 5. **Identity and safe repetition (attach).** Ids are `<parent>.<ref>-<step>`.
    Every created bead carries provenance metadata. A bead whose provenance
-   matches is left untouched; anything else refuses the whole request before
-   any write. sc-compose never edits, closes, reopens or deletes a bead.
-6. **Atomic apply.** Everything a request creates is written by one `bd create
-   --graph` transaction, so a request leaves either all of its missing beads
-   and edges or none of them.
+   matches is left untouched on an exact replay. For advanced re-pour, the
+   Phase W amendment governs plan-field updates and invalid ownership; runtime
+   state is preserved and beads are not closed, reopened or deleted.
+6. **Apply.** The original creation path uses one `bd create --graph`
+   transaction. Advanced re-pour follows the convergent Phase W amendment;
+   it may apply multiple updates and completes an interruption on rerun.
 7. **Edges.** `needs` / `depends_on` become `blocks`; `relations[]` adds edges
    of any well-known bd dependency type except `parent-child` (reserved for the
    hierarchy) between steps and existing beads.
@@ -160,14 +161,14 @@ create --graph --dry-run`. Nothing is written to bd.
 Running UC-2 again finds three beads whose provenance matches; all nodes and
 edges are `existing`, no bd write is issued, and the receipt succeeds. A bead
 that was claimed, closed, annotated or edited since keeps all of that:
-status, notes, assignee and fields are never compared and never written.
+status, notes and assignee are preserved. Advanced re-pour compares and
+updates changed plan-owned fields as specified in the Phase W amendment.
 
 ### UC-5: Resume after an interruption (#613 required behaviour)
 
-The apply is one transaction, so an interrupted `attach` left either nothing
-or everything. Re-running the same request creates whatever is missing (all of
-it, or none). If a matching bead was deleted by hand, a re-run recreates just
-that bead and its edges, again in one transaction.
+The original create-only apply uses one transaction. Advanced re-pour may
+be interrupted between writes; rerunning completes remaining work. If a
+matching bead was deleted by hand, rerunning recreates it and its edges.
 
 ### UC-6: A changed formula or scope is refused (#613 required behaviour)
 
@@ -318,11 +319,11 @@ execution, CLI exit 3 or 2) and a fallback arm, never variant by variant.
 | `GraphScopeMismatch { field, value }` | `BEADS_GRAPH_SCOPE_MISMATCH` | refused / 2 (validate) | make `compose_variables` agree with `parent` / `ref` |
 | `GraphFormulaUnsupported { reason }` | `BEADS_GRAPH_FORMULA_UNSUPPORTED` | refused / 2 (validate) | express the construct in the template, or use registry pour |
 | `GraphRelationInvalid { index, reason }` | `BEADS_GRAPH_RELATION_INVALID` | refused / 2 (validate or plan) | correct the relation |
-| `GraphConflict { id, reason }` | `BEADS_GRAPH_CONFLICT` | refused / 2 (plan) | inspect the named bead (sc-compose never edits it) or use a new `ref` |
+| `GraphConflict { id, reason }` | `BEADS_GRAPH_CONFLICT` | refused / 2 (plan) | inspect the named bead identity or use a new `ref` |
 | `GraphEdgeConflict { from, to, existing, requested }` | `BEADS_GRAPH_EDGE_CONFLICT` | refused / 2 (plan) | inspect the existing edge, or change the relation |
 | `GraphEdgeMissing { edges }` | `BEADS_GRAPH_EDGE_MISSING` | refused / 2 (plan) | run the `bd dep add` command the message gives for each edge, then re-run |
 | `GraphReadFailed { command, status }` | `BEADS_GRAPH_READ_FAILED` | failed / 2 (plan) | fix the bd failure and re-run; nothing was written |
-| `GraphApplyFailed { command, status }` | `BEADS_GRAPH_APPLY_FAILED` | failed / 2 (pour or attach) | fix the bd failure and re-run; nothing was written |
+| `GraphApplyFailed { command, status }` | `BEADS_GRAPH_APPLY_FAILED` | failed / 2 (pour or attach) | fix the bd failure and rerun; earlier writes may have succeeded |
 | `GraphApplyUnconfirmed { command, cause, ids }` | `BEADS_GRAPH_APPLY_UNCONFIRMED` | failed / 2 (pour or attach) | bd exited 0, so beads may exist: reconcile with `bd show` on `ids` (`bd list` when `ids` is empty) before pouring again |
 
 Field types: `command` is the bd argv as `Vec<String>`; `status` is
@@ -484,7 +485,8 @@ Preview runs `bd create --graph <plan> --dry-run --json` and apply runs `bd
 create --graph <plan> --json`. bd validates the whole plan (types, priority,
 ids, cycles, blocking paths through the hierarchy) before writing and applies
 it in one transaction, returning `{"ids": {key: id}}`. A non-zero exit of
-either command is `GraphApplyFailed`; bd has written nothing. When apply exits
+either command is `GraphApplyFailed`; that individual graph transaction wrote
+nothing. Earlier re-pour writes may already have succeeded. When apply exits
 0 but its response cannot be consumed (not JSON, `ids` missing, or ids that do
 not match the plan), the transaction may have committed: that is
 `GraphApplyUnconfirmed`, whose `ids` lists the attach parent and planned step
@@ -557,7 +559,8 @@ stage. Exit codes follow the existing policy: 0 succeeded, 2 refused or failed
 receipt, 3 request or usage error.
 
 ### Write rule
-For the preserved bd-owned graph path:
+For the preserved bd-owned graph path (advanced re-pour is governed by the
+Phase W amendment):
 The only mutating bd command sc-compose issues for these operations is one
 `bd create --graph` per request. It never issues `bd update`, `bd close`, `bd
 reopen`, `bd delete`, `bd dep add`, `bd mol pour` or `bd mol bond` for them,
@@ -648,8 +651,8 @@ accumulating, can leave a proto behind on failure, and still uses Beads'
 substitution. One `bd create --graph` writes the same beads directly.
 
 ### One `bd create` / `bd dep add` per bead and edge
-Not atomic: an interruption leaves part of a workflow and forces partial-apply
-recovery rules. `bd create --graph` is one transaction.
+Originally rejected for lacking atomicity. Phase W accepts resumable
+sequential writes for single-writer re-pour.
 
 ### Use Beads `vars`, `loop` and `expand` for structure
 A second, more limited template language next to sc-compose's, with its own
@@ -673,7 +676,8 @@ leaves stale, request-specific formulas in a shared by-name registry.
 
 ## Phase W amendment — convergent re-pour (2026-11-14)
 
-This amendment supersedes the Phase V atomic-apply and immutable-node rules.
+This amendment supersedes the earlier atomic-apply and immutable-node rules
+for advanced re-pour.
 One writer per plan is supported without a concurrency precondition or a new
 bd primitive. `sc-compose bead repour FORMULA --root <bead-id>` targets a
 prior pour root; attach graphs use their existing parent and ref. Existing
@@ -691,8 +695,9 @@ Merge metadata without clobbering unrelated user keys. Explicit plan values
 update existing beads, including closed beads; unspecified fields are retained.
 Removed nodes and edges are reported, not deleted. An interrupted apply is
 completed by rerunning; an exact replay changes nothing. There is no
-all-or-nothing promise across writes. Partial failure reports applied and
-pending work and a rerun hint.
+all-or-nothing promise across writes. Partial failure uses `GraphApplyFailed` (`BEADS_GRAPH_APPLY_FAILED`,
+execution class, failed receipt and CLI exit 2) with applied and pending
+work where known and a rerun hint; its text must not claim nothing was written.
 
 Receipts distinguish existing, created, updated and retained nodes and
 existing, added and retained edges; the JSON CLI and Python adapter retain
