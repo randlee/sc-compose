@@ -1786,7 +1786,6 @@ fn revision_cli_refuses_unknown_database_and_previews_with_override() {
             .lines()
             .any(|line| line.starts_with("update ") || line.starts_with("dep add "))
     );
-    assert_partial_revision(&request);
     let commands = fs::read_to_string(trace).unwrap();
     assert!(
         commands
@@ -1796,10 +1795,13 @@ fn revision_cli_refuses_unknown_database_and_previews_with_override() {
 }
 
 #[cfg(unix)]
-fn assert_partial_revision(request: &Path) {
+#[test]
+fn revision_cli_reports_partial_revision() {
+    let fixture = TempFixture::new("bead-revision-partial");
+    let (request, _) = revision_cli_fixture(&fixture);
     let partial = sc_compose()
         .args(["bead", "repour", "--request"])
-        .arg(request)
+        .arg(&request)
         .args(["--allow-uncommitted", "--json"])
         .output()
         .unwrap();
