@@ -1598,7 +1598,10 @@ fn repour_by_request_updates_an_attached_plan_and_keeps_runtime_state() {
 
     request["compose_variables"] = json!({"version": "1.6.2"});
     let edited = workspace.write_request(&request);
-    let repoured = advanced_graph_cli(&workspace, "repour", &edited);
+    // Pinned bd 1.3.1 embedded mode cannot probe Dolt state; this case checks
+    // applied runtime preservation. Refusal remains covered by revision_cli tests.
+    let repoured =
+        advanced_graph_cli_with_args(&workspace, "repour", &edited, &["--allow-uncommitted"]);
     assert!(repoured.status.success(), "{repoured:?}");
     let value: serde_json::Value = serde_json::from_slice(&repoured.stdout).unwrap();
     assert_eq!(value["payload"]["outcome"], "succeeded", "{value:#}");
@@ -1614,13 +1617,19 @@ fn repour_by_request_updates_an_attached_plan_and_keeps_runtime_state() {
         "nothing poured fresh"
     );
 
-    let replay = advanced_graph_cli(&workspace, "repour", &edited);
+    let replay =
+        advanced_graph_cli_with_args(&workspace, "repour", &edited, &["--allow-uncommitted"]);
     assert!(replay.status.success(), "{replay:?}");
 
     // A target that does not exist is refused (exit 2) before any write.
     let before = workspace.snapshot();
     request["parent"] = json!("cli-nope");
-    let missing = advanced_graph_cli(&workspace, "repour", &workspace.write_request(&request));
+    let missing = advanced_graph_cli_with_args(
+        &workspace,
+        "repour",
+        &workspace.write_request(&request),
+        &["--allow-uncommitted"],
+    );
     assert_eq!(missing.status.code(), Some(2), "{missing:?}");
     let value: serde_json::Value = serde_json::from_slice(&missing.stdout).unwrap();
     assert_eq!(
@@ -1635,10 +1644,20 @@ fn advanced_graph_cli(
     operation: &str,
     request: &Path,
 ) -> std::process::Output {
+    advanced_graph_cli_with_args(workspace, operation, request, &[])
+}
+
+fn advanced_graph_cli_with_args(
+    workspace: &GraphCliWorkspace,
+    operation: &str,
+    request: &Path,
+    extra_args: &[&str],
+) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_sc-compose"))
         .args(["bead", operation, "--request"])
         .arg(request)
         .arg("--json")
+        .args(extra_args)
         .current_dir(&workspace.fixture.path)
         .env("HOME", workspace.fixture.path.join(".home"))
         .env(

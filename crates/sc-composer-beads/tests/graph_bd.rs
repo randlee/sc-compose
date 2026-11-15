@@ -24,6 +24,41 @@ const PIPE_DRAIN_TEST_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_PIPE_DRAIN_CHILD";
 const PIPE_DRAIN_TEST_OUTPUT_BYTES: usize = 256 * 1024;
 const WORKSPACE_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_WORKSPACE_CHILD";
 const FORMULA: &str = "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build {{literal}}\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\nneeds = [\"build\"]\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\nneeds = [\"verify\"]\n";
+// Go/Dolt interprets a Windows verbatim prefix as a network path. Rust can
+// keep canonical paths internally; only the bd environment needs this spelling.
+fn bd_environment_directory(path: &Path) -> PathBuf {
+    let Some(text) = path.to_str() else {
+        return path.to_path_buf();
+    };
+    if let Some(unc) = text.strip_prefix(r"\\?\UNC\") {
+        PathBuf::from(format!(r"\\{unc}"))
+    } else if let Some(drive) = text.strip_prefix(r"\\?\") {
+        PathBuf::from(drive)
+    } else {
+        path.to_path_buf()
+    }
+}
+
+#[test]
+fn bd_environment_directory_uses_non_verbatim_fixture_paths() {
+    assert_eq!(
+        bd_environment_directory(Path::new(r"\\?\C:\temp\fixture\.beads")),
+        PathBuf::from(r"C:\temp\fixture\.beads")
+    );
+    assert_eq!(
+        bd_environment_directory(Path::new(r"\\?\UNC\server\share\fixture\.beads")),
+        PathBuf::from(r"\\server\share\fixture\.beads")
+    );
+    assert_eq!(
+        bd_environment_directory(Path::new(r"C:\temp\fixture\.beads")),
+        PathBuf::from(r"C:\temp\fixture\.beads")
+    );
+    assert_eq!(
+        bd_environment_directory(Path::new("/workspace/.beads")),
+        PathBuf::from("/workspace/.beads")
+    );
+}
+
 struct Workspace {
     root: PathBuf,
     beads_dir: PathBuf,
@@ -95,7 +130,7 @@ impl Workspace {
             .env("HOME", self.root.join(".home"))
             .env("XDG_CONFIG_HOME", self.root.join(".home/.config"))
             .env("USERPROFILE", self.root.join(".home"))
-            .env("BEADS_DIR", &self.beads_dir);
+            .env("BEADS_DIR", bd_environment_directory(&self.beads_dir));
         let out = run_command(&mut command);
         assert!(
             out.status.success(),
@@ -472,7 +507,7 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
         let beads_dir = root.join(".beads");
         assert_eq!(
             std::env::var_os("BEADS_DIR"),
-            Some(beads_dir.clone().into())
+            Some(bd_environment_directory(&beads_dir).into())
         );
         assert_eq!(std::env::var("BEADS_NO_DAEMON").as_deref(), Ok("1"));
         assert_eq!(std::env::var_os("HOME"), Some(root.join(".home").into()));
@@ -505,7 +540,7 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
         .env("HOME", workspace.root.join(".home"))
         .env("XDG_CONFIG_HOME", workspace.root.join(".home/.config"))
         .env("USERPROFILE", workspace.root.join(".home"))
-        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("BEADS_DIR", bd_environment_directory(&workspace.beads_dir))
         .env("BEADS_NO_DAEMON", "1");
     let output = run_command(&mut child);
     assert!(
@@ -1264,7 +1299,7 @@ fn repour_preserves_closed_state_and_reports_removed_nodes_and_edges() {
             "--set-metadata",
             "user_key=keep",
         ]);
-        w.command(&["close", &build]);
+        w.command(&["close", &build, "--force"]);
         let before = w.bead_count();
         assert!(w.dependency_exists(&verify, &build));
         w.set_plan("formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build revised\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\n");
