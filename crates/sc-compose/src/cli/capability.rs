@@ -67,11 +67,11 @@ const fn bead_wants_json(args: &BeadArgs) -> bool {
     match &args.command {
         BeadSubcommand::Render(args)
         | BeadSubcommand::Validate(args)
-        | BeadSubcommand::PreviewPour(args)
-        | BeadSubcommand::Pour(args)
         | BeadSubcommand::PreviewAttach(args)
         | BeadSubcommand::Attach(args) => args.json,
-        BeadSubcommand::Repour(args) => args.request.json,
+        BeadSubcommand::PreviewPour(args)
+        | BeadSubcommand::Pour(args)
+        | BeadSubcommand::Repour(args) => args.request.json,
     }
 }
 

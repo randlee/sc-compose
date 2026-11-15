@@ -84,29 +84,40 @@ pub(crate) enum BeadSubcommand {
     #[command(about = "Render and validate a Beads formula request")]
     Validate(BeadRequestArgs),
     #[command(about = "Render, validate, and preview a Beads formula pour")]
-    PreviewPour(BeadRequestArgs),
+    PreviewPour(BeadRevisionArgs),
     #[command(about = "Render, validate, and preview Beads graph attachment")]
     PreviewAttach(BeadRequestArgs),
-    #[command(about = "Render, validate, and persist an authorized Beads formula pour")]
-    Pour(BeadRequestArgs),
+    #[command(
+        about = "Render, validate, and persist an authorized Beads formula pour",
+        long_about = "Render, validate, and persist an authorized Beads formula pour. For revision guidance, run sc-compose help repour and sc-compose help repour-strategy."
+    )]
+    Pour(BeadRevisionArgs),
     #[command(about = "Render, validate, and persist authorized Beads graph attachment")]
     Attach(BeadRequestArgs),
-    #[command(about = "Converge the beads of an earlier pour onto its updated plan")]
-    Repour(BeadRepourArgs),
+    #[command(
+        about = "Converge the beads of an earlier pour onto its updated plan",
+        long_about = "Converge an earlier graph onto its updated plan. For details, run sc-compose help repour and sc-compose help repour-strategy."
+    )]
+    Repour(BeadRevisionArgs),
 }
 
 #[derive(Debug, Clone, Args)]
-pub(crate) struct BeadRepourArgs {
+pub(crate) struct BeadRevisionArgs {
     #[command(flatten)]
     pub(crate) request: BeadRequestArgs,
     #[arg(
         long,
         value_name = "BEAD_ID",
-        required_unless_present = "request",
-        conflicts_with = "request",
-        help = "Pour root bead to converge (graph.parent of the original pour receipt)"
+        help = "Existing pour root to compare or revise"
     )]
     pub(crate) root: Option<String>,
+    #[arg(long, help = "Preview graph changes without writing beads")]
+    pub(crate) dry_run: bool,
+    #[arg(
+        long,
+        help = "Allow repour when database changes are uncommitted or unknown"
+    )]
+    pub(crate) allow_uncommitted: bool,
 }
 
 #[derive(Debug, Clone, Args)]
