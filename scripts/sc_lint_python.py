@@ -8,7 +8,7 @@ import venv
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIREMENTS = ROOT / 'scripts/sc_lint_constraints.txt'
-RELEASE_LINKS = 'https://github.com/randlee/sc-lint/releases/expanded_assets/v0.8.6'
+RELEASE_LINKS = 'https://github.com/randlee/sc-lint/releases/expanded_assets/v0.8.9'
 
 
 def prepare(run=subprocess.run, create=venv.create):

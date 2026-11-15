@@ -30,4 +30,4 @@ class ScLintCiOrderTests(unittest.TestCase):
         self.assertIn("'scripts/sc_lint_python.py', '.sc-lint/bootstrap.py', 'setup'", managed)
         self.assertIn("'--config', 'sc-lint.toml'", managed)
         self.assertIn("GITHUB_PATH", managed)
-        self.assertIn('minimum_version = "0.8.6"', (root / 'sc-lint.toml').read_text())
+        self.assertIn('minimum_version = "0.8.9"', (root / 'sc-lint.toml').read_text())

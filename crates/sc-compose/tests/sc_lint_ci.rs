@@ -52,7 +52,10 @@ fn ci_pass_preserves_composite_envelope_and_excludes_xwin() {
     assert_eq!(payload["raw_payload"]["data"]["xwin"]["available"], true);
     assert_eq!(payload["raw_payload"]["data"]["xwin"]["included"], false);
     assert_eq!(payload["raw_payload"]["data"]["step_count"], 12);
-    assert_eq!(payload["raw_payload"]["data"]["steps"][0]["name"], "fmt");
+    assert_eq!(
+        payload["raw_payload"]["data"]["steps"][0]["name"],
+        "version"
+    );
     assert_eq!(payload["raw_payload"]["data"]["steps"][11]["name"], "test");
     assert!(
         payload["raw_payload"]["data"]["steps"]
