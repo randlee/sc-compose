@@ -1731,10 +1731,11 @@ formula source/registry identity before claiming that example passes.
 
 #### FR-24.34 — Convergent re-pour of updated plans
 
-A single repour command applies updated plan fields and missing nodes and
-edges to the existing graph while preserving IDs and runtime state. It reports
-changes and retained removals; rerunning completes interrupted work and replay
-changes nothing. Input is validated before writes, as specified in ADR-0023.
+Separate pour and repour commands support updating plan-owned fields while
+preserving runtime state. Repour removes obsolete internal edges, preserves and
+reports external edges, and labels and reports removed nodes without deleting
+them. Dry-run and apply report the changes and risks; dirty or unknown Dolt
+state refuses unless explicitly overridden. ADR-0023 specifies the contract.
 
 #### FR-24.35 — Conditional beads and edges
 
@@ -1743,8 +1744,8 @@ renders conditions, loops and includes before validating the resulting graph.
 Both enabled and disabled branches must work. A remaining relation to an
 omitted step is a dangling reference and fails before mutation. Enabling an
 optional bead or edge on a later advanced pour adds the requested elements
-under FR-24.34; disabling one later does not delete existing beads or edges.
-Deletion/pruning is a separate operation and is not inferred from omission.
+under FR-24.34; disabling one later retains the bead and prunes its internal
+edges as specified by ADR-0023. Bead deletion is a separate operation.
 Use typed booleans from structured request inputs, or explicit comparisons
 for string-valued CLI --var inputs; do not treat the nonempty string "false"
 as a boolean false. Test typed true/false and documented string flag forms,

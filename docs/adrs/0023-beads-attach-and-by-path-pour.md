@@ -707,3 +707,35 @@ existing, added and retained edges; the JSON CLI and Python adapter retain
 compatibility with these additive actions. `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`
 is retired and its refusal branches are deleted. FR-24.35 and FR-24.36 remain
 applicable.
+
+## Phase W amendment — re-pour plan revisions (2026-11-15)
+
+This amendment supersedes the Phase W retained-internal-edge policy above.
+`pour` and `repour` remain separate commands. Pouring a changed existing graph,
+including `pour --dry-run` and `preview_pour`, refuses with
+`BEADS_GRAPH_CONFLICT`; the human error and JSON recovery explain the conflict
+and name `repour` as the recommended command. Repour updates plan-owned fields
+without writing runtime status, notes or assignee, even on closed beads.
+
+Internal edges have both endpoints owned by the graph. Repour removes internal
+edges absent from the new plan, including those of removed nodes. External
+edges have an endpoint outside the graph: retain and report every such edge
+in either direction, including gates and graph beads blocking outside beads.
+Removed nodes are retained in their existing status, labelled `repour:removed`,
+and listed with a recommended separate remove command in dry-run and apply
+output. When a bead is deleted later, its edges go with it.
+
+Dry-run and apply list every change a user may or may not accept: field changes
+on closed or in-progress beads, removed edges, retained external edges and
+removed nodes. Dry-run predicts conflicts assuming the bd graph does not change
+between runs. Conflict recovery says exactly why it failed; partial failure
+reports exactly what was done and what was not. Dry-run and the corresponding
+apply agree under that unchanged-graph assumption.
+
+Repour refuses when the entire bd database has uncommitted Dolt changes;
+`--allow-uncommitted` overrides this refusal. An unknown dirty state also
+refuses, with the exact reason and two ways forward: `bd dolt commit` or rerun
+with `--allow-uncommitted`. In embedded mode a separate Dolt executable is
+optional and used only when a version-compatible one is on PATH; it is not a
+required dependency. Dolt commit and sync is the rollback, which is why clear
+reporting is enough risk control.
