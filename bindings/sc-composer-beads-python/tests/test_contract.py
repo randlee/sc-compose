@@ -774,3 +774,17 @@ def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> 
     assert partial.value.details["applied"]
     assert "pending" in partial.value.details
     assert "rerun" in partial.value.recovery
+
+
+def test_revision_receipt_preserves_fields_and_external_edges() -> None:
+    receipt = json.loads((GRAPH_FIXTURE_ROOT / "receipt-graph-pour.json").read_text(encoding="utf-8"))
+    changes = [
+        {"change": "field_change", "bead": "proj-1", "status": "closed", "field": "title", "before": "Old", "after": "New"},
+        {"change": "retain_external_edge", "from": "outside-1", "to": "proj-1", "kind": "blocks"},
+        {"change": "retain_external_edge", "from": "proj-1", "to": "outside-2", "kind": "blocks"},
+    ]
+    receipt["graph"]["changes"] = changes
+    decoded = beads.BeadComposeReceipt.from_json(json.dumps(receipt))
+    assert decoded.graph["changes"] == changes
+    assert decoded.to_json()["graph"]["changes"] == changes
+    assert decoded.schema == beads.BEADS_SCHEMA_V1
