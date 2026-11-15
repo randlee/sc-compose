@@ -671,91 +671,35 @@ leaves stale, request-specific formulas in a shared by-name registry.
   `cmd/bd/cook.go`, `cmd/bd/template.go`, `internal/formula/parser.go`,
   `internal/types/types.go` (dependency types)
 
-## Phase V amendment — additive advanced graphs (2026-11-04)
+## Phase W amendment — convergent re-pour (2026-11-14)
 
-FR-24.34–35 authorize missing-edge repair, newly declared edges between
-existing beads, and conditional bead/edge additions in advanced mode.
-This amendment does not change explicit --render-by bd compatibility.
+This amendment supersedes the Phase V atomic-apply and immutable-node rules.
+Advanced pour supports one writer per plan, without a concurrency precondition,
+new bd primitive, upstream dependency, or atomic capability gate. Preview
+validates the complete rendered graph without writes. Before any apply write,
+reject malformed plans, dangling references and conflicting edge types; do
+not reject otherwise valid input. Existing explicit external endpoints are
+references and are not updated.
 
-### Ownership and revisions
+The single `sc-compose bead repour` command (or the existing CLI’s fitting name)
+takes an updated plan to poured beads in one step. After validation and before
+replacement, it backs up existing plan beads to a temporary JSONL export.
+The export is cleaned up after success, refusal and interrupted apply.
 
-Advanced-created nodes use versioned provenance v2. Its stable ownership
-identity is (mode, formula, parent, ref, step). It also records a
-node_definition SHA-256 over that node's original rendered creation payload,
-excluding edges and runtime mutable state. The creation template revision and
-input hashes remain audit provenance. The request graph retains its own
-revision for the currently rendered nodes/edges in the receipt.
+Apply converges the stored graph toward the latest plan: create missing nodes,
+update plan-owned fields of existing plan nodes (including title, description,
+design and acceptance), and add missing declared edges. Preserve bead IDs and
+runtime state including status, notes, assignee and close state. Record and
+read back actual changes. An exact replay changes nothing; rerunning after an
+interrupted apply completes the remaining work. There is no all-or-nothing
+promise across writes. Never reset runtime state while updating plan fields.
 
-Existing v2 nodes must match both ownership identity and node_definition.
-An edge-only change or a condition enabling another node does not change the
-identity/hash of unchanged nodes; it may add declared edges/nodes. Do not
-compare current user status, notes or assignee against creation values and
-do not overwrite them. Changed node definitions are provenance conflicts,
-not implicit updates. No automatic edge type replacement or deletion.
+Nodes and edges removed from a later plan are reported, not deleted; no existing
+state is pruned automatically. Receipts distinguish added and updated elements,
+unchanged elements and retained removals. Temporary files and intermediate
+artifacts are cleaned on success, refusal and interrupted apply. No duplicate or stray beads are created.
 
-A v1 node can only be upgraded when its original creation payload/provenance
-can be verified from the original creation snapshot or authoritative bd history.
-Perform any proven v1-to-v2 provenance-only migration inside the same atomic
-apply, preserving all user fields. Otherwise refuse with the existing provenance conflict and
-explain the missing migration proof. No unowned or foreign planned id is
-adopted. Existing explicitly named external endpoints remain references,
-with the prior authorization/validation rules; their fields are untouched.
-
-### One atomic apply
-
-Preview renders and validates the complete selected graph and reports its
-node/edge additions without persistent writes. Apply requires the existing
-CreatePersistentBeads authorization. Use one transactional bd operation for
-the allowed additions, including the mixed case of new nodes and edges among
-existing nodes. Verify existing-node ownership preconditions at the apply
-boundary. Any error rolls back the whole mutation; an ambiguous response is
-GraphApplyUnconfirmed and requires readback/reconciliation, never blind retry.
-
-The current bd CLI exposes bulk `bd dep add --file edges.jsonl` for a pure
-edge batch and `bd create --graph` for graph creation. V1 verifies the selected
-binary's transactional guarantees with controlled failures and checks whether
-one supported graph primitive can handle the mixed case and ownership
-preconditions. Help output is not that proof. If the required primitive is
-missing, coordinate its minimal canonical bd extension and adopt the supported
-version before V3's apply acceptance. Do not patch a local fork, invent a
-storage writer, split create+edges into two commits, or loop per edge with
-best-effort rollback. This dependency blocks only the affected apply path;
-it cannot be reported as automatic-edge completion.
-
-A capability refusal is the planned typed code
-BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE, exit 2, before any mutation. V1 records
-the exact supported command/schema/version in the existing implementation PR once verified;
-V3 cannot dispatch this apply path against an unspecified protocol.
-
-V1 is contract verification only. Qualifying the bd ownership capability for
-pure-edge and mixed node-edge apply is not implemented by V1. An unsupported
-capability is recorded on the bead `comp-v-1-bd-ownership` for phase-end
-discussion. It blocks only the affected apply acceptance, never V1 or
-independent downstream development, and adds no new ledger.
-
-### Conditional graph and required cases
-
-Jinja renders the source before graph validation. Optional beads and edges
-may be omitted together. Dangling step references are rejected before any
-write. A later true condition may add elements; a later false condition does
-not prune stored graph state. Test both typed booleans and explicitly compared
-string flags, with stored-state readback.
-
-V3 must exercise: fresh graph; existing owned endpoints with a missing edge;
-newly declared same-type relation with unchanged node definitions; enabled
-optional node plus edges to existing nodes; conflicting edge type; changed
-node/provenance identity; foreign planned id; dangling conditional reference;
-unauthorized request; controlled atomic-apply failure; ambiguous response;
-verified v1 ownership migration and missing-proof refusal; and successful
-no-op replay preserving status/notes/assignee. Positive cases
-verify actual typed directed edges in bd, without manual dependency commands.
-V1 reproduces the original BEADS_GRAPH_EDGE_MISSING behavior using
-edge_conflict_missing_edge_and_noop_preserve_the_prior_plan and an isolated
-real-bd equivalent, recording formula, mode, binary and readback in the
-existing PR discussion. Fresh graph success alone is not the defect repro.
-
-FR-24.36 governs typed identifier/path constraints, safe argv and recovery rendering,
-non-UTF8 path diagnostics and error precedence. It does not authorize extra
-restrictions on valid bd-compatible inputs. Transaction qualification runs
-and exact binary/schema evidence are recorded in the existing implementation PR;
-this ADR specifies the required atomic capability rather than becoming a run log.
+FR-24.35 conditional graphs and FR-24.36 input and diagnostic constraints
+remain applicable. `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` is retired; the
+refusal branches are deleted. Real-store acceptance uses a throwaway Dolt
+server, serial jobs, and deterministic interruption rather than timing.

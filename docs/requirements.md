@@ -1654,7 +1654,7 @@ With advanced pour, graph pour by path and attach accept caller bead inputs; wit
 
 #### FR-24.22 — Approved item 11
 
-Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+Advanced attach preview writes nothing to bd; creation requires authorization. Re-pour follows the convergent single-writer contract in FR-24.34 and preserves existing runtime state.
 
 #### FR-24.23 — Approved item 12
 
@@ -1734,17 +1734,18 @@ formula source/registry identity before claiming that example passes.
 
 #### FR-24.34 — Automatic declared edges during pour
 
-Advanced pour creates declared dependency/relationship edges without manual
-bd dep add follow-up, including missing edges and newly declared edges
-between existing beads (user decision, 2026-11-04). Existing operation-owned
-beads retain their state. Conflicting edge types and foreign-owned planned
-ids are refused. Explicit external relation endpoints remain governed by
-ADR-0023; they are not adopted as operation-owned beads.
-The operation validates rendered references and applies its allowed node/edge
-additions atomically. Added relations alone must not invalidate ownership of
-unchanged nodes. Changed node definitions are a conflict, not implicit field
-updates. Preview and failed validation write nothing. Replays do not duplicate
-edges, reset status/notes/assignee, or remove prior graph state.
+A single repour command validates before any write, backs up existing plan
+beads to a temporary JSONL export, and converges the stored graph with the latest rendered plan under
+a single-writer-per-plan model. It creates missing nodes and declared edges,
+updates existing nodes' plan-owned fields, and preserves their IDs and runtime
+state (including status, notes, assignee and close state). It reads back and
+reports changes; replay is a no-op and rerunning an interrupted apply completes
+it. Nodes and edges removed from the plan are reported and retained, not
+deleted. Before any write reject malformed plans, dangling references and
+conflicting edge types; do not reject otherwise valid input. Preview writes
+nothing. No atomic capability gate or new bd primitive is required. See
+ADR-0023 for the complete contract. Temporary backup files are cleaned up
+after success, refusal and interrupted apply.
 
 #### FR-24.35 — Conditional beads and edges
 
@@ -1806,7 +1807,7 @@ mapping, direct-CLI request mapping, duplicate/conflict policy and scoped
 default precedence. These are the V1 contract consumed by V3, not choices
 silently deferred to implementation. Public request layouts remain unchanged.
 FR-24.34–35 fix additive existing-node edges and conditional elements;
-ADR-0023 records the atomic-write and provenance contract. The FR-24.24 byte
+ADR-0023 records the convergent re-pour and state-preservation contract. The FR-24.24 byte
 comparison remains an evidence input to pin. The user ruling recorded in the
 `comp-phase-v` bead notes on 2026-11-05
 replaces abandoned historical fuzz/corpus recovery with bounded deterministic
