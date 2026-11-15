@@ -555,7 +555,9 @@ fn isolated_bd_wrapper_sets_a_private_home_and_beads_dir() {
         format!(
             "{}\n{}\n",
             root.join(".home").display(),
-            redirected.join(".beads").display()
+            fs::canonicalize(redirected.join(".beads"))
+                .unwrap()
+                .display()
         )
     );
     assert_ne!(
