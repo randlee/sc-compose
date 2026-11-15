@@ -1072,7 +1072,11 @@ fn revision_refuses_dirty_and_unknown_and_override_is_explicit() {
         execute_graph_revision_with_runner(&w.request, &options(UncommittedPolicy::Refuse), &bd)
             .unwrap_err();
     assert_eq!(error.code(), "BEADS_GRAPH_DIRTY_UNKNOWN");
-    assert!(error.to_string().contains("unsupported query"));
+    assert!(
+        error
+            .to_string()
+            .contains("unsupported query\nadditional detail")
+    );
     let result =
         execute_graph_revision_with_runner(&w.request, &options(UncommittedPolicy::Allow), &bd)
             .unwrap();

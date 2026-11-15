@@ -327,9 +327,12 @@ fn check_dirty(runtime: &mut Runtime<'_>) -> Result<(), BeadComposeError> {
             cause: error.to_string(),
         })?;
     if output.exit_status != Some(0) {
-        return Err(BeadComposeError::GraphDirtyUnknown {
-            cause: process_failure_cause(&output),
-        });
+        let cause = if output.stderr.is_empty() {
+            output.stdout
+        } else {
+            output.stderr
+        };
+        return Err(BeadComposeError::GraphDirtyUnknown { cause });
     }
     let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|error| {
         BeadComposeError::GraphDirtyUnknown {
