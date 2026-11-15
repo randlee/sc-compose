@@ -156,6 +156,7 @@ impl PendingCreate {
             &mut applied_count,
             total,
         )?;
+        runtime.applied_changes = done;
         for node in &mut self.graph.nodes {
             if node.action == BeadNodeAction::Update {
                 node.action = BeadNodeAction::Updated;

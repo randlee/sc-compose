@@ -1572,3 +1572,82 @@ fn revision_routing_owns_target_policy_and_non_revision_decisions() {
     request.operation = BeadOperation::Render;
     assert!(revision_options_for_request(&mut request, None, false).is_none());
 }
+
+#[test]
+fn readback_failure_reports_completed_writes_as_applied() {
+    let (mut workspace, bd, root) = poured(&plan_v1());
+    let build = bd.ids_by_step()["build"].clone();
+    bd.cook(&plan_v2());
+    bd.fail_nth_mutation(None);
+    workspace.request.operation = BeadOperation::Repour;
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Refuse,
+    );
+    let error =
+        execute_graph_revision_with_runner(&workspace.request, &options, &FailReadback(&bd))
+            .unwrap_err();
+    let BeadComposeError::GraphApplyPartial { details } = error else {
+        panic!("expected partial failure: {error:?}")
+    };
+    assert_eq!(
+        serde_json::to_value(&details.applied).unwrap(),
+        json!([
+            {"change":"field_change","bead":build,"status":"open","field":"title","before":"Build","after":"Build release"},
+            {"change":"field_change","bead":build,"status":"open","field":"description","before":"compile","after":"compile everything"}
+        ])
+    );
+    assert!(details.pending.is_empty());
+    assert!(details.outcome_uncertain);
+    assert_eq!(details.failed_operation, "read-back");
+}
+
+struct FailSpawnAfterWrite<'a>(&'a FakeBd);
+impl ProcessRunner for FailSpawnAfterWrite<'_> {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if self.0.mutation_count() > 0 && spec.args.first().is_some_and(|s| s == "update") {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "injected spawn failure",
+            ));
+        }
+        Ok(self.0.dispatch(spec))
+    }
+}
+
+#[test]
+fn spawn_failure_after_write_preserves_progress_and_typed_cause() {
+    let (mut workspace, bd, root) = poured(&plan_v1());
+    let ids = bd.ids_by_step();
+    bd.cook(&plan_v4());
+    bd.fail_nth_mutation(None);
+    workspace.request.operation = BeadOperation::Repour;
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Refuse,
+    );
+    let error =
+        execute_graph_revision_with_runner(&workspace.request, &options, &FailSpawnAfterWrite(&bd))
+            .unwrap_err();
+    let BeadComposeError::GraphApplyPartial { details } = error else {
+        panic!("expected partial failure: {error:?}")
+    };
+    assert_eq!(
+        serde_json::to_value(&details.applied).unwrap(),
+        json!([
+            {"change":"add_node","step":"ship"},
+            {"change":"add_edge","from":"step:ship","to":ids["verify"],"kind":"blocks"},
+            {"change":"add_edge","from":"step:ship","to":ids["build"],"kind":"blocks"}
+        ])
+    );
+    assert_eq!(
+        serde_json::to_value(&details.pending).unwrap(),
+        json!([
+            {"change":"field_change","bead":ids["build"],"status":"open","field":"title","before":"Build","after":"Build release"},
+            {"change":"field_change","bead":ids["build"],"status":"open","field":"description","before":"compile","after":"compile everything"}
+        ])
+    );
+    assert!(!details.outcome_uncertain);
+    assert_eq!(details.cause_code, "BEADS_BD_UNAVAILABLE");
+    assert!(details.failed_operation.contains("update"));
+}
