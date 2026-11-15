@@ -1,6 +1,10 @@
 //! Ordered application of a planned graph revision.
 
-use super::*;
+use super::{
+    BTreeMap, BeadComposeError, BeadEdgeAction, BeadGraph, BeadId, BeadNodeAction, CommandSpec,
+    GraphDependencyType, InputSnapshot, PendingCreate, PlanKey, Runtime, Value, graph_plan_path,
+    partial_error, process_failure_cause, repour, short_cause, take_changes, write,
+};
 
 fn apply_removals(
     runtime: &mut Runtime<'_>,
