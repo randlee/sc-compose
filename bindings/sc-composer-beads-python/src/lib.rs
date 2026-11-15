@@ -167,13 +167,19 @@ fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyE
     ) && let Ok(envelope) = serde_json::to_value(error_kind)
     {
         let value = error.value(py);
-        if let Some(details) = envelope.get("details")
-            && let Ok(details) = json_to_py(py, details)
-        {
-            let _ = value.setattr("_details", details);
+        if let Some(details) = envelope.get("details") {
+            let details = match json_to_py(py, details) {
+                Ok(details) => details,
+                Err(error) => return error,
+            };
+            if let Err(error) = value.setattr("_details", details) {
+                return error;
+            }
         }
-        if let Some(recovery) = envelope.get("recovery").and_then(Value::as_str) {
-            let _ = value.setattr("_recovery", recovery);
+        if let Some(recovery) = envelope.get("recovery").and_then(Value::as_str)
+            && let Err(error) = value.setattr("_recovery", recovery)
+        {
+            return error;
         }
     }
     error
