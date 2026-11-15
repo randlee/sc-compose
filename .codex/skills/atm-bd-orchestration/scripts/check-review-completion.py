@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.11,<3.12"
-# dependencies = ["pydantic>=2", "pyyaml", "sc-compose>=1.7.0,<2"]
+# dependencies = ["pydantic>=2", "pyyaml", "sc-compose>=1.8.0,<2"]
 # ///
 # pyright: strict
 """Check a phase review's completion variables before rendering and closing."""
@@ -87,6 +87,9 @@ def validate(value: object) -> None:
 
 def main() -> int:
     try:
+        if len(sys.argv) == 2 and sys.argv[1] in ("-h", "--help"):
+            print("usage: check-review-completion.py <completion-vars.json>")
+            return 0
         if len(sys.argv) != 2:
             raise ValueError("usage: check-review-completion.py <completion-vars.json>")
         validate(json.loads(Path(sys.argv[1]).read_text()))
