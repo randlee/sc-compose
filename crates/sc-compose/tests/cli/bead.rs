@@ -85,7 +85,7 @@ fn write_request(
             "rendered_formula": rendered_formula,
             "compose_variables": {
                 "project": {
-                    "name": "sc-compose",
+                    "name": "example-project",
                     "notes": "CLI canonical fixture"
                 },
                 "reviewers": [{ "id": "ada", "name": "Ada" }]
@@ -256,6 +256,46 @@ fn failed_validation_stops_preview_before_registry_or_pour() {
         Some(2)
     );
     assert_eq!(trace_stages(&trace), ["cook"]);
+}
+
+#[test]
+fn repour_without_a_target_is_a_usage_error_that_starts_no_bd() {
+    let fixture = TempFixture::new("bead-repour-usage");
+    let output = sc_compose()
+        .args(["bead", "repour", "plan.formula.toml.j2"])
+        .current_dir(&fixture.path)
+        .output()
+        .expect("run bead repour");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("--root"),
+        "{output:?}"
+    );
+}
+
+#[test]
+fn repour_with_an_invalid_root_id_returns_the_typed_id_error() {
+    let fixture = TempFixture::new("bead-repour-bad-root");
+    fs::write(
+        fixture.path.join("plan.formula.toml.j2"),
+        "formula = \"plan\"\n",
+    )
+    .unwrap();
+    let output = sc_compose()
+        .args([
+            "bead",
+            "repour",
+            "plan.formula.toml.j2",
+            "--root",
+            "bad id!",
+        ])
+        .arg("--json")
+        .current_dir(&fixture.path)
+        .output()
+        .expect("run bead repour");
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["payload"]["error"]["code"], "BEADS_GRAPH_ID_INVALID");
 }
 
 #[test]
@@ -579,15 +619,36 @@ impl GraphCliWorkspace {
             bd,
             beads_dir,
         };
-        workspace.bd_output(&[
-            "init",
-            "--non-interactive",
-            "--quiet",
-            "--skip-agents",
-            "--skip-hooks",
-            "--prefix",
-            "cli",
-        ]);
+        let mut init = vec![
+            "init".to_owned(),
+            "--non-interactive".into(),
+            "--quiet".into(),
+            "--skip-agents".into(),
+            "--skip-hooks".into(),
+            "--prefix".into(),
+            "cli".into(),
+        ];
+        // A bd built without embedded Dolt needs a dedicated throwaway server.
+        if let Some(port) = std::env::var_os("SC_COMPOSE_TEST_DOLT_PORT") {
+            fs::create_dir_all(&workspace.beads_dir).expect("beads directory");
+            let sequence = workspace
+                .fixture
+                .path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .and_then(|name| name.rsplit('-').next())
+                .unwrap_or("0")
+                .to_owned();
+            init.extend([
+                "--server".into(),
+                "--server-port".into(),
+                port.to_string_lossy().into_owned(),
+                "--database".into(),
+                format!("scc_{}_{sequence}", std::process::id()),
+            ]);
+        }
+        let init: Vec<&str> = init.iter().map(String::as_str).collect();
+        workspace.bd_output(&init);
         fs::create_dir_all(workspace.fixture.path.join("build")).expect("build directory");
         workspace
     }
@@ -1383,7 +1444,7 @@ fn run_external_registry_pour(workspace: &GraphCliWorkspace, home: &Path) -> ser
 
 #[test]
 #[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
-fn advanced_attach_missing_edge_previews_and_refuses_unqualified_apply_without_mutation() {
+fn advanced_attach_missing_edge_previews_then_applies_the_repair() {
     let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
         panic!(
             "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
@@ -1428,12 +1489,99 @@ fn advanced_attach_missing_edge_previews_and_refuses_unqualified_apply_without_m
             .any(|edge| edge["from"] == verify && edge["to"] == build && edge["action"] == "add")
     );
     assert_eq!(workspace.snapshot(), before);
-    let refused = advanced_graph_cli(&workspace, "attach", &request);
-    assert_eq!(refused.status.code(), Some(2), "{refused:?}");
-    let value: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
+    let repaired = advanced_graph_cli(&workspace, "attach", &request);
+    assert!(repaired.status.success(), "{repaired:?}");
+    let value: serde_json::Value = serde_json::from_slice(&repaired.stdout).unwrap();
+    assert!(
+        value["payload"]["graph"]["edges"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|edge| edge["from"] == verify && edge["to"] == build && edge["action"] == "added"),
+        "{value:#}"
+    );
+    assert_ne!(workspace.snapshot(), before, "the missing edge is restored");
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn repour_by_request_updates_an_attached_plan_and_keeps_runtime_state() {
+    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        panic!(
+            "real-bd test run without BD_EXECUTABLE: refusing a vacuous pass (run via scripts/test_real_bd.py with a pinned bd)"
+        );
+    };
+    let workspace = GraphCliWorkspace::new(bd);
+    let root = &workspace.fixture.path;
+    let example =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/beads/release-under-epic");
+    fs::copy(
+        example.join("release.formula.toml.j2"),
+        root.join("release.formula.toml.j2"),
+    )
+    .unwrap();
+    let mut request: serde_json::Value =
+        serde_json::from_slice(&fs::read(example.join("request.json")).unwrap()).unwrap();
+    let parent = workspace.bd_json(&["create", "Parent", "--type", "epic", "--json"])["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    request["working_directory"] = json!(fs::canonicalize(root).unwrap());
+    request["rendered_formula"] = json!(root.join("build/release.formula.toml"));
+    request["bd_executable"] = json!(workspace.bd);
+    request["parent"] = json!(parent);
+    let first = workspace.write_request(&request);
+    let applied = advanced_graph_cli(&workspace, "attach", &first);
+    assert!(applied.status.success(), "{applied:?}");
+    let created: serde_json::Value = serde_json::from_slice(&applied.stdout).unwrap();
+    let build = created["payload"]["graph"]["ids"]["build"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    workspace.bd_output(&[
+        "update",
+        &build,
+        "--status",
+        "in_progress",
+        "--notes",
+        "keep",
+    ]);
+    let beads = workspace
+        .bd_json(&["list", "--all", "-n", "0", "--json"])
+        .as_array()
+        .unwrap()
+        .len();
+
+    request["compose_variables"] = json!({"version": "1.6.2"});
+    let edited = workspace.write_request(&request);
+    let repoured = advanced_graph_cli(&workspace, "repour", &edited);
+    assert!(repoured.status.success(), "{repoured:?}");
+    let value: serde_json::Value = serde_json::from_slice(&repoured.stdout).unwrap();
+    assert_eq!(value["payload"]["outcome"], "succeeded", "{value:#}");
+    assert_eq!(value["payload"]["graph"]["ids"]["build"], build.as_str());
+    let shown = workspace.bd_json(&["show", &build, "--json"]);
+    assert_eq!(shown[0]["title"], "Build 1.6.2");
+    assert_eq!(shown[0]["status"], "in_progress");
+    assert_eq!(shown[0]["notes"], "keep");
+    let after = workspace.bd_json(&["list", "--all", "-n", "0", "--json"]);
+    assert_eq!(
+        after.as_array().unwrap().len(),
+        beads,
+        "nothing poured fresh"
+    );
+
+    let replay = advanced_graph_cli(&workspace, "repour", &edited);
+    assert!(replay.status.success(), "{replay:?}");
+
+    // A target that does not exist is refused (exit 2) before any write.
+    let before = workspace.snapshot();
+    request["parent"] = json!("cli-nope");
+    let missing = advanced_graph_cli(&workspace, "repour", &workspace.write_request(&request));
+    assert_eq!(missing.status.code(), Some(2), "{missing:?}");
+    let value: serde_json::Value = serde_json::from_slice(&missing.stdout).unwrap();
     assert_eq!(
         value["payload"]["outcome"]["refused"]["code"],
-        "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE"
+        "BEADS_GRAPH_PARENT_NOT_FOUND"
     );
     assert_eq!(workspace.snapshot(), before);
 }

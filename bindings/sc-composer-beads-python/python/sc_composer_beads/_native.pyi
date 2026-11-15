@@ -10,7 +10,6 @@ BEADS_GRAPH_RELATION_INVALID: str
 BEADS_GRAPH_CONFLICT: str
 BEADS_GRAPH_EDGE_CONFLICT: str
 BEADS_GRAPH_EDGE_MISSING: str
-BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE: str
 BEADS_GRAPH_READ_FAILED: str
 BEADS_GRAPH_APPLY_FAILED: str
 BEADS_GRAPH_APPLY_UNCONFIRMED: str
@@ -30,6 +29,7 @@ class BeadOperation:
     POUR: str
     PREVIEW_ATTACH: str
     ATTACH: str
+    REPOUR: str
 
 
 class PourAuthorization:
@@ -44,6 +44,7 @@ class BeadStage:
     POUR: str
     PREVIEW_ATTACH: str
     ATTACH: str
+    REPOUR: str
 
 
 class BeadStageOutcome:
@@ -123,3 +124,5 @@ def preview_pour(request: BeadComposeRequest, *, render_by: str = "sc-compose", 
 def pour(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
 def preview_attach(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
 def attach(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
+
+def repour(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...

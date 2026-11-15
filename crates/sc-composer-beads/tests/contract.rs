@@ -327,10 +327,6 @@ fn every_advertised_error_has_its_stable_code() {
             "BEADS_GRAPH_EDGE_MISSING",
         ),
         (
-            BeadComposeError::GraphAtomicUpdateUnavailable,
-            "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE",
-        ),
-        (
             BeadComposeError::GraphReadFailed {
                 command: vec!["bd".into(), "show".into(), "proj-42".into()],
                 status: Some(1),
@@ -399,6 +395,12 @@ fn every_advertised_error_has_its_stable_code() {
         }
     }
     assert_eq!(BeadComposeError::GRAPH_CODES, graph_codes.as_slice());
+    // Phase W retired the atomic-update refusal: no error, code or constant
+    // reports it any more, so a mixed update is applied, never refused.
+    assert!(
+        !BeadComposeError::GRAPH_CODES.contains(&"BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE"),
+        "the retired atomic-update code must not be reported"
+    );
 }
 
 #[test]

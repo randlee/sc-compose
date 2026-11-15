@@ -82,7 +82,7 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
         )),
         BeadComposeError::GraphConflict { id, reason } => Some((
             json!({ "id": id, "reason": reason }),
-            "Inspect the named bead or use a new ref; existing beads are never edited.",
+            "Inspect the named bead ownership or use a new ref.",
         )),
         BeadComposeError::GraphEdgeConflict {
             from,
@@ -97,22 +97,21 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
             json!({ "edges": edges }),
             "For each missing edge, run bd dep add <from> <to> --type <type>, then retry.",
         )),
-        BeadComposeError::GraphAtomicUpdateUnavailable => Some((
-            json!({}),
-            "Use a qualified bd transaction with ownership preconditions; no mutation was attempted.",
-        )),
         BeadComposeError::GraphReadFailed {
-            command,
-            status,
-            cause,
-        }
-        | BeadComposeError::GraphApplyFailed {
             command,
             status,
             cause,
         } => Some((
             json!({ "command": command, "status": status, "cause": cause }),
-            "Fix the bd failure and retry; nothing was written.",
+            "Fix the bd read or preview failure and retry; no graph write was attempted.",
+        )),
+        BeadComposeError::GraphApplyFailed {
+            command,
+            status,
+            cause,
+        } => Some((
+            json!({ "command": command, "status": status, "cause": cause }),
+            crate::error::graph_apply_recovery(command),
         )),
         BeadComposeError::GraphApplyUnconfirmed {
             command,

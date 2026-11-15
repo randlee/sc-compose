@@ -208,8 +208,10 @@ The graph engine:
    rendered formula and applies it with a single `bd create --graph`
    transaction (`--dry-run` for previews); a no-op writes nothing.
 
-It issues no other mutating `bd` command and never passes `--var` for graph
-operations: structure and values come from the sc-compose template.
+The original graph creation path issues no other mutating `bd` command.
+Advanced re-pour uses the resumable sequential updates specified by ADR-0023
+and FR-24.34. Graph operations never pass `--var`: structure and values come
+from the sc-compose template.
 
 For bounded subprocess output, the library contains the child process tree on
 supported platforms: Unix uses a dedicated process group and Windows uses a

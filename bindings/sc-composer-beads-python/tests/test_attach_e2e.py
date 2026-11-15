@@ -68,9 +68,13 @@ def _worker(root: Path, bd: str) -> None:
     assert preview_missing["outcome"] == "succeeded"
     assert any(edge["from"] == expected["verify"] and edge["to"] == expected["build"] and edge["action"] == "add" for edge in preview_missing["graph"]["edges"])
     assert snapshot() == before
-    refused = beads.attach(request).to_json()
-    assert refused["outcome"]["refused"]["code"] == "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE"
-    assert snapshot() == before
+    repaired = beads.attach(request).to_json()
+    assert repaired["outcome"] == "succeeded"
+    assert any(edge["from"] == expected["verify"] and edge["to"] == expected["build"] and edge["action"] == "added" for edge in repaired["graph"]["edges"])
+    restored = {row["dependency_type"] for row in json.loads(run("dep", "list", expected["verify"], "--json")) if row["id"] == expected["build"]}
+    assert restored == {"blocks"}
+    shown = json.loads(run("show", expected["build"], "--json"))[0]
+    assert shown["status"] == "closed" and shown["notes"] == "keep wheel evidence"
 
 
 @pytest.mark.parametrize("operation_name", ["attach", "preview_attach"])

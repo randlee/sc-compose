@@ -71,6 +71,7 @@ const fn bead_wants_json(args: &BeadArgs) -> bool {
         | BeadSubcommand::Pour(args)
         | BeadSubcommand::PreviewAttach(args)
         | BeadSubcommand::Attach(args) => args.json,
+        BeadSubcommand::Repour(args) => args.request.json,
     }
 }
 
@@ -316,6 +317,26 @@ mod tests {
             ),
             (
                 &["sc-compose", "bead", "attach", "--request", "request.json"],
+                false,
+            ),
+            (
+                &["sc-compose", "bead", "repour", "plan.j2", "--root", "bd-1"],
+                false,
+            ),
+            (
+                &[
+                    "sc-compose",
+                    "bead",
+                    "repour",
+                    "plan.j2",
+                    "--root",
+                    "bd-1",
+                    "--json",
+                ],
+                true,
+            ),
+            (
+                &["sc-compose", "bead", "repour", "--request", "request.json"],
                 false,
             ),
             (

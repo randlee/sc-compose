@@ -192,9 +192,8 @@ sc-compose bead attach         --request req.json --json  # create under an exis
     once. `--render-by bd` keeps the 1.7.0 behaviour.
   - `bead pour FORMULA --var KEY=VALUE` pours a formula directly, without a
     request file.
-  - In the default mode, `pour` and `attach` refuse a run that mixes new and
-    existing beads, or one that only adds edges. The refusal is
-    `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`, and nothing is written.
+  - `bead repour FORMULA --root <bead-id>` re-applies an updated plan onto the
+    beads already poured, keeping ids and runtime state.
 
 The same contract is available as the `sc-composer-beads` Rust crate and
 Python package (`pip install sc-composer-beads`; `from sc_composer_beads import

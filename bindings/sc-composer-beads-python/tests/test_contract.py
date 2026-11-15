@@ -270,7 +270,7 @@ def test_unknown_operation_preserves_the_request_error(tmp_path: Path, name: str
 
     assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
     assert raised.value.stage == "request"
-    assert raised.value.message == "operation must be render, validate, preview_pour, pour, preview_attach, or attach"
+    assert raised.value.message == "operation must be render, validate, preview_pour, pour, preview_attach, attach, or repour"
 
 
 @pytest.mark.parametrize("failure", ["import", "loads"])
@@ -717,3 +717,20 @@ def test_python_strict_is_explicit_and_schema_scoped(tmp_path: Path) -> None:
     assert beads.render(request, strict=True).outcome.kind == "failed"
     template.write_text('title = "{{ value }}"\n', encoding="utf-8")
     assert beads.render(request, strict=True).outcome.kind == "succeeded"
+
+
+def test_repour_wire_values_and_additive_actions(tmp_path: Path) -> None:
+    assert beads.BeadOperation.REPOUR == beads.BeadStage.REPOUR == "repour"
+    request = beads.BeadComposeRequest(
+        tmp_path, tmp_path / "template.formula.toml.j2", tmp_path / "formula.toml",
+        {}, operation=beads.BeadOperation.REPOUR, parent="project-1",
+        pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+    )
+    assert request.operation == "repour"
+    fixture = json.loads((GRAPH_FIXTURE_ROOT / "receipt-graph-pour.json").read_text(encoding="utf-8"))
+    fixture["operation"] = "repour"
+    fixture["graph"]["nodes"][0]["action"] = "updated"
+    fixture["graph"]["nodes"][1]["action"] = "retained"
+    result = beads.BeadComposeReceipt.from_json(json.dumps(fixture)).to_json()
+    assert result["graph"]["nodes"][0]["action"] == "updated"
+    assert result["graph"]["nodes"][1]["action"] == "retained"
