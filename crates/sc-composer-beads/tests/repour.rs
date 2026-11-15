@@ -1106,11 +1106,10 @@ fn preview_and_apply_reverse_an_edge_and_keep_both_external_directions() {
     let ids = bd.ids_by_step();
     let build = &ids["build"];
     let verify = &ids["verify"];
-    {
-        let mut store = bd.store.lock().unwrap();
-        store.deps.push(dep("outside-gate", build, "blocks"));
-        store.deps.push(dep(verify, "outside-task", "blocks"))
-    };
+    let mut store = bd.store.lock().unwrap();
+    store.deps.push(dep("outside-gate", build, "blocks"));
+    store.deps.push(dep(verify, "outside-task", "blocks"));
+    drop(store);
     bd.cook(&json!([
         {"id":"build","title":"Build","description":"compile","needs":["verify"]},
         {"id":"verify","title":"Verify"}
