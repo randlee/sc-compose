@@ -1683,9 +1683,7 @@ fn cli_strict_is_explicit_and_schema_scoped() {
 }
 
 #[cfg(unix)]
-#[test]
-fn revision_cli_refuses_unknown_database_and_previews_with_override() {
-    let fixture = TempFixture::new("bead-revision-policy");
+fn revision_cli_fixture(fixture: &TempFixture) -> (PathBuf, PathBuf) {
     let root = &fixture.path;
     let template = root.join("sample.formula.toml.j2");
     let rendered = root.join("sample.formula.toml");
@@ -1710,6 +1708,14 @@ fn revision_cli_refuses_unknown_database_and_previews_with_override() {
         })
         .to_string(),
     );
+    (request, trace)
+}
+
+#[cfg(unix)]
+#[test]
+fn revision_cli_refuses_unknown_database_and_previews_with_override() {
+    let fixture = TempFixture::new("bead-revision-policy");
+    let (request, trace) = revision_cli_fixture(&fixture);
     let conflict = sc_compose()
         .args(["bead", "pour", "--request"])
         .arg(&request)
