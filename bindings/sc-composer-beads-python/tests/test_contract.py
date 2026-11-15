@@ -759,6 +759,11 @@ def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> 
         formula_name="sample", bd_executable=executable, parent="proj-1",
         pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
     )
+    with pytest.raises(beads.BeadComposeError) as conflict:
+        beads.preview_pour(request)
+    assert conflict.value.code == beads.BEADS_GRAPH_CONFLICT
+    assert conflict.value.details["reason"] == "plan_changed"
+    assert "repour" in conflict.value.recovery
     with pytest.raises(beads.BeadComposeError) as refused:
         beads.repour(request, dry_run=True)
     assert refused.value.code == beads.BEADS_GRAPH_DIRTY_UNKNOWN

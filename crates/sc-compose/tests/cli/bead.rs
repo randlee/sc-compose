@@ -1735,6 +1735,18 @@ fn revision_cli_refuses_unknown_database_and_previews_with_override() {
             .unwrap()
             .contains("repour")
     );
+    let human = sc_compose()
+        .args(["bead", "pour", "--request"])
+        .arg(&request)
+        .arg("--dry-run")
+        .output()
+        .unwrap();
+    assert_eq!(human.status.code(), Some(2));
+    let text = String::from_utf8(human.stderr).unwrap();
+    assert!(
+        text.contains("plan_changed") && text.contains("repour"),
+        "{text}"
+    );
     let refused = sc_compose()
         .args(["bead", "repour", "--request"])
         .arg(&request)
