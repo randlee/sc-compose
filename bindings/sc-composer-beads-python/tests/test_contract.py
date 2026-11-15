@@ -772,6 +772,9 @@ def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> 
         beads.repour(request, allow_uncommitted=True)
     assert partial.value.code == beads.BEADS_GRAPH_APPLY_PARTIAL
     assert partial.value.details["applied"]
+    detached = partial.value.details
+    detached["applied"].clear()
+    assert partial.value.details["applied"]
     assert "pending" in partial.value.details
     assert "rerun" in partial.value.recovery
 

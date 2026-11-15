@@ -1,5 +1,6 @@
 """Construct the stable-ABI equivalent of the native Beads exception."""
 
+import copy
 import inspect
 
 
@@ -51,7 +52,7 @@ class BeadComposeError(Exception):
     code = property(lambda self: self._code)
     message = property(lambda self: self._message)
     stage = property(lambda self: self._stage)
-    details = property(lambda self: None if self._details is None else self._details.copy())
+    details = property(lambda self: copy.deepcopy(self._details))
     recovery = property(lambda self: self._recovery)
 
     def __str__(self):
