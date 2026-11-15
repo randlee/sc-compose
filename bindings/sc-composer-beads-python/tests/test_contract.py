@@ -18,10 +18,10 @@ import sc_composer_beads as beads
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"
 GRAPH_FIXTURE_ROOT = FIXTURE_ROOT / "graph"
+CLI_BUILD_HANG_GUARD_SECONDS = 30 * 60
 
 
-@pytest.fixture(scope="session")
-def sc_compose_cli() -> Path:
+def _resolve_sc_compose_cli() -> Path:
     """Resolve a supplied binary, or build once before the parity test runs."""
     supplied = os.environ.get("SC_COMPOSE_TEST_CLI")
     if supplied:
@@ -29,18 +29,64 @@ def sc_compose_cli() -> Path:
         if not executable.is_file():
             pytest.fail(f"SC_COMPOSE_TEST_CLI is not a prebuilt executable: {executable}")
         return executable
-    # Setup may perform a cold build. It has no elapsed-time test assertion or
-    # subprocess timeout: the test below invokes only the resulting executable.
-    built = subprocess.run(
-        ["cargo", "build", "-j", "2", "-p", "sc-compose", "--bin", "sc-compose", "--message-format=json"],
-        cwd=REPOSITORY_ROOT, check=True, capture_output=True, text=True,
-    )
+    # Cold builds have no speed assertion. This generous deadline only bounds
+    # a hung setup (for example a held Cargo lock or a stalled registry).
+    try:
+        built = subprocess.run(
+            ["cargo", "build", "-j", "2", "-p", "sc-compose", "--bin", "sc-compose", "--message-format=json"],
+            cwd=REPOSITORY_ROOT, check=True, capture_output=True, text=True,
+            timeout=CLI_BUILD_HANG_GUARD_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        pytest.fail(
+            f"CLI setup cargo build hit the {CLI_BUILD_HANG_GUARD_SECONDS}s failure-only hang guard: {exc}. "
+            "Inspect Cargo target locks and registry/network access, or supply SC_COMPOSE_TEST_CLI "
+            f"from a separate build step. stdout={exc.stdout!r}; stderr={exc.stderr!r}"
+        )
     artifacts = [json.loads(line) for line in built.stdout.splitlines() if line.startswith("{")]
     executables = [Path(item["executable"]) for item in artifacts
                    if item.get("reason") == "compiler-artifact" and item.get("executable")
                    and item["target"]["name"] == "sc-compose"]
     assert len(executables) == 1, f"expected one CLI build artifact, got {executables}"
     return executables[0]
+
+
+@pytest.fixture(scope="session")
+def sc_compose_cli() -> Path:
+    return _resolve_sc_compose_cli()
+
+
+def test_cli_setup_timeout_reports_the_cause_without_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SC_COMPOSE_TEST_CLI", raising=False)
+    calls = []
+
+    def stalled_build(command, **options):
+        calls.append(command)
+        assert options["timeout"] >= 600, "setup needs a generous hang guard"
+        raise subprocess.TimeoutExpired(
+            command, options["timeout"], output="waiting for target lock", stderr="registry request pending"
+        )
+
+    monkeypatch.setattr(subprocess, "run", stalled_build)
+    with pytest.raises(pytest.fail.Exception) as failure:
+        _resolve_sc_compose_cli()
+    message = str(failure.value)
+    assert "failure-only hang guard" in message
+    assert "waiting for target lock" in message and "registry request pending" in message
+    assert "SC_COMPOSE_TEST_CLI" in message
+    assert len(calls) == 1, "a stalled build must fail without retrying"
+
+
+def test_cli_setup_supplied_binary_does_not_start_cargo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    executable = tmp_path / "prebuilt-cli"
+    executable.touch()
+    monkeypatch.setenv("SC_COMPOSE_TEST_CLI", str(executable))
+
+    def unexpected_build(*_args, **_options):
+        pytest.fail("a supplied prebuilt CLI must bypass Cargo entirely")
+
+    monkeypatch.setattr(subprocess, "run", unexpected_build)
+    assert _resolve_sc_compose_cli() == executable.resolve()
 
 
 def _write_revision_bd(root: Path, *, scenario: str = "policy") -> tuple[Path, Path, Path]:
