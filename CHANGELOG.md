@@ -74,6 +74,8 @@ configuration, not qualified deliverables.
 
 ### Known limitations
 
+- Server-mode dirty/clean detection, real partial failure, and real graph
+  cycles are deferred to the post-Phase W integration-test suite.
 - sc-compose does not serialize concurrent pours or attaches. Under a race, bd
   decides the committed state.
 - Full-platform qualification (30 cells) is pending the single V7 run. Go
