@@ -259,7 +259,12 @@ impl FakeBd {
                     .collect();
                 reply(0, &Value::Array(rows).to_string(), "")
             }
-            ["sql", "--readonly", _, "--json"] => {
+            [
+                "sql",
+                "--readonly",
+                "SELECT table_name, staged, status FROM dolt_status",
+                "--json",
+            ] => {
                 let (status, stdout, stderr) = &*self.sql.lock().unwrap();
                 reply(*status, stdout, stderr)
             }
@@ -488,15 +493,31 @@ fn three_repours_keep_ids_and_runtime_state_and_create_nothing_fresh() {
 fn removed_nodes_are_marked_and_obsolete_internal_edges_removed() {
     let (mut w, bd, root) = poured(&plan_v3());
     let ids = bd.ids_by_step();
+    bd.store.lock().unwrap().deps.extend([
+        dep(&ids["ship"], "outside-gate", "blocks"),
+        dep("outside-task", &ids["ship"], "blocks"),
+    ]);
     bd.cook(&json!([
         {"id":"build","title":"Build","description":"compile"},
         {"id":"verify","title":"Verify"}
     ]));
     bd.fail_nth_mutation(None);
     let before = bd.snapshot();
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Allow,
+    );
+    w.request.operation = BeadOperation::PreviewRepour;
+    let preview = execute_graph_revision_with_runner(&w.request, &options, &bd)
+        .unwrap()
+        .graph
+        .unwrap();
+    assert_eq!(bd.snapshot(), before);
+    assert_eq!(bd.mutation_count(), 0);
     let receipt = w.repour(&bd, &root);
     assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
     let graph = receipt.graph.unwrap();
+    assert_eq!(preview.changes, graph.changes);
     assert!(graph.nodes.iter().any(|node| {
         node.step.as_ref().is_some_and(|s| s.as_str() == "ship")
             && node.action == BeadNodeAction::Retained
@@ -511,7 +532,7 @@ fn removed_nodes_are_marked_and_obsolete_internal_edges_removed() {
         graph
             .changes
             .iter()
-            .any(|c| matches!(c, GraphChange::MarkRemovedNode { .. }))
+            .any(|c| matches!(c, GraphChange::MarkRemovedNode { bead, remove_command, status } if bead.as_str() == ids["ship"] && remove_command == &format!("bd delete -- '{}'", ids["ship"]) && status == "open"))
     );
     let after = bd.snapshot();
     assert_eq!(after.rows.len(), before.rows.len());
@@ -524,6 +545,24 @@ fn removed_nodes_are_marked_and_obsolete_internal_edges_removed() {
             .as_array()
             .unwrap()
             .contains(&json!("repour:removed"))
+    );
+    assert!(
+        after
+            .deps
+            .contains(&dep(&ids["ship"], "outside-gate", "blocks"))
+    );
+    assert!(
+        after
+            .deps
+            .contains(&dep("outside-task", &ids["ship"], "blocks"))
+    );
+    assert_eq!(
+        graph
+            .changes
+            .iter()
+            .filter(|c| matches!(c, GraphChange::RetainExternalEdge { .. }))
+            .count(),
+        2
     );
     assert_eq!(bd.ids_by_step(), ids);
 }
@@ -946,7 +985,12 @@ fn a_partial_failure_reports_applied_and_pending_work_with_a_rerun_hint() {
         "{receipt:#?}"
     );
     let evidence = &receipt.stages.last().unwrap().stderr_excerpt;
-    assert!(evidence.contains("AddNode"), "{evidence}");
+    assert!(evidence.contains("1 new nodes"), "{evidence}");
+    assert!(
+        evidence.contains("3 changes confirmed applied"),
+        "{evidence}"
+    );
+    assert!(evidence.contains("2 pending"), "{evidence}");
     assert!(evidence.contains("pending"), "{evidence}");
     assert!(evidence.contains("rerun"), "{evidence}");
 }
@@ -1056,9 +1100,11 @@ fn revision_refuses_dirty_and_unknown_and_override_is_explicit() {
     let (mut w, bd, root) = poured(&plan_v1());
     bd.cook(&plan_v2());
     w.request.operation = BeadOperation::PreviewRepour;
-    let options = |uncommitted| GraphRevisionOptions {
-        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
-        uncommitted,
+    let options = |uncommitted| {
+        GraphRevisionOptions::new(
+            ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+            uncommitted,
+        )
     };
     *bd.sql.lock().unwrap() = (0, "[{\"table_name\":\"issues\"}]".into(), String::new());
     let before = bd.snapshot();
@@ -1076,10 +1122,22 @@ fn revision_refuses_dirty_and_unknown_and_override_is_explicit() {
         execute_graph_revision_with_runner(&w.request, &options(UncommittedPolicy::Refuse), &bd)
             .unwrap_err();
     assert_eq!(error.code(), "BEADS_GRAPH_DIRTY_UNKNOWN");
+    let wire = serde_json::to_value(&error).unwrap();
+    assert_eq!(wire["details"]["cause_code"], "BEADS_GRAPH_READ_FAILED");
     assert!(
         error
             .to_string()
             .contains("unsupported query\nadditional detail")
+    );
+    *bd.sql.lock().unwrap() = (0, "unreadable rows".into(), String::new());
+    let malformed =
+        execute_graph_revision_with_runner(&w.request, &options(UncommittedPolicy::Refuse), &bd)
+            .unwrap_err();
+    let malformed_wire = serde_json::to_value(&malformed).unwrap();
+    assert_eq!(malformed_wire["code"], "BEADS_GRAPH_DIRTY_UNKNOWN");
+    assert_eq!(
+        malformed_wire["details"]["cause_code"],
+        "BEADS_GRAPH_READ_FAILED"
     );
     let result =
         execute_graph_revision_with_runner(&w.request, &options(UncommittedPolicy::Allow), &bd)
@@ -1093,17 +1151,22 @@ fn explicit_pour_target_rejects_changed_plan_and_recommends_repour() {
     let (mut w, bd, root) = poured(&plan_v1());
     bd.cook(&plan_v2());
     let before = bd.snapshot();
-    let options = GraphRevisionOptions {
-        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
-        uncommitted: UncommittedPolicy::Refuse,
-    };
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Refuse,
+    );
     for operation in [BeadOperation::Pour, BeadOperation::PreviewPour] {
         w.request.operation = operation;
         let error = execute_graph_revision_with_runner(&w.request, &options, &bd).unwrap_err();
         assert_eq!(error.code(), "BEADS_GRAPH_CONFLICT");
         let json = serde_json::to_value(error).unwrap();
         assert_eq!(json["details"]["reason"], "plan_changed");
-        assert!(json["recovery"].as_str().unwrap().contains("repour"));
+        let recovery = json["recovery"].as_str().unwrap();
+        assert!(recovery.contains("sc-compose bead repour"));
+        assert!(recovery.contains("plan_changed"));
+        assert!(recovery.contains("2 field changes"), "{recovery}");
+        let message = json["message"].as_str().unwrap();
+        assert!(!message.contains("FieldChange {"), "{message}");
         assert_eq!(before, bd.snapshot());
     }
 }
@@ -1122,10 +1185,10 @@ fn preview_and_apply_reverse_an_edge_and_keep_both_external_directions() {
         {"id":"build","title":"Build","description":"compile","needs":["verify"]},
         {"id":"verify","title":"Verify"}
     ]));
-    let options = GraphRevisionOptions {
-        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
-        uncommitted: UncommittedPolicy::Refuse,
-    };
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Refuse,
+    );
     w.request.operation = BeadOperation::PreviewRepour;
     bd.fail_nth_mutation(None);
     let before = bd.snapshot();
@@ -1176,9 +1239,20 @@ fn flattening_removes_internal_chain_edges_without_deleting_beads() {
         {"id":"verify","title":"Verify"},
         {"id":"ship","title":"Ship"}
     ]));
+    workspace.request.operation = BeadOperation::PreviewRepour;
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Allow,
+    );
+    let preview = execute_graph_revision_with_runner(&workspace.request, &options, &bd)
+        .unwrap()
+        .graph
+        .unwrap();
+    assert_eq!(before, bd.snapshot());
     let receipt = workspace.repour(&bd, &root);
     assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
     let changes = receipt.graph.unwrap().changes;
+    assert_eq!(preview.changes, changes);
     assert_eq!(
         changes
             .iter()
@@ -1197,18 +1271,20 @@ fn revision_partial_error_carries_confirmed_and_pending_changes() {
     bd.cook(&plan_v4());
     bd.fail_nth_mutation(Some(2));
     workspace.request.operation = BeadOperation::Repour;
-    let options = GraphRevisionOptions {
-        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
-        uncommitted: UncommittedPolicy::Refuse,
-    };
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Refuse,
+    );
     let error = execute_graph_revision_with_runner(&workspace.request, &options, &bd).unwrap_err();
     let GraphApplyPartial {
         applied,
         pending,
         failed_operation,
+        outcome_uncertain,
+        cause_code,
         ..
     } = match error {
-        BeadComposeError::GraphApplyPartial { details } => details,
+        BeadComposeError::GraphApplyPartial { details } => *details,
         other => panic!("expected partial failure, got {other}"),
     };
     assert!(
@@ -1221,7 +1297,9 @@ fn revision_partial_error_carries_confirmed_and_pending_changes() {
             .iter()
             .any(|change| matches!(change, GraphChange::FieldChange { .. }))
     );
-    assert!(failed_operation.contains("uncertain"));
+    assert!(failed_operation.contains("update"));
+    assert!(outcome_uncertain);
+    assert_eq!(cause_code, "BEADS_GRAPH_APPLY_FAILED");
 }
 
 #[test]
@@ -1233,10 +1311,10 @@ fn revision_respects_explicit_bd_rendering_options() {
     )
     .unwrap();
     workspace.request.operation = BeadOperation::PreviewRepour;
-    let revision = GraphRevisionOptions {
-        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
-        uncommitted: UncommittedPolicy::Refuse,
-    };
+    let revision = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Refuse,
+    );
     let execution = BeadExecutionOptions {
         render_by: BeadRenderBy::Bd,
         strict: true,
@@ -1254,4 +1332,223 @@ fn revision_respects_explicit_bd_rendering_options() {
             .unwrap()
             .contains("{{ variable | upper }}")
     );
+}
+
+#[test]
+fn attached_pour_target_explains_plan_conflict_before_writes() {
+    let mut w = Workspace::new();
+    let bd = FakeBd::new();
+    bd.add_parent("proj-1");
+    bd.cook(&plan_v1());
+    w.request.operation = BeadOperation::Attach;
+    w.request.parent = Some(BeadId::new("proj-1").unwrap());
+    w.request.ref_ = Some(GraphRef::new("rel").unwrap());
+    execute_bead_request_with_runner(&w.request, &bd).unwrap();
+    bd.cook(&plan_v2());
+    bd.fail_nth_mutation(None);
+    let before = bd.snapshot();
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::Attach {
+            parent: BeadId::new("proj-1").unwrap(),
+            reference: GraphRef::new("rel").unwrap(),
+        },
+        UncommittedPolicy::Refuse,
+    );
+    for operation in [BeadOperation::Pour, BeadOperation::PreviewPour] {
+        w.request.operation = operation;
+        let error = execute_graph_revision_with_runner(&w.request, &options, &bd).unwrap_err();
+        let wire = serde_json::to_value(&error).unwrap();
+        assert_eq!(wire["code"], "BEADS_GRAPH_CONFLICT");
+        assert_eq!(wire["details"]["reason"], "plan_changed");
+        assert!(
+            wire["recovery"]
+                .as_str()
+                .unwrap()
+                .contains("sc-compose bead repour --request")
+        );
+    }
+    assert_eq!(bd.snapshot(), before);
+    assert_eq!(bd.mutation_count(), 0);
+}
+
+#[test]
+fn revision_priority_preview_reports_the_numeric_value_that_is_applied() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    let build = bd.ids_by_step()["build"].clone();
+    bd.edit_row(&build, |row| row["priority"] = json!(1));
+    let mut plan = plan_v1();
+    plan[0]["priority"] = json!("P2");
+    bd.cook(&plan);
+    w.request.operation = BeadOperation::PreviewRepour;
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Allow,
+    );
+    let preview = execute_graph_revision_with_runner(&w.request, &options, &bd)
+        .unwrap()
+        .graph
+        .unwrap();
+    assert!(
+        preview
+            .changes
+            .iter()
+            .any(|c| matches!(c, GraphChange::FieldChange {
+        field: GraphField::Priority, before, after, ..
+    } if before == &json!(1) && after == &json!(2)))
+    );
+    let applied = w.repour(&bd, &root).graph.unwrap();
+    assert_eq!(preview.changes, applied.changes);
+    assert_eq!(bd.row(&build)["priority"], json!(2));
+}
+
+#[test]
+fn explicit_sc_compose_revision_options_enforce_declared_schema_strictness() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    fs::write(
+        &w.request.template,
+        "---\nrequired_variables:\n  - declared\n---\nformula = \"plan\"\n# {{ extra }}\n",
+    )
+    .unwrap();
+    w.request
+        .compose_variables
+        .insert("declared".into(), json!("yes"));
+    w.request
+        .compose_variables
+        .insert("extra".into(), json!("rendered-value"));
+    w.request.operation = BeadOperation::PreviewRepour;
+    let revision = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Allow,
+    );
+    let strict = BeadExecutionOptions {
+        render_by: BeadRenderBy::ScCompose,
+        strict: true,
+    };
+    let failed =
+        execute_graph_revision_with_options_and_runner(&w.request, &revision, &strict, &bd)
+            .unwrap();
+    assert!(
+        matches!(failed.outcome, BeadOutcome::Failed { ref code } if code == "BEADS_RENDER_FAILED")
+    );
+    let relaxed = BeadExecutionOptions {
+        strict: false,
+        ..strict
+    };
+    let success =
+        execute_graph_revision_with_options_and_runner(&w.request, &revision, &relaxed, &bd)
+            .unwrap();
+    assert_eq!(success.outcome, BeadOutcome::Succeeded);
+    assert!(
+        fs::read_to_string(&w.request.rendered_formula)
+            .unwrap()
+            .contains("# rendered-value")
+    );
+}
+
+struct CreateFailure<'a> {
+    bd: &'a FakeBd,
+    malformed: bool,
+}
+impl ProcessRunner for CreateFailure<'_> {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args.first().is_some_and(|arg| arg == "create") {
+            if self.malformed {
+                self.bd.dispatch(spec);
+                return Ok(reply(0, "not a graph response", ""));
+            }
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "injected spawn error",
+            ));
+        }
+        Ok(self.bd.dispatch(spec))
+    }
+}
+
+#[test]
+fn pre_invocation_create_error_keeps_its_type_but_an_unconfirmed_write_is_partial() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    bd.cook(&plan_v4());
+    bd.fail_nth_mutation(None);
+    w.request.operation = BeadOperation::Repour;
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Allow,
+    );
+    let before = bd.snapshot();
+    let error = execute_graph_revision_with_runner(
+        &w.request,
+        &options,
+        &CreateFailure {
+            bd: &bd,
+            malformed: false,
+        },
+    )
+    .unwrap_err();
+    assert!(matches!(error, BeadComposeError::BdUnavailable { .. }));
+    assert_eq!(bd.snapshot(), before);
+    assert_eq!(bd.mutation_count(), 0);
+    let error = execute_graph_revision_with_runner(
+        &w.request,
+        &options,
+        &CreateFailure {
+            bd: &bd,
+            malformed: true,
+        },
+    )
+    .unwrap_err();
+    let wire = serde_json::to_value(error).unwrap();
+    assert_eq!(wire["code"], "BEADS_GRAPH_APPLY_PARTIAL");
+    assert_eq!(
+        wire["details"]["cause_code"],
+        "BEADS_GRAPH_APPLY_UNCONFIRMED"
+    );
+    assert_eq!(wire["details"]["outcome_uncertain"], true);
+    assert_eq!(bd.mutation_count(), 1);
+}
+
+struct BlockPlanAfterPreflight<'a>(&'a FakeBd);
+impl ProcessRunner for BlockPlanAfterPreflight<'_> {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        if spec.args.first().is_some_and(|arg| arg == "sql") {
+            let path = spec.working_directory.join("plan.formula.toml.graph.json");
+            fs::remove_file(&path).unwrap();
+            fs::create_dir(&path).unwrap();
+        }
+        Ok(self.0.dispatch(spec))
+    }
+}
+
+#[test]
+fn local_plan_preparation_failure_is_not_an_uncertain_write() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    bd.cook(&plan_v4());
+    bd.fail_nth_mutation(None);
+    w.request.operation = BeadOperation::Repour;
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Refuse,
+    );
+    let before = bd.snapshot();
+    let error =
+        execute_graph_revision_with_runner(&w.request, &options, &BlockPlanAfterPreflight(&bd))
+            .unwrap_err();
+    let wire = serde_json::to_value(&error).unwrap();
+    assert_eq!(wire["code"], "BEADS_OUTPUT_PATH_INVALID");
+    assert_eq!(wire["details"]["field"], "graph_plan");
+    assert!(
+        wire["details"]["value"]
+            .as_str()
+            .unwrap()
+            .ends_with("plan.formula.toml.graph.json")
+    );
+    assert_eq!(bd.snapshot(), before);
+    assert_eq!(bd.mutation_count(), 0);
+    assert!(!error.to_string().contains("uncertain"));
+    // An initially blocked plan also retains the same diagnostic before any bd call.
+    bd.calls.lock().unwrap().clear();
+    let error = execute_graph_revision_with_runner(&w.request, &options, &bd).unwrap_err();
+    let wire = serde_json::to_value(&error).unwrap();
+    assert_eq!(wire["details"]["field"], "graph_plan");
+    assert!(bd.calls.lock().unwrap().is_empty());
 }

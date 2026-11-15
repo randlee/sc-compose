@@ -405,7 +405,7 @@ pub enum BeadComposeError {
         reason: GraphRelationInvalidReason,
     },
     /// The existing graph differs from the requested pour.
-    #[error("graph plan changed ({reason}): {changes:?}; run repour to apply these changes")]
+    #[error("graph plan changed ({reason}): {}; run sc-compose bead repour to apply these changes", crate::revision::change_summary(.changes))]
     GraphPlanChanged {
         /// Conflict reason.
         reason: GraphConflictReason,
@@ -420,14 +420,16 @@ pub enum BeadComposeError {
         "database cleanliness is unknown: {cause}; run bd dolt commit or use --allow-uncommitted"
     )]
     GraphDirtyUnknown {
+        /// Stable code of the failed probe or response parsing error.
+        cause_code: String,
         /// Why the bd probe failed.
         cause: String,
     },
     /// Revision stopped after one or more operations.
-    #[error("graph apply partially completed: {details:?}; reconcile and rerun repour")]
+    #[error("graph apply partially completed: {details}; reconcile and rerun repour")]
     GraphApplyPartial {
         /// Confirmed and remaining work.
-        details: crate::revision::GraphApplyPartial,
+        details: Box<crate::revision::GraphApplyPartial>,
     },
     /// `Conflict` condition from ADR-0023.
     #[error("graph bead `{id}` conflicts: {reason}; inspect its ownership or use a new ref")]

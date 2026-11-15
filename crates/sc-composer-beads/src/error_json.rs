@@ -12,7 +12,7 @@ struct ErrorEnvelope<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     details: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    recovery: Option<&'a str>,
+    recovery: Option<String>,
 }
 
 impl Serialize for BeadComposeError {
@@ -47,14 +47,21 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
         _ => graph_error_context(error),
     };
     let (details, recovery) = match context {
-        Some((details, recovery)) => (Some(details), Some(recovery)),
+        Some((details, recovery)) => (Some(details), Some(recovery.to_owned())),
         None => (None, None),
     };
     ErrorEnvelope {
         code: error.code(),
         message: error.to_string(),
         details,
-        recovery,
+        recovery: if let BeadComposeError::GraphPlanChanged { reason, changes } = error {
+            Some(format!(
+                "The existing graph conflicts because {reason}: {}. Run sc-compose bead repour FORMULA --root ROOT (or sc-compose bead repour --request REQUEST for an attachment) with the original target to apply the intended revision.",
+                crate::revision::change_summary(changes)
+            ))
+        } else {
+            recovery
+        },
     }
 }
 
@@ -135,8 +142,8 @@ fn revision_error_context(error: &BeadComposeError) -> Option<(Value, &'static s
             json!({"reason": "dirty"}),
             "Run bd dolt commit or use --allow-uncommitted.",
         )),
-        BeadComposeError::GraphDirtyUnknown { cause } => Some((
-            json!({"reason": "unknown", "cause": cause}),
+        BeadComposeError::GraphDirtyUnknown { cause, cause_code } => Some((
+            json!({"reason": "unknown", "cause": cause, "cause_code": cause_code}),
             "Run bd dolt commit or use --allow-uncommitted.",
         )),
         BeadComposeError::GraphApplyPartial { details } => Some((
@@ -159,7 +166,7 @@ impl crate::BeadDiagnostic {
                     code: envelope.code.into(),
                     message: envelope.message,
                     details: envelope.details,
-                    recovery: envelope.recovery.map(str::to_owned),
+                    recovery: envelope.recovery,
                 })
             }
             _ => None,
@@ -182,7 +189,7 @@ impl crate::BeadDiagnostic {
             code: envelope.code.into(),
             message: envelope.message,
             details: envelope.details,
-            recovery: envelope.recovery.map(str::to_owned),
+            recovery: envelope.recovery,
         })
     }
 }

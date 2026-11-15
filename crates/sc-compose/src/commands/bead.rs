@@ -619,9 +619,7 @@ fn print_receipt(
 ) -> Result<i32, CommandError> {
     let exit_code = match &receipt.outcome {
         BeadOutcome::Succeeded => exit_codes::SUCCESS,
-        BeadOutcome::Refused { .. } | BeadOutcome::Failed { .. } => {
-            exit_codes::VALIDATION_OR_RENDER_FAIL
-        }
+        _ => exit_codes::VALIDATION_OR_RENDER_FAIL,
     };
     if json {
         print_json(with_ephemeral_paths(receipt, ephemeral)?, Vec::new())
@@ -798,11 +796,7 @@ fn print_human_graph(graph: &sc_composer_beads::BeadGraph, ephemeral: &[&str]) {
 }
 
 fn outcome_summary(outcome: &BeadOutcome) -> &str {
-    match outcome {
-        BeadOutcome::Succeeded => "succeeded",
-        BeadOutcome::Refused { .. } => "refused",
-        BeadOutcome::Failed { .. } => "failed",
-    }
+    outcome.as_str()
 }
 
 fn missing_edge_recovery_commands(

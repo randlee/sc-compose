@@ -12,6 +12,18 @@ on the final candidate; they remain pending and no 1.8.0 tag exists. The
 platform and wheel entries below describe declared and locally checked
 configuration, not qualified deliverables.
 
+### Changed
+
+- Rust Beads revision APIs now use non-exhaustive enums and receipt/options
+  structs. Use `GraphRevisionOptions::new`, `GraphApplyPartial::new` and
+  `BeadGraph::new` instead of struct literals, and include wildcard match arms
+  for operation, stage, outcome and revision enums. `GraphChange::FieldChange`
+  uses `GraphField` with `as_str()` / `as_flag()`; its JSON field names stay the
+  same. Partial-apply details add `cause_code` and `outcome_uncertain`, and
+  unknown database-state errors retain `cause_code`. Partial-error details are
+  boxed to keep the error type small. These source changes are
+  included without a major version bump because the Beads API has no users.
+
 ### Added
 
 - `sc-compose bead --render-by <sc-compose|bd>` selects the formula renderer

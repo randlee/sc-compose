@@ -78,6 +78,7 @@ pub(crate) fn execute(
                 && matches!(
                     error,
                     BeadComposeError::GraphPlanChanged { .. }
+                        | BeadComposeError::GraphPlanPathInvalid { .. }
                         | BeadComposeError::GraphDirty
                         | BeadComposeError::GraphDirtyUnknown { .. }
                         | BeadComposeError::GraphApplyPartial { .. }
@@ -261,7 +262,7 @@ fn execute_revision_plan(
     if operation == BeadOperation::Repour && changed(&graph) {
         confirm_readback(validated, advanced, &graph, runtime).map_err(|error| {
             BeadComposeError::GraphApplyPartial {
-                details: crate::GraphApplyPartial {
+                details: Box::new(crate::GraphApplyPartial {
                     applied: Vec::new(),
                     pending: graph
                         .changes
@@ -271,10 +272,11 @@ fn execute_revision_plan(
                         })
                         .cloned()
                         .collect(),
-                    failed_operation:
-                        "read-back (write outcomes are uncertain; reconcile before retry)".into(),
+                    failed_operation: "read-back".into(),
+                    outcome_uncertain: true,
+                    cause_code: error.code().into(),
                     cause: error.to_string(),
-                },
+                }),
             }
         })?;
     }
@@ -316,26 +318,35 @@ fn check_dirty(runtime: &mut Runtime<'_>) -> Result<(), BeadComposeError> {
     if runtime.policy == Some(crate::revision::UncommittedPolicy::Allow) {
         return Ok(());
     }
-    let output = runtime
-        .invoke(vec![
-            "sql".into(),
-            "--readonly".into(),
-            "SELECT table_name, staged, status FROM dolt_status".into(),
-            "--json".into(),
-        ])
-        .map_err(|error| BeadComposeError::GraphDirtyUnknown {
-            cause: error.to_string(),
-        })?;
+    let output = runtime.invoke(vec![
+        "sql".into(),
+        "--readonly".into(),
+        "SELECT table_name, staged, status FROM dolt_status".into(),
+        "--json".into(),
+    ])?;
     if output.exit_status != Some(0) {
         let cause = if output.stderr.is_empty() {
             output.stdout
         } else {
             output.stderr
         };
-        return Err(BeadComposeError::GraphDirtyUnknown { cause });
+        let error = BeadComposeError::GraphReadFailed {
+            command: runtime
+                .stages
+                .last()
+                .map_or_else(Vec::new, |stage| stage.argv.clone()),
+            status: output.exit_status,
+            cause,
+        };
+        return Err(BeadComposeError::GraphDirtyUnknown {
+            cause_code: error.code().into(),
+            cause: error.to_string(),
+        });
     }
-    let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|error| {
+    let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|cause| {
+        let error = runtime.read_error(output.exit_status, &cause.to_string());
         BeadComposeError::GraphDirtyUnknown {
+            cause_code: error.code().into(),
             cause: error.to_string(),
         }
     })?;
@@ -418,13 +429,33 @@ fn partial_error(
     if runtime.stage != BeadStage::Repour {
         return with_progress(error, count, total);
     }
+    // Local preparation and spawn/argument failures retain their typed errors.
+    // Only a command that ran can have an uncertain write outcome.
+    if !matches!(
+        error,
+        BeadComposeError::GraphApplyFailed { .. }
+            | BeadComposeError::GraphApplyUnconfirmed { .. }
+            | BeadComposeError::ProcessOutputLimitExceeded { .. }
+    ) {
+        return error;
+    }
     BeadComposeError::GraphApplyPartial {
-        details: crate::GraphApplyPartial {
+        details: Box::new(crate::GraphApplyPartial {
             applied: applied.to_vec(),
             pending: pending.to_vec(),
-            failed_operation: format!("{command:?} (outcome uncertain; reconcile before retry)"),
-            cause: error.to_string(),
-        },
+            failed_operation: command
+                .iter()
+                .map(|arg| crate::error::shell_quote(arg))
+                .collect::<Vec<_>>()
+                .join(" "),
+            outcome_uncertain: true,
+            cause_code: error.code().into(),
+            cause: match &error {
+                BeadComposeError::GraphApplyFailed { cause, .. }
+                | BeadComposeError::GraphApplyUnconfirmed { cause, .. } => cause.clone(),
+                _ => error.to_string(),
+            },
+        }),
     }
 }
 
@@ -819,6 +850,53 @@ fn graph_plan_path_error(error: BeadComposeError) -> BeadComposeError {
 mod presentation_tests {
     use super::*;
     use std::io;
+
+    #[test]
+    fn dirty_probe_preserves_spawn_argument_and_output_limit_error_types() {
+        struct Failure(u8);
+        impl ProcessRunner for Failure {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                assert_eq!(
+                    spec.args,
+                    [
+                        "sql",
+                        "--readonly",
+                        "SELECT table_name, staged, status FROM dolt_status",
+                        "--json"
+                    ]
+                );
+                Err(match self.0 {
+                    0 => io::Error::new(io::ErrorKind::NotFound, "missing bd"),
+                    1 => io::Error::new(io::ErrorKind::InvalidInput, "invalid argument"),
+                    _ => crate::runner::process_output_limit_error(),
+                })
+            }
+        }
+        let normalized = NormalizedRequest {
+            working_directory: "workspace".into(),
+            template: "workspace/plan.j2".into(),
+            rendered_formula: "workspace/plan.toml".into(),
+            advanced: true,
+        };
+        for (kind, code) in [
+            (0, "BEADS_BD_UNAVAILABLE"),
+            (1, "BEADS_PROCESS_ARGUMENT_INVALID"),
+            (2, "BEADS_PROCESS_OUTPUT_LIMIT"),
+        ] {
+            let failure = Failure(kind);
+            let mut runtime = Runtime {
+                runner: &failure,
+                normalized: &normalized,
+                bd: "bd".into(),
+                stage: BeadStage::Repour,
+                stages: Vec::new(),
+                policy: Some(crate::UncommittedPolicy::Refuse),
+                compare_only: false,
+            };
+            let error = check_dirty(&mut runtime).unwrap_err();
+            assert_eq!(error.code(), code);
+        }
+    }
 
     #[cfg(unix)]
     #[test]

@@ -5,6 +5,7 @@ use serde_json::Value;
 
 /// Policy for a database with uncommitted or unknown state.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum UncommittedPolicy {
     /// Refuse unless the database is known clean.
     Refuse,
@@ -14,6 +15,7 @@ pub enum UncommittedPolicy {
 
 /// Identity of the graph to compare or revise.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ExistingGraphTarget {
     /// A graph created by pour.
     PourRoot(BeadId),
@@ -28,6 +30,7 @@ pub enum ExistingGraphTarget {
 
 /// Target and safety policy for a graph revision.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct GraphRevisionOptions {
     /// The existing graph to revise.
     pub target: ExistingGraphTarget,
@@ -35,9 +38,82 @@ pub struct GraphRevisionOptions {
     pub uncommitted: UncommittedPolicy,
 }
 
+impl GraphRevisionOptions {
+    /// Select an existing graph and its database safety policy.
+    #[must_use]
+    pub fn new(target: ExistingGraphTarget, uncommitted: UncommittedPolicy) -> Self {
+        Self {
+            target,
+            uncommitted,
+        }
+    }
+}
+
+/// A plan-owned bead field, with its stable wire name and bd update flag.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+#[serde(rename_all = "snake_case")]
+pub enum GraphField {
+    /// Bead title.
+    Title,
+    /// Work description.
+    Description,
+    /// Design notes.
+    Design,
+    /// Acceptance criteria.
+    AcceptanceCriteria,
+    /// Numeric priority.
+    Priority,
+    /// Additional labels.
+    Labels,
+    /// Plan metadata, merged with unrelated keys.
+    Metadata,
+}
+
+impl GraphField {
+    pub(crate) const ALL: [Self; 7] = [
+        Self::Title,
+        Self::Description,
+        Self::Design,
+        Self::AcceptanceCriteria,
+        Self::Priority,
+        Self::Labels,
+        Self::Metadata,
+    ];
+
+    /// Return the stable serialized field name.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Title => "title",
+            Self::Description => "description",
+            Self::Design => "design",
+            Self::AcceptanceCriteria => "acceptance_criteria",
+            Self::Priority => "priority",
+            Self::Labels => "labels",
+            Self::Metadata => "metadata",
+        }
+    }
+
+    /// Return the corresponding bd update flag, including its leading dashes.
+    #[must_use]
+    pub const fn as_flag(self) -> &'static str {
+        match self {
+            Self::AcceptanceCriteria => "--acceptance",
+            Self::Labels => "--add-label",
+            Self::Title => "--title",
+            Self::Description => "--description",
+            Self::Design => "--design",
+            Self::Priority => "--priority",
+            Self::Metadata => "--metadata",
+        }
+    }
+}
+
 /// One user-visible graph revision change.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "change", rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum GraphChange {
     /// A missing plan step will be created.
     AddNode {
@@ -60,7 +136,7 @@ pub enum GraphChange {
         /// Existing runtime status.
         status: String,
         /// Changed field name.
-        field: String,
+        field: GraphField,
         /// Stored field value.
         before: Value,
         /// Desired field value.
@@ -108,15 +184,84 @@ pub enum GraphChange {
 
 /// Details of a revision interrupted after one or more writes.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct GraphApplyPartial {
     /// Changes confirmed applied.
     pub applied: Vec<GraphChange>,
     /// Changes still pending or whose outcome is uncertain.
     pub pending: Vec<GraphChange>,
-    /// Failed operation, including an uncertainty indication where applicable.
+    /// Whether the failed operation may have written unconfirmed changes.
+    #[serde(default)]
+    pub outcome_uncertain: bool,
+    /// Stable code of the underlying error.
+    pub cause_code: String,
+    /// Failed operation.
     pub failed_operation: String,
     /// Underlying failure.
     pub cause: String,
+}
+
+impl GraphApplyPartial {
+    /// Describe confirmed work, pending work and the failed operation.
+    #[must_use]
+    pub fn new(
+        applied: Vec<GraphChange>,
+        pending: Vec<GraphChange>,
+        failed_operation: String,
+        cause: String,
+        cause_code: String,
+        outcome_uncertain: bool,
+    ) -> Self {
+        Self {
+            applied,
+            pending,
+            outcome_uncertain,
+            cause_code,
+            failed_operation,
+            cause,
+        }
+    }
+}
+
+impl std::fmt::Display for GraphApplyPartial {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} changes confirmed applied ({}), {} pending ({}); {} failed ({}): {}",
+            self.applied.len(),
+            change_summary(&self.applied),
+            self.pending.len(),
+            change_summary(&self.pending),
+            self.failed_operation,
+            self.cause_code,
+            self.cause
+        )?;
+        if self.outcome_uncertain {
+            f.write_str("; write outcome uncertain, reconcile before retry")?;
+        }
+        Ok(())
+    }
+}
+
+pub(crate) fn change_summary(changes: &[GraphChange]) -> String {
+    let mut counts = std::collections::BTreeMap::new();
+    for change in changes {
+        let kind = match change {
+            GraphChange::AddNode { .. } => "new nodes",
+            GraphChange::AddEdge { .. } => "new edges",
+            GraphChange::FieldChange { .. } => "field changes",
+            GraphChange::EdgeTypeChange { .. } => "edge type changes",
+            GraphChange::RemoveInternalEdge { .. } => "removed internal edges",
+            GraphChange::RetainExternalEdge { .. } => "retained external edges",
+            GraphChange::MarkRemovedNode { .. } => "removed nodes retained",
+        };
+        *counts.entry(kind).or_insert(0) += 1;
+    }
+    counts
+        .into_iter()
+        .map(|(kind, count)| format!("{count} {kind}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Closed wire vocabulary for `GraphConflictReason` (ADR-0023).

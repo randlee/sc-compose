@@ -177,7 +177,7 @@ pub(super) fn plan(
     } else {
         check_ownership(v, advanced, &ids, &found)?
     };
-    let mut pending = create_nodes(v, advanced, &ids, &missing, rooted)?;
+    let mut pending = create_nodes(v, advanced, &ids, &missing, rooted);
     let edges = plan_edges(
         v,
         (&ids, &missing),
@@ -191,7 +191,7 @@ pub(super) fn plan(
         payload.insert("edges".into(), json!(edges));
     }
     if let Some(existing) = existing {
-        mark_repour(v, &existing, &mut pending)?;
+        mark_repour(v, &existing, &mut pending);
     }
     if pending.keys.is_empty()
         && pending.dep_adds.is_empty()
@@ -249,12 +249,8 @@ fn check_relation_endpoints(
 }
 
 /// Record a repour's field updates, retained nodes and backup on the plan.
-fn mark_repour(
-    v: &ValidatedGraph,
-    existing: &Existing,
-    pending: &mut PendingCreate,
-) -> Result<(), BeadComposeError> {
-    pending.updates = repour::node_updates(v, existing)?;
+fn mark_repour(v: &ValidatedGraph, existing: &Existing, pending: &mut PendingCreate) {
+    pending.updates = repour::node_updates(v, existing);
     pending
         .graph
         .changes
@@ -271,11 +267,7 @@ fn mark_repour(
     }
     for (step, id) in &existing.retained {
         let row = &existing.rows[id];
-        let status = row
-            .get("status")
-            .and_then(Value::as_str)
-            .unwrap_or("unknown")
-            .to_owned();
+        let status = repour::row_status(row);
         pending
             .graph
             .changes
@@ -300,7 +292,6 @@ fn mark_repour(
             action: BeadNodeAction::Retained,
         });
     }
-    Ok(())
 }
 
 fn check_ownership(
@@ -321,7 +312,7 @@ fn check_ownership(
                 Some(raw) if advanced => {
                     match serde_json::from_value::<ProvenanceV2>(raw.clone()) {
                         Ok(actual) => {
-                            let expected = v.provenance_v2(Some(step))?;
+                            let expected = v.provenance_v2(Some(step));
                             if actual.v == 2
                                 && actual.mode == expected.mode
                                 && actual.formula == expected.formula
@@ -365,7 +356,7 @@ fn create_nodes(
     ids: &BTreeMap<StepId, BeadId>,
     missing: &BTreeSet<StepId>,
     attach: bool,
-) -> Result<PendingCreate, BeadComposeError> {
+) -> PendingCreate {
     let mut graph = BeadGraph {
         mode: v.mode,
         parent: anchor(v).cloned(),
@@ -389,7 +380,7 @@ fn create_nodes(
     } else if !attach {
         let root_key = PlanKey::root();
         let provenance = if advanced {
-            json!(v.provenance_v2(None)?)
+            json!(v.provenance_v2(None))
         } else {
             json!(v.provenance(None))
         };
@@ -418,12 +409,12 @@ fn create_nodes(
                     step: step.id.clone(),
                 });
             }
-            let (key, fields) = create_step(v, advanced, step, ids.get(&step.id), attach)?;
+            let (key, fields) = create_step(v, advanced, step, ids.get(&step.id), attach);
             nodes.push(fields);
             keys.insert(key, Some(step.id.clone()));
         }
     }
-    Ok(PendingCreate {
+    PendingCreate {
         graph,
         payload: json!({"nodes": nodes}),
         endpoints: Vec::new(),
@@ -431,7 +422,7 @@ fn create_nodes(
         dep_removes: Vec::new(),
         updates: Vec::new(),
         keys,
-    })
+    }
 }
 
 /// The bead new nodes hang under: the attach parent or the repour root.
@@ -445,7 +436,7 @@ fn create_step(
     step: &Step,
     id: Option<&BeadId>,
     attach: bool,
-) -> Result<(PlanKey, Value), BeadComposeError> {
+) -> (PlanKey, Value) {
     let mut fields = step.fields.clone();
     let key = PlanKey::step(&step.id, attach);
     fields.insert("key".into(), json!(key.as_str()));
@@ -461,7 +452,7 @@ fn create_step(
         .entry("metadata")
         .or_insert_with(|| Value::Object(Map::default()));
     let provenance = if advanced {
-        json!(v.provenance_v2(Some(step))?)
+        json!(v.provenance_v2(Some(step)))
     } else {
         json!(v.provenance(Some(step.id.clone())))
     };
@@ -475,7 +466,7 @@ fn create_step(
             *metadata = Value::Object(object);
         }
     }
-    Ok((key, Value::Object(fields)))
+    (key, Value::Object(fields))
 }
 
 fn plan_edges(

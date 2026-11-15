@@ -137,12 +137,10 @@ impl Workspace {
     fn run(&self, req: &BeadComposeRequest) -> BeadComposeReceipt {
         assert_eq!(req.working_directory, self.root);
         if req.operation == BeadOperation::Repour {
-            let options = sc_composer_beads::GraphRevisionOptions {
-                target: sc_composer_beads::ExistingGraphTarget::PourRoot(
-                    req.parent.clone().expect("root"),
-                ),
-                uncommitted: sc_composer_beads::UncommittedPolicy::Allow,
-            };
+            let options = sc_composer_beads::GraphRevisionOptions::new(
+                sc_composer_beads::ExistingGraphTarget::PourRoot(req.parent.clone().expect("root")),
+                sc_composer_beads::UncommittedPolicy::Allow,
+            );
             return sc_composer_beads::execute_graph_revision(req, &options)
                 .expect("valid revision");
         }
@@ -332,6 +330,32 @@ fn both_drains_finish_before_wait() {
     );
 }
 
+const BODY_COMPLETED: &str = "SC_COMPOSE_REAL_BD_BODY_COMPLETED";
+
+fn isolated_test_command(name: &str) -> Command {
+    let mut child = Command::new(std::env::current_exe().expect("test executable"));
+    child.args(["--ignored", "--exact", name, "--nocapture"]);
+    child
+}
+
+#[test]
+#[ignore = "selected by child_reexec_runs_an_ignored_body_without_bd"]
+fn ignored_child_execution_probe() {
+    println!("\n{BODY_COMPLETED}");
+}
+
+#[test]
+fn child_reexec_runs_an_ignored_body_without_bd() {
+    let output = run_command(&mut isolated_test_command("ignored_child_execution_probe"));
+    assert!(output.status.success(), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .any(|line| line == BODY_COMPLETED),
+        "ignored body was skipped: {output:?}"
+    );
+}
+
 fn with_workspace(test: impl FnOnce(&Workspace)) {
     let Some(binary) = std::env::var_os("BD_EXECUTABLE") else {
         panic!(
@@ -352,6 +376,7 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
             beads_dir,
             bd: PathBuf::from(binary),
         });
+        println!("\n{BODY_COMPLETED}");
         return;
     }
     assert!(
@@ -364,11 +389,10 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
     let workspace = Workspace::new(Path::new(&binary));
     let thread = std::thread::current();
     let name = thread.name().expect("libtest test name");
-    let mut child = Command::new(std::env::current_exe().expect("test executable"));
+    let mut child = isolated_test_command(name);
     // The child environment isolates both helper commands and engine-launched bd.
     // Use the original temp path: canonical paths have a verbatim prefix on Windows.
     child
-        .args(["--exact", name, "--nocapture"])
         .env(
             WORKSPACE_CHILD_ENV,
             workspace.beads_dir.parent().expect("root"),
@@ -384,6 +408,12 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
         "isolated {name}: {}\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .any(|line| line == BODY_COMPLETED),
+        "isolated {name} exited without executing its body: {output:?}"
     );
 }
 
@@ -1011,10 +1041,10 @@ fn repour_interrupted_at_a_controlled_boundary_completes_on_rerun() {
             "[[steps]]\nid = \"ship\"\ntitle = \"Ship\"\nneeds = [\"publish\", \"build\"]\n",
         ));
         let request = w.repour_request(&root);
-        let options = sc_composer_beads::GraphRevisionOptions {
-            target: sc_composer_beads::ExistingGraphTarget::PourRoot(root.clone()),
-            uncommitted: sc_composer_beads::UncommittedPolicy::Allow,
-        };
+        let options = sc_composer_beads::GraphRevisionOptions::new(
+            sc_composer_beads::ExistingGraphTarget::PourRoot(root.clone()),
+            sc_composer_beads::UncommittedPolicy::Allow,
+        );
         let runner = FailNthMutation {
             seen: Mutex::new(0),
             fail_at: 2,
@@ -1167,18 +1197,18 @@ fn repour_unknown_database_refuses_until_explicit_override() {
         w.set_plan(&plan("Build revised", ""));
         let request = w.repour_request(&root);
         let target = sc_composer_beads::ExistingGraphTarget::PourRoot(root);
-        let refuse = sc_composer_beads::GraphRevisionOptions {
-            target: target.clone(),
-            uncommitted: sc_composer_beads::UncommittedPolicy::Refuse,
-        };
+        let refuse = sc_composer_beads::GraphRevisionOptions::new(
+            target.clone(),
+            sc_composer_beads::UncommittedPolicy::Refuse,
+        );
         let before = w.snapshot();
         let error = sc_composer_beads::execute_graph_revision(&request, &refuse).unwrap_err();
         assert_eq!(error.code(), "BEADS_GRAPH_DIRTY_UNKNOWN", "{error}");
         assert_eq!(w.snapshot(), before);
-        let allow = sc_composer_beads::GraphRevisionOptions {
+        let allow = sc_composer_beads::GraphRevisionOptions::new(
             target,
-            uncommitted: sc_composer_beads::UncommittedPolicy::Allow,
-        };
+            sc_composer_beads::UncommittedPolicy::Allow,
+        );
         let result = sc_composer_beads::execute_graph_revision(&request, &allow).unwrap();
         assert_eq!(result.outcome, BeadOutcome::Succeeded, "{result:#?}");
     });

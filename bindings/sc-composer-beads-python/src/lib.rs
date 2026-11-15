@@ -441,15 +441,13 @@ fn stage_receipt(inner: &BeadStageReceipt) -> PyBeadStageReceipt {
 }
 
 fn outcome(inner: &BeadOutcome) -> PyBeadOutcome {
-    match inner {
-        BeadOutcome::Succeeded => PyBeadOutcome {
-            kind: inner.as_str().to_owned(),
-            code: None,
-        },
-        BeadOutcome::Refused { code } | BeadOutcome::Failed { code } => PyBeadOutcome {
-            kind: inner.as_str().to_owned(),
-            code: Some(code.clone()),
-        },
+    let code = match inner {
+        BeadOutcome::Refused { code } | BeadOutcome::Failed { code } => Some(code.clone()),
+        _ => None,
+    };
+    PyBeadOutcome {
+        kind: inner.as_str().to_owned(),
+        code,
     }
 }
 
