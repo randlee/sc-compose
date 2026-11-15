@@ -82,7 +82,10 @@ fn lint_full_pass_preserves_profile_envelope_and_report() {
     assert_eq!(payload["raw_payload"]["data"]["xwin"]["available"], true);
     assert_eq!(payload["raw_payload"]["data"]["xwin"]["included"], true);
     assert_eq!(payload["raw_payload"]["data"]["step_count"], 16);
-    assert_eq!(payload["raw_payload"]["data"]["steps"][0]["name"], "fmt");
+    assert_eq!(
+        payload["raw_payload"]["data"]["steps"][0]["name"],
+        "version"
+    );
     assert_eq!(
         payload["raw_payload"]["data"]["steps"][15]["name"],
         "clippy.xwin"
