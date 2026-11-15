@@ -237,7 +237,7 @@ fn operation_from_str(py: Python<'_>, value: &str) -> PyResult<BeadOperation> {
     serde_json::from_value(Value::String(value.to_owned())).map_err(|_error| {
         request_error(
             py,
-            "operation must be render, validate, preview_pour, pour, preview_attach, or attach",
+            "operation must be render, validate, preview_pour, pour, preview_attach, attach, or repour",
         )
     })
 }
@@ -282,6 +282,8 @@ impl PyBeadOperation {
     const PREVIEW_ATTACH: &'static str = BeadOperation::PreviewAttach.as_str();
     #[classattr]
     const ATTACH: &'static str = BeadOperation::Attach.as_str();
+    #[classattr]
+    const REPOUR: &'static str = BeadOperation::Repour.as_str();
 }
 
 #[pyclass(name = "PourAuthorization")]
@@ -312,6 +314,8 @@ impl PyBeadStage {
     const PREVIEW_ATTACH: &'static str = BeadStage::PreviewAttach.as_str();
     #[classattr]
     const ATTACH: &'static str = BeadStage::Attach.as_str();
+    #[classattr]
+    const REPOUR: &'static str = BeadStage::Repour.as_str();
 }
 
 // RBP-F005 (documented non-fix): the enum-like receipt fields below
@@ -774,6 +778,20 @@ fn attach(
     execute_with_operation(py, &request, Some(BeadOperation::Attach), render_by, strict)
 }
 
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
+fn repour(
+    py: Python<'_>,
+    request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
+) -> PyResult<PyBeadComposeReceipt> {
+    execute_with_operation(py, &request, Some(BeadOperation::Repour), render_by, strict)
+}
+
 #[pymodule]
 #[pyo3(name = "_native")]
 fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -797,6 +815,7 @@ fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(pour, module)?)?;
     module.add_function(wrap_pyfunction!(preview_attach, module)?)?;
     module.add_function(wrap_pyfunction!(attach, module)?)?;
+    module.add_function(wrap_pyfunction!(repour, module)?)?;
     Ok(())
 }
 

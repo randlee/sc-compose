@@ -65,7 +65,17 @@ pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
         GraphIdField::DependencyType => {
             "dependency_type starts with an ASCII letter followed by ASCII letters, digits, underscores or hyphens"
         }
-        GraphIdField::Parent => "use a valid identifier for the named field",
+        GraphIdField::Parent => {
+            "parent bead id must be non-empty and contain no whitespace or control characters"
+        }
+    }
+}
+
+pub(crate) fn graph_apply_recovery(command: &[String]) -> &'static str {
+    if command.iter().any(|arg| arg == "--dry-run") {
+        "fix bd and retry; no graph write was attempted"
+    } else {
+        "fix bd and rerun the same command; earlier writes may have been applied"
     }
 }
 
@@ -394,9 +404,7 @@ pub enum BeadComposeError {
         reason: GraphRelationInvalidReason,
     },
     /// `Conflict` condition from ADR-0023.
-    #[error(
-        "graph bead `{id}` conflicts: {reason}; inspect it or use a new ref (existing beads are never edited)"
-    )]
+    #[error("graph bead `{id}` conflicts: {reason}; inspect its ownership or use a new ref")]
     GraphConflict {
         /// Conflicting planned bead.
         id: BeadId,
@@ -437,7 +445,7 @@ pub enum BeadComposeError {
     },
     /// `ApplyFailed` condition from ADR-0023.
     #[error(
-        "graph apply failed ({status:?}): {cause}; {command:?}; fix bd and rerun the same command; writes before the failure may have been applied, and a rerun finishes the remaining work"
+        "graph apply failed ({status:?}): {cause}; {command:?}; {}", graph_apply_recovery(.command)
     )]
     GraphApplyFailed {
         /// Attempted bd argv.

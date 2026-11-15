@@ -202,3 +202,28 @@ fn unconfirmed_apply_never_promises_nothing_was_written() {
         );
     }
 }
+
+#[test]
+fn conflict_and_dry_run_recovery_describe_the_actual_operation() {
+    let conflict = Error::GraphConflict {
+        id: BeadId::new("parent.step").unwrap(),
+        reason: GraphConflictReason::NotOwned,
+    };
+    let json = serde_json::to_value(&conflict).unwrap();
+    assert!(json["message"].as_str().unwrap().contains("ownership"));
+    assert!(json["recovery"].as_str().unwrap().contains("ownership"));
+    assert!(!json.to_string().contains("never edited"));
+    let preview = Error::GraphApplyFailed {
+        command: vec!["bd".into(), "create".into(), "--dry-run".into()],
+        status: Some(1),
+        cause: "invalid".into(),
+    };
+    let json = serde_json::to_value(&preview).unwrap();
+    assert!(
+        json["recovery"]
+            .as_str()
+            .unwrap()
+            .contains("no graph write")
+    );
+    assert!(!json.to_string().contains("earlier writes"));
+}

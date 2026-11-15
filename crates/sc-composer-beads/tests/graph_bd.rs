@@ -1093,3 +1093,56 @@ fn repour_refuses_a_dangling_reference_and_a_conflicting_edge_with_zero_writes()
         assert!(w.leftovers().is_empty());
     });
 }
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn repour_preserves_closed_state_and_reports_removed_nodes_and_edges() {
+    with_workspace(|w| {
+        let graph = w
+            .success(&w.request(BeadOperation::Pour, None))
+            .graph
+            .expect("graph");
+        let root = graph.parent.expect("root");
+        let build = graph.ids[&sc_composer_beads::StepId::new("build").unwrap()].to_string();
+        let verify = graph.ids[&sc_composer_beads::StepId::new("verify").unwrap()].to_string();
+        let publish = graph.ids[&sc_composer_beads::StepId::new("publish").unwrap()].to_string();
+        w.command(&[
+            "update",
+            &build,
+            "--notes",
+            "keep note",
+            "--assignee",
+            "reviewer",
+            "--set-metadata",
+            "user_key=keep",
+        ]);
+        w.command(&["close", &build]);
+        let before = w.bead_count();
+        assert!(w.dependency_exists(&verify, &build));
+        w.set_plan("formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build revised\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\n");
+        let receipt = w.success(&w.repour_request(&root));
+        let result = receipt.graph.expect("graph");
+        assert_eq!(w.bead_count(), before);
+        let shown = w.json(&["show", &build, "--json"]);
+        assert_eq!(shown[0]["id"], build);
+        assert_eq!(shown[0]["title"], "Build revised");
+        assert_eq!(shown[0]["status"], "closed");
+        assert_eq!(shown[0]["notes"], "keep note");
+        assert_eq!(shown[0]["assignee"], "reviewer");
+        assert_eq!(shown[0]["metadata"]["user_key"], "keep");
+        assert!(w.dependency_exists(&verify, &build));
+        assert!(result.nodes.iter().any(|node| {
+            node.id.as_ref().is_some_and(|id| id.as_str() == publish)
+                && node.action == BeadNodeAction::Retained
+        }));
+        assert!(
+            result
+                .edges
+                .iter()
+                .any(|edge| edge.action == sc_composer_beads::BeadEdgeAction::Retained
+                    && matches!(&edge.from, sc_composer_beads::GraphEndpoint::Bead(id) if id.as_str() == verify)
+                    && matches!(&edge.to, sc_composer_beads::GraphEndpoint::Bead(id) if id.as_str() == build))
+        );
+        assert!(w.leftovers().is_empty());
+    });
+}

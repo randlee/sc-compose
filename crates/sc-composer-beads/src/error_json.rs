@@ -82,7 +82,7 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
         )),
         BeadComposeError::GraphConflict { id, reason } => Some((
             json!({ "id": id, "reason": reason }),
-            "Inspect the named bead or use a new ref; existing beads are never edited.",
+            "Inspect the named bead ownership or use a new ref.",
         )),
         BeadComposeError::GraphEdgeConflict {
             from,
@@ -101,14 +101,17 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
             command,
             status,
             cause,
-        }
-        | BeadComposeError::GraphApplyFailed {
+        } => Some((
+            json!({ "command": command, "status": status, "cause": cause }),
+            "Fix the bd read or preview failure and retry; no graph write was attempted.",
+        )),
+        BeadComposeError::GraphApplyFailed {
             command,
             status,
             cause,
         } => Some((
             json!({ "command": command, "status": status, "cause": cause }),
-            "Fix the bd failure and rerun the same command; writes before the failure may have been applied, and a rerun finishes the remaining work.",
+            crate::error::graph_apply_recovery(command),
         )),
         BeadComposeError::GraphApplyUnconfirmed {
             command,

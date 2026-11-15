@@ -85,7 +85,7 @@ fn write_request(
             "rendered_formula": rendered_formula,
             "compose_variables": {
                 "project": {
-                    "name": "sc-compose",
+                    "name": "example-project",
                     "notes": "CLI canonical fixture"
                 },
                 "reviewers": [{ "id": "ada", "name": "Ada" }]
