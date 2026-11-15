@@ -1693,7 +1693,7 @@ fn revision_cli_fixture(fixture: &TempFixture) -> (PathBuf, PathBuf) {
     fake_exec::install(
         &bd,
         &format!(
-            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\ncase \"$1\" in\n  cook) printf '%s' '{{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{{\"id\":\"build\",\"title\":\"Build\"}}]}}';;\n  show) printf '%s' '[{{\"id\":\"proj-1\",\"title\":\"sample\",\"description\":\"\",\"status\":\"open\",\"metadata\":{{\"sc_compose_graph\":{{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}}}}]';;\n  children|dep) printf '[]';;\n  sql) printf 'probe unsupported' >&2; exit 1;;\n  create) printf '{{}}';;\n  *) exit 2;;\nesac\n",
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\ncase \"$1\" in\n  cook) printf '%s' '{{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{{\"id\":\"build\",\"title\":\"Build\"}}]}}';;\n  show) printf '%s' '[{{\"id\":\"proj-1\",\"title\":\"sample\",\"description\":\"\",\"status\":\"open\",\"metadata\":{{\"sc_compose_graph\":{{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}}}}]';;\n  children|dep) printf '[]';;\n  sql) printf 'probe unsupported' >&2; exit 1;;\n  create) printf '%s' '{{\"ids\":{{\"build\":\"proj-2\"}}}}';;\n  update) printf 'injected update failure' >&2; exit 1;;\n  *) exit 2;;\nesac\n",
             trace.display()
         ),
     );
@@ -1780,17 +1780,42 @@ fn revision_cli_refuses_unknown_database_and_previews_with_override() {
             .unwrap()
             .is_empty()
     );
-    let commands = fs::read_to_string(trace).unwrap();
+    let commands = fs::read_to_string(&trace).unwrap();
     assert!(
         !commands
             .lines()
             .any(|line| line.starts_with("update ") || line.starts_with("dep add "))
     );
+    assert_partial_revision(&request);
+    let commands = fs::read_to_string(trace).unwrap();
     assert!(
         commands
             .lines()
             .any(|line| line.starts_with("create ") && line.contains("--dry-run"))
     );
+}
+
+#[cfg(unix)]
+fn assert_partial_revision(request: &Path) {
+    let partial = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(request)
+        .args(["--allow-uncommitted", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(partial.status.code(), Some(2), "{partial:?}");
+    let body: serde_json::Value = serde_json::from_slice(&partial.stdout).unwrap();
+    assert_eq!(
+        body["payload"]["error"]["code"],
+        "BEADS_GRAPH_APPLY_PARTIAL"
+    );
+    assert!(
+        !body["payload"]["error"]["details"]["applied"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(body["payload"]["error"]["details"]["pending"].is_array());
 }
 
 #[test]
