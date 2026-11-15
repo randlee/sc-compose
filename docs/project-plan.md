@@ -2233,3 +2233,31 @@ Planning documents and atm-bd configuration land through plan/phase-v ->
 develop. Implementation sprint/fix PRs stack on integrate/phase-v under
 sc-gh-stack/atm-bd-orchestration; the integration branch returns to develop
 only after Phase V implementation and phase-ending review are complete.
+
+## Phase W — Convergent Re-pour
+
+The live Beads epic `comp-phase-w` and its sprint containers are authoritative.
+Tracked configuration: `.atm-bd/phase-w.toml`; dependency index:
+`docs/plans/phase-w.jsonl`; diagram: `docs/plans/phase-w/phase-w-dag.html`.
+Phase W delivers a convergent graph revision path while keeping `pour` and
+`repour` separate. Dry-run previews report proposed changes and risks and
+predict changed-plan conflicts before writes. Repour refuses dirty or unknown
+database state unless `--allow-uncommitted` is supplied. It removes obsolete
+internal edges, retains and reports external edges, and retains removed nodes
+with the `repour:removed` label and a separate remove command. Sequential
+partial failures report exactly which writes applied and remain pending, with a rerun
+hint; repeating the same plan completes the revision without recreating the
+graph.
+
+### Phase W sprint sequence
+
+| Sprint | Deliverable |
+| --- | --- |
+| w-1 | Repour command and initial convergent update path |
+| w-2 | Graph delta, preflight safety, and typed revision seam in `sc-composer-beads` |
+| w-3 | CLI and Python pass-through adapters and generated reference |
+| w-4 | Installed repour and repour-strategy documentation |
+
+After Phase W, a separate bd/Dolt integration-test suite will cover server-mode
+dirty/clean detection, real partial failure, and graph cycles against a real
+database.

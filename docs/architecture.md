@@ -214,6 +214,13 @@ Advanced re-pour uses the resumable sequential updates specified by ADR-0023
 and FR-24.34. Graph operations never pass `--var`: structure and values come
 from the sc-compose template.
 
+#### Graph revisions
+
+`sc-composer-beads` owns the graph-revision seam and its structured change and
+partial-apply results. The CLI and Python adapters pass revision requests and
+receipts through without taking over graph planning or write policy. See
+[ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md) for the repour contract.
+
 For bounded subprocess output, the library contains the child process tree on
 supported platforms: Unix uses a dedicated process group and Windows uses a
 Job Object. Other platforms use direct-child termination only, so they make no
