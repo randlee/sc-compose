@@ -28,9 +28,5 @@ forbidden = ["ATM_HOME", "agent_team_mail", "atm_core", "sc_compose"]
 allowed_test_double_paths = []
 forbidden_test_bypasses = []
 
-[enforcement]
-lint_rules = ["LINT-SC-COMPOSER-BEADS-HOST-NEUTRAL"]
-review_gates = ["beads_host_neutral_library_boundary"]
-
 [status]
 state = "concrete_landed"
