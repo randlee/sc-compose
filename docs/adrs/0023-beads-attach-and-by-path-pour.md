@@ -735,7 +735,7 @@ apply agree under that unchanged-graph assumption.
 Repour refuses when the entire bd database has uncommitted Dolt changes;
 `--allow-uncommitted` overrides this refusal. An unknown dirty state also
 refuses, with the exact reason and two ways forward: `bd dolt commit` or rerun
-with `--allow-uncommitted`. In embedded mode a separate Dolt executable is
-optional and used only when a version-compatible one is on PATH; it is not a
-required dependency. Dolt commit and sync is the rollback, which is why clear
+with `--allow-uncommitted`. The dirty-state probe uses only `bd sql --readonly` through the injected
+runner. If bd cannot answer, including in unsupported embedded or older bd
+modes, the state is unknown; no separate Dolt executable is invoked. Dolt commit and sync is the rollback, which is why clear
 reporting is enough risk control.

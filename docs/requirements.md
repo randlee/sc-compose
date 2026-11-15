@@ -1771,6 +1771,12 @@ and [ADR-0024](adrs/0024-advanced-beads-pour.md). Pair each refusal with a permi
 do not extend these graph constraints into a generic template-input ban.
 Existing valid bd-compatible inputs remain accepted.
 
+#### FR-24.37 — Re-pour documentation
+
+Ship markdown documentation for re-pour and re-pour strategy, covering when to
+use pour or re-pour, risks, reading dry-run output, and cleanup of removed
+nodes. Make it available in the installed CLI and reference it from `--help`.
+
 #### Existing FR-24 cross-references
 
 The former background ids remain references to the approved behavior above:

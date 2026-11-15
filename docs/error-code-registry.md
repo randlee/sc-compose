@@ -243,7 +243,10 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 | `BEADS_GRAPH_SCOPE_MISMATCH` | execution | `compose_variables` parent or ref disagrees with the top-level scope | attach and by-path pour |
 | `BEADS_GRAPH_FORMULA_UNSUPPORTED` | execution | the cooked formula uses a construct graph planning cannot express (reason is a stable token) | graph planning |
 | `BEADS_GRAPH_RELATION_INVALID` | execution | a request relation is invalid (its index is named) | graph planning |
-| `BEADS_GRAPH_CONFLICT` | execution | a target or planned ID is unowned or has a conflicting ownership identity; changed plan fields alone are not a conflict | graph planning |
+| `BEADS_GRAPH_CONFLICT` | execution | a target or planned ID is unowned or has a conflicting identity; for pour/preview_pour on an existing target, reason `plan_changed` names why and directs the caller to repour | graph planning |
+| `BEADS_GRAPH_DIRTY` | execution | planned: re-pour refused before writes because the entire database has uncommitted changes; recovery names `bd dolt commit` and `--allow-uncommitted` | graph preflight |
+| `BEADS_GRAPH_DIRTY_UNKNOWN` | execution | planned: re-pour refused before writes because bd could not determine database dirty state; details give the reason and recovery names `bd dolt commit` and `--allow-uncommitted` | graph preflight |
+| `BEADS_GRAPH_APPLY_PARTIAL` | execution | planned: sequential re-pour failed after mutations; carries applied and pending changes and a rerun hint | graph apply |
 | `BEADS_GRAPH_EDGE_CONFLICT` | execution | an existing edge has a different type than requested | graph planning |
 | `BEADS_GRAPH_EDGE_MISSING` | execution | legacy graph mode found absent edges; advanced repour adds missing declared edges | graph planning, attach |
 | `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` | retired | Phase W removes this refusal and its branches | advanced graph planning, attach |
