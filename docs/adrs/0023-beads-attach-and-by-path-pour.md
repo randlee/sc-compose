@@ -7,9 +7,9 @@ phase t planning). Extends
 [ADR-0021](0021-beads-formula-composition-integration.md); nothing in ADR-0021
 is withdrawn.
 
-The Phase V advanced-mode amendment at the end supersedes the legacy
-bead-input, missing-edge, provenance and write restrictions only for advanced
-rendering. The original rules remain the bd-owned compatibility contract.
+The Phase V advanced-mode amendment and Phase W re-pour amendment supersede
+the legacy restrictions for advanced rendering. The original rules remain
+the bd-owned compatibility contract.
 
 ## Context
 
@@ -610,7 +610,7 @@ These corrections bring the text above in line with the shipped behaviour.
 | #613: preview shows hierarchy and blocking edges before mutation | UC-3 |
 | #613: explicit persistent-write authorization | Authorization |
 | #613: same request is a no-op or a clear conflict; never reset status, notes, claims, evidence | Conflict rules; UC-4, UC-6 |
-| #613: recover from partial execution | Atomic apply; UC-5 |
+| #613: recover from partial execution | Phase W re-pour amendment; UC-5 |
 | #613: reject a conflicting revision or scope | Revision, Scope; UC-6 |
 | #613: receipt mapping parent and generated ids | `BeadGraph`; UC-10 |
 | #613: children directly under the parent or under a container | directly under the parent; UC-2 |
@@ -624,7 +624,8 @@ These corrections bring the text above in line with the shipped behaviour.
   formulas, same stages and codes.
 - A formula rendered anywhere in the workspace pours on production bd v1.3.1,
   with no registry directory, no proto and no Beads fork.
-- Attach is safe to re-run and to resume; a request is all-or-nothing.
+- Attach is safe to re-run and resume; advanced re-pour completes partial
+  sequential updates on rerun.
 - Workflow structure (loops, per-item chains, optional steps) is written once,
   in the sc-compose template language, and Beads' substitution and expansion
   engine is not on the path.
