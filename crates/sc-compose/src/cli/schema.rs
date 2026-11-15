@@ -121,6 +121,10 @@ impl ParsedBeadRoot {
     }
 }
 
+#[allow(
+    clippy::unnecessary_wraps,
+    reason = "clap value parsers require a Result; invalid ids retain the typed diagnostic"
+)]
 fn parse_bead_root(value: &str) -> Result<ParsedBeadRoot, std::convert::Infallible> {
     Ok(match sc_composer_beads::BeadId::new(value) {
         Ok(id) => ParsedBeadRoot::Valid(id),

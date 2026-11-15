@@ -421,15 +421,13 @@ mod tests {
         };
         assert_eq!(args.root.unwrap().get().unwrap().as_str(), "proj-1");
         assert!(args.dry_run && args.allow_uncommitted);
-        assert!(
-            Cli::try_parse_from([
-                "sc-compose",
-                "bead",
-                "pour",
-                "plan.j2",
-                "--allow-uncommitted"
-            ])
-            .is_err()
-        );
+        Cli::try_parse_from([
+            "sc-compose",
+            "bead",
+            "pour",
+            "plan.j2",
+            "--allow-uncommitted",
+        ])
+        .unwrap_err();
     }
 }
