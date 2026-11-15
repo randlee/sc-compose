@@ -696,7 +696,7 @@ Merge metadata without clobbering unrelated user keys. Explicit plan values
 update existing beads, including closed beads; unspecified fields are retained.
 Removed nodes and edges are reported, not deleted. An interrupted apply is
 completed by rerunning; an exact replay changes nothing. There is no
-all-or-nothing promise across writes. Partial failure uses `GraphApplyFailed` (`BEADS_GRAPH_APPLY_FAILED`,
+all-or-nothing promise across writes. Partial failure uses `GraphApplyPartial` (`BEADS_GRAPH_APPLY_PARTIAL`,
 execution class, failed receipt and CLI exit 2) with applied and pending
 work where known and a rerun hint; its text must not claim nothing was written.
 
