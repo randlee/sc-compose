@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # (label, cargo test arguments before `--`)
@@ -60,20 +61,40 @@ def resolve_bd(environ: dict[str, str]) -> Path | str:
     return path
 
 
+def isolated_environment(environ: dict[str, str], home: Path) -> dict[str, str]:
+    """Keep every qualification child away from the operator's bd home."""
+    result = environ.copy()
+    original_home = Path(environ.get("HOME", str(Path.home())))
+    result.setdefault("CARGO_HOME", str(original_home / ".cargo"))
+    result.setdefault("RUSTUP_HOME", str(original_home / ".rustup"))
+    result.update({"HOME": str(home), "USERPROFILE": str(home), "XDG_CONFIG_HOME": str(home / ".config")})
+    # The fixtures select a distinct BEADS_DIR per workspace. An ambient value
+    # must not override that selection or leak into child processes.
+    result.pop("BEADS_DIR", None)
+    return result
+
+
 def main() -> int:
     bd = resolve_bd(dict(os.environ))
     if isinstance(bd, str):
         print(f"real-bd qualification NOT RUN: {bd}", file=sys.stderr)
         return 2
-    version = subprocess.run(
-        [str(bd), "version"], capture_output=True, text=True, check=False
-    ).stdout.strip()
-    provenance = {
-        "bd_path": str(bd),
-        "bd_sha256": hashlib.sha256(bd.read_bytes()).hexdigest(),
-        "bd_version": version,
-    }
-    print(json.dumps(provenance))
+    with tempfile.TemporaryDirectory(prefix="sc-compose-bd-home-") as directory:
+        env = isolated_environment(dict(os.environ), Path(directory))
+        version_env = dict(env, BEADS_DIR=str(Path(directory) / ".beads"))
+        version = subprocess.run(
+            [str(bd), "version"], capture_output=True, text=True, check=False, env=version_env
+        ).stdout.strip()
+        provenance = {
+            "bd_path": str(bd),
+            "bd_sha256": hashlib.sha256(bd.read_bytes()).hexdigest(),
+            "bd_version": version,
+        }
+        print(json.dumps(provenance))
+        return run_suites(env)
+
+
+def run_suites(env: dict[str, str]) -> int:
     status = 0
     for label, args in SUITES:
         proc = subprocess.run(
@@ -81,6 +102,7 @@ def main() -> int:
             capture_output=True,
             text=True,
             check=False,
+            env=env,
         )
         sys.stdout.write(proc.stdout)
         sys.stderr.write(proc.stderr)

@@ -40,9 +40,11 @@ impl Workspace {
             SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(root.join("build")).expect("workspace");
+        let root = fs::canonicalize(root).expect("canonical root");
         let beads_dir = root.join(".beads");
+        fs::create_dir_all(root.join(".home")).expect("isolated home");
         let ws = Self {
-            root: fs::canonicalize(root).expect("canonical root"),
+            root,
             beads_dir,
             bd: binary.to_path_buf(),
         };
@@ -88,6 +90,9 @@ impl Workspace {
             .args(args)
             .current_dir(&self.root)
             .env("BEADS_NO_DAEMON", "1")
+            .env("HOME", self.root.join(".home"))
+            .env("XDG_CONFIG_HOME", self.root.join(".home/.config"))
+            .env("USERPROFILE", self.root.join(".home"))
             .env("BEADS_DIR", &self.beads_dir);
         let out = run_command(&mut command);
         assert!(
@@ -131,6 +136,16 @@ impl Workspace {
     }
     fn run(&self, req: &BeadComposeRequest) -> BeadComposeReceipt {
         assert_eq!(req.working_directory, self.root);
+        if req.operation == BeadOperation::Repour {
+            let options = sc_composer_beads::GraphRevisionOptions {
+                target: sc_composer_beads::ExistingGraphTarget::PourRoot(
+                    req.parent.clone().expect("root"),
+                ),
+                uncommitted: sc_composer_beads::UncommittedPolicy::Allow,
+            };
+            return sc_composer_beads::execute_graph_revision(req, &options)
+                .expect("valid revision");
+        }
         execute_bead_request_with_options(
             req,
             &BeadExecutionOptions {
@@ -331,6 +346,7 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
             Some(beads_dir.clone().into())
         );
         assert_eq!(std::env::var("BEADS_NO_DAEMON").as_deref(), Ok("1"));
+        assert_eq!(std::env::var_os("HOME"), Some(root.join(".home").into()));
         test(&Workspace {
             root: fs::canonicalize(root).expect("canonical child root"),
             beads_dir,
@@ -357,6 +373,9 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
             WORKSPACE_CHILD_ENV,
             workspace.beads_dir.parent().expect("root"),
         )
+        .env("HOME", workspace.root.join(".home"))
+        .env("XDG_CONFIG_HOME", workspace.root.join(".home/.config"))
+        .env("USERPROFILE", workspace.root.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1");
     let output = run_command(&mut child);
@@ -992,24 +1011,18 @@ fn repour_interrupted_at_a_controlled_boundary_completes_on_rerun() {
             "[[steps]]\nid = \"ship\"\ntitle = \"Ship\"\nneeds = [\"publish\", \"build\"]\n",
         ));
         let request = w.repour_request(&root);
-        let options = BeadExecutionOptions {
-            render_by: BeadRenderBy::Bd,
-            strict: false,
+        let options = sc_composer_beads::GraphRevisionOptions {
+            target: sc_composer_beads::ExistingGraphTarget::PourRoot(root.clone()),
+            uncommitted: sc_composer_beads::UncommittedPolicy::Allow,
         };
-        // The first write is the create of `ship`; the second is the first update.
         let runner = FailNthMutation {
             seen: Mutex::new(0),
             fail_at: 2,
         };
-        let interrupted = execute_bead_request_with_options_and_runner(&request, &options, &runner)
-            .expect("valid request");
-        assert_eq!(
-            interrupted.outcome,
-            BeadOutcome::Failed {
-                code: "BEADS_GRAPH_APPLY_FAILED".into()
-            },
-            "{interrupted:#?}"
-        );
+        let error =
+            sc_composer_beads::execute_graph_revision_with_runner(&request, &options, &runner)
+                .unwrap_err();
+        assert_eq!(error.code(), "BEADS_GRAPH_APPLY_PARTIAL");
         assert_eq!(w.bead_count(), 5, "the create before the cut was applied");
         assert!(w.leftovers().is_empty());
 
@@ -1130,19 +1143,43 @@ fn repour_preserves_closed_state_and_reports_removed_nodes_and_edges() {
         assert_eq!(shown[0]["notes"], "keep note");
         assert_eq!(shown[0]["assignee"], "reviewer");
         assert_eq!(shown[0]["metadata"]["user_key"], "keep");
-        assert!(w.dependency_exists(&verify, &build));
+        assert!(!w.dependency_exists(&verify, &build));
         assert!(result.nodes.iter().any(|node| {
             node.id.as_ref().is_some_and(|id| id.as_str() == publish)
                 && node.action == BeadNodeAction::Retained
         }));
-        assert!(
-            result
-                .edges
-                .iter()
-                .any(|edge| edge.action == sc_composer_beads::BeadEdgeAction::Retained
-                    && matches!(&edge.from, sc_composer_beads::GraphEndpoint::Bead(id) if id.as_str() == verify)
-                    && matches!(&edge.to, sc_composer_beads::GraphEndpoint::Bead(id) if id.as_str() == build))
-        );
+        assert!(result.changes.iter().any(|change| matches!(change,
+            sc_composer_beads::GraphChange::RemoveInternalEdge { from, to, .. }
+            if from.as_str() == verify && to.as_str() == build)));
         assert!(w.leftovers().is_empty());
+    });
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn repour_unknown_database_refuses_until_explicit_override() {
+    with_workspace(|w| {
+        let graph = w
+            .success(&w.request(BeadOperation::Pour, None))
+            .graph
+            .unwrap();
+        let root = graph.parent.unwrap();
+        w.set_plan(&plan("Build revised", ""));
+        let request = w.repour_request(&root);
+        let target = sc_composer_beads::ExistingGraphTarget::PourRoot(root);
+        let refuse = sc_composer_beads::GraphRevisionOptions {
+            target: target.clone(),
+            uncommitted: sc_composer_beads::UncommittedPolicy::Refuse,
+        };
+        let before = w.snapshot();
+        let error = sc_composer_beads::execute_graph_revision(&request, &refuse).unwrap_err();
+        assert_eq!(error.code(), "BEADS_GRAPH_DIRTY_UNKNOWN", "{error}");
+        assert_eq!(w.snapshot(), before);
+        let allow = sc_composer_beads::GraphRevisionOptions {
+            target,
+            uncommitted: sc_composer_beads::UncommittedPolicy::Allow,
+        };
+        let result = sc_composer_beads::execute_graph_revision(&request, &allow).unwrap();
+        assert_eq!(result.outcome, BeadOutcome::Succeeded, "{result:#?}");
     });
 }

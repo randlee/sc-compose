@@ -237,10 +237,14 @@ fn exec_of_a_script_held_open_for_writing_fails_with_etxtbsy() {
 #[cfg(unix)]
 fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
     let wrapper = root.join("bd-no-daemon");
+    fs::create_dir_all(root.join(".home")).expect("isolated bd home");
     fake_exec::install(
         &wrapper,
         &format!(
-            "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexec {} \"$@\"\n",
+            "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexport HOME={}\nexport XDG_CONFIG_HOME={}\nexport BEADS_DIR={}\nexec {} \"$@\"\n",
+            shell_quote(&root.join(".home")),
+            shell_quote(&root.join(".home/.config")),
+            shell_quote(&root.join(".beads")),
             shell_quote(bd)
         ),
     );
@@ -250,11 +254,12 @@ fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
 #[cfg(windows)]
 fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
     let wrapper = root.join("bd-no-daemon.cmd");
+    fs::create_dir_all(root.join(".home")).expect("isolated bd home");
     fs::write(
         &wrapper,
         format!(
-            "@echo off\r\nsetlocal\r\nset \"BEADS_NO_DAEMON=1\"\r\n\"{}\" %*\r\nexit /b %ERRORLEVEL%\r\n",
-            bd.display()
+            "@echo off\r\nsetlocal\r\nset \"BEADS_NO_DAEMON=1\"\r\nset \"HOME={}\"\r\nset \"USERPROFILE={}\"\r\nset \"XDG_CONFIG_HOME={}\"\r\nset \"BEADS_DIR={}\"\r\n\"{}\" %*\r\nexit /b %ERRORLEVEL%\r\n",
+            root.join(".home").display(), root.join(".home").display(), root.join(".home/.config").display(), root.join(".beads").display(), bd.display()
         ),
     )
     .expect("write no-daemon Beads wrapper");
@@ -510,4 +515,32 @@ fn temporary_workspace() -> PathBuf {
     ));
     fs::create_dir_all(&root).expect("create temporary Beads workspace");
     root
+}
+
+#[cfg(unix)]
+#[test]
+fn isolated_bd_wrapper_sets_a_private_home_and_beads_dir() {
+    let root = temporary_workspace();
+    let probe = root.join("show-environment");
+    fake_exec::install(
+        &probe,
+        "#!/bin/sh\nprintf '%s\n%s\n' \"$HOME\" \"$BEADS_DIR\"\n",
+    );
+    let wrapped = isolated_bd(&root, &probe);
+    let output = Command::new(wrapped)
+        .output()
+        .expect("run environment probe");
+    assert!(output.status.success());
+    let lines = String::from_utf8(output.stdout).unwrap();
+    let expected = format!(
+        "{}\n{}\n",
+        root.join(".home").display(),
+        root.join(".beads").display()
+    );
+    assert_eq!(lines, expected);
+    assert_ne!(
+        std::env::var_os("HOME"),
+        Some(root.join(".home").into_os_string())
+    );
+    remove_temporary_workspace(&root).unwrap();
 }

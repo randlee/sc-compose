@@ -32,6 +32,7 @@ struct FakeBd {
     mutations: Mutex<Vec<Vec<String>>>,
     calls: Mutex<Vec<Vec<String>>>,
     fail_at: Mutex<Option<usize>>,
+    sql: Mutex<(i32, String, String)>,
 }
 
 fn reply(status: i32, stdout: &str, stderr: &str) -> ProcessOutput {
@@ -51,6 +52,7 @@ impl FakeBd {
             mutations: Mutex::new(Vec::new()),
             calls: Mutex::new(Vec::new()),
             fail_at: Mutex::new(None),
+            sql: Mutex::new((0, "[]".into(), String::new())),
         }
     }
 
@@ -237,7 +239,23 @@ impl FakeBd {
                     .collect();
                 reply(0, &Value::Array(rows).to_string(), "")
             }
-            ["sql", "--readonly", _, "--json"] => reply(0, "[]", ""),
+            ["sql", "--readonly", _, "--json"] => {
+                let (status, stdout, stderr) = &*self.sql.lock().unwrap();
+                reply(*status, stdout, stderr)
+            }
+            ["dep", "list", "--json", "--", id] => {
+                let store = self.store.lock().unwrap();
+                let mut rows: Vec<Value> = store
+                    .deps
+                    .iter()
+                    .filter(|(from, _, _)| from == id)
+                    .map(|(_, to, kind)| json!({"id": to, "dependency_type": kind}))
+                    .collect();
+                if let Some(parent) = store.parents.get(*id) {
+                    rows.push(json!({"id": parent, "dependency_type": "parent-child"}));
+                }
+                reply(0, &Value::Array(rows).to_string(), "")
+            }
             ["dep", "list", direction, "--json", "--", id] => {
                 let store = self.store.lock().unwrap();
                 let mut rows: Vec<Value> = store
@@ -474,7 +492,7 @@ fn three_repours_keep_ids_and_runtime_state_and_create_nothing_fresh() {
 }
 
 #[test]
-fn removed_nodes_and_edges_are_kept_and_reported() {
+fn removed_nodes_are_marked_and_obsolete_internal_edges_removed() {
     let (mut w, bd, root) = poured(&plan_v3());
     let ids = bd.ids_by_step();
     bd.cook(&json!([
@@ -492,13 +510,28 @@ fn removed_nodes_and_edges_are_kept_and_reported() {
     }));
     assert!(
         graph
-            .edges
+            .changes
             .iter()
-            .any(|edge| edge.action == BeadEdgeAction::Retained)
+            .any(|c| matches!(c, GraphChange::RemoveInternalEdge { .. }))
+    );
+    assert!(
+        graph
+            .changes
+            .iter()
+            .any(|c| matches!(c, GraphChange::MarkRemovedNode { .. }))
     );
     let after = bd.snapshot();
     assert_eq!(after.rows.len(), before.rows.len());
-    assert_eq!(after.deps, before.deps, "no dependency is removed");
+    assert!(
+        after.deps.len() < before.deps.len(),
+        "obsolete internal edges are removed"
+    );
+    assert!(
+        bd.row(&ids["ship"])["labels"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("repour:removed"))
+    );
     assert_eq!(bd.ids_by_step(), ids);
 }
 
@@ -915,12 +948,12 @@ fn a_partial_failure_reports_applied_and_pending_work_with_a_rerun_hint() {
     assert_eq!(
         receipt.outcome,
         BeadOutcome::Failed {
-            code: "BEADS_GRAPH_APPLY_FAILED".into()
+            code: "BEADS_GRAPH_APPLY_PARTIAL".into()
         },
         "{receipt:#?}"
     );
     let evidence = &receipt.stages.last().unwrap().stderr_excerpt;
-    assert!(evidence.contains("applied 1 of"), "{evidence}");
+    assert!(evidence.contains("AddNode"), "{evidence}");
     assert!(evidence.contains("pending"), "{evidence}");
     assert!(evidence.contains("rerun"), "{evidence}");
 }
@@ -977,7 +1010,7 @@ fn failed_readback_reports_possible_prior_writes() {
     w.request.parent = Some(BeadId::new(&root).unwrap());
     let receipt = execute_bead_request_with_runner(&w.request, &FailReadback(&bd)).unwrap();
     assert!(
-        matches!(&receipt.outcome, BeadOutcome::Failed { code } if code == "BEADS_GRAPH_APPLY_FAILED")
+        matches!(&receipt.outcome, BeadOutcome::Failed { code } if code == "BEADS_GRAPH_APPLY_PARTIAL")
     );
     let evidence = &receipt.stages.last().unwrap().stderr_excerpt;
     assert!(
@@ -1023,4 +1056,170 @@ fn failed_preview_reports_no_graph_write() {
         "{evidence}"
     );
     assert_eq!(bd.mutation_count(), 0);
+}
+
+#[test]
+fn revision_refuses_dirty_and_unknown_and_override_is_explicit() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    bd.cook(&plan_v2());
+    w.request.operation = BeadOperation::PreviewRepour;
+    let options = |uncommitted| GraphRevisionOptions {
+        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        uncommitted,
+    };
+    *bd.sql.lock().unwrap() = (0, "[{\"table_name\":\"issues\"}]".into(), String::new());
+    let before = bd.snapshot();
+    let error =
+        execute_graph_revision_with_runner(&w.request, &options(UncommittedPolicy::Refuse), &bd)
+            .unwrap_err();
+    assert_eq!(error.code(), "BEADS_GRAPH_DIRTY");
+    assert_eq!(before, bd.snapshot());
+    *bd.sql.lock().unwrap() = (1, String::new(), "unsupported query".into());
+    let error =
+        execute_graph_revision_with_runner(&w.request, &options(UncommittedPolicy::Refuse), &bd)
+            .unwrap_err();
+    assert_eq!(error.code(), "BEADS_GRAPH_DIRTY_UNKNOWN");
+    assert!(error.to_string().contains("unsupported query"));
+    let result =
+        execute_graph_revision_with_runner(&w.request, &options(UncommittedPolicy::Allow), &bd)
+            .unwrap();
+    assert_eq!(result.outcome, BeadOutcome::Succeeded);
+    assert_eq!(before, bd.snapshot());
+}
+
+#[test]
+fn explicit_pour_target_rejects_changed_plan_and_recommends_repour() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    bd.cook(&plan_v2());
+    let before = bd.snapshot();
+    let options = GraphRevisionOptions {
+        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        uncommitted: UncommittedPolicy::Refuse,
+    };
+    for operation in [BeadOperation::Pour, BeadOperation::PreviewPour] {
+        w.request.operation = operation;
+        let error = execute_graph_revision_with_runner(&w.request, &options, &bd).unwrap_err();
+        assert_eq!(error.code(), "BEADS_GRAPH_CONFLICT");
+        let json = serde_json::to_value(error).unwrap();
+        assert_eq!(json["details"]["reason"], "plan_changed");
+        assert!(json["recovery"].as_str().unwrap().contains("repour"));
+        assert_eq!(before, bd.snapshot());
+    }
+}
+
+#[test]
+fn preview_and_apply_reverse_an_edge_and_keep_both_external_directions() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    let ids = bd.ids_by_step();
+    let build = &ids["build"];
+    let verify = &ids["verify"];
+    {
+        let mut store = bd.store.lock().unwrap();
+        store.deps.push(dep("outside-gate", build, "blocks"));
+        store.deps.push(dep(verify, "outside-task", "blocks"));
+    }
+    bd.cook(&json!([
+        {"id":"build","title":"Build","description":"compile","needs":["verify"]},
+        {"id":"verify","title":"Verify"}
+    ]));
+    let options = GraphRevisionOptions {
+        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        uncommitted: UncommittedPolicy::Refuse,
+    };
+    w.request.operation = BeadOperation::PreviewRepour;
+    bd.fail_nth_mutation(None);
+    let before = bd.snapshot();
+    let preview = execute_graph_revision_with_runner(&w.request, &options, &bd)
+        .unwrap()
+        .graph
+        .unwrap();
+    assert_eq!(bd.snapshot(), before);
+    assert_eq!(bd.mutation_count(), 0);
+    assert_eq!(
+        preview
+            .changes
+            .iter()
+            .filter(|change| matches!(change, GraphChange::RetainExternalEdge { .. }))
+            .count(),
+        2
+    );
+    assert!(preview.changes.iter().any(|change| matches!(change, GraphChange::RemoveInternalEdge { from, to, .. } if from.as_str() == verify && to.as_str() == build)));
+    w.request.operation = BeadOperation::Repour;
+    let applied = execute_graph_revision_with_runner(&w.request, &options, &bd)
+        .unwrap()
+        .graph
+        .unwrap();
+    assert_eq!(preview.changes, applied.changes);
+    let after = bd.snapshot();
+    assert!(after.deps.contains(&dep("outside-gate", build, "blocks")));
+    assert!(after.deps.contains(&dep(verify, "outside-task", "blocks")));
+    assert!(!after.deps.contains(&dep(verify, build, "blocks")));
+    assert!(after.deps.contains(&dep(build, verify, "blocks")));
+    let calls = bd.mutation_log();
+    let remove = calls
+        .iter()
+        .position(|args| args.starts_with(&["dep".into(), "remove".into()]))
+        .unwrap();
+    let add = calls
+        .iter()
+        .position(|args| args.starts_with(&["dep".into(), "add".into()]))
+        .unwrap();
+    assert!(remove < add);
+}
+
+#[test]
+fn flattening_removes_internal_chain_edges_without_deleting_beads() {
+    let (mut workspace, bd, root) = poured(&plan_v3());
+    let before = bd.snapshot();
+    bd.cook(&json!([
+        {"id":"build","title":"Build release","description":"compile everything"},
+        {"id":"verify","title":"Verify"},
+        {"id":"ship","title":"Ship"}
+    ]));
+    let receipt = workspace.repour(&bd, &root);
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    let changes = receipt.graph.unwrap().changes;
+    assert_eq!(
+        changes
+            .iter()
+            .filter(|change| matches!(change, GraphChange::RemoveInternalEdge { .. }))
+            .count(),
+        2
+    );
+    let after = bd.snapshot();
+    assert_eq!(before.rows.len(), after.rows.len());
+    assert!(after.deps.is_empty());
+}
+
+#[test]
+fn revision_partial_error_carries_confirmed_and_pending_changes() {
+    let (mut workspace, bd, root) = poured(&plan_v1());
+    bd.cook(&plan_v4());
+    bd.fail_nth_mutation(Some(2));
+    workspace.request.operation = BeadOperation::Repour;
+    let options = GraphRevisionOptions {
+        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        uncommitted: UncommittedPolicy::Refuse,
+    };
+    let error = execute_graph_revision_with_runner(&workspace.request, &options, &bd).unwrap_err();
+    let GraphApplyPartial {
+        applied,
+        pending,
+        failed_operation,
+        ..
+    } = match error {
+        BeadComposeError::GraphApplyPartial { details } => details,
+        other => panic!("expected partial failure, got {other}"),
+    };
+    assert!(
+        applied
+            .iter()
+            .any(|change| matches!(change, GraphChange::AddNode { .. }))
+    );
+    assert!(
+        pending
+            .iter()
+            .any(|change| matches!(change, GraphChange::FieldChange { .. }))
+    );
+    assert!(failed_operation.contains("uncertain"));
 }

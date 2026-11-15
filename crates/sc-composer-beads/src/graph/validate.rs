@@ -1,8 +1,8 @@
 //! Validate bd's resolved JSON before reading or writing graph state.
 
 use crate::contract::{
-    BeadComposeRequest, BeadEndpoint, BeadGraphMode, BeadGraphProvenance, BeadId, BeadOperation,
-    BeadRelation, GraphEndpoint, GraphRef, PROVENANCE_KEY, Sha256Digest, StepId,
+    BeadComposeRequest, BeadEndpoint, BeadGraphMode, BeadGraphProvenance, BeadId, BeadRelation,
+    GraphEndpoint, GraphRef, PROVENANCE_KEY, Sha256Digest, StepId,
 };
 use crate::error::{
     BeadComposeError, GraphFormulaUnsupportedReason as Unsupported, GraphIdField,
@@ -219,10 +219,7 @@ pub(super) fn validate(
     });
     let inputs = serde_json::to_vec(&json!({"mode": mode, "relations": relations}))
         .expect("contract serializes");
-    let repour = matches!(
-        req.operation,
-        BeadOperation::Repour | BeadOperation::PreviewRepour
-    );
+    let repour = req.operation.is_repour();
     let attached = repour && req.ref_.is_some();
     Ok(ValidatedGraph {
         mode,

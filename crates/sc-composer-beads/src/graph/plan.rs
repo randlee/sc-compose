@@ -282,10 +282,7 @@ fn mark_repour(
             .push(crate::GraphChange::MarkRemovedNode {
                 bead: id.clone(),
                 status,
-                remove_command: format!(
-                    "bd delete -- {}",
-                    crate::error::shell_quote(&id.to_string())
-                ),
+                remove_command: format!("bd delete -- {}", crate::error::shell_quote(id.as_str())),
             });
         if !row
             .get("labels")
@@ -416,9 +413,11 @@ fn create_nodes(
             },
         });
         if create {
-            graph.changes.push(crate::GraphChange::AddNode {
-                step: step.id.clone(),
-            });
+            if v.repour {
+                graph.changes.push(crate::GraphChange::AddNode {
+                    step: step.id.clone(),
+                });
+            }
             let (key, fields) = create_step(v, advanced, step, ids.get(&step.id), attach)?;
             nodes.push(fields);
             keys.insert(key, Some(step.id.clone()));
@@ -532,41 +531,50 @@ fn plan_edges(
         &mut absent,
     )?;
     if let Some(existing) = repoured {
-        let owned: BTreeSet<_> = existing.rows.keys().cloned().collect();
-        for ((from, to), kind) in &existing_edges {
-            if *kind == GraphDependencyType::ParentChild {
-                continue;
-            }
-            let inside_from = owned.contains(from);
-            let inside_to = owned.contains(to);
-            if inside_from && inside_to && !declared.contains(&(from.clone(), to.clone())) {
-                pending
-                    .dep_removes
-                    .push((from.clone(), to.clone(), kind.clone()));
-                pending
-                    .graph
-                    .changes
-                    .push(crate::GraphChange::RemoveInternalEdge {
-                        from: from.clone(),
-                        to: to.clone(),
-                        kind: kind.clone(),
-                    });
-            } else if inside_from != inside_to {
-                pending
-                    .graph
-                    .changes
-                    .push(crate::GraphChange::RetainExternalEdge {
-                        from: from.clone(),
-                        to: to.clone(),
-                        kind: kind.clone(),
-                    });
-            }
-        }
+        note_revision_edges(existing, &existing_edges, &declared, pending);
     }
     if advanced {
         Ok(edges)
     } else {
         finish_edges(absent, edges)
+    }
+}
+
+fn note_revision_edges(
+    existing: &Existing,
+    existing_edges: &ExistingEdges,
+    declared: &BTreeSet<(BeadId, BeadId)>,
+    pending: &mut PendingCreate,
+) {
+    let owned: BTreeSet<_> = existing.rows.keys().cloned().collect();
+    for ((from, to), kind) in existing_edges {
+        if *kind == GraphDependencyType::ParentChild {
+            continue;
+        }
+        let inside_from = owned.contains(from);
+        let inside_to = owned.contains(to);
+        if inside_from && inside_to && !declared.contains(&(from.clone(), to.clone())) {
+            pending
+                .dep_removes
+                .push((from.clone(), to.clone(), kind.clone()));
+            pending
+                .graph
+                .changes
+                .push(crate::GraphChange::RemoveInternalEdge {
+                    from: from.clone(),
+                    to: to.clone(),
+                    kind: kind.clone(),
+                });
+        } else if inside_from != inside_to {
+            pending
+                .graph
+                .changes
+                .push(crate::GraphChange::RetainExternalEdge {
+                    from: from.clone(),
+                    to: to.clone(),
+                    kind: kind.clone(),
+                });
+        }
     }
 }
 

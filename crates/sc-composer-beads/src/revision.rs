@@ -66,6 +66,17 @@ pub enum GraphChange {
         /// Desired field value.
         after: Value,
     },
+    /// A dependency exists with a different type than requested.
+    EdgeTypeChange {
+        /// Dependent bead.
+        from: BeadId,
+        /// Dependency target.
+        to: BeadId,
+        /// Stored dependency type.
+        before: GraphDependencyType,
+        /// Requested dependency type.
+        after: GraphDependencyType,
+    },
     /// An obsolete dependency between graph-owned beads.
     RemoveInternalEdge {
         /// Dependent bead.
@@ -106,4 +117,30 @@ pub struct GraphApplyPartial {
     pub failed_operation: String,
     /// Underlying failure.
     pub cause: String,
+}
+
+/// Closed wire vocabulary for `GraphConflictReason` (ADR-0023).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+#[serde(rename_all = "snake_case")]
+pub enum GraphConflictReason {
+    /// The `not_owned` refusal reason.
+    NotOwned,
+    /// The `provenance_differs` refusal reason.
+    ProvenanceDiffers,
+    /// A v1 node lacks verifiable creation history for migration.
+    MigrationProofMissing,
+    /// The requested plan differs from the existing graph.
+    PlanChanged,
+}
+
+impl std::fmt::Display for GraphConflictReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::NotOwned => "not_owned",
+            Self::ProvenanceDiffers => "provenance_differs",
+            Self::MigrationProofMissing => "migration_proof_missing",
+            Self::PlanChanged => "plan_changed",
+        })
+    }
 }

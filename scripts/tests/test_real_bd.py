@@ -41,6 +41,13 @@ class RealBdQualification(unittest.TestCase):
         self.assertIsInstance(MODULE.resolve_bd({}), str)
         self.assertIsInstance(MODULE.resolve_bd({"BD_EXECUTABLE": "/nonexistent/bd"}), str)
 
+    def test_fixture_home_is_isolated_and_ambient_beads_dir_is_removed(self) -> None:
+        env = MODULE.isolated_environment({"HOME": "/real/home", "BEADS_DIR": "/real/home/.beads"}, Path("/tmp/test-home"))
+        self.assertEqual(env["HOME"], "/tmp/test-home")
+        self.assertNotEqual(env["HOME"], "/real/home")
+        self.assertNotIn("BEADS_DIR", env)
+        self.assertEqual(env["CARGO_HOME"], "/real/home/.cargo")
+
     def test_executable_bd_is_accepted(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             bd = Path(tmp) / "bd"

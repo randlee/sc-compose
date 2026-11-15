@@ -325,7 +325,7 @@ pub(super) fn field_changes(v: &ValidatedGraph, existing: &Existing) -> Vec<crat
             .and_then(Value::as_str)
             .unwrap_or("unknown")
             .to_owned();
-        let (args, _) = field_args(&fields, row);
+        let (args, merged_metadata) = field_args(&fields, row);
         for arg in args {
             let Some((flag, _)) = arg.split_once('=') else {
                 continue;
@@ -341,7 +341,28 @@ pub(super) fn field_changes(v: &ValidatedGraph, existing: &Existing) -> Vec<crat
                 _ => continue,
             };
             let before = row.get(field).cloned().unwrap_or(Value::Null);
-            let after = fields.get(field).cloned().unwrap_or(Value::Null);
+            let after = if field == "metadata" {
+                Value::Object(merged_metadata.clone())
+            } else if field == "labels" {
+                let mut labels = row
+                    .get("labels")
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default();
+                for label in fields
+                    .get("labels")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                {
+                    if !labels.contains(label) {
+                        labels.push(label.clone());
+                    }
+                }
+                Value::Array(labels)
+            } else {
+                fields.get(field).cloned().unwrap_or(Value::Null)
+            };
             let change = crate::GraphChange::FieldChange {
                 bead: id.clone(),
                 status: status.clone(),

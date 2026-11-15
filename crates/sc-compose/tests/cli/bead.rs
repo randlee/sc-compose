@@ -101,6 +101,7 @@ fn write_request(
 }
 
 fn initialize_beads_workspace(root: &Path, bd: &Path) {
+    fs::create_dir_all(root.join(".home")).expect("isolated home");
     let output = Command::new(bd)
         .args([
             "init",
@@ -110,6 +111,9 @@ fn initialize_beads_workspace(root: &Path, bd: &Path) {
             "--skip-hooks",
         ])
         .env("BEADS_NO_DAEMON", "1")
+        .env("HOME", root.join(".home"))
+        .env("XDG_CONFIG_HOME", root.join(".home/.config"))
+        .env("USERPROFILE", root.join(".home"))
         .env("BEADS_DIR", root.join(".beads"))
         .current_dir(root)
         .output()
@@ -542,6 +546,9 @@ fn pinned_bd_validates_the_canonical_cli_fixture_when_configured() {
         .arg(&request)
         .arg("--json")
         .env("BEADS_NO_DAEMON", "1")
+        .env("HOME", fixture.path.join(".home"))
+        .env("XDG_CONFIG_HOME", fixture.path.join(".home/.config"))
+        .env("USERPROFILE", fixture.path.join(".home"))
         .env("BEADS_DIR", fixture.path.join(".beads"))
         .output()
         .expect("run pinned bd validation");
@@ -614,6 +621,7 @@ impl GraphCliWorkspace {
     fn new(bd: PathBuf) -> Self {
         let fixture = TempFixture::new("bead-graph-e2e");
         let beads_dir = fixture.path.join(".beads");
+        fs::create_dir_all(fixture.path.join(".home")).expect("isolated home");
         let workspace = Self {
             fixture,
             bd,
@@ -657,6 +665,9 @@ impl GraphCliWorkspace {
         let output = Command::new(&self.bd)
             .args(args)
             .current_dir(&self.fixture.path)
+            .env("HOME", self.fixture.path.join(".home"))
+            .env("XDG_CONFIG_HOME", self.fixture.path.join(".home/.config"))
+            .env("USERPROFILE", self.fixture.path.join(".home"))
             .env("BEADS_DIR", &self.beads_dir)
             .env("BEADS_NO_DAEMON", "1")
             .output()
@@ -692,6 +703,9 @@ impl GraphCliWorkspace {
             .arg(request)
             .args(["--render-by", "bd"])
             .current_dir(&self.fixture.path)
+            .env("HOME", self.fixture.path.join(".home"))
+            .env("XDG_CONFIG_HOME", self.fixture.path.join(".home/.config"))
+            .env("USERPROFILE", self.fixture.path.join(".home"))
             .env("BEADS_DIR", &self.beads_dir)
             .env("BEADS_NO_DAEMON", "1");
         if json_output {
@@ -751,6 +765,12 @@ fn direct_plan_fix_pour_persists_values_and_declared_dependency() {
         ])
         .current_dir(root)
         .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
         .output()
@@ -816,6 +836,12 @@ fn assert_plan_fix_path_matches(
         ])
         .current_dir(&workspace.fixture.path)
         .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
         .output()
@@ -856,6 +882,12 @@ fn assert_plan_fix_json_matches(
         .arg(&request)
         .arg("--json")
         .current_dir(root)
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
         .output()
@@ -911,6 +943,12 @@ fn assert_direct_pour_refusals_preserve_state(workspace: &GraphCliWorkspace) {
             .args(*args)
             .current_dir(root)
             .env("PATH", workspace.fixture.path_with_fake_tools())
+            .env("HOME", workspace.fixture.path.join(".home"))
+            .env(
+                "XDG_CONFIG_HOME",
+                workspace.fixture.path.join(".home/.config"),
+            )
+            .env("USERPROFILE", workspace.fixture.path.join(".home"))
             .env("BEADS_DIR", &workspace.beads_dir)
             .env("BEADS_NO_DAEMON", "1")
             .output()
@@ -1292,6 +1330,12 @@ fn direct_bd_owned_registry_pour_passes_variables_to_bd() {
         ])
         .current_dir(root)
         .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
         .output()
@@ -1596,6 +1640,12 @@ fn advanced_graph_cli(
         .arg(request)
         .arg("--json")
         .current_dir(&workspace.fixture.path)
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
         .output()

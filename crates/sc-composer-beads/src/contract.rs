@@ -56,6 +56,10 @@ pub enum BeadOperation {
 }
 
 impl BeadOperation {
+    pub(crate) const fn is_repour(self) -> bool {
+        matches!(self, Self::Repour | Self::PreviewRepour)
+    }
+
     /// Return the operation's stable serde wire name.
     #[must_use]
     pub const fn as_str(self) -> &'static str {

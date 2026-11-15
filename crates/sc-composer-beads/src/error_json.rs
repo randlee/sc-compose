@@ -80,22 +80,6 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
             json!({ "index": index, "reason": reason }),
             "Correct the relation at the reported zero-based index.",
         )),
-        BeadComposeError::GraphPlanChanged { reason, changes } => Some((
-            json!({ "reason": reason, "changes": changes }),
-            "Run repour to apply the requested graph changes.",
-        )),
-        BeadComposeError::GraphDirty => Some((
-            json!({"reason": "dirty"}),
-            "Run bd dolt commit or use --allow-uncommitted.",
-        )),
-        BeadComposeError::GraphDirtyUnknown { cause } => Some((
-            json!({"reason": "unknown", "cause": cause}),
-            "Run bd dolt commit or use --allow-uncommitted.",
-        )),
-        BeadComposeError::GraphApplyPartial { details } => Some((
-            json!(details),
-            "Reconcile the uncertain operation and rerun repour.",
-        )),
         BeadComposeError::GraphConflict { id, reason } => Some((
             json!({ "id": id, "reason": reason }),
             "Inspect the named bead ownership or use a new ref.",
@@ -136,6 +120,28 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
         } => Some((
             json!({ "command": command, "cause": cause, "ids": ids }),
             "bd exited 0, so beads may have been created. Reconcile before pouring again: run bd show on the listed ids (bd list when none are listed); a retry can create a second molecule.",
+        )),
+        _ => revision_error_context(error),
+    }
+}
+
+fn revision_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)> {
+    match error {
+        BeadComposeError::GraphPlanChanged { reason, changes } => Some((
+            json!({ "reason": reason, "changes": changes }),
+            "Run repour to apply the requested graph changes.",
+        )),
+        BeadComposeError::GraphDirty => Some((
+            json!({"reason": "dirty"}),
+            "Run bd dolt commit or use --allow-uncommitted.",
+        )),
+        BeadComposeError::GraphDirtyUnknown { cause } => Some((
+            json!({"reason": "unknown", "cause": cause}),
+            "Run bd dolt commit or use --allow-uncommitted.",
+        )),
+        BeadComposeError::GraphApplyPartial { details } => Some((
+            json!(details),
+            "Reconcile the uncertain operation and rerun repour.",
         )),
         _ => None,
     }
