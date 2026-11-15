@@ -527,7 +527,7 @@ fn isolated_bd_wrapper_sets_a_private_home_and_beads_dir() {
         "#!/bin/sh\nprintf '%s\n%s\n' \"$HOME\" \"$BEADS_DIR\"\n",
     );
     let wrapped = isolated_bd(&root, &probe);
-    let output = Command::new(wrapped)
+    let output = Command::new(&wrapped)
         .output()
         .expect("run environment probe");
     assert!(output.status.success());
@@ -545,7 +545,7 @@ fn isolated_bd_wrapper_sets_a_private_home_and_beads_dir() {
         root.join(".beads").to_string_lossy().as_bytes(),
     )
     .unwrap();
-    let output = Command::new(isolated_bd(&root, &probe))
+    let output = Command::new(&wrapped)
         .current_dir(&redirected)
         .output()
         .unwrap();
