@@ -42,14 +42,14 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     let mut diagnostics = Vec::new();
     let mut refusal_diagnostic = None;
     let result = if let Some(target) = revision {
-        let revision = GraphRevisionOptions {
+        let revision = GraphRevisionOptions::new(
             target,
-            uncommitted: if allow_uncommitted {
+            if allow_uncommitted {
                 UncommittedPolicy::Allow
             } else {
                 UncommittedPolicy::Refuse
             },
-        };
+        );
         execute_graph_revision_with_options(&request, &revision, &options)
     } else {
         execute_bead_request_with_options_and_diagnostics(&request, &options, &mut |error| {

@@ -734,14 +734,14 @@ fn execute_revision(
         },
         None => ExistingGraphTarget::PourRoot(parent),
     };
-    let revision = GraphRevisionOptions {
+    let revision = GraphRevisionOptions::new(
         target,
-        uncommitted: if allow_uncommitted {
+        if allow_uncommitted {
             UncommittedPolicy::Allow
         } else {
             UncommittedPolicy::Refuse
         },
-    };
+    );
     let options = BeadExecutionOptions { render_by, strict };
     let receipt = py
         .detach(|| execute_graph_revision_with_options(&inner, &revision, &options))
