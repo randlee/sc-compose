@@ -1734,18 +1734,10 @@ formula source/registry identity before claiming that example passes.
 
 #### FR-24.34 — Automatic declared edges during pour
 
-A single repour command validates before any write, backs up existing plan
-beads to a temporary JSONL export, and converges the stored graph with the latest rendered plan under
-a single-writer-per-plan model. It creates missing nodes and declared edges,
-updates existing nodes' plan-owned fields, and preserves their IDs and runtime
-state (including status, notes, assignee and close state). It reads back and
-reports changes; replay is a no-op and rerunning an interrupted apply completes
-it. Nodes and edges removed from the plan are reported and retained, not
-deleted. Before any write reject malformed plans, dangling references and
-conflicting edge types; do not reject otherwise valid input. Preview writes
-nothing. No atomic capability gate or new bd primitive is required. See
-ADR-0023 for the complete contract. Temporary backup files are cleaned up
-after success, refusal and interrupted apply.
+A single repour command applies updated plan fields and missing nodes and
+edges to the existing graph while preserving IDs and runtime state. It reports
+changes and retained removals; rerunning completes interrupted work and replay
+changes nothing. Input is validated before writes, as specified in ADR-0023.
 
 #### FR-24.35 — Conditional beads and edges
 

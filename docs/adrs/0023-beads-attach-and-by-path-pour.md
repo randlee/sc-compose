@@ -674,32 +674,28 @@ leaves stale, request-specific formulas in a shared by-name registry.
 ## Phase W amendment — convergent re-pour (2026-11-14)
 
 This amendment supersedes the Phase V atomic-apply and immutable-node rules.
-Advanced pour supports one writer per plan, without a concurrency precondition,
-new bd primitive, upstream dependency, or atomic capability gate. Preview
-validates the complete rendered graph without writes. Before any apply write,
-reject malformed plans, dangling references and conflicting edge types; do
-not reject otherwise valid input. Existing explicit external endpoints are
-references and are not updated.
+One writer per plan is supported without a concurrency precondition or a new
+bd primitive. `sc-compose bead repour FORMULA --root <bead-id>` targets a
+prior pour root; attach graphs use their existing parent and ref. Existing
+steps are matched by provenance identity (mode, formula, parent, ref, step),
+not revision, input or node-definition hashes.
 
-The single `sc-compose bead repour` command (or the existing CLI’s fitting name)
-takes an updated plan to poured beads in one step. After validation and before
-replacement, it backs up existing plan beads to a temporary JSONL export.
-The export is cleaned up after success, refusal and interrupted apply.
+Before any write, validate the entire plan and target. Reject malformed plans,
+dangling references, conflicting edge types, invalid targets and foreign or
+unowned planned IDs; do not reject otherwise valid input. Existing external
+endpoints are references and are not updated.
 
-Apply converges the stored graph toward the latest plan: create missing nodes,
-update plan-owned fields of existing plan nodes (including title, description,
-design and acceptance), and add missing declared edges. Preserve bead IDs and
-runtime state including status, notes, assignee and close state. Record and
-read back actual changes. An exact replay changes nothing; rerunning after an
-interrupted apply completes the remaining work. There is no all-or-nothing
-promise across writes. Never reset runtime state while updating plan fields.
+Apply changed plan-owned fields to existing beads, create missing nodes and
+edges, preserve IDs and runtime state, and read back and report changes.
+Merge metadata without clobbering unrelated user keys. Explicit plan values
+update existing beads, including closed beads; unspecified fields are retained.
+Removed nodes and edges are reported, not deleted. An interrupted apply is
+completed by rerunning; an exact replay changes nothing. There is no
+all-or-nothing promise across writes. Partial failure reports applied and
+pending work and a rerun hint.
 
-Nodes and edges removed from a later plan are reported, not deleted; no existing
-state is pruned automatically. Receipts distinguish added and updated elements,
-unchanged elements and retained removals. Temporary files and intermediate
-artifacts are cleaned on success, refusal and interrupted apply. No duplicate or stray beads are created.
-
-FR-24.35 conditional graphs and FR-24.36 input and diagnostic constraints
-remain applicable. `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` is retired; the
-refusal branches are deleted. Real-store acceptance uses a throwaway Dolt
-server, serial jobs, and deterministic interruption rather than timing.
+Receipts distinguish existing, created, updated and retained nodes and
+existing, added and retained edges; the JSON CLI and Python adapter retain
+compatibility with these additive actions. `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`
+is retired and its refusal branches are deleted. FR-24.35 and FR-24.36 remain
+applicable.

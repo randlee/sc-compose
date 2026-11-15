@@ -147,8 +147,7 @@ var, mixed request/direct inputs and missing required input all create none.
 The owner selected additive edges between existing beads, including new
 relations after formula changes, plus optional beads/edges controlled by
 Jinja. FR-24.34–35 and the ADR-0023 Phase W amendment govern state preservation,
-conditional selection and convergent single-writer re-pour. No atomic
-capability gate or upstream dependency is required.
+conditional selection and convergent single-writer re-pour.
 
 The FUZZ-171 cases and the 229-template corpus are unavailable historical
 evidence. They are never counted as recovered, rerun or passing, and their

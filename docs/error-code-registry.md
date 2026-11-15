@@ -243,18 +243,12 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 | `BEADS_GRAPH_SCOPE_MISMATCH` | execution | `compose_variables` parent or ref disagrees with the top-level scope | attach and by-path pour |
 | `BEADS_GRAPH_FORMULA_UNSUPPORTED` | execution | the cooked formula uses a construct graph planning cannot express (reason is a stable token) | graph planning |
 | `BEADS_GRAPH_RELATION_INVALID` | execution | a request relation is invalid (its index is named) | graph planning |
-| `BEADS_GRAPH_CONFLICT` | execution | a planned bead already exists with different content; existing beads are never edited | graph planning |
+| `BEADS_GRAPH_CONFLICT` | execution | a target or planned ID is unowned or has a conflicting ownership identity; changed plan fields alone are not a conflict | graph planning |
 | `BEADS_GRAPH_EDGE_CONFLICT` | execution | an existing edge has a different type than requested | graph planning |
-| `BEADS_GRAPH_EDGE_MISSING` | execution | planned edges are absent; the receipt carries `missing_edges` and recovery `bd dep add` commands | graph planning, attach |
+| `BEADS_GRAPH_EDGE_MISSING` | execution | legacy graph mode found absent edges; advanced repour adds missing declared edges | graph planning, attach |
 | `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` | retired | Phase W removes this refusal and its branches | advanced graph planning, attach |
 | `BEADS_GRAPH_READ_FAILED` | execution | reading existing beads with `bd show` failed; large id sets are read in batches | graph planning |
-| `BEADS_GRAPH_APPLY_FAILED` | execution | `bd create --graph` failed; nothing was written | graph apply |
+| `BEADS_GRAPH_APPLY_FAILED` | execution | a graph apply failed; repour reports applied and pending work and a rerun hint when any writes may have occurred | graph apply |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | execution | `bd create --graph` exited 0 but its response cannot be consumed, so beads may exist; reconcile with `bd show` before pouring again | graph apply |
 | `BEADS_RECEIPT_DESERIALIZATION_FAILED` | adapter | a receipt document cannot be parsed back; an adapter-level code (`BeadComposeError::RECEIPT_DESERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
 | `BEADS_OUTPUT_SERIALIZATION_FAILED` | adapter | a value the adapter returns to its caller (receipt, graph, relations) cannot be serialized; reported with stage `output`; an adapter-level code (`BeadComposeError::OUTPUT_SERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
-
-### Phase W re-pour contract
-
-The atomic capability refusal is retired by ADR-0023 and FR-24.34. Apply is
-convergent for a single writer, including changed plan-owned fields and mixed
-node/edge updates. Implementation of this specification is tracked in Phase W.
