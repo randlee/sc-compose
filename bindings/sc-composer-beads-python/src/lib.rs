@@ -273,7 +273,7 @@ fn operation_from_str(py: Python<'_>, value: &str) -> PyResult<BeadOperation> {
     serde_json::from_value(Value::String(value.to_owned())).map_err(|_error| {
         request_error(
             py,
-            "operation must be render, validate, preview_pour, pour, preview_attach, attach, repour, or preview_repour",
+            "operation must be render, validate, preview_pour, pour, preview_attach, attach, or repour",
         )
     })
 }
