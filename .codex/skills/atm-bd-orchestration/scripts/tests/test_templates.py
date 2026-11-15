@@ -130,7 +130,7 @@ class TemplateContractTests(unittest.TestCase):
         text = (ROOT / "templates/dev-sanity-template.xml.j2").read_text()
         self.assertIn("assignment-gates.py sanity", text)
         self.assertIn("assignment-gates.py sanity --bead", text)
-        self.assertIn("--commit {{ commit }}", text)
+        self.assertIn("--commit {{ commit | string | cdata_escape }}", text)
         self.assertIn("Do not run a separate bd ready or bd show", text)
         for obsolete in ("gh pr view", "SANITY.ZERO_DELTA", "SANITY.NOT_REBASED"):
             self.assertNotIn(obsolete, text)

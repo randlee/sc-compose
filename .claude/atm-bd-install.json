@@ -1,9 +1,9 @@
 {
-  "version": "0.19.16",
-  "commit": "bc2dc972d9725a2474e4364b6646db82050cb67a",
+  "version": "0.19.19",
+  "commit": "f6144980573d38dc5ec73b9ba0777c0fb3307c1e",
   "source": {
     "ref": "bundled",
-    "manifest_aggregate": "27431980d124324541de82744495447f371b7014a64302fe976a44bd5f7af033"
+    "manifest_aggregate": "a098d97e20e2640fa93d77613b8af0fc6963e96a4f85531cdd13c745a8db98d7"
   },
   "files": [
     {
@@ -52,7 +52,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-lite/SKILL.md",
-      "sc_sha": "34aae5f03a1f577297e70887d55e6ec022e278dfd471b3c90094f83a83af4a65"
+      "sc_sha": "8f962a2b9ae0f6eda53ddaaf757abff4ab6781d12a5f2ee3c2804a70a84f0fe6"
     },
     {
       "path": ".claude/skills/atm-bd-lite/hooks/task-assign.md",
@@ -96,7 +96,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-lite/templates/dev.xml.j2",
-      "sc_sha": "f1aebcedc8d0b5435e6b9bfd1504e09967cc40c29fcb8d5a224e7daacf11e1c1"
+      "sc_sha": "b69f7becfe56fe6f229b12886455dfa5f5770034d30d749e95413a2684c3da7b"
     },
     {
       "path": ".claude/skills/atm-bd-lite/templates/land-close.md.j2",
@@ -104,7 +104,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-lite/templates/land.xml.j2",
-      "sc_sha": "0ef0c4147133b11d52a241bf431e4e2e9e05c5dfa7ddead1d231d3a7d161bf1d"
+      "sc_sha": "26be2c2dde7881913d506e0b3d6c1da793faf5473073288af84a33ac76e6ded8"
     },
     {
       "path": ".claude/skills/atm-bd-lite/templates/qa-findings.md.j2",
@@ -116,7 +116,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-lite/templates/qa.xml.j2",
-      "sc_sha": "05bc864b650bafa36779282cc00162cc902d7d9c40c5b9d146678941af42d740"
+      "sc_sha": "f2fd0a2b62495af201169c59be55b8bd27347eafef86fb21d4190f1b15165d5f"
     },
     {
       "path": ".claude/skills/atm-bd-lite/templates/refuse.md.j2",
@@ -124,7 +124,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/SKILL.md",
-      "sc_sha": "9a5af9f20f1a72bcb30b3a85a8417065a4fa660255b7902945e1bcbf00b170e3"
+      "sc_sha": "098ea9f581d76da39c28bfd0939bac708a1ea37229ee38ef6387c344e4fe5ee2"
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/blocking-findings-guidelines.md",
@@ -340,7 +340,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/scripts/assignment-gates.py",
-      "sc_sha": "b423bed4bf136422ed8e7cc0076706f80f80027314945d0fd3794c866f6e32f8"
+      "sc_sha": "6eeacb459968604ac78739f0dc42e0665879cf38ddbe71f25ad94208130a58b9"
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/scripts/atm-hook-doctor.py",
@@ -564,7 +564,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/scripts/tests/test_assignment_gates.py",
-      "sc_sha": "a8c15830ffe6a2c848a7b6489956007a6a234b8151f493f7809ca51573e34919"
+      "sc_sha": "e4ba779a4125b7ab286554eebb7ab64c4969d0f4afb3dae59c64377afbcfcea4"
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/scripts/tests/test_assignment_templates.py",
@@ -688,7 +688,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/scripts/tests/test_task_close.py",
-      "sc_sha": "5ed50afc0210a906192f2296618c2b253e6e92adf3b10ca145376a9d11d34dc4"
+      "sc_sha": "c34d8c0fde5bf2f20d1bb544bcd7d7f4b90d1683ce56111e62999b1e985c9962"
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/scripts/tests/test_task_close_validation.py",
@@ -696,7 +696,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/scripts/tests/test_templates.py",
-      "sc_sha": "485995a1011c88c3a8950e24515f838eba5f3f39a1053b3c5a459b02817b8937"
+      "sc_sha": "7674a14d62f516f32812cdad6f6fffafdd9ae7b972fb90373ac5c151a366b513"
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/scripts/tests/test_transitions.py",
@@ -732,7 +732,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/templates/dev-sanity-template.xml.j2",
-      "sc_sha": "aa73a0a93d251e08804285ecce99b4c1ce2ed1f5df53aa8ba9641c17963234e8"
+      "sc_sha": "352fb43e783997f3ce0e1c8fee9958a4eca624c0e14da0f6cd1f936cafbe7338"
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/templates/dev-template.xml.j2",
@@ -756,7 +756,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/templates/hook-close-escalation.xml.j2",
-      "sc_sha": "91939d10943c0b51bd0c344d6d8539a9b19c2dabae539a4ee1af345c891f2f03"
+      "sc_sha": "7365abeb4b5790e351a614eef2e44de4d35f268c50162003ef13172c3f0b50ec"
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/templates/plan-review-complete.md.j2",
@@ -788,7 +788,7 @@
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/templates/qa-template.xml.j2",
-      "sc_sha": "1c8d64b90a0abbc871d3430412db6023bc6998582c2d7b8d28d4585227127a7b"
+      "sc_sha": "e2da740f9abc234623801307fc38aff4ea3882db338e672cc69b10ac2fb5f418"
     },
     {
       "path": ".claude/skills/atm-bd-orchestration/templates/rebase-required.xml.j2",
@@ -844,7 +844,7 @@
     },
     {
       "path": ".claude/skills/atm-beads/SKILL.md",
-      "sc_sha": "20eecf88ac9c707fdf7d30fae24c8b5f676f6cde598d490c87beceaafd06c638"
+      "sc_sha": "6e1e0dd9a8094c6b6dced999ee9b15943cf5fc96e6345febc2a0315a8976130b"
     },
     {
       "path": ".claude/skills/atm-beads/examples/dev-sanity-bead-vars-d-4.json",
@@ -932,7 +932,7 @@
     },
     {
       "path": ".claude/skills/atm-beads/scripts/bead_schema.py",
-      "sc_sha": "6c654eb00be5ba9af7d4cfbf98ce25d30d797210226eac97a69cc3fb3689072a"
+      "sc_sha": "87f90df9d69af31d9c43d13b2cb18bb201d96a1df5f3b41a99948d871237a7fc"
     },
     {
       "path": ".claude/skills/atm-beads/scripts/check-phase-artifact",
@@ -1004,7 +1004,7 @@
     },
     {
       "path": ".claude/skills/atm-beads/tests/test_bead_schema.py",
-      "sc_sha": "7d85e0316437ec5169ed599a884acb4a9e6469f8ba563f3cc36eed0465658c1e"
+      "sc_sha": "d705877e11b26b9958130025881945e009ef3ecdfec1ed6cb98df71c7b284b5c"
     },
     {
       "path": ".claude/skills/atm-beads/tests/test_importing_docs.py",
@@ -1036,19 +1036,19 @@
     },
     {
       "path": ".claude/skills/plan-hardening/01-plan-scope-review.xml.j2",
-      "sc_sha": "4ba0e5cccb6b3828d9192d3226f4fc932ee782dbc65ed05604da7172112dfda4"
+      "sc_sha": "db9cc43f879fb7d3c6332e7d9494461950cde34813f74cdce56f56f27868c53f"
     },
     {
       "path": ".claude/skills/plan-hardening/02-sprint-scope-hardening.xml.j2",
-      "sc_sha": "849310f6a1cb25f86d8c6f6de97b1a386e2501e0ea968438de95bd577043ddc3"
+      "sc_sha": "fe0a30c7d658a4238a99223ef04d80dd5885144d45c7ef740f0560f75805503a"
     },
     {
       "path": ".claude/skills/plan-hardening/03-consistency-hardening.xml.j2",
-      "sc_sha": "88f0343867ca21fccac5b45280d1e1e2c1d7d30489d73cf5fc3b04a2e9ad653c"
+      "sc_sha": "efcdf5f6f3c5ff6f3a09f35f9ef21b99fc2b5ade60496763a93ad9d45ff02873"
     },
     {
       "path": ".claude/skills/plan-hardening/SKILL.md",
-      "sc_sha": "71da7491cf8c0d4b77950e2e4e96e65a66886dd901a543e751e4cd6691fe4e18"
+      "sc_sha": "c58ecc8a3cc6a43c8acbfcb14b7da5189e2c70737098ec20db0abffa18910a71"
     },
     {
       "path": ".claude/skills/plan-hardening/examples/plan-hardening-finding-bead-vars.example.json",
@@ -1076,7 +1076,7 @@
     },
     {
       "path": ".claude/skills/plan-hardening/plan-critical-review.xml.j2",
-      "sc_sha": "f324e4abd69fed73b05eb6a2f3a8f4c402a0efa301b9ee01e5b0d7a517832ba7"
+      "sc_sha": "06efad15e4d0ef6b13eb5a2509e2335af22a0f1a73b00e5125a44a0179ddc625"
     },
     {
       "path": ".claude/skills/plan-hardening/plan-hardening-finding-bead.json.j2",
@@ -1192,7 +1192,7 @@
     },
     {
       "path": ".claude/skills/sprint-report/scripts/sprint_dag.py",
-      "sc_sha": "a2bd6b892100ff359af37c6e2a1fdd93f22882b08d51f42ce427efb3bf527c3f"
+      "sc_sha": "4169eefb0c33e6b9dc88330b9c5dcca6ff5498b0d2a10cdf969d9221c49d1f27"
     },
     {
       "path": ".claude/skills/sprint-report/scripts/sprint_qa.py",
@@ -1208,7 +1208,7 @@
     },
     {
       "path": ".claude/skills/sprint-report/tests/test_sprint_dag.py",
-      "sc_sha": "5b513d6a6af26355b6d73c6945c55cf2213977bbb322dc161ff9a5b953da13b6"
+      "sc_sha": "4902faadce0e5f076f23d9d529efba30401af6dc9604dffed634aee5f37967e9"
     },
     {
       "path": ".claude/skills/sprint-report/tests/test_sprint_report.py",

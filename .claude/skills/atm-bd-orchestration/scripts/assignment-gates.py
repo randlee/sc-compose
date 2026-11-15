@@ -138,7 +138,8 @@ def stack_top(runner: Runner, args: argparse.Namespace) -> str:
     if not isinstance(layers, list):
         raise ValueError("stack bead metadata.layers must be an array")
     raw = run(runner, "gh", "api", "repos/{owner}/{repo}/stacks", "--paginate", "--jq",
-              ".[] | {number, base: .base.ref, prs: [.pull_requests[].number]}", cwd=args.worktree or None)
+              ".[] | {number, base: .base.ref, prs: [.pull_requests[].number], "
+              "open: [.pull_requests[] | select(.state == \"open\") | .number]}", cwd=args.worktree or None)
     try:
         decoded = json.loads(raw) if raw else []
         stacks = decoded if isinstance(decoded, list) else [decoded]
@@ -146,13 +147,17 @@ def stack_top(runner: Runner, args: argparse.Namespace) -> str:
         stacks = [json.loads(line) for line in raw.splitlines() if line.strip()]
     if any(not isinstance(stack, dict) or type(stack.get("number")) is not int or
            not isinstance(stack.get("base"), str) or not isinstance(stack.get("prs"), list) or
-           any(type(pr) is not int for pr in stack["prs"]) for stack in stacks):
+           not isinstance(stack.get("open"), list) or
+           any(type(pr) is not int for pr in stack["prs"] + stack["open"]) for stack in stacks):
         raise ValueError("hosted stack list has invalid fields")
     known = {layer.get("pr") for layer in layers if isinstance(layer, dict)}
+    # An empty ledger with no stack number claims a hosted stack on its base only while one of its PRs is open:
+    # GitHub keeps listing a stack after every PR in it has merged or closed.
     matches = [stack for stack in stacks if
                (meta.get("stack_number") is not None and stack["number"] == meta["stack_number"] or
                 stack["base"] == meta.get("trunk", args.pr_target) and
-                (bool(known.intersection(stack["prs"])) or not layers and meta.get("stack_number") is None))]
+                (bool(known.intersection(stack["prs"])) or
+                 not layers and meta.get("stack_number") is None and bool(stack["open"])))]
     if len(matches) > 1:
         raise ValueError("ambiguous hosted stacks overlap the ledger")
     hosted_prs = matches[0]["prs"] if matches else []
