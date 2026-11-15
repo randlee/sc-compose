@@ -60,14 +60,14 @@ fn lint_fast_pass_preserves_composite_profile_and_materializes_evidence() {
         .collect();
     assert_eq!(
         step_names,
-        ["fmt", "version", "manifests", "spell", "pytests"]
+        ["version", "fmt", "manifests", "spell", "pytests"]
     );
-    assert_eq!(steps[0]["command"], "cargo fmt --all --check");
     assert!(
-        steps[1]["command"]
+        steps[0]["command"]
             .as_str()
             .is_some_and(|command| { command.contains("-m sc_lint.check_version_sync") })
     );
+    assert_eq!(steps[1]["command"], "cargo fmt --all --check");
     assert!(
         steps[2]["command"]
             .as_str()
