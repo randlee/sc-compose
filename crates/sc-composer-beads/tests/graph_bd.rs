@@ -12,9 +12,11 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::{
-    Mutex,
+    Arc, Mutex,
     atomic::{AtomicU64, Ordering},
 };
+
+use std::time::{Duration, Instant};
 
 static SERIAL: Mutex<()> = Mutex::new(());
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -228,32 +230,135 @@ fn drain_then_wait<T>(
     (stdout, stderr, status)
 }
 
+/// Read continuously so a timed-out child can report output captured so far.
+fn capture_pipe(mut pipe: impl Read, bytes: &Mutex<Vec<u8>>) -> std::io::Result<()> {
+    let mut buffer = [0; 8192];
+    loop {
+        match pipe.read(&mut buffer) {
+            Ok(0) => return Ok(()),
+            Ok(count) => bytes
+                .lock()
+                .expect("captured output")
+                .extend_from_slice(&buffer[..count]),
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+/// A ready result wins; the deadline is solely a failure guard.
+fn wait_for_completion<T>(
+    mut poll: impl FnMut() -> std::io::Result<Option<T>>,
+    mut expired: impl FnMut() -> bool,
+    mut pause: impl FnMut(),
+) -> std::io::Result<Option<T>> {
+    loop {
+        if let Some(result) = poll()? {
+            return Ok(Some(result));
+        }
+        if expired() {
+            return Ok(None);
+        }
+        pause();
+    }
+}
+
 fn run_command(command: &mut Command) -> Output {
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = command.spawn().expect("bd spawn");
-    let mut stdout = child.stdout.take().expect("piped bd stdout");
-    let mut stderr = child.stderr.take().expect("piped bd stderr");
-    let stdout_reader = std::thread::spawn(move || {
-        let mut bytes = Vec::new();
-        stdout.read_to_end(&mut bytes).expect("bd stdout");
-        bytes
-    });
-    let stderr_reader = std::thread::spawn(move || {
-        let mut bytes = Vec::new();
-        stderr.read_to_end(&mut bytes).expect("bd stderr");
-        bytes
-    });
-    let (stdout, stderr, status) = drain_then_wait(
-        || stdout_reader.join().expect("bd stdout reader"),
-        || stderr_reader.join().expect("bd stderr reader"),
-        || child.wait().expect("bd status"),
+    let stdout = child.stdout.take().expect("piped bd stdout");
+    let stderr = child.stderr.take().expect("piped bd stderr");
+    let stdout_bytes = Arc::new(Mutex::new(Vec::new()));
+    let stderr_bytes = Arc::new(Mutex::new(Vec::new()));
+    let out = Arc::clone(&stdout_bytes);
+    let err = Arc::clone(&stderr_bytes);
+    let stdout_reader = std::thread::spawn(move || capture_pipe(stdout, &out));
+    let stderr_reader = std::thread::spawn(move || capture_pipe(stderr, &err));
+    let started = Instant::now();
+    let mut exited = None;
+    let status = wait_for_completion(
+        || {
+            if exited.is_none() {
+                exited = child.try_wait()?;
+            }
+            Ok(exited.filter(|_| stdout_reader.is_finished() && stderr_reader.is_finished()))
+        },
+        || started.elapsed() >= Duration::from_secs(600),
+        || std::thread::sleep(Duration::from_millis(10)),
     );
-
+    let status = match status {
+        Ok(Some(status)) => status,
+        failure => {
+            let kill_error = child.kill().err();
+            let _ = child.try_wait();
+            // Never join unfinished readers: a descendant might still own a pipe.
+            panic!(
+                "command {command:?} did not complete within the 600s failure deadline: {failure:?}; kill: {kill_error:?}\nstdout: {}\nstderr: {}",
+                String::from_utf8_lossy(&stdout_bytes.lock().expect("stdout snapshot")),
+                String::from_utf8_lossy(&stderr_bytes.lock().expect("stderr snapshot"))
+            );
+        }
+    };
+    let (stdout, stderr, status) = drain_then_wait(
+        || {
+            stdout_reader
+                .join()
+                .expect("bd stdout reader")
+                .expect("bd stdout");
+            std::mem::take(&mut *stdout_bytes.lock().expect("stdout capture"))
+        },
+        || {
+            stderr_reader
+                .join()
+                .expect("bd stderr reader")
+                .expect("bd stderr");
+            std::mem::take(&mut *stderr_bytes.lock().expect("stderr capture"))
+        },
+        || status,
+    );
     Output {
         status,
         stdout,
         stderr,
     }
+}
+
+#[test]
+fn child_failure_deadline_uses_controlled_completion_and_expiry() {
+    use std::cell::Cell;
+    // Already-completed output succeeds even when the guard would be expired.
+    let ready = wait_for_completion(
+        || Ok(Some(7)),
+        || panic!("ready checked first"),
+        || panic!("no pause"),
+    );
+    assert_eq!(ready.unwrap(), Some(7));
+    let polls = Cell::new(0);
+    let expired = wait_for_completion(
+        || {
+            polls.set(polls.get() + 1);
+            Ok(None::<u8>)
+        },
+        || true,
+        || panic!("expired child must fail immediately"),
+    );
+    assert_eq!(expired.unwrap(), None);
+    assert_eq!(polls.get(), 1);
+    let mut results = [None, Some(9)].into_iter();
+    let pauses = Cell::new(0);
+    let completed = wait_for_completion(
+        || Ok(results.next().unwrap()),
+        || false,
+        || pauses.set(pauses.get() + 1),
+    );
+    assert_eq!(completed.unwrap(), Some(9));
+    assert_eq!(pauses.get(), 1);
+    let error = wait_for_completion(
+        || Err::<Option<u8>, _>(std::io::Error::other("try_wait failed")),
+        || false,
+        || panic!("no pause"),
+    );
+    assert_eq!(error.unwrap_err().to_string(), "try_wait failed");
 }
 
 #[test]
