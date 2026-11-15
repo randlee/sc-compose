@@ -1820,6 +1820,29 @@ fn revision_cli_reports_partial_revision() {
     assert!(body["payload"]["error"]["details"]["pending"].is_array());
 }
 
+#[cfg(unix)]
+#[test]
+fn revision_cli_blocks_invalid_graph_path_before_bd() {
+    let fixture = TempFixture::new("bead-revision-blocked-path");
+    let (request, trace) = revision_cli_fixture(&fixture);
+    let blocked = fixture.path.join("sample.formula.toml.graph.json");
+    fs::create_dir(&blocked).unwrap();
+    let output = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let body: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        body["payload"]["error"]["code"],
+        "BEADS_OUTPUT_PATH_INVALID"
+    );
+    assert_eq!(body["payload"]["error"]["details"]["field"], "graph_plan");
+    assert!(!trace.exists(), "a blocked graph path must not invoke bd");
+}
+
 #[test]
 fn revision_help_points_to_both_manual_topics() {
     let output = sc_compose()

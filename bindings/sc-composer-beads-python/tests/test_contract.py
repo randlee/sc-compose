@@ -796,3 +796,18 @@ def test_revision_receipt_preserves_fields_and_external_edges() -> None:
     assert decoded.graph["changes"] == changes
     assert decoded.to_json()["graph"]["changes"] == changes
     assert decoded.schema == beads.BEADS_SCHEMA_V1
+
+
+def test_revision_blocked_graph_path_has_a_typed_diagnostic(tmp_path: Path) -> None:
+    template = tmp_path / "sample.formula.toml.j2"
+    template.write_text('formula = "sample"\n', encoding="utf-8")
+    (tmp_path / "sample.formula.toml.graph.json").mkdir()
+    request = beads.BeadComposeRequest(
+        tmp_path, template, tmp_path / "sample.formula.toml", {},
+        formula_name="sample", bd_executable=tmp_path / "must-not-run",
+        parent="proj-1", pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+    )
+    with pytest.raises(beads.BeadComposeError) as refused:
+        beads.preview_repour(request)
+    assert refused.value.code == "BEADS_OUTPUT_PATH_INVALID"
+    assert refused.value.details["field"] == "graph_plan"

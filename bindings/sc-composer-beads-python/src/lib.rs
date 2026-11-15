@@ -141,6 +141,7 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
     if matches!(
         error_kind,
         RustBeadComposeError::GraphPlanChanged { .. }
+            | RustBeadComposeError::GraphPlanPathInvalid { .. }
             | RustBeadComposeError::GraphDirty
             | RustBeadComposeError::GraphDirtyUnknown { .. }
             | RustBeadComposeError::GraphApplyPartial { .. }
@@ -161,6 +162,7 @@ fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyE
     if matches!(
         error_kind,
         RustBeadComposeError::GraphPlanChanged { .. }
+            | RustBeadComposeError::GraphPlanPathInvalid { .. }
             | RustBeadComposeError::GraphDirty
             | RustBeadComposeError::GraphDirtyUnknown { .. }
             | RustBeadComposeError::GraphApplyPartial { .. }
