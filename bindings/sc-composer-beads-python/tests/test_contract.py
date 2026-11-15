@@ -346,25 +346,29 @@ def test_python_and_cli_preview_receipts_have_the_same_stages(tmp_path: Path) ->
     )
 
     python_receipt = beads.preview_pour(request)
-    completed = subprocess.run(
-        [
-            "cargo",
-            "run",
-            "--quiet",
-            "-p",
-            "sc-compose",
-            "--",
-            "bead",
-            "preview-pour",
-            "--request",
-            str(request_path),
-            "--json",
-        ],
-        cwd=REPOSITORY_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        completed = subprocess.run(
+            [
+                "cargo",
+                "run",
+                "--quiet",
+                "-p",
+                "sc-compose",
+                "--",
+                "bead",
+                "preview-pour",
+                "--request",
+                str(request_path),
+                "--json",
+            ],
+            cwd=REPOSITORY_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired as exc:
+        pytest.fail(f"cargo-run timed out; stdout={exc.stdout!r}; stderr={exc.stderr!r}")
     cli_receipt = json.loads(completed.stdout)["payload"]
     assert cli_receipt["operation"] == python_receipt.operation
     assert [stage["stage"] for stage in cli_receipt["stages"]] == [
@@ -739,11 +743,13 @@ def test_repour_wire_values_and_additive_actions(tmp_path: Path) -> None:
 @pytest.mark.skipif(os.name == "nt", reason="fixture is a POSIX executable")
 def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> None:
     executable = tmp_path / "fake-revision-bd"
-    executable.write_text(
+    script = executable.with_name(executable.name + ".sh")
+    executable.symlink_to(REPOSITORY_ROOT / "crates/test-support/fake-exec")
+    script.write_text(
         "#!/bin/sh\n"
         'case "$1" in\n'
         "cook) printf '%s' '{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{\"id\":\"build\",\"title\":\"Build\"}]}' ;;\n"
-        "show) printf '%s' '[{\"id\":\"proj-1\",\"title\":\"sample\",\"description\":\"\",\"status\":\"open\",\"metadata\":{\"sc_compose_graph\":{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}]' ;;\n"
+        "show) printf '%s' '[{\"id\":\"proj-1\",\"title\":\"old\",\"description\":\"\",\"status\":\"open\",\"metadata\":{\"sc_compose_graph\":{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}]' ;;\n"
         "children|dep) printf '[]' ;;\n"
         "sql) printf 'probe unsupported' >&2; exit 1 ;;\n"
         "create) printf '%s' '{\"ids\":{\"build\":\"proj-2\"}}' ;;\n"
@@ -751,7 +757,6 @@ def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> 
         "*) exit 2 ;;\nesac\n",
         encoding="utf-8",
     )
-    executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
     template = tmp_path / "sample.formula.toml.j2"
     template.write_text('formula = "sample"\n', encoding="utf-8")
     request = beads.BeadComposeRequest(
@@ -771,12 +776,15 @@ def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> 
     assert "--allow-uncommitted" in refused.value.recovery
     receipt = beads.preview_repour(request, allow_uncommitted=True)
     assert receipt.operation == "preview_repour"
-    assert receipt.graph["changes"]
+    assert {"change": "add_node", "step": "build"} in receipt.graph["changes"]
+    field = {"change": "field_change", "bead": "proj-1", "status": "open", "field": "title", "before": "old", "after": "sample"}
+    assert field in receipt.graph["changes"]
     assert receipt.to_json()["graph"]["changes"] == receipt.graph["changes"]
     with pytest.raises(beads.BeadComposeError) as partial:
         beads.repour(request, allow_uncommitted=True)
     assert partial.value.code == beads.BEADS_GRAPH_APPLY_PARTIAL
-    assert partial.value.details["applied"]
+    assert {"change": "add_node", "step": "build"} in partial.value.details["applied"]
+    assert field in partial.value.details["pending"]
     detached = partial.value.details
     detached["applied"].clear()
     assert partial.value.details["applied"]
@@ -811,3 +819,39 @@ def test_revision_blocked_graph_path_has_a_typed_diagnostic(tmp_path: Path) -> N
         beads.preview_repour(request)
     assert refused.value.code == "BEADS_OUTPUT_PATH_INVALID"
     assert refused.value.details["field"] == "graph_plan"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="fixture uses the repository's POSIX executable shim")
+def test_revision_execution_reports_exact_graph_changes(tmp_path: Path) -> None:
+    executable = tmp_path / "fake-graph-bd"
+    executable.symlink_to(REPOSITORY_ROOT / "crates/test-support/fake-exec")
+    executable.with_name(executable.name + ".sh").write_text(
+        '''#!/bin/sh
+case "$1" in
+cook) printf '%s' '{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"},{"id":"verify","title":"Verify","needs":["build"]}]}' ;;
+show) printf '%s' '[{"id":"proj-1","title":"old","description":"","status":"open","metadata":{"sc_compose_graph":{"mode":"pour","formula":"sample","step":null}}}]' ;;
+children) printf '%s' '[{"id":"proj-3","status":"closed","labels":[],"metadata":{"sc_compose_graph":{"mode":"pour","formula":"sample","step":"obsolete"}}}]' ;;
+dep)
+  case "$3:$6" in
+    --direction=down:proj-3) printf '%s' '[{"id":"proj-1","dependency_type":"blocks"},{"id":"outside-2","dependency_type":"blocks"}]' ;;
+    --direction=up:proj-3) printf '%s' '[{"id":"outside-1","dependency_type":"blocks"}]' ;;
+    *) printf '[]' ;;
+  esac ;;
+create) printf '{}' ;;
+*) exit 1 ;;
+esac
+''', encoding="utf-8")
+    template = tmp_path / "sample.formula.toml.j2"
+    template.write_text('formula = "sample"\n', encoding="utf-8")
+    request = beads.BeadComposeRequest(
+        tmp_path, template, tmp_path / "sample.formula.toml", {},
+        formula_name="sample", bd_executable=executable, parent="proj-1",
+        pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+    )
+    changes = beads.preview_repour(request, allow_uncommitted=True).graph["changes"]
+    assert {"change": "add_node", "step": "build"} in changes
+    assert {"change": "add_edge", "from": "step:verify", "to": "step:build", "kind": "blocks"} in changes
+    assert {"change": "remove_internal_edge", "from": "proj-3", "to": "proj-1", "kind": "blocks"} in changes
+    assert {"change": "retain_external_edge", "from": "outside-1", "to": "proj-3", "kind": "blocks"} in changes
+    assert {"change": "retain_external_edge", "from": "proj-3", "to": "outside-2", "kind": "blocks"} in changes
+    assert {"change": "mark_removed_node", "bead": "proj-3", "status": "closed", "remove_command": "bd delete -- 'proj-3'"} in changes

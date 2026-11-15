@@ -12,9 +12,9 @@ use sc_composer_beads::execute_bead_request;
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
     BeadComposeRequest, BeadExecutionOptions, BeadId, BeadOperation, BeadOutcome, BeadRenderBy,
-    BeadStage, BeadStageOutcome, BeadStageReceipt, ExistingGraphTarget, GraphRevisionOptions,
-    PourAuthorization, UncommittedPolicy, execute_bead_request_with_options,
-    execute_graph_revision_with_options,
+    BeadStage, BeadStageOutcome, BeadStageReceipt, PourAuthorization,
+    execute_bead_request_with_options, execute_graph_revision_with_options,
+    revision_options_for_request,
 };
 use serde_json::Value;
 
@@ -138,16 +138,6 @@ fn receipt_deserialization_error(py: Python<'_>, message: impl Into<String>) -> 
 }
 
 fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
-    if matches!(
-        error_kind,
-        RustBeadComposeError::GraphPlanChanged { .. }
-            | RustBeadComposeError::GraphPlanPathInvalid { .. }
-            | RustBeadComposeError::GraphDirty
-            | RustBeadComposeError::GraphDirtyUnknown { .. }
-            | RustBeadComposeError::GraphApplyPartial { .. }
-    ) {
-        return BeadStage::Repour.as_str();
-    }
     error_kind.stage().map_or(REQUEST_STAGE, BeadStage::as_str)
 }
 
@@ -711,11 +701,11 @@ fn execute_revision(
     };
     let mut inner = request.inner.clone();
     inner.operation = operation;
-    if let Some(root) = root {
-        inner.parent = Some(BeadId::new(root).map_err(|error| rust_error_to_pyerr(py, &error))?);
-        inner.ref_ = None;
-    }
-    let Some(parent) = inner.parent.clone() else {
+    let root = root
+        .map(BeadId::new)
+        .transpose()
+        .map_err(|error| rust_error_to_pyerr(py, &error))?;
+    let Some(revision) = revision_options_for_request(&mut inner, root, allow_uncommitted) else {
         return execute_with_operation(
             py,
             request,
@@ -727,21 +717,6 @@ fn execute_revision(
             strict,
         );
     };
-    let target = match &inner.ref_ {
-        Some(reference) => ExistingGraphTarget::Attach {
-            parent,
-            reference: reference.clone(),
-        },
-        None => ExistingGraphTarget::PourRoot(parent),
-    };
-    let revision = GraphRevisionOptions::new(
-        target,
-        if allow_uncommitted {
-            UncommittedPolicy::Allow
-        } else {
-            UncommittedPolicy::Refuse
-        },
-    );
     let options = BeadExecutionOptions { render_by, strict };
     let receipt = py
         .detach(|| execute_graph_revision_with_options(&inner, &revision, &options))
@@ -760,33 +735,15 @@ fn execute(
     render_by: &str,
     strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    if matches!(
+    execute_revision(
+        py,
+        &request,
         request.inner.operation,
-        BeadOperation::Repour | BeadOperation::PreviewRepour
-    ) || request.inner.parent.is_some()
-        && matches!(
-            request.inner.operation,
-            BeadOperation::Pour | BeadOperation::PreviewPour
-        )
-    {
-        execute_revision(
-            py,
-            &request,
-            request.inner.operation,
-            render_by,
-            strict,
-            None,
-            false,
-        )
-    } else {
-        execute_with_operation(
-            py,
-            &request,
-            Some(request.inner.operation),
-            render_by,
-            strict,
-        )
-    }
+        render_by,
+        strict,
+        None,
+        false,
+    )
 }
 
 #[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
@@ -846,7 +803,7 @@ fn preview_pour(
     )
 }
 
-#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false, root=None))]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false, root=None, dry_run=false))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -857,11 +814,16 @@ fn pour(
     render_by: &str,
     strict: bool,
     root: Option<&str>,
+    dry_run: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
     execute_revision(
         py,
         &request,
-        BeadOperation::Pour,
+        if dry_run {
+            BeadOperation::PreviewPour
+        } else {
+            BeadOperation::Pour
+        },
         render_by,
         strict,
         root,

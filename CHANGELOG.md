@@ -27,7 +27,12 @@ configuration, not qualified deliverables.
 
 ### Added
 
-- Repour dry-run and uncommitted-state controls in CLI and Python, with typed graph revision changes and recovery details.
+- CLI and Python provide dry-run previews and structured revision changes. A
+  changed existing target refuses `pour` and `preview-pour` with a conflict
+  recommending `repour`. Repour refuses dirty or unknown database state by
+  default; `--allow-uncommitted` (Python `allow_uncommitted=True`) overrides
+  it. Partial failures report applied and pending work. Run `sc-compose help
+  repour` and `sc-compose help repour-strategy` for guidance.
 
 - `sc-compose bead --render-by <sc-compose|bd>` selects the formula renderer
   on every `bead` subcommand. The Rust crate and Python package offer the same
@@ -60,8 +65,9 @@ configuration, not qualified deliverables.
 - `sc-compose bead repour FORMULA --root <bead-id>` updates an already poured
   or attached plan in place (an attach by request file with `parent` and `ref`). Plan-owned fields are updated, missing nodes and edges are
   created, and ids and runtime state (status, notes, assignee, close state)
-  are kept. Nodes and edges removed from the plan are left in place and
-  reported as retained. `pour` and `attach` no longer refuse a run that mixes
+  are kept. Obsolete internal edges are removed; external edges are retained
+  and reported. Removed nodes retain their runtime state, receive the
+  `repour:removed` label, and are reported with a separate remove command. `pour` and `attach` no longer refuse a run that mixes
   new and existing beads; the retired refusal code is
   `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`. Receipt actions add `update`,
   `updated`, and `retained`.

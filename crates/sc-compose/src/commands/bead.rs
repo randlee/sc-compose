@@ -8,11 +8,10 @@ use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadComposeRequest, BeadDiagnostic,
     BeadEdgeAction, BeadErrorClass, BeadExecutionOptions, BeadId, BeadNodeAction, BeadOperation,
-    BeadOutcome, BeadPourMode, BeadRenderBy, BeadStageOutcome, CommandSpec, ExistingGraphTarget,
-    FormulaName, GraphRevisionOptions, PourAuthorization, ProcessRunner, RefusedBeadComposeReceipt,
-    RequestParseOutcome, StdProcessRunner, UncommittedPolicy,
-    execute_bead_request_with_options_and_diagnostics, execute_graph_revision_with_options,
-    parse_request_for_operation,
+    BeadOutcome, BeadPourMode, BeadRenderBy, BeadStageOutcome, CommandSpec, FormulaName,
+    PourAuthorization, ProcessRunner, RefusedBeadComposeReceipt, RequestParseOutcome,
+    StdProcessRunner, execute_bead_request_with_options_and_diagnostics,
+    execute_graph_revision_with_options, parse_request_for_operation, revision_options_for_request,
 };
 
 use crate::CommandError;
@@ -35,21 +34,10 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         Ok(prepared) => prepared,
         Err(response) => return response,
     };
-    let revision = match revision_target(&mut request, operation, root) {
-        Ok(target) => target,
-        Err(error) => return print_bead_error(&error, operation, json),
-    };
+    let revision = revision_options_for_request(&mut request, root.cloned(), allow_uncommitted);
     let mut diagnostics = Vec::new();
     let mut refusal_diagnostic = None;
-    let result = if let Some(target) = revision {
-        let revision = GraphRevisionOptions::new(
-            target,
-            if allow_uncommitted {
-                UncommittedPolicy::Allow
-            } else {
-                UncommittedPolicy::Refuse
-            },
-        );
+    let result = if let Some(revision) = revision {
         execute_graph_revision_with_options(&request, &revision, &options)
     } else {
         execute_bead_request_with_options_and_diagnostics(&request, &options, &mut |error| {
@@ -85,34 +73,7 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     }
 }
 
-fn revision_target(
-    request: &mut BeadComposeRequest,
-    operation: BeadOperation,
-    root: Option<&str>,
-) -> Result<Option<ExistingGraphTarget>, BeadComposeError> {
-    if let Some(root) = root {
-        request.ref_ = None;
-        request.parent = Some(BeadId::new(root)?);
-    }
-    if !matches!(
-        operation,
-        BeadOperation::Repour
-            | BeadOperation::PreviewRepour
-            | BeadOperation::Pour
-            | BeadOperation::PreviewPour
-    ) {
-        return Ok(None);
-    }
-    Ok(request.parent.as_ref().map(|parent| match &request.ref_ {
-        Some(reference) => ExistingGraphTarget::Attach {
-            parent: parent.clone(),
-            reference: reference.clone(),
-        },
-        None => ExistingGraphTarget::PourRoot(parent.clone()),
-    }))
-}
-
-fn revision_arguments(args: &BeadArgs) -> (&BeadRequestArgs, BeadOperation, Option<&str>, bool) {
+fn revision_arguments(args: &BeadArgs) -> (&BeadRequestArgs, BeadOperation, Option<&BeadId>, bool) {
     match &args.command {
         BeadSubcommand::Render(args) => (args, BeadOperation::Render, None, false),
         BeadSubcommand::Validate(args) => (args, BeadOperation::Validate, None, false),
@@ -121,8 +82,8 @@ fn revision_arguments(args: &BeadArgs) -> (&BeadRequestArgs, BeadOperation, Opti
         BeadSubcommand::PreviewPour(args) => (
             &args.request,
             BeadOperation::PreviewPour,
-            args.root.as_deref(),
-            args.allow_uncommitted,
+            args.root.as_ref(),
+            false,
         ),
         BeadSubcommand::Pour(args) => (
             &args.request,
@@ -131,8 +92,8 @@ fn revision_arguments(args: &BeadArgs) -> (&BeadRequestArgs, BeadOperation, Opti
             } else {
                 BeadOperation::Pour
             },
-            args.root.as_deref(),
-            args.allow_uncommitted,
+            args.root.as_ref(),
+            false,
         ),
         BeadSubcommand::Repour(args) => (
             &args.request,
@@ -141,7 +102,7 @@ fn revision_arguments(args: &BeadArgs) -> (&BeadRequestArgs, BeadOperation, Opti
             } else {
                 BeadOperation::Repour
             },
-            args.root.as_deref(),
+            args.root.as_ref(),
             args.allow_uncommitted,
         ),
     }
@@ -150,7 +111,7 @@ fn revision_arguments(args: &BeadArgs) -> (&BeadRequestArgs, BeadOperation, Opti
 fn request_from_args(
     args: &BeadRequestArgs,
     operation: BeadOperation,
-    root: Option<&str>,
+    root: Option<&BeadId>,
     json: bool,
 ) -> Result<(BeadComposeRequest, Option<DirectStaging>), Result<i32, CommandError>> {
     let mut staging = None;
@@ -289,7 +250,12 @@ fn without_verbatim_prefix(text: &str) -> std::borrow::Cow<'_, str> {
 
 impl Drop for DirectStaging {
     fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
+        if let Err(error) = fs::remove_dir_all(&self.path) {
+            eprintln!(
+                "warning: could not remove staging directory {}: {error}",
+                self.path.display()
+            );
+        }
     }
 }
 
@@ -370,7 +336,7 @@ fn direct_rendered_formula(
 fn direct_pour_request(
     args: &BeadRequestArgs,
     operation: BeadOperation,
-    root: Option<&str>,
+    root: Option<&BeadId>,
 ) -> Result<(BeadComposeRequest, DirectStaging), BeadComposeError> {
     let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
     let parent = direct_parent(operation, root)?;
@@ -432,7 +398,7 @@ fn direct_pour_request(
 
 fn direct_parent(
     operation: BeadOperation,
-    root: Option<&str>,
+    root: Option<&BeadId>,
 ) -> Result<Option<BeadId>, BeadComposeError> {
     let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
     if !matches!(
@@ -454,7 +420,7 @@ fn direct_parent(
             | BeadOperation::Pour
             | BeadOperation::PreviewPour,
             Some(root),
-        ) => Some(BeadId::new(root)?),
+        ) => Some(root.clone()),
         (BeadOperation::Repour | BeadOperation::PreviewRepour, None) => {
             return Err(bad("repour requires --root".into()));
         }

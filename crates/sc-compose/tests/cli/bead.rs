@@ -1229,9 +1229,10 @@ fn direct_pour_receipt_flags_staged_paths_removed_on_exit() {
     )
     .expect("copy plan-fix example");
     // A failing cook stops the pour after the formula is rendered and staged.
-    let (fake_bd, _trace) = write_fake_bd(root, 1, 0);
+    let (fake_bd, trace) = write_fake_bd(root, 1, 0);
     fs::create_dir(root.join("fake-bin")).expect("fake-bin");
-    fs::copy(&fake_bd, root.join("fake-bin/bd")).expect("install fake bd on PATH");
+    let body = fs::read_to_string(fake_exec::script_path(&fake_bd)).expect("fake bd script");
+    fake_exec::install(&root.join("fake-bin/bd"), &body);
     let pour = |json: bool| {
         let mut command = sc_compose();
         command
@@ -1263,6 +1264,11 @@ fn direct_pour_receipt_flags_staged_paths_removed_on_exit() {
     );
 
     let human = String::from_utf8(pour(false).stdout).expect("human receipt");
+    assert_eq!(
+        trace_stages(&trace),
+        ["cook", "cook"],
+        "configured fake handled both calls"
+    );
     let line = human
         .lines()
         .find(|line| line.starts_with("rendered_formula: "))
@@ -1712,7 +1718,7 @@ fn revision_cli_fixture(fixture: &TempFixture) -> (PathBuf, PathBuf) {
     fake_exec::install(
         &bd,
         &format!(
-            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\ncase \"$1\" in\n  cook) printf '%s' '{{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{{\"id\":\"build\",\"title\":\"Build\"}}]}}';;\n  show) printf '%s' '[{{\"id\":\"proj-1\",\"title\":\"sample\",\"description\":\"\",\"status\":\"open\",\"metadata\":{{\"sc_compose_graph\":{{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}}}}]';;\n  children|dep) printf '[]';;\n  sql) printf 'probe unsupported' >&2; exit 1;;\n  create) printf '%s' '{{\"ids\":{{\"build\":\"proj-2\"}}}}';;\n  update) printf 'injected update failure' >&2; exit 1;;\n  *) exit 2;;\nesac\n",
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\ncase \"$1\" in\n  cook) printf '%s' '{{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{{\"id\":\"build\",\"title\":\"Build\"}}]}}';;\n  show) printf '%s' '[{{\"id\":\"proj-1\",\"title\":\"old\",\"description\":\"\",\"status\":\"open\",\"metadata\":{{\"sc_compose_graph\":{{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}}}}]';;\n  children|dep) printf '[]';;\n  sql) printf 'probe unsupported' >&2; exit 1;;\n  create) printf '%s' '{{\"ids\":{{\"build\":\"proj-2\"}}}}';;\n  update) printf 'injected update failure' >&2; exit 1;;\n  *) exit 2;;\nesac\n",
             trace.display()
         ),
     );
@@ -1793,12 +1799,9 @@ fn revision_cli_refuses_unknown_database_and_previews_with_override() {
     assert!(preview.status.success(), "{preview:?}");
     let body: serde_json::Value = serde_json::from_slice(&preview.stdout).unwrap();
     assert_eq!(body["payload"]["operation"], "preview_repour");
-    assert!(
-        !body["payload"]["graph"]["changes"]
-            .as_array()
-            .unwrap()
-            .is_empty()
-    );
+    let changes = body["payload"]["graph"]["changes"].as_array().unwrap();
+    assert!(changes.contains(&json!({"change":"add_node", "step":"build"})));
+    assert!(changes.contains(&json!({"change":"field_change", "bead":"proj-1", "status":"open", "field":"title", "before":"old", "after":"sample"})));
     let commands = fs::read_to_string(&trace).unwrap();
     assert!(
         !commands
@@ -1830,13 +1833,14 @@ fn revision_cli_reports_partial_revision() {
         body["payload"]["error"]["code"],
         "BEADS_GRAPH_APPLY_PARTIAL"
     );
+    let details = &body["payload"]["error"]["details"];
     assert!(
-        !body["payload"]["error"]["details"]["applied"]
+        details["applied"]
             .as_array()
             .unwrap()
-            .is_empty()
+            .contains(&json!({"change":"add_node", "step":"build"}))
     );
-    assert!(body["payload"]["error"]["details"]["pending"].is_array());
+    assert!(details["pending"].as_array().unwrap().contains(&json!({"change":"field_change", "bead":"proj-1", "status":"open", "field":"title", "before":"old", "after":"sample"})));
 }
 
 #[cfg(unix)]
@@ -1862,6 +1866,69 @@ fn revision_cli_blocks_invalid_graph_path_before_bd() {
     assert!(!trace.exists(), "a blocked graph path must not invoke bd");
 }
 
+#[cfg(unix)]
+#[test]
+fn revision_cli_dirty_and_invalid_plans_never_write_without_override() {
+    let fixture = TempFixture::new("revision-dirty-validation");
+    let (request, trace) = revision_cli_fixture(&fixture);
+    let script = fake_exec::script_path(&fixture.path.join("fake-revision-bd"));
+    let original = fs::read_to_string(&script).unwrap();
+    let dirty = original.replace("sql) printf 'probe unsupported' >&2; exit 1;;", "sql) printf '%s' '[{\"table_name\":\"issues\",\"staged\":false,\"status\":\"modified\"}]';;");
+    fs::write(&script, &dirty).unwrap();
+    let run = |args: &[&str]| {
+        sc_compose()
+            .args(["bead", "repour", "--request"])
+            .arg(&request)
+            .args(args)
+            .arg("--json")
+            .output()
+            .unwrap()
+    };
+    let refused = run(&[]);
+    let value: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert_eq!(value["payload"]["error"]["code"], "BEADS_GRAPH_DIRTY");
+    let recovery = value["payload"]["error"]["recovery"].as_str().unwrap();
+    assert!(recovery.contains("bd dolt commit") && recovery.contains("--allow-uncommitted"));
+    let calls = fs::read_to_string(&trace).unwrap();
+    assert!(!calls.lines().any(|line| line.starts_with("create ")
+        || line.starts_with("update ")
+        || line.starts_with("dep add ")
+        || line.starts_with("dep remove ")));
+    let overridden = run(&["--allow-uncommitted"]);
+    let value: serde_json::Value = serde_json::from_slice(&overridden.stdout).unwrap();
+    assert_eq!(
+        value["payload"]["error"]["code"],
+        "BEADS_GRAPH_APPLY_PARTIAL"
+    );
+    assert!(
+        fs::read_to_string(&trace)
+            .unwrap()
+            .lines()
+            .any(|line| line.starts_with("create "))
+    );
+    fs::remove_file(&trace).unwrap();
+    fs::write(
+        &script,
+        dirty.replacen(
+            "case \"$1\" in",
+            "if [ \"$1\" = cook ]; then echo invalid >&2; exit 1; fi\ncase \"$1\" in",
+            1,
+        ),
+    )
+    .unwrap();
+    let invalid = run(&["--allow-uncommitted"]);
+    let value: serde_json::Value = serde_json::from_slice(&invalid.stdout).unwrap();
+    assert_eq!(
+        value["payload"]["outcome"]["failed"]["code"],
+        "BEADS_COOK_FAILED"
+    );
+    let calls = fs::read_to_string(trace).unwrap();
+    assert!(!calls.lines().any(|line| line.starts_with("create ")
+        || line.starts_with("update ")
+        || line.starts_with("dep add ")
+        || line.starts_with("dep remove ")));
+}
+
 #[test]
 fn revision_help_points_to_both_manual_topics() {
     let output = sc_compose()
@@ -1871,4 +1938,51 @@ fn revision_help_points_to_both_manual_topics() {
     let help = String::from_utf8(output.stdout).unwrap();
     assert!(help.contains("sc-compose help repour"));
     assert!(help.contains("sc-compose help repour-strategy"));
+}
+
+#[cfg(unix)]
+fn configure_revision_graph(fixture: &TempFixture) {
+    let script = fake_exec::script_path(&fixture.path.join("fake-revision-bd"));
+    fs::write(&script, r##"#!/bin/sh
+case "$1" in
+cook) printf '%s' '{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"},{"id":"verify","title":"Verify","needs":["build"]}]}' ;;
+show) printf '%s' '[{"id":"proj-1","title":"old","description":"","status":"open","metadata":{"sc_compose_graph":{"mode":"pour","formula":"sample","step":null}}}]' ;;
+children) printf '%s' '[{"id":"proj-3","status":"closed","labels":[],"metadata":{"sc_compose_graph":{"mode":"pour","formula":"sample","step":"obsolete"}}}]' ;;
+dep)
+  case "$3:$6" in
+    --direction=down:proj-3) printf '%s' '[{"id":"proj-1","dependency_type":"blocks"},{"id":"outside-2","dependency_type":"blocks"}]' ;;
+    --direction=up:proj-3) printf '%s' '[{"id":"outside-1","dependency_type":"blocks"}]' ;;
+    *) printf '[]' ;;
+  esac ;;
+create) printf '{}' ;;
+*) printf 'unexpected command' >&2; exit 1 ;;
+esac
+"##).unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn revision_cli_reports_exact_graph_change_variants() {
+    let fixture = TempFixture::new("revision-delta");
+    let (request, _) = revision_cli_fixture(&fixture);
+    configure_revision_graph(&fixture);
+    let output = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--allow-uncommitted", "--json"])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let changes = value["payload"]["graph"]["changes"].as_array().unwrap();
+    assert!(changes.contains(&json!({"change":"add_node", "step":"build"})));
+    assert!(changes.contains(
+        &json!({"change":"add_edge", "from":"step:verify", "to":"step:build", "kind":"blocks"})
+    ));
+    assert!(changes.contains(
+        &json!({"change":"remove_internal_edge", "from":"proj-3", "to":"proj-1", "kind":"blocks"})
+    ));
+    assert!(changes.contains(&json!({"change":"retain_external_edge", "from":"outside-1", "to":"proj-3", "kind":"blocks"})));
+    assert!(changes.contains(&json!({"change":"retain_external_edge", "from":"proj-3", "to":"outside-2", "kind":"blocks"})));
+    assert!(changes.contains(&json!({"change":"mark_removed_node", "bead":"proj-3", "status":"closed", "remove_command":"bd delete -- 'proj-3'"})));
 }

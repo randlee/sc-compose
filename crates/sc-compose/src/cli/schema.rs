@@ -84,14 +84,14 @@ pub(crate) enum BeadSubcommand {
     #[command(about = "Render and validate a Beads formula request")]
     Validate(BeadRequestArgs),
     #[command(about = "Render, validate, and preview a Beads formula pour")]
-    PreviewPour(BeadRevisionArgs),
+    PreviewPour(BeadPourArgs),
     #[command(about = "Render, validate, and preview Beads graph attachment")]
     PreviewAttach(BeadRequestArgs),
     #[command(
         about = "Render, validate, and persist an authorized Beads formula pour",
         long_about = "Render, validate, and persist an authorized Beads formula pour. For revision guidance, run sc-compose help repour and sc-compose help repour-strategy."
     )]
-    Pour(BeadRevisionArgs),
+    Pour(BeadPourArgs),
     #[command(about = "Render, validate, and persist authorized Beads graph attachment")]
     Attach(BeadRequestArgs),
     #[command(
@@ -101,6 +101,20 @@ pub(crate) enum BeadSubcommand {
     Repour(BeadRevisionArgs),
 }
 
+fn parse_bead_root(value: &str) -> Result<sc_composer_beads::BeadId, String> {
+    sc_composer_beads::BeadId::new(value).map_err(|error| error.to_string())
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct BeadPourArgs {
+    #[command(flatten)]
+    pub(crate) request: BeadRequestArgs,
+    #[arg(long, value_name = "BEAD_ID", value_parser = parse_bead_root, help = "Existing pour root to compare")]
+    pub(crate) root: Option<sc_composer_beads::BeadId>,
+    #[arg(long, help = "Preview graph changes without writing beads")]
+    pub(crate) dry_run: bool,
+}
+
 #[derive(Debug, Clone, Args)]
 pub(crate) struct BeadRevisionArgs {
     #[command(flatten)]
@@ -108,9 +122,10 @@ pub(crate) struct BeadRevisionArgs {
     #[arg(
         long,
         value_name = "BEAD_ID",
+        value_parser = parse_bead_root,
         help = "Existing pour root to compare or revise"
     )]
-    pub(crate) root: Option<String>,
+    pub(crate) root: Option<sc_composer_beads::BeadId>,
     #[arg(long, help = "Preview graph changes without writing beads")]
     pub(crate) dry_run: bool,
     #[arg(

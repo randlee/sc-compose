@@ -69,9 +69,8 @@ const fn bead_wants_json(args: &BeadArgs) -> bool {
         | BeadSubcommand::Validate(args)
         | BeadSubcommand::PreviewAttach(args)
         | BeadSubcommand::Attach(args) => args.json,
-        BeadSubcommand::PreviewPour(args)
-        | BeadSubcommand::Pour(args)
-        | BeadSubcommand::Repour(args) => args.request.json,
+        BeadSubcommand::PreviewPour(args) | BeadSubcommand::Pour(args) => args.request.json,
+        BeadSubcommand::Repour(args) => args.request.json,
     }
 }
 

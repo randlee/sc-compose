@@ -51,7 +51,7 @@ pub use execute::{
 #[doc(inline)]
 pub use revision::{
     ExistingGraphTarget, GraphApplyPartial, GraphChange, GraphField, GraphRevisionOptions,
-    UncommittedPolicy,
+    UncommittedPolicy, revision_options_for_request,
 };
 #[doc(inline)]
 pub use runner::{CommandSpec, ProcessOutput, ProcessRunner, StdProcessRunner};

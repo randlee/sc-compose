@@ -685,16 +685,17 @@ impl BeadComposeError {
             | Self::FormulaRegistryAmbiguous { .. } => Some(BeadStage::ResolveActiveRegistry),
             Self::PreviewPourFailed { .. } => Some(BeadStage::PreviewPour),
             Self::PourFailed { .. } => Some(BeadStage::Pour),
+            Self::GraphPlanChanged { .. }
+            | Self::GraphPlanPathInvalid { .. }
+            | Self::GraphDirty
+            | Self::GraphDirtyUnknown { .. }
+            | Self::GraphApplyPartial { .. } => Some(BeadStage::Repour),
             // Graph-stage failures are reported in receipts, whose stage
             // receipts carry the stage; as a bare error they have none.
             Self::GraphParentNotFound { .. }
             | Self::GraphScopeMismatch { .. }
             | Self::GraphFormulaUnsupported { .. }
             | Self::GraphRelationInvalid { .. }
-            | Self::GraphPlanChanged { .. }
-            | Self::GraphDirty
-            | Self::GraphDirtyUnknown { .. }
-            | Self::GraphApplyPartial { .. }
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
@@ -713,7 +714,6 @@ impl BeadComposeError {
             | Self::FormulaExtensionUnsupported { .. }
             | Self::TemplatePathInvalid { .. }
             | Self::OutputPathInvalid { .. }
-            | Self::GraphPlanPathInvalid { .. }
             | Self::TemplateOutsideWorkingDirectory { .. }
             | Self::OutputOutsideWorkingDirectory { .. }
             | Self::OutputPathSymlink { .. }
