@@ -246,12 +246,12 @@ pub struct StepId(String);        // ^[A-Za-z0-9_]{1,64}$   (never '-')
 pub struct Sha256Digest(String);  // "sha256:" + 64 lowercase hex
 
 // existing enums gain variants (serde: snake_case, as today)
-pub enum BeadOperation { Render, Validate, PreviewPour, Pour, PreviewAttach, Attach }
-pub enum BeadStage { Render, Validate, ResolveActiveRegistry, PreviewPour, Pour, PreviewAttach, Attach }
+pub enum BeadOperation { Render, Validate, PreviewPour, Pour, PreviewAttach, Attach, Repour }
+pub enum BeadStage { Render, Validate, ResolveActiveRegistry, PreviewPour, Pour, PreviewAttach, Attach, Repour }
 // BeadStageOutcome { Succeeded, Skipped, Failed { code } } is unchanged.
 
 // BeadComposeRequest gains (all serde-default, so Phase R requests parse unchanged):
-pub parent: Option<BeadId>,                        // attach ops: required, an existing bead id; others: must be absent
+pub parent: Option<BeadId>,                        // attach parent or repour root; otherwise absent
 #[serde(rename = "ref")] pub ref_: Option<GraphRef>,   // attach ops: required; others: must be absent
 pub relations: Vec<BeadRelation>,                  // attach ops and graph-mode pour only
 
@@ -286,8 +286,8 @@ pub struct BeadGraph {
 }
 pub struct BeadGraphNode { pub step: Option<StepId> /* None = pour root */, pub id: Option<BeadId>, pub action: BeadNodeAction }
 pub struct BeadGraphEdge { pub from: String, pub to: String /* bead id, or "step:<id>" before bd assigns ids */, #[serde(rename = "type")] pub kind: String, pub action: BeadEdgeAction }
-#[serde(rename_all = "snake_case")] pub enum BeadNodeAction { Create, Created, Existing }
-#[serde(rename_all = "snake_case")] pub enum BeadEdgeAction { Add, Added, Existing }
+#[serde(rename_all = "snake_case")] pub enum BeadNodeAction { Create, Created, Existing, Update, Updated, Retained }
+#[serde(rename_all = "snake_case")] pub enum BeadEdgeAction { Add, Added, Existing, Retained }
 pub struct MissingEdge { pub from: BeadId, pub to: BeadId, #[serde(rename = "type")] pub kind: String }
 
 // bead metadata[PROVENANCE_KEY] on every bead the graph engine creates
@@ -700,7 +700,9 @@ all-or-nothing promise across writes. Partial failure uses `GraphApplyFailed` (`
 execution class, failed receipt and CLI exit 2) with applied and pending
 work where known and a rerun hint; its text must not claim nothing was written.
 
-Receipts distinguish existing, created, updated and retained nodes and
+Operation and stage `Repour` serialize as `repour`; node action `Update`
+serializes as `update` for a planned field change. Receipts distinguish
+existing, created, updated and retained nodes and
 existing, added and retained edges; the JSON CLI and Python adapter retain
 compatibility with these additive actions. `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`
 is retired and its refusal branches are deleted. FR-24.35 and FR-24.36 remain
