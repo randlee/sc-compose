@@ -4,7 +4,8 @@
 formula template, checks it with `bd`, and creates beads from it. Commands
 accept a complete `sc-compose/beads/v1` JSON request; `pour` also accepts a
 direct formula and repeated `--var` arguments. The same manual is available with
-`sc-compose help bead`.
+`sc-compose help bead`. For plan revisions, see `sc-compose help repour` and
+`sc-compose help repour-strategy`.
 
 ```text
 sc-compose bead render         --request request.json [--json]
@@ -12,8 +13,8 @@ sc-compose bead validate       --request request.json [--json]
 sc-compose bead preview-pour   --request request.json [--json]
 sc-compose bead pour           --request request.json [--json]
 sc-compose bead pour           FORMULA [--var KEY=VALUE ...] [--json]
-sc-compose bead repour         FORMULA --root BEAD_ID [--var KEY=VALUE ...] [--json]
-sc-compose bead repour         --request request.json [--json]
+sc-compose bead repour         FORMULA --root BEAD_ID [--var KEY=VALUE ...] [--dry-run] [--allow-uncommitted] [--json]
+sc-compose bead repour         --request request.json [--dry-run] [--allow-uncommitted] [--json]
 sc-compose bead preview-attach --request request.json [--json]
 sc-compose bead attach         --request request.json [--json]
 ```
@@ -39,6 +40,7 @@ The `preview-*` operations never write to Beads; run them first and read the
 receipt. `pour`, `attach` and `repour` write, and only with the exact authorization value
 `CreatePersistentBeads`. The direct `bead pour FORMULA` command supplies this
 value itself: invoking that command authorizes creation of persistent beads.
+Direct `repour` likewise authorizes its planned writes; use `--dry-run` first.
 The JSON request form must provide the value explicitly. Direct-form discovery
 uses `bd` on `PATH`; `bd_executable` belongs to the mutually exclusive JSON
 request form.
@@ -137,7 +139,10 @@ Where the rendered formula lives decides how it is poured, and the receipt's
   and creates a new root bead of type
   `molecule` plus one child per step, with all edges, in a single `bd create
   --graph` transaction. The root shows up in `bd mol show` like any poured
-  molecule. Each `pour` creates a new workflow with new ids.
+  molecule. An untargeted `pour` creates a new workflow with new ids. A pour against an
+  explicit existing target refuses a changed plan with `BEADS_GRAPH_CONFLICT`,
+  explaining the change and naming `repour` in human and JSON recovery.
+  `pour --dry-run` and `preview-pour` predict the same conflict without writes.
 
 ```shell
 sc-compose bead preview-pour --request pour.json --json   # plan and validate; no writes
@@ -147,33 +152,49 @@ sc-compose bead pour         --request pour.json --json   # create
 ## repour: update an already poured plan
 
 `repour` takes an edited plan to the beads that `pour` or `attach` already
-created. A pour is targeted by its root (`--root`, or `parent` in a request);
-an attach by the same `parent` and `ref` it was made with, in a request file.
+created. A pour is targeted by its original root (`--root`, or `parent` in a
+request); an attachment by the same `parent` and `ref` in a request file.
 
-- Plan-owned fields (title, description, design, acceptance criteria, priority,
-  declared labels, plan metadata) are updated in place, including to an
-  explicitly empty value and including on closed beads, which stay closed.
-  Unrelated user metadata is merged, never replaced.
-- Missing nodes are created and missing declared edges are added, including
-  edges between two beads that already exist.
-- Ids and runtime state (status, notes, assignee, close state) are kept, even
-  when the plan carries those fields.
-- A node's provenance is refreshed after its fields, so a bead that was
-  interrupted part-way is still recognised as out of date.
-- Nodes and edges removed from the plan stay in place and are listed as
-  `retained`. Nothing is deleted.
-- The target, the plan, every planned id and every edge are validated before
-  the first write. A malformed plan, a dangling reference, a conflicting edge
-  type, a missing target or a foreign or unowned planned id is refused.
-- There is no all-or-nothing promise across writes. If one write fails,
-  `BEADS_GRAPH_APPLY_FAILED` reports how many writes were applied and how many
-  are pending; rerun the same command to finish. An unchanged plan is a no-op.
-  There is a single writer: no concurrency precondition is applied.
+- Explicit plan-owned fields (title, description, design, acceptance criteria,
+  priority, declared labels and plan metadata) update existing beads, including
+  closed or in-progress beads. Unspecified fields and unrelated user metadata
+  are retained.
+- Ids and runtime state (status, notes, assignee and close state) are preserved.
+  A closed bead stays closed even if its acceptance criteria change.
+- Missing nodes and declared edges are added, including edges between existing
+  beads. Obsolete internal edges, whose endpoints both belong to this graph,
+  are removed before adding reversed edges.
+- Every external edge is retained and reported in either direction. Outside
+  gates keep gating the graph; outside beads blocked by it stay blocked.
+- Removed nodes keep their status, gain `repour:removed`, and lose obsolete
+  internal edges. Both preview and apply list them with a recommended separate
+  remove command. Deletion is never automatic; deleting later also deletes
+  the bead's edges.
+- The plan, target, planned ids, references and edge types are validated before
+  writes. Invalid targets and foreign or unowned planned ids are refused.
+- Dirty or unknown state across the entire bd database refuses with the exact
+  cause and recovery naming `bd dolt commit` and `--allow-uncommitted`. Unknown
+  includes an unsupported or failed read-only `bd sql` probe; it is not clean.
+- Dry-run and apply report field changes with before/after values and current
+  status, removed internal edges, retained external edges, and removed nodes.
+  Preview predicts apply only while the graph and inputs remain unchanged.
+- One writer per plan is supported. Writes are sequential, not all-or-nothing.
+  `BEADS_GRAPH_APPLY_PARTIAL` reports applied and pending work, the failed
+  operation and cause, and a rerun hint. Inspect uncertain outcomes; fix the
+  cause and rerun the same command to finish. An unchanged replay is a no-op.
 
 ```shell
+sc-compose bead repour release.formula.toml.j2 --root proj-7 --dry-run --json
 sc-compose bead repour release.formula.toml.j2 --root proj-7 --json
+sc-compose bead repour --request attach-request.json --dry-run --json
 sc-compose bead repour --request attach-request.json --json
 ```
+
+Use `--allow-uncommitted` only to accept the dirty/unknown database risk; it
+does not bypass graph validation or make writes atomic. Commit and sync an
+intended database baseline before applying so Dolt history can support
+rollback. See `sc-compose help repour` for command and receipt details, and
+`sc-compose help repour-strategy` for review, recovery and removed-node cleanup.
 
 ## attach: add a workflow under an existing bead
 
@@ -425,10 +446,13 @@ Refused or failed receipts (exit `2`):
 | `BEADS_GRAPH_SCOPE_MISMATCH` | `compose_variables` disagrees with `parent`/`ref` | make them equal, or drop them |
 | `BEADS_GRAPH_FORMULA_UNSUPPORTED` | the formula uses a construct graph mode does not take | express it in the template, or use registry pour |
 | `BEADS_GRAPH_RELATION_INVALID` | a relation is malformed or names a missing bead | fix the relation |
-| `BEADS_GRAPH_CONFLICT` | a bead at a planned id is not this attachment's | inspect it; use a new `ref` |
+| `BEADS_GRAPH_CONFLICT` | a planned id is foreign, or a targeted pour has a changed plan | inspect the exact cause; use `repour` for an intended plan revision, never to adopt a foreign bead |
 | `BEADS_GRAPH_EDGE_CONFLICT` | an edge exists with another type | inspect it, or change the relation |
 | `BEADS_GRAPH_EDGE_MISSING` | legacy bd-owned mode found an absent edge | run the suggested `bd dep add` command, then re-run; advanced repour adds missing edges |
 | `BEADS_GRAPH_READ_FAILED` | `bd show` or `bd dep list` failed for a reason other than "not found"; nothing was written | fix the cause shown in the stage output and re-run |
+| `BEADS_GRAPH_DIRTY` | the bd database has uncommitted Dolt changes | review and run `bd dolt commit`, or explicitly accept the risk with `--allow-uncommitted` |
+| `BEADS_GRAPH_DIRTY_UNKNOWN` | bd could not establish the database dirty state | inspect the exact cause; use `bd dolt commit` where supported or explicitly use `--allow-uncommitted` |
+| `BEADS_GRAPH_APPLY_PARTIAL` | sequential repour failed after planning changes | inspect applied and pending work and the failure cause, then rerun the same plan and target |
 | `BEADS_GRAPH_APPLY_FAILED` | a graph write (`bd create --graph`, `bd update` or `bd dep add`) failed; earlier writes may have been applied | fix the cause shown in the stage output and re-run; the run converges |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | `bd create --graph` exited 0 but its response could not be read or did not match the plan; beads may have been created | before pouring again, run `bd show` on the ids the message lists (or `bd list` for a by-path pour) and reconcile; a retry can create a second molecule |
 
@@ -460,8 +484,10 @@ cause) and actionable `recovery` guidance. Receipt JSON remains unchanged.
 - **A step's `{{ name }}` text appears verbatim.** In attach and graph pour,
   Beads substitution does not run; render the value with `{{{ name }}}`.
 - **A re-run says `BEADS_GRAPH_CONFLICT`.** The template, its values or the
-  relations changed since the first run. Attach the new version under a new
-  `ref`, or keep the old inputs.
+  relations changed since the first run. For an intended revision of the same
+  graph, review `repour --dry-run` using the original target, then apply with
+  `repour`. A new `ref` creates a separate attachment rather than revising the
+  original. Inspect the exact reason if the id is foreign or unowned.
 - **`bd children <parent>` does not list the steps after `preview-attach`.**
   Preview writes nothing; run `attach`.
 - **Files named `.sc-compose-input-*` or `.*.tmp` beside the output.** Every
