@@ -7,10 +7,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use sc_composer_beads::error::{escape_human_text, shell_quote};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadComposeRequest, BeadDiagnostic,
-    BeadErrorClass, BeadExecutionOptions, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode,
-    BeadRenderBy, BeadStageOutcome, CommandSpec, FormulaName, PourAuthorization, ProcessRunner,
-    RefusedBeadComposeReceipt, RequestParseOutcome, StdProcessRunner,
-    execute_bead_request_with_options_and_diagnostics, parse_request_for_operation,
+    BeadEdgeAction, BeadErrorClass, BeadExecutionOptions, BeadId, BeadNodeAction, BeadOperation,
+    BeadOutcome, BeadPourMode, BeadRenderBy, BeadStageOutcome, CommandSpec, FormulaName,
+    PourAuthorization, ProcessRunner, RefusedBeadComposeReceipt, RequestParseOutcome,
+    StdProcessRunner, execute_bead_request_with_options_and_diagnostics,
+    parse_request_for_operation,
 };
 
 use crate::CommandError;
@@ -20,13 +21,18 @@ use crate::print_json;
 
 /// Run one Beads request selected by the CLI subcommand.
 pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
-    let (args, operation) = match &args.command {
-        BeadSubcommand::Render(args) => (args, BeadOperation::Render),
-        BeadSubcommand::Validate(args) => (args, BeadOperation::Validate),
-        BeadSubcommand::PreviewPour(args) => (args, BeadOperation::PreviewPour),
-        BeadSubcommand::PreviewAttach(args) => (args, BeadOperation::PreviewAttach),
-        BeadSubcommand::Pour(args) => (args, BeadOperation::Pour),
-        BeadSubcommand::Attach(args) => (args, BeadOperation::Attach),
+    let (args, operation, root) = match &args.command {
+        BeadSubcommand::Render(args) => (args, BeadOperation::Render, None),
+        BeadSubcommand::Validate(args) => (args, BeadOperation::Validate, None),
+        BeadSubcommand::PreviewPour(args) => (args, BeadOperation::PreviewPour, None),
+        BeadSubcommand::PreviewAttach(args) => (args, BeadOperation::PreviewAttach, None),
+        BeadSubcommand::Pour(args) => (args, BeadOperation::Pour, None),
+        BeadSubcommand::Attach(args) => (args, BeadOperation::Attach, None),
+        BeadSubcommand::Repour(repour) => (
+            &repour.request,
+            BeadOperation::Repour,
+            repour.root.as_deref(),
+        ),
     };
     let json = args.json;
     let options = BeadExecutionOptions {
@@ -36,7 +42,7 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         },
         strict: args.strict,
     };
-    let (request, staging) = match request_from_args(args, operation, json) {
+    let (request, staging) = match request_from_args(args, operation, root, json) {
         Ok(prepared) => prepared,
         Err(response) => return response,
     };
@@ -78,6 +84,7 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
 fn request_from_args(
     args: &BeadRequestArgs,
     operation: BeadOperation,
+    root: Option<&str>,
     json: bool,
 ) -> Result<(BeadComposeRequest, Option<DirectStaging>), Result<i32, CommandError>> {
     let mut staging = None;
@@ -112,7 +119,7 @@ fn request_from_args(
             Err(error) => return Err(print_bead_error(&error, operation, json)),
         }
     } else {
-        match direct_pour_request(args, operation) {
+        match direct_pour_request(args, operation, root) {
             Ok((request, dir)) => {
                 staging = Some(dir);
                 request
@@ -297,11 +304,20 @@ fn direct_rendered_formula(
 fn direct_pour_request(
     args: &BeadRequestArgs,
     operation: BeadOperation,
+    root: Option<&str>,
 ) -> Result<(BeadComposeRequest, DirectStaging), BeadComposeError> {
     let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
-    if operation != BeadOperation::Pour {
-        return Err(bad("a direct formula is supported only by bead pour".into()));
+    if !matches!(operation, BeadOperation::Pour | BeadOperation::Repour) {
+        return Err(bad(
+            "a direct formula is supported only by bead pour and bead repour".into(),
+        ));
     }
+    // A repour targets the pour root; it is the request's `parent`.
+    let parent = match (operation, root) {
+        (BeadOperation::Repour, Some(root)) => Some(BeadId::new(root)?),
+        (BeadOperation::Repour, None) => return Err(bad("repour requires --root".into())),
+        _ => None,
+    };
     let variables = direct_variables(args)?;
     let root = std::env::current_dir().map_err(|source| BeadComposeError::DirectStagingFailed {
         path: PathBuf::from("."),
@@ -351,7 +367,7 @@ fn direct_pour_request(
         bead_variables: variables,
         bd_executable: None,
         pour_authorization: Some(PourAuthorization::CreatePersistentBeads),
-        parent: None,
+        parent,
         ref_: None,
         relations: Vec::new(),
     };
@@ -735,30 +751,49 @@ fn print_human_receipt(
         println!("{command}");
     }
     if let Some(graph) = &receipt.graph {
-        for node in &graph.nodes {
-            let action = match node.action {
-                BeadNodeAction::Create => "create",
-                BeadNodeAction::Created => "created",
-                BeadNodeAction::Existing => "existing",
-                _ => "unknown",
-            };
-            let step = node
-                .step
-                .as_ref()
-                .map_or("_root", sc_composer_beads::StepId::as_str);
-            let id = node
-                .id
-                .as_ref()
-                .map_or("pending", sc_composer_beads::BeadId::as_str);
-            println!("{action}: {step} -> {id}");
-        }
-        println!("edges: {}", graph.edges.len());
-        if let Some(plan_path) = &graph.plan_path {
-            println!(
-                "plan_path: {}",
-                human_path(plan_path, PLAN_PATH_FIELD, ephemeral)
-            );
-        }
+        print_human_graph(graph, ephemeral);
+    }
+}
+
+fn print_human_graph(graph: &sc_composer_beads::BeadGraph, ephemeral: &[&str]) {
+    for node in &graph.nodes {
+        let action = match node.action {
+            BeadNodeAction::Create => "create",
+            BeadNodeAction::Created => "created",
+            BeadNodeAction::Existing => "existing",
+            BeadNodeAction::Update => "update",
+            BeadNodeAction::Updated => "updated",
+            BeadNodeAction::Retained => "retained",
+            _ => "unknown",
+        };
+        let step = node
+            .step
+            .as_ref()
+            .map_or("_root", sc_composer_beads::StepId::as_str);
+        let id = node
+            .id
+            .as_ref()
+            .map_or("pending", sc_composer_beads::BeadId::as_str);
+        println!("{action}: {step} -> {id}");
+    }
+    println!("edges: {}", graph.edges.len());
+    for edge in graph
+        .edges
+        .iter()
+        .filter(|edge| edge.action == BeadEdgeAction::Retained)
+    {
+        println!(
+            "retained edge: {} -> {} ({})",
+            escape_human_text(&edge.from.to_string()),
+            escape_human_text(&edge.to.to_string()),
+            escape_human_text(&edge.kind.to_string())
+        );
+    }
+    if let Some(plan_path) = &graph.plan_path {
+        println!(
+            "plan_path: {}",
+            human_path(plan_path, PLAN_PATH_FIELD, ephemeral)
+        );
     }
 }
 

@@ -1,8 +1,8 @@
 //! Validate bd's resolved JSON before reading or writing graph state.
 
 use crate::contract::{
-    BeadComposeRequest, BeadEndpoint, BeadGraphMode, BeadGraphProvenance, BeadId, BeadRelation,
-    GraphEndpoint, GraphRef, PROVENANCE_KEY, Sha256Digest, StepId,
+    BeadComposeRequest, BeadEndpoint, BeadGraphMode, BeadGraphProvenance, BeadId, BeadOperation,
+    BeadRelation, GraphEndpoint, GraphRef, PROVENANCE_KEY, Sha256Digest, StepId,
 };
 use crate::error::{
     BeadComposeError, GraphFormulaUnsupportedReason as Unsupported, GraphIdField,
@@ -51,6 +51,11 @@ pub(super) struct Step {
 pub(super) struct ValidatedGraph {
     pub mode: BeadGraphMode,
     pub parent: Option<BeadId>,
+    /// Pour root of a repour. The root is the repour target, not a provenance
+    /// parent: beads converged onto it keep the identity of the original pour.
+    pub root: Option<BeadId>,
+    /// The request is a repour, in either pour (root) or attach (parent and ref) form.
+    pub repour: bool,
     pub reference: Option<GraphRef>,
     pub formula: crate::FormulaName,
     pub description: String,
@@ -214,9 +219,13 @@ pub(super) fn validate(
     });
     let inputs = serde_json::to_vec(&json!({"mode": mode, "relations": relations}))
         .expect("contract serializes");
+    let repour = req.operation == BeadOperation::Repour;
+    let attached = repour && req.ref_.is_some();
     Ok(ValidatedGraph {
         mode,
-        parent: req.parent.clone(),
+        parent: req.parent.clone().filter(|_| !repour || attached),
+        root: req.parent.clone().filter(|_| repour && !attached),
+        repour,
         reference: req.ref_.clone(),
         formula: req
             .formula_name

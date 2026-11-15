@@ -12,6 +12,8 @@ sc-compose bead validate       --request request.json [--json]
 sc-compose bead preview-pour   --request request.json [--json]
 sc-compose bead pour           --request request.json [--json]
 sc-compose bead pour           FORMULA [--var KEY=VALUE ...] [--json]
+sc-compose bead repour         FORMULA --root BEAD_ID [--var KEY=VALUE ...] [--json]
+sc-compose bead repour         --request request.json [--json]
 sc-compose bead preview-attach --request request.json [--json]
 sc-compose bead attach         --request request.json [--json]
 ```
@@ -139,6 +141,37 @@ Where the rendered formula lives decides how it is poured, and the receipt's
 ```shell
 sc-compose bead preview-pour --request pour.json --json   # plan and validate; no writes
 sc-compose bead pour         --request pour.json --json   # create
+```
+
+## repour: update an already poured plan
+
+`repour` takes an edited plan to the beads that `pour` or `attach` already
+created. A pour is targeted by its root (`--root`, or `parent` in a request);
+an attach by the same `parent` and `ref` it was made with, in a request file.
+
+- Plan-owned fields (title, description, design, acceptance criteria, priority,
+  declared labels, plan metadata) are updated in place, including to an
+  explicitly empty value and including on closed beads, which stay closed.
+  Unrelated user metadata is merged, never replaced.
+- Missing nodes are created and missing declared edges are added, including
+  edges between two beads that already exist.
+- Ids and runtime state (status, notes, assignee, close state) are kept, even
+  when the plan carries those fields.
+- A node's provenance is refreshed after its fields, so a bead that was
+  interrupted part-way is still recognised as out of date.
+- Nodes and edges removed from the plan stay in place and are listed as
+  `retained`. Nothing is deleted.
+- The target, the plan, every planned id and every edge are validated before
+  the first write. A malformed plan, a dangling reference, a conflicting edge
+  type, a missing target or a foreign or unowned planned id is refused.
+- There is no all-or-nothing promise across writes. If one write fails,
+  `BEADS_GRAPH_APPLY_FAILED` reports how many writes were applied and how many
+  are pending; rerun the same command to finish. An unchanged plan is a no-op.
+  There is a single writer: no concurrency precondition is applied.
+
+```shell
+sc-compose bead repour release.formula.toml.j2 --root proj-7 --json
+sc-compose bead repour --request attach-request.json --json
 ```
 
 ## attach: add a workflow under an existing bead
@@ -407,7 +440,7 @@ Refused or failed receipts (exit `2`):
 | `BEADS_GRAPH_EDGE_CONFLICT` | an edge exists with another type | inspect it, or change the relation |
 | `BEADS_GRAPH_EDGE_MISSING` | an edge between two existing beads of this attachment was removed | run the `bd dep add` command the message gives for each edge, then re-run |
 | `BEADS_GRAPH_READ_FAILED` | `bd show` or `bd dep list` failed for a reason other than "not found"; nothing was written | fix the cause shown in the stage output and re-run |
-| `BEADS_GRAPH_APPLY_FAILED` | `bd create --graph` failed; nothing was written | fix the cause shown in the stage output and re-run |
+| `BEADS_GRAPH_APPLY_FAILED` | a graph write (`bd create --graph`, `bd update` or `bd dep add`) failed; earlier writes may have been applied | fix the cause shown in the stage output and re-run; the run converges |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | `bd create --graph` exited 0 but its response could not be read or did not match the plan; beads may have been created | before pouring again, run `bd show` on the ids the message lists (or `bd list` for a by-path pour) and reconcile; a retry can create a second molecule |
 
 Earlier codes are unchanged, for example `BEADS_RENDER_FAILED`,

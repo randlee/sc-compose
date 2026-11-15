@@ -97,10 +97,6 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
             json!({ "edges": edges }),
             "For each missing edge, run bd dep add <from> <to> --type <type>, then retry.",
         )),
-        BeadComposeError::GraphAtomicUpdateUnavailable => Some((
-            json!({}),
-            "Use a qualified bd transaction with ownership preconditions; no mutation was attempted.",
-        )),
         BeadComposeError::GraphReadFailed {
             command,
             status,
@@ -112,7 +108,7 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
             cause,
         } => Some((
             json!({ "command": command, "status": status, "cause": cause }),
-            "Fix the bd failure and retry; nothing was written.",
+            "Fix the bd failure and rerun the same command; writes before the failure may have been applied, and a rerun finishes the remaining work.",
         )),
         BeadComposeError::GraphApplyUnconfirmed {
             command,
