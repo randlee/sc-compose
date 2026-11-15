@@ -11,30 +11,22 @@ use sc_composer_beads::{
     BeadOutcome, BeadPourMode, BeadRenderBy, BeadStageOutcome, CommandSpec, FormulaName,
     PourAuthorization, ProcessRunner, RefusedBeadComposeReceipt, RequestParseOutcome,
     StdProcessRunner, execute_bead_request_with_options_and_diagnostics,
-    parse_request_for_operation,
+    execute_graph_revision_with_options, parse_request_for_operation, revision_options_for_request,
 };
 
 use crate::CommandError;
-use crate::cli::{BeadArgs, BeadRenderByArg, BeadRequestArgs, BeadSubcommand};
+use crate::cli::{BeadArgs, BeadRenderByArg, BeadRequestArgs, BeadSubcommand, ParsedBeadRoot};
 use crate::exit_codes;
 use crate::print_json;
 
 /// Run one Beads request selected by the CLI subcommand.
 pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
-    let (args, operation, root) = match &args.command {
-        BeadSubcommand::Render(args) => (args, BeadOperation::Render, None),
-        BeadSubcommand::Validate(args) => (args, BeadOperation::Validate, None),
-        BeadSubcommand::PreviewPour(args) => (args, BeadOperation::PreviewPour, None),
-        BeadSubcommand::PreviewAttach(args) => (args, BeadOperation::PreviewAttach, None),
-        BeadSubcommand::Pour(args) => (args, BeadOperation::Pour, None),
-        BeadSubcommand::Attach(args) => (args, BeadOperation::Attach, None),
-        BeadSubcommand::Repour(repour) => (
-            &repour.request,
-            BeadOperation::Repour,
-            repour.root.as_deref(),
-        ),
-    };
+    let (args, operation, root, allow_uncommitted) = revision_arguments(args);
     let json = args.json;
+    let root = match root.map(ParsedBeadRoot::get).transpose() {
+        Ok(root) => root,
+        Err(error) => return print_bead_error(&error, operation, json),
+    };
     let options = BeadExecutionOptions {
         render_by: match args.render_by {
             BeadRenderByArg::ScCompose => BeadRenderBy::ScCompose,
@@ -42,19 +34,23 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         },
         strict: args.strict,
     };
-    let (request, staging) = match request_from_args(args, operation, root, json) {
+    let (mut request, staging) = match request_from_args(args, operation, root, json) {
         Ok(prepared) => prepared,
         Err(response) => return response,
     };
+    let revision = revision_options_for_request(&mut request, root.cloned(), allow_uncommitted);
     let mut diagnostics = Vec::new();
     let mut refusal_diagnostic = None;
-    let result =
+    let result = if let Some(revision) = revision {
+        execute_graph_revision_with_options(&request, &revision, &options)
+    } else {
         execute_bead_request_with_options_and_diagnostics(&request, &options, &mut |error| {
             refusal_diagnostic = BeadDiagnostic::refused(error);
             if !json {
                 diagnostics.push(serde_json::to_value(error));
             }
-        });
+        })
+    };
     // The staged files are removed before the receipt is printed, so any
     // receipt path inside the staging directory is flagged as ephemeral.
     let ephemeral = match (&result, &staging) {
@@ -81,10 +77,52 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     }
 }
 
+fn revision_arguments(
+    args: &BeadArgs,
+) -> (
+    &BeadRequestArgs,
+    BeadOperation,
+    Option<&ParsedBeadRoot>,
+    bool,
+) {
+    match &args.command {
+        BeadSubcommand::Render(args) => (args, BeadOperation::Render, None, false),
+        BeadSubcommand::Validate(args) => (args, BeadOperation::Validate, None, false),
+        BeadSubcommand::PreviewAttach(args) => (args, BeadOperation::PreviewAttach, None, false),
+        BeadSubcommand::Attach(args) => (args, BeadOperation::Attach, None, false),
+        BeadSubcommand::PreviewPour(args) => (
+            &args.request,
+            BeadOperation::PreviewPour,
+            args.root.as_ref(),
+            false,
+        ),
+        BeadSubcommand::Pour(args) => (
+            &args.request,
+            if args.dry_run {
+                BeadOperation::PreviewPour
+            } else {
+                BeadOperation::Pour
+            },
+            args.root.as_ref(),
+            false,
+        ),
+        BeadSubcommand::Repour(args) => (
+            &args.request,
+            if args.dry_run {
+                BeadOperation::PreviewRepour
+            } else {
+                BeadOperation::Repour
+            },
+            args.root.as_ref(),
+            args.allow_uncommitted,
+        ),
+    }
+}
+
 fn request_from_args(
     args: &BeadRequestArgs,
     operation: BeadOperation,
-    root: Option<&str>,
+    root: Option<&BeadId>,
     json: bool,
 ) -> Result<(BeadComposeRequest, Option<DirectStaging>), Result<i32, CommandError>> {
     let mut staging = None;
@@ -223,7 +261,12 @@ fn without_verbatim_prefix(text: &str) -> std::borrow::Cow<'_, str> {
 
 impl Drop for DirectStaging {
     fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
+        if let Err(error) = fs::remove_dir_all(&self.path) {
+            eprintln!(
+                "warning: could not remove staging directory {}: {error}",
+                self.path.display()
+            );
+        }
     }
 }
 
@@ -304,20 +347,10 @@ fn direct_rendered_formula(
 fn direct_pour_request(
     args: &BeadRequestArgs,
     operation: BeadOperation,
-    root: Option<&str>,
+    root: Option<&BeadId>,
 ) -> Result<(BeadComposeRequest, DirectStaging), BeadComposeError> {
     let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
-    if !matches!(operation, BeadOperation::Pour | BeadOperation::Repour) {
-        return Err(bad(
-            "a direct formula is supported only by bead pour and bead repour".into(),
-        ));
-    }
-    // A repour targets the pour root; it is the request's `parent`.
-    let parent = match (operation, root) {
-        (BeadOperation::Repour, Some(root)) => Some(BeadId::new(root)?),
-        (BeadOperation::Repour, None) => return Err(bad("repour requires --root".into())),
-        _ => None,
-    };
+    let parent = direct_parent(operation, root)?;
     let variables = direct_variables(args)?;
     let root = std::env::current_dir().map_err(|source| BeadComposeError::DirectStagingFailed {
         path: PathBuf::from("."),
@@ -372,6 +405,39 @@ fn direct_pour_request(
         relations: Vec::new(),
     };
     Ok((request, staging))
+}
+
+fn direct_parent(
+    operation: BeadOperation,
+    root: Option<&BeadId>,
+) -> Result<Option<BeadId>, BeadComposeError> {
+    let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
+    if !matches!(
+        operation,
+        BeadOperation::Pour
+            | BeadOperation::PreviewPour
+            | BeadOperation::Repour
+            | BeadOperation::PreviewRepour
+    ) {
+        return Err(bad(
+            "a direct formula is supported only by bead pour and bead repour".into(),
+        ));
+    }
+    // A repour targets the pour root; it is the request's `parent`.
+    let parent = match (operation, root) {
+        (
+            BeadOperation::Repour
+            | BeadOperation::PreviewRepour
+            | BeadOperation::Pour
+            | BeadOperation::PreviewPour,
+            Some(root),
+        ) => Some(root.clone()),
+        (BeadOperation::Repour | BeadOperation::PreviewRepour, None) => {
+            return Err(bad("repour requires --root".into()));
+        }
+        _ => None,
+    };
+    Ok(parent)
 }
 
 type SourceSnapshot = (PathBuf, std::collections::BTreeMap<PathBuf, String>);
@@ -619,9 +685,7 @@ fn print_receipt(
 ) -> Result<i32, CommandError> {
     let exit_code = match &receipt.outcome {
         BeadOutcome::Succeeded => exit_codes::SUCCESS,
-        BeadOutcome::Refused { .. } | BeadOutcome::Failed { .. } => {
-            exit_codes::VALIDATION_OR_RENDER_FAIL
-        }
+        _ => exit_codes::VALIDATION_OR_RENDER_FAIL,
     };
     if json {
         print_json(with_ephemeral_paths(receipt, ephemeral)?, Vec::new())
@@ -776,6 +840,11 @@ fn print_human_graph(graph: &sc_composer_beads::BeadGraph, ephemeral: &[&str]) {
             .map_or("pending", sc_composer_beads::BeadId::as_str);
         println!("{action}: {step} -> {id}");
     }
+    for change in &graph.changes {
+        if let Ok(value) = serde_json::to_string(change) {
+            println!("change: {}", escape_human_text(&value));
+        }
+    }
     println!("edges: {}", graph.edges.len());
     for edge in graph
         .edges
@@ -798,11 +867,7 @@ fn print_human_graph(graph: &sc_composer_beads::BeadGraph, ephemeral: &[&str]) {
 }
 
 fn outcome_summary(outcome: &BeadOutcome) -> &str {
-    match outcome {
-        BeadOutcome::Succeeded => "succeeded",
-        BeadOutcome::Refused { .. } => "refused",
-        BeadOutcome::Failed { .. } => "failed",
-    }
+    outcome.as_str()
 }
 
 fn missing_edge_recovery_commands(

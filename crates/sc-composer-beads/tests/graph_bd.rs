@@ -3,7 +3,7 @@ use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadExecutionOptions, BeadGraphMode,
     BeadId, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadRenderBy, BeadStage,
     CommandSpec, GraphRef, PourAuthorization, ProcessOutput, ProcessRunner, StdProcessRunner,
-    execute_bead_request_with_options, execute_bead_request_with_options_and_runner,
+    execute_bead_request_with_options,
 };
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -12,9 +12,11 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::{
-    Mutex,
+    Arc, Mutex,
     atomic::{AtomicU64, Ordering},
 };
+
+use std::time::{Duration, Instant};
 
 static SERIAL: Mutex<()> = Mutex::new(());
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -22,6 +24,41 @@ const PIPE_DRAIN_TEST_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_PIPE_DRAIN_CHILD";
 const PIPE_DRAIN_TEST_OUTPUT_BYTES: usize = 256 * 1024;
 const WORKSPACE_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_WORKSPACE_CHILD";
 const FORMULA: &str = "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build {{literal}}\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\nneeds = [\"build\"]\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\nneeds = [\"verify\"]\n";
+// Go/Dolt interprets a Windows verbatim prefix as a network path. Rust can
+// keep canonical paths internally; only the bd environment needs this spelling.
+fn bd_environment_directory(path: &Path) -> PathBuf {
+    let Some(text) = path.to_str() else {
+        return path.to_path_buf();
+    };
+    if let Some(unc) = text.strip_prefix(r"\\?\UNC\") {
+        PathBuf::from(format!(r"\\{unc}"))
+    } else if let Some(drive) = text.strip_prefix(r"\\?\") {
+        PathBuf::from(drive)
+    } else {
+        path.to_path_buf()
+    }
+}
+
+#[test]
+fn bd_environment_directory_uses_non_verbatim_fixture_paths() {
+    assert_eq!(
+        bd_environment_directory(Path::new(r"\\?\C:\temp\fixture\.beads")),
+        PathBuf::from(r"C:\temp\fixture\.beads")
+    );
+    assert_eq!(
+        bd_environment_directory(Path::new(r"\\?\UNC\server\share\fixture\.beads")),
+        PathBuf::from(r"\\server\share\fixture\.beads")
+    );
+    assert_eq!(
+        bd_environment_directory(Path::new(r"C:\temp\fixture\.beads")),
+        PathBuf::from(r"C:\temp\fixture\.beads")
+    );
+    assert_eq!(
+        bd_environment_directory(Path::new("/workspace/.beads")),
+        PathBuf::from("/workspace/.beads")
+    );
+}
+
 struct Workspace {
     root: PathBuf,
     beads_dir: PathBuf,
@@ -40,9 +77,11 @@ impl Workspace {
             SEQUENCE.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(root.join("build")).expect("workspace");
+        let root = fs::canonicalize(root).expect("canonical root");
         let beads_dir = root.join(".beads");
+        fs::create_dir_all(root.join(".home")).expect("isolated home");
         let ws = Self {
-            root: fs::canonicalize(root).expect("canonical root"),
+            root,
             beads_dir,
             bd: binary.to_path_buf(),
         };
@@ -88,7 +127,10 @@ impl Workspace {
             .args(args)
             .current_dir(&self.root)
             .env("BEADS_NO_DAEMON", "1")
-            .env("BEADS_DIR", &self.beads_dir);
+            .env("HOME", self.root.join(".home"))
+            .env("XDG_CONFIG_HOME", self.root.join(".home/.config"))
+            .env("USERPROFILE", self.root.join(".home"))
+            .env("BEADS_DIR", bd_environment_directory(&self.beads_dir));
         let out = run_command(&mut command);
         assert!(
             out.status.success(),
@@ -131,6 +173,14 @@ impl Workspace {
     }
     fn run(&self, req: &BeadComposeRequest) -> BeadComposeReceipt {
         assert_eq!(req.working_directory, self.root);
+        if req.operation == BeadOperation::Repour {
+            let options = sc_composer_beads::GraphRevisionOptions::new(
+                sc_composer_beads::ExistingGraphTarget::PourRoot(req.parent.clone().expect("root")),
+                sc_composer_beads::UncommittedPolicy::Allow,
+            );
+            return sc_composer_beads::execute_graph_revision(req, &options)
+                .expect("valid revision");
+        }
         execute_bead_request_with_options(
             req,
             &BeadExecutionOptions {
@@ -215,32 +265,135 @@ fn drain_then_wait<T>(
     (stdout, stderr, status)
 }
 
+/// Read continuously so a timed-out child can report output captured so far.
+fn capture_pipe(mut pipe: impl Read, bytes: &Mutex<Vec<u8>>) -> std::io::Result<()> {
+    let mut buffer = [0; 8192];
+    loop {
+        match pipe.read(&mut buffer) {
+            Ok(0) => return Ok(()),
+            Ok(count) => bytes
+                .lock()
+                .expect("captured output")
+                .extend_from_slice(&buffer[..count]),
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+/// A ready result wins; the deadline is solely a failure guard.
+fn wait_for_completion<T>(
+    mut poll: impl FnMut() -> std::io::Result<Option<T>>,
+    mut expired: impl FnMut() -> bool,
+    mut pause: impl FnMut(),
+) -> std::io::Result<Option<T>> {
+    loop {
+        if let Some(result) = poll()? {
+            return Ok(Some(result));
+        }
+        if expired() {
+            return Ok(None);
+        }
+        pause();
+    }
+}
+
 fn run_command(command: &mut Command) -> Output {
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = command.spawn().expect("bd spawn");
-    let mut stdout = child.stdout.take().expect("piped bd stdout");
-    let mut stderr = child.stderr.take().expect("piped bd stderr");
-    let stdout_reader = std::thread::spawn(move || {
-        let mut bytes = Vec::new();
-        stdout.read_to_end(&mut bytes).expect("bd stdout");
-        bytes
-    });
-    let stderr_reader = std::thread::spawn(move || {
-        let mut bytes = Vec::new();
-        stderr.read_to_end(&mut bytes).expect("bd stderr");
-        bytes
-    });
-    let (stdout, stderr, status) = drain_then_wait(
-        || stdout_reader.join().expect("bd stdout reader"),
-        || stderr_reader.join().expect("bd stderr reader"),
-        || child.wait().expect("bd status"),
+    let stdout = child.stdout.take().expect("piped bd stdout");
+    let stderr = child.stderr.take().expect("piped bd stderr");
+    let stdout_bytes = Arc::new(Mutex::new(Vec::new()));
+    let stderr_bytes = Arc::new(Mutex::new(Vec::new()));
+    let out = Arc::clone(&stdout_bytes);
+    let err = Arc::clone(&stderr_bytes);
+    let stdout_reader = std::thread::spawn(move || capture_pipe(stdout, &out));
+    let stderr_reader = std::thread::spawn(move || capture_pipe(stderr, &err));
+    let started = Instant::now();
+    let mut exited = None;
+    let status = wait_for_completion(
+        || {
+            if exited.is_none() {
+                exited = child.try_wait()?;
+            }
+            Ok(exited.filter(|_| stdout_reader.is_finished() && stderr_reader.is_finished()))
+        },
+        || started.elapsed() >= Duration::from_secs(600),
+        || std::thread::sleep(Duration::from_millis(10)),
     );
-
+    let status = match status {
+        Ok(Some(status)) => status,
+        failure => {
+            let kill_error = child.kill().err();
+            let _ = child.try_wait();
+            // Never join unfinished readers: a descendant might still own a pipe.
+            panic!(
+                "command {command:?} did not complete within the 600s failure deadline: {failure:?}; kill: {kill_error:?}\nstdout: {}\nstderr: {}",
+                String::from_utf8_lossy(&stdout_bytes.lock().expect("stdout snapshot")),
+                String::from_utf8_lossy(&stderr_bytes.lock().expect("stderr snapshot"))
+            );
+        }
+    };
+    let (stdout, stderr, status) = drain_then_wait(
+        || {
+            stdout_reader
+                .join()
+                .expect("bd stdout reader")
+                .expect("bd stdout");
+            std::mem::take(&mut *stdout_bytes.lock().expect("stdout capture"))
+        },
+        || {
+            stderr_reader
+                .join()
+                .expect("bd stderr reader")
+                .expect("bd stderr");
+            std::mem::take(&mut *stderr_bytes.lock().expect("stderr capture"))
+        },
+        || status,
+    );
     Output {
         status,
         stdout,
         stderr,
     }
+}
+
+#[test]
+fn child_failure_deadline_uses_controlled_completion_and_expiry() {
+    use std::cell::Cell;
+    // Already-completed output succeeds even when the guard would be expired.
+    let ready = wait_for_completion(
+        || Ok(Some(7)),
+        || panic!("ready checked first"),
+        || panic!("no pause"),
+    );
+    assert_eq!(ready.unwrap(), Some(7));
+    let polls = Cell::new(0);
+    let expired = wait_for_completion(
+        || {
+            polls.set(polls.get() + 1);
+            Ok(None::<u8>)
+        },
+        || true,
+        || panic!("expired child must fail immediately"),
+    );
+    assert_eq!(expired.unwrap(), None);
+    assert_eq!(polls.get(), 1);
+    let mut results = [None, Some(9)].into_iter();
+    let pauses = Cell::new(0);
+    let completed = wait_for_completion(
+        || Ok(results.next().unwrap()),
+        || false,
+        || pauses.set(pauses.get() + 1),
+    );
+    assert_eq!(completed.unwrap(), Some(9));
+    assert_eq!(pauses.get(), 1);
+    let error = wait_for_completion(
+        || Err::<Option<u8>, _>(std::io::Error::other("try_wait failed")),
+        || false,
+        || panic!("no pause"),
+    );
+    assert_eq!(error.unwrap_err().to_string(), "try_wait failed");
 }
 
 #[test]
@@ -317,6 +470,32 @@ fn both_drains_finish_before_wait() {
     );
 }
 
+const BODY_COMPLETED: &str = "SC_COMPOSE_REAL_BD_BODY_COMPLETED";
+
+fn isolated_test_command(name: &str) -> Command {
+    let mut child = Command::new(std::env::current_exe().expect("test executable"));
+    child.args(["--ignored", "--exact", name, "--nocapture"]);
+    child
+}
+
+#[test]
+#[ignore = "selected by child_reexec_runs_an_ignored_body_without_bd"]
+fn ignored_child_execution_probe() {
+    println!("\n{BODY_COMPLETED}");
+}
+
+#[test]
+fn child_reexec_runs_an_ignored_body_without_bd() {
+    let output = run_command(&mut isolated_test_command("ignored_child_execution_probe"));
+    assert!(output.status.success(), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .any(|line| line == BODY_COMPLETED),
+        "ignored body was skipped: {output:?}"
+    );
+}
+
 fn with_workspace(test: impl FnOnce(&Workspace)) {
     let Some(binary) = std::env::var_os("BD_EXECUTABLE") else {
         panic!(
@@ -328,14 +507,16 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
         let beads_dir = root.join(".beads");
         assert_eq!(
             std::env::var_os("BEADS_DIR"),
-            Some(beads_dir.clone().into())
+            Some(bd_environment_directory(&beads_dir).into())
         );
         assert_eq!(std::env::var("BEADS_NO_DAEMON").as_deref(), Ok("1"));
+        assert_eq!(std::env::var_os("HOME"), Some(root.join(".home").into()));
         test(&Workspace {
             root: fs::canonicalize(root).expect("canonical child root"),
             beads_dir,
             bd: PathBuf::from(binary),
         });
+        println!("\n{BODY_COMPLETED}");
         return;
     }
     assert!(
@@ -348,16 +529,18 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
     let workspace = Workspace::new(Path::new(&binary));
     let thread = std::thread::current();
     let name = thread.name().expect("libtest test name");
-    let mut child = Command::new(std::env::current_exe().expect("test executable"));
+    let mut child = isolated_test_command(name);
     // The child environment isolates both helper commands and engine-launched bd.
     // Use the original temp path: canonical paths have a verbatim prefix on Windows.
     child
-        .args(["--exact", name, "--nocapture"])
         .env(
             WORKSPACE_CHILD_ENV,
             workspace.beads_dir.parent().expect("root"),
         )
-        .env("BEADS_DIR", &workspace.beads_dir)
+        .env("HOME", workspace.root.join(".home"))
+        .env("XDG_CONFIG_HOME", workspace.root.join(".home/.config"))
+        .env("USERPROFILE", workspace.root.join(".home"))
+        .env("BEADS_DIR", bd_environment_directory(&workspace.beads_dir))
         .env("BEADS_NO_DAEMON", "1");
     let output = run_command(&mut child);
     assert!(
@@ -365,6 +548,12 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
         "isolated {name}: {}\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .any(|line| line == BODY_COMPLETED),
+        "isolated {name} exited without executing its body: {output:?}"
     );
 }
 
@@ -992,24 +1181,18 @@ fn repour_interrupted_at_a_controlled_boundary_completes_on_rerun() {
             "[[steps]]\nid = \"ship\"\ntitle = \"Ship\"\nneeds = [\"publish\", \"build\"]\n",
         ));
         let request = w.repour_request(&root);
-        let options = BeadExecutionOptions {
-            render_by: BeadRenderBy::Bd,
-            strict: false,
-        };
-        // The first write is the create of `ship`; the second is the first update.
+        let options = sc_composer_beads::GraphRevisionOptions::new(
+            sc_composer_beads::ExistingGraphTarget::PourRoot(root.clone()),
+            sc_composer_beads::UncommittedPolicy::Allow,
+        );
         let runner = FailNthMutation {
             seen: Mutex::new(0),
             fail_at: 2,
         };
-        let interrupted = execute_bead_request_with_options_and_runner(&request, &options, &runner)
-            .expect("valid request");
-        assert_eq!(
-            interrupted.outcome,
-            BeadOutcome::Failed {
-                code: "BEADS_GRAPH_APPLY_FAILED".into()
-            },
-            "{interrupted:#?}"
-        );
+        let error =
+            sc_composer_beads::execute_graph_revision_with_runner(&request, &options, &runner)
+                .unwrap_err();
+        assert_eq!(error.code(), "BEADS_GRAPH_APPLY_PARTIAL");
         assert_eq!(w.bead_count(), 5, "the create before the cut was applied");
         assert!(w.leftovers().is_empty());
 
@@ -1116,7 +1299,7 @@ fn repour_preserves_closed_state_and_reports_removed_nodes_and_edges() {
             "--set-metadata",
             "user_key=keep",
         ]);
-        w.command(&["close", &build]);
+        w.command(&["close", &build, "--force"]);
         let before = w.bead_count();
         assert!(w.dependency_exists(&verify, &build));
         w.set_plan("formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build revised\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\n");
@@ -1130,19 +1313,43 @@ fn repour_preserves_closed_state_and_reports_removed_nodes_and_edges() {
         assert_eq!(shown[0]["notes"], "keep note");
         assert_eq!(shown[0]["assignee"], "reviewer");
         assert_eq!(shown[0]["metadata"]["user_key"], "keep");
-        assert!(w.dependency_exists(&verify, &build));
+        assert!(!w.dependency_exists(&verify, &build));
         assert!(result.nodes.iter().any(|node| {
             node.id.as_ref().is_some_and(|id| id.as_str() == publish)
                 && node.action == BeadNodeAction::Retained
         }));
-        assert!(
-            result
-                .edges
-                .iter()
-                .any(|edge| edge.action == sc_composer_beads::BeadEdgeAction::Retained
-                    && matches!(&edge.from, sc_composer_beads::GraphEndpoint::Bead(id) if id.as_str() == verify)
-                    && matches!(&edge.to, sc_composer_beads::GraphEndpoint::Bead(id) if id.as_str() == build))
-        );
+        assert!(result.changes.iter().any(|change| matches!(change,
+            sc_composer_beads::GraphChange::RemoveInternalEdge { from, to, .. }
+            if from.as_str() == verify && to.as_str() == build)));
         assert!(w.leftovers().is_empty());
+    });
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn repour_unknown_database_refuses_until_explicit_override() {
+    with_workspace(|w| {
+        let graph = w
+            .success(&w.request(BeadOperation::Pour, None))
+            .graph
+            .unwrap();
+        let root = graph.parent.unwrap();
+        w.set_plan(&plan("Build revised", ""));
+        let request = w.repour_request(&root);
+        let target = sc_composer_beads::ExistingGraphTarget::PourRoot(root);
+        let refuse = sc_composer_beads::GraphRevisionOptions::new(
+            target.clone(),
+            sc_composer_beads::UncommittedPolicy::Refuse,
+        );
+        let before = w.snapshot();
+        let error = sc_composer_beads::execute_graph_revision(&request, &refuse).unwrap_err();
+        assert_eq!(error.code(), "BEADS_GRAPH_DIRTY_UNKNOWN", "{error}");
+        assert_eq!(w.snapshot(), before);
+        let allow = sc_composer_beads::GraphRevisionOptions::new(
+            target,
+            sc_composer_beads::UncommittedPolicy::Allow,
+        );
+        let result = sc_composer_beads::execute_graph_revision(&request, &allow).unwrap();
+        assert_eq!(result.outcome, BeadOutcome::Succeeded, "{result:#?}");
     });
 }

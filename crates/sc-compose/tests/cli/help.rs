@@ -30,7 +30,7 @@ fn help_list_is_stable_and_scriptable() {
     assert!(output.status.success(), "{output:?}");
     assert_eq!(
         String::from_utf8_lossy(&output.stdout),
-        "exit-codes\nrender\nresolve\nvalidate\nverify\nextract\ntemplate-init\nfrontmatter-init\ninit\nexamples\ntemplates\nreports\nbead\nobservability-health\n"
+        "exit-codes\nrender\nresolve\nvalidate\nverify\nextract\ntemplate-init\nfrontmatter-init\ninit\nexamples\ntemplates\nreports\nbead\nrepour\nrepour-strategy\nobservability-health\n"
     );
 }
 
@@ -117,6 +117,24 @@ fn bead_manual_documents_all_subcommands_and_human_graph_output() {
             "`bd dep add` recovery command on its own line",
         ],
     );
+}
+
+#[test]
+fn repour_guides_are_bundled_in_the_cli() {
+    for (topic, manual) in [
+        ("repour", include_str!("../../docs/manual/repour.md")),
+        (
+            "repour-strategy",
+            include_str!("../../docs/manual/repour-strategy.md"),
+        ),
+    ] {
+        let output = sc_compose().args(["help", topic]).output().unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout).trim(),
+            manual.trim()
+        );
+    }
 }
 
 #[test]

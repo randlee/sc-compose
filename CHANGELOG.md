@@ -1,5 +1,6 @@
 # Changelog
 
+
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
@@ -12,7 +13,26 @@ on the final candidate; they remain pending and no 1.8.0 tag exists. The
 platform and wheel entries below describe declared and locally checked
 configuration, not qualified deliverables.
 
+### Changed
+
+- Rust Beads revision APIs now use non-exhaustive enums and receipt/options
+  structs. Use `GraphRevisionOptions::new`, `GraphApplyPartial::new` and
+  `BeadGraph::new` instead of struct literals, and include wildcard match arms
+  for operation, stage, outcome and revision enums. `GraphChange::FieldChange`
+  uses `GraphField` with `as_str()` / `as_flag()`; its JSON field names stay the
+  same. Partial-apply details add `cause_code` and `outcome_uncertain`, and
+  unknown database-state errors retain `cause_code`. Partial-error details are
+  boxed to keep the error type small. These source changes are
+  included without a major version bump because the Beads API has no users.
+
 ### Added
+
+- CLI and Python provide dry-run previews and structured revision changes. A
+  changed existing target refuses `pour` and `preview-pour` with a conflict
+  recommending `repour`. Repour refuses dirty or unknown database state by
+  default; `--allow-uncommitted` (Python `allow_uncommitted=True`) overrides
+  it. Partial failures report applied and pending work. Run `sc-compose help
+  repour` and `sc-compose help repour-strategy` for guidance.
 
 - `sc-compose bead --render-by <sc-compose|bd>` selects the formula renderer
   on every `bead` subcommand. The Rust crate and Python package offer the same
@@ -45,8 +65,9 @@ configuration, not qualified deliverables.
 - `sc-compose bead repour FORMULA --root <bead-id>` updates an already poured
   or attached plan in place (an attach by request file with `parent` and `ref`). Plan-owned fields are updated, missing nodes and edges are
   created, and ids and runtime state (status, notes, assignee, close state)
-  are kept. Nodes and edges removed from the plan are left in place and
-  reported as retained. `pour` and `attach` no longer refuse a run that mixes
+  are kept. Obsolete internal edges are removed; external edges are retained
+  and reported. Removed nodes retain their runtime state, receive the
+  `repour:removed` label, and are reported with a separate remove command. `pour` and `attach` no longer refuse a run that mixes
   new and existing beads; the retired refusal code is
   `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`. Receipt actions add `update`,
   `updated`, and `retained`.

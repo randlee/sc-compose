@@ -67,10 +67,9 @@ const fn bead_wants_json(args: &BeadArgs) -> bool {
     match &args.command {
         BeadSubcommand::Render(args)
         | BeadSubcommand::Validate(args)
-        | BeadSubcommand::PreviewPour(args)
-        | BeadSubcommand::Pour(args)
         | BeadSubcommand::PreviewAttach(args)
         | BeadSubcommand::Attach(args) => args.json,
+        BeadSubcommand::PreviewPour(args) | BeadSubcommand::Pour(args) => args.request.json,
         BeadSubcommand::Repour(args) => args.request.json,
     }
 }
@@ -400,5 +399,35 @@ mod tests {
                 "unexpected JSON capability for {args:?}",
             );
         }
+    }
+    #[test]
+    fn revision_flags_and_typed_root_parse_on_every_platform() {
+        let cli = Cli::try_parse_from([
+            "sc-compose",
+            "bead",
+            "repour",
+            "plan.j2",
+            "--root",
+            "proj-1",
+            "--dry-run",
+            "--allow-uncommitted",
+        ])
+        .unwrap();
+        let super::Command::Bead(args) = cli.command else {
+            panic!("bead command")
+        };
+        let super::BeadSubcommand::Repour(args) = args.command else {
+            panic!("repour")
+        };
+        assert_eq!(args.root.unwrap().get().unwrap().as_str(), "proj-1");
+        assert!(args.dry_run && args.allow_uncommitted);
+        Cli::try_parse_from([
+            "sc-compose",
+            "bead",
+            "pour",
+            "plan.j2",
+            "--allow-uncommitted",
+        ])
+        .unwrap_err();
     }
 }

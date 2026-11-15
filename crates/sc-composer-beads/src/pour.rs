@@ -73,7 +73,7 @@ pub(crate) fn execute_pour(
             &normalized,
             formula_input,
             bd,
-            stages,
+            (stages, None, false),
             diagnostics,
         );
     }
