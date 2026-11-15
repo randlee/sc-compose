@@ -96,6 +96,36 @@ pub fn execute_graph_revision_with_runner(
     options: &crate::revision::GraphRevisionOptions,
     runner: &dyn ProcessRunner,
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_graph_revision_with_options_and_runner(
+        request,
+        options,
+        &BeadExecutionOptions::default(),
+        runner,
+    )
+}
+
+/// Revise a graph with explicit rendering options and the production runner.
+///
+/// # Errors
+/// Returns the same errors as [`execute_graph_revision`].
+pub fn execute_graph_revision_with_options(
+    request: &BeadComposeRequest,
+    revision: &crate::revision::GraphRevisionOptions,
+    execution: &BeadExecutionOptions,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_graph_revision_with_options_and_runner(request, revision, execution, &StdProcessRunner)
+}
+
+/// Revise a graph with explicit rendering options and an injected runner.
+///
+/// # Errors
+/// Returns the same errors as [`execute_graph_revision`].
+pub fn execute_graph_revision_with_options_and_runner(
+    request: &BeadComposeRequest,
+    options: &crate::revision::GraphRevisionOptions,
+    execution: &BeadExecutionOptions,
+    runner: &dyn ProcessRunner,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
     let mut request = request.clone();
     if matches!(
         request.operation,
@@ -104,15 +134,17 @@ pub fn execute_graph_revision_with_runner(
     {
         return Err(BeadComposeError::PourAuthorizationRequired);
     }
-    for (key, value) in &request.bead_variables {
-        if request.compose_variables.contains_key(key) {
-            return Err(BeadComposeError::BeadVariableKeyDuplicate { key: key.clone() });
+    if execution.render_by == BeadRenderBy::ScCompose {
+        for (key, value) in &request.bead_variables {
+            if request.compose_variables.contains_key(key) {
+                return Err(BeadComposeError::BeadVariableKeyDuplicate { key: key.clone() });
+            }
+            request
+                .compose_variables
+                .insert(key.clone(), serde_json::Value::String(value.clone()));
         }
-        request
-            .compose_variables
-            .insert(key.clone(), serde_json::Value::String(value.clone()));
+        request.bead_variables.clear();
     }
-    request.bead_variables.clear();
     let original_operation = request.operation;
     let compare_only = matches!(
         original_operation,
@@ -141,10 +173,14 @@ pub fn execute_graph_revision_with_runner(
     }
     let mut result = execute_graph(
         &request,
-        &BeadExecutionOptions::default(),
+        execution,
         runner,
         &mut |_| {},
-        validate_repour_shape_advanced,
+        if execution.render_by == BeadRenderBy::ScCompose {
+            validate_repour_shape_advanced
+        } else {
+            validate_repour_shape
+        },
         Some(options.uncommitted),
         compare_only,
     )?;

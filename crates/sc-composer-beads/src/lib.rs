@@ -45,7 +45,8 @@ pub use execute::{
     execute_bead_request, execute_bead_request_with_diagnostics, execute_bead_request_with_options,
     execute_bead_request_with_options_and_diagnostics,
     execute_bead_request_with_options_and_runner, execute_bead_request_with_runner,
-    execute_graph_revision, execute_graph_revision_with_runner,
+    execute_graph_revision, execute_graph_revision_with_options,
+    execute_graph_revision_with_options_and_runner, execute_graph_revision_with_runner,
 };
 #[doc(inline)]
 pub use revision::{

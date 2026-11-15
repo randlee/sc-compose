@@ -1223,3 +1223,35 @@ fn revision_partial_error_carries_confirmed_and_pending_changes() {
     );
     assert!(failed_operation.contains("uncertain"));
 }
+
+#[test]
+fn revision_respects_explicit_bd_rendering_options() {
+    let (mut workspace, bd, root) = poured(&plan_v1());
+    fs::write(
+        &workspace.request.template,
+        "formula = \"plan\"\n# {{ variable | upper }}\n",
+    )
+    .unwrap();
+    workspace.request.operation = BeadOperation::PreviewRepour;
+    let revision = GraphRevisionOptions {
+        target: ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        uncommitted: UncommittedPolicy::Refuse,
+    };
+    let execution = BeadExecutionOptions {
+        render_by: BeadRenderBy::Bd,
+        strict: true,
+    };
+    let receipt = execute_graph_revision_with_options_and_runner(
+        &workspace.request,
+        &revision,
+        &execution,
+        &bd,
+    )
+    .unwrap();
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+    assert!(
+        fs::read_to_string(&workspace.request.rendered_formula)
+            .unwrap()
+            .contains("{{ variable | upper }}")
+    );
+}
