@@ -3,7 +3,7 @@ use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadExecutionOptions, BeadGraphMode,
     BeadId, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadRenderBy, BeadStage,
     CommandSpec, GraphRef, PourAuthorization, ProcessOutput, ProcessRunner, StdProcessRunner,
-    execute_bead_request_with_options, execute_bead_request_with_options_and_runner,
+    execute_bead_request_with_options,
 };
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
