@@ -241,7 +241,7 @@ fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
     fake_exec::install(
         &wrapper,
         &format!(
-            "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexport HOME={}\nexport XDG_CONFIG_HOME={}\nexport BEADS_DIR={}\nexec {} \"$@\"\n",
+            "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexport HOME={}\nexport XDG_CONFIG_HOME={}\nexport BEADS_DIR={}\nif [ -f \"$PWD/.beads/redirect\" ]; then export BEADS_DIR=\"$PWD/.beads\"; fi\nexec {} \"$@\"\n",
             shell_quote(&root.join(".home")),
             shell_quote(&root.join(".home/.config")),
             shell_quote(&root.join(".beads")),
@@ -258,7 +258,7 @@ fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
     fs::write(
         &wrapper,
         format!(
-            "@echo off\r\nsetlocal\r\nset \"BEADS_NO_DAEMON=1\"\r\nset \"HOME={}\"\r\nset \"USERPROFILE={}\"\r\nset \"XDG_CONFIG_HOME={}\"\r\nset \"BEADS_DIR={}\"\r\n\"{}\" %*\r\nexit /b %ERRORLEVEL%\r\n",
+            "@echo off\r\nsetlocal\r\nset \"BEADS_NO_DAEMON=1\"\r\nset \"HOME={}\"\r\nset \"USERPROFILE={}\"\r\nset \"XDG_CONFIG_HOME={}\"\r\nset \"BEADS_DIR={}\"\r\nif exist \"%CD%\\.beads\\redirect\" set \"BEADS_DIR=%CD%\\.beads\"\r\n\"{}\" %*\r\nexit /b %ERRORLEVEL%\r\n",
             root.join(".home").display(), root.join(".home").display(), root.join(".home/.config").display(), root.join(".beads").display(), bd.display()
         ),
     )
@@ -538,6 +538,26 @@ fn isolated_bd_wrapper_sets_a_private_home_and_beads_dir() {
         root.join(".beads").display()
     );
     assert_eq!(lines, expected);
+    let redirected = root.join("redirected-worktree");
+    fs::create_dir_all(redirected.join(".beads")).unwrap();
+    fs::write(
+        redirected.join(".beads/redirect"),
+        root.join(".beads").to_string_lossy().as_bytes(),
+    )
+    .unwrap();
+    let output = Command::new(isolated_bd(&root, &probe))
+        .current_dir(&redirected)
+        .output()
+        .unwrap();
+    let lines = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(
+        lines,
+        format!(
+            "{}\n{}\n",
+            root.join(".home").display(),
+            redirected.join(".beads").display()
+        )
+    );
     assert_ne!(
         std::env::var_os("HOME"),
         Some(root.join(".home").into_os_string())
