@@ -122,6 +122,27 @@ Usage: sc-compose bead render [OPTIONS] [FORMULA]
 - `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
+#### `sc-compose bead repour`
+
+Converge the beads of an earlier pour onto its updated plan
+
+```text
+Usage: sc-compose bead repour [OPTIONS] [FORMULA]
+```
+
+**Arguments:**
+
+- `formula` — Formula template path or registry name for direct pour
+
+**Options:**
+
+- `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
+- `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
+- `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--root <BEAD_ID>` — Pour root bead to converge (graph.parent of the original pour receipt)
+- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--var <VARS>` — Supply a direct pour variable as key=value
+
 #### `sc-compose bead validate`
 
 Render and validate a Beads formula request

@@ -91,6 +91,22 @@ pub(crate) enum BeadSubcommand {
     Pour(BeadRequestArgs),
     #[command(about = "Render, validate, and persist authorized Beads graph attachment")]
     Attach(BeadRequestArgs),
+    #[command(about = "Converge the beads of an earlier pour onto its updated plan")]
+    Repour(BeadRepourArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct BeadRepourArgs {
+    #[command(flatten)]
+    pub(crate) request: BeadRequestArgs,
+    #[arg(
+        long,
+        value_name = "BEAD_ID",
+        required_unless_present = "request",
+        conflicts_with = "request",
+        help = "Pour root bead to converge (graph.parent of the original pour receipt)"
+    )]
+    pub(crate) root: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]

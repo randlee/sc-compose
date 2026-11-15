@@ -47,6 +47,10 @@ pub enum BeadOperation {
     PreviewAttach,
     /// Atomically attach graph children under an existing parent.
     Attach,
+    /// Converge the beads of an earlier graph pour onto the updated plan.
+    ///
+    /// The request's `parent` names the pour root; `ref` must be absent.
+    Repour,
 }
 
 impl BeadOperation {
@@ -60,6 +64,7 @@ impl BeadOperation {
             Self::Pour => "pour",
             Self::PreviewAttach => "preview_attach",
             Self::Attach => "attach",
+            Self::Repour => "repour",
         }
     }
 }
@@ -282,6 +287,8 @@ pub enum BeadStage {
     PreviewAttach,
     /// Atomically attach graph children under an existing parent.
     Attach,
+    /// Converge an earlier graph pour onto its updated plan.
+    Repour,
 }
 
 impl BeadStage {
@@ -296,6 +303,7 @@ impl BeadStage {
             Self::Pour => "pour",
             Self::PreviewAttach => "preview_attach",
             Self::Attach => "attach",
+            Self::Repour => "repour",
         }
     }
 }
@@ -860,6 +868,12 @@ pub enum BeadNodeAction {
     Created,
     /// Already exists and remains untouched.
     Existing,
+    /// Already exists and its plan-owned fields will be updated.
+    Update,
+    /// Already existed and its plan-owned fields were updated.
+    Updated,
+    /// Exists but is no longer in the plan; it is left in place, not deleted.
+    Retained,
 }
 
 /// Outcome for a graph edge.
@@ -873,6 +887,8 @@ pub enum BeadEdgeAction {
     Added,
     /// Already exists and remains untouched.
     Existing,
+    /// Exists but is no longer in the plan; it is left in place, not deleted.
+    Retained,
 }
 
 /// An absent dependency between existing beads requiring manual repair.

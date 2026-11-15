@@ -527,7 +527,7 @@ fn edge_conflict_missing_edge_and_noop_preserve_the_prior_plan() {
 }
 
 #[test]
-fn advanced_missing_edge_refuses_unqualified_atomic_update_without_writes() {
+fn advanced_missing_edge_is_added_by_dep_add_after_a_read_only_preview() {
     let mut w = Workspace::new();
     let rows = existing(&w);
     let preview_runner = FakeRunner::new([ok(COOKED), ok(&rows), ok("[]")]);
@@ -543,15 +543,38 @@ fn advanced_missing_edge_refuses_unqualified_atomic_update_without_writes() {
     );
     assert_read_only(&preview_runner);
     w.req.operation = BeadOperation::Attach;
-    let runner = FakeRunner::new([ok(COOKED), ok(&rows), ok("[]")]);
+    let runner = FakeRunner::new([ok(COOKED), ok(&rows), ok("[]"), ok("")]);
     let receipt = w.run(&runner);
-    assert_eq!(
-        receipt.outcome,
-        BeadOutcome::Refused {
-            code: "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE".into()
-        }
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+    let graph = receipt.graph.expect("graph");
+    assert!(graph.edges.iter().any(|edge| {
+        edge.action == BeadEdgeAction::Added && edge.kind == GraphDependencyType::ParentChild
+    }));
+    assert!(
+        graph
+            .nodes
+            .iter()
+            .all(|node| node.action == BeadNodeAction::Existing),
+        "an edge-only repair neither creates nor updates a node"
     );
-    assert_read_only(&runner);
+    let calls = runner.calls();
+    assert_eq!(calls.len(), 4, "cook, show, dep list, one dep add");
+    assert_eq!(
+        calls[3].args,
+        [
+            "dep",
+            "add",
+            "--type",
+            "parent-child",
+            "--",
+            "proj-1.chain-build",
+            "proj-1"
+        ]
+    );
+    assert!(
+        calls.iter().all(|call| call.args[0] != "create"),
+        "no node was missing, so nothing is created"
+    );
 }
 
 #[test]
@@ -613,7 +636,7 @@ fn advanced_v1_ownership_without_creation_proof_refuses_before_mutation() {
 }
 
 #[test]
-fn advanced_new_optional_node_previews_but_never_applies_without_atomic_capability() {
+fn advanced_new_optional_node_previews_then_applies_beside_existing_nodes() {
     let mut w = Workspace::new();
     let rows = existing(&w);
     fs::write(
@@ -647,15 +670,39 @@ fn advanced_new_optional_node_previews_but_never_applies_without_atomic_capabili
     );
 
     w.req.operation = BeadOperation::Attach;
-    let apply_runner = FakeRunner::new([ok(enabled), ok(&rows), ok(parent_edge)]);
+    let apply_runner = FakeRunner::new([
+        ok(enabled),
+        ok(&rows),
+        ok(parent_edge),
+        ok(r#"{"ids":{"verify":"proj-1.chain-verify"}}"#),
+    ]);
     let receipt = w.run(&apply_runner);
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded, "{receipt:#?}");
+    let graph = receipt.graph.unwrap();
+    let action_of = |name: &str| {
+        graph
+            .nodes
+            .iter()
+            .find(|node| node.step.as_ref().is_some_and(|step| step.as_str() == name))
+            .map(|node| node.action)
+    };
+    assert_eq!(action_of("build"), Some(BeadNodeAction::Existing));
+    assert_eq!(action_of("verify"), Some(BeadNodeAction::Created));
+    let calls = apply_runner.calls();
+    let create = calls.last().unwrap();
+    assert_eq!(create.args[0], "create");
+    assert!(!create.args.iter().any(|arg| arg == "--dry-run"));
+    let plan = w.plan();
     assert_eq!(
-        receipt.outcome,
-        BeadOutcome::Refused {
-            code: "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE".into()
-        }
+        plan["nodes"].as_array().unwrap().len(),
+        1,
+        "only the new node"
     );
-    assert_read_only(&apply_runner);
+    assert_eq!(plan["nodes"][0]["id"], "proj-1.chain-verify");
+    assert_eq!(
+        plan["edges"],
+        json!([{"from_key":"verify","to_id":"proj-1.chain-build","type":"blocks"}])
+    );
 }
 #[test]
 fn apply_failure_is_failed_at_the_apply_stage() {

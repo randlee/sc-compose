@@ -126,6 +126,8 @@ fn execute_with_options_runner_and_diagnostics(
     if options.render_by == BeadRenderBy::ScCompose {
         let shape = if crate::graph::is_attach(request.operation) {
             validate_attach_shape_advanced
+        } else if request.operation == BeadOperation::Repour {
+            validate_repour_shape_advanced
         } else {
             validate_formula_shape
         };
@@ -142,20 +144,23 @@ fn execute_with_options_runner_and_diagnostics(
     }
     let request = &effective;
     if crate::graph::is_attach(request.operation) {
-        execute_attach(request, options, runner, diagnostics)
+        execute_graph(request, options, runner, diagnostics, validate_attach_shape)
+    } else if request.operation == BeadOperation::Repour {
+        execute_graph(request, options, runner, diagnostics, validate_repour_shape)
     } else {
         execute_formula(request, options, runner, diagnostics)
     }
 }
 
-/// `preview-attach` and `attach`: render, then build the graph.
-fn execute_attach(
+/// `preview-attach`, `attach` and `repour`: render, then build the graph.
+fn execute_graph(
     request: &BeadComposeRequest,
     options: &BeadExecutionOptions,
     runner: &dyn ProcessRunner,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
+    validate_shape: fn(&BeadComposeRequest) -> Result<(), BeadComposeError>,
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
-    let mut normalized = validate_request(request, validate_attach_shape)?;
+    let mut normalized = validate_request(request, validate_shape)?;
     normalized.advanced = options.render_by == BeadRenderBy::ScCompose;
     let (formula_input, stages) =
         match render_stage(request, options, &normalized, crate::snapshot::output_error) {
@@ -376,6 +381,7 @@ fn validate_request(
             | BeadOperation::Validate
             | BeadOperation::PreviewAttach
             | BeadOperation::Attach
+            | BeadOperation::Repour
     ) && !rendered_formula.starts_with(&working_directory)
     {
         return Err(BeadComposeError::OutputOutsideWorkingDirectory {
@@ -411,14 +417,14 @@ fn validate_request_preamble(
     }
     if matches!(
         request.operation,
-        BeadOperation::PreviewPour | BeadOperation::Pour
+        BeadOperation::PreviewPour | BeadOperation::Pour | BeadOperation::Repour
     ) && request.formula_name.is_none()
     {
         return Err(BeadComposeError::FormulaNameRequired);
     }
     if matches!(
         request.operation,
-        BeadOperation::Pour | BeadOperation::Attach
+        BeadOperation::Pour | BeadOperation::Attach | BeadOperation::Repour
     ) && request.pour_authorization != Some(PourAuthorization::CreatePersistentBeads)
     {
         return Err(BeadComposeError::PourAuthorizationRequired);
@@ -461,6 +467,22 @@ fn validate_attach_shape_advanced(request: &BeadComposeRequest) -> Result<(), Be
     } else {
         Ok(())
     }
+}
+
+/// A repour names its target as `parent`: the pour root alone, or the attach
+/// parent together with the attachment `ref`.
+fn validate_repour_shape_advanced(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {
+    shape_result(
+        request
+            .parent
+            .is_none()
+            .then_some("repour requires parent (the pour root, or the attach parent with ref)"),
+    )
+}
+
+fn validate_repour_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {
+    validate_repour_shape_advanced(request)?;
+    shape_result((!request.bead_variables.is_empty()).then_some("repour forbids bead_variables"))
 }
 
 fn validate_formula_shape(request: &BeadComposeRequest) -> Result<(), BeadComposeError> {

@@ -143,7 +143,10 @@ pub(crate) fn parse_request_as(
     })();
     if let Err(error) = identifiers {
         if matches!(&error, BeadComposeError::GraphIdInvalid { .. })
-            && matches!(shape.operation, BeadOperation::Attach | BeadOperation::Pour)
+            && matches!(
+                shape.operation,
+                BeadOperation::Attach | BeadOperation::Pour | BeadOperation::Repour
+            )
             && shape.pour_authorization.is_none()
         {
             return Err(BeadComposeError::PourAuthorizationRequired);

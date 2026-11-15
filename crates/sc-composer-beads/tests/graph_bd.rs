@@ -2,7 +2,8 @@
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadExecutionOptions, BeadGraphMode,
     BeadId, BeadNodeAction, BeadOperation, BeadOutcome, BeadPourMode, BeadRenderBy, BeadStage,
-    GraphRef, PourAuthorization, execute_bead_request_with_options,
+    CommandSpec, GraphRef, PourAuthorization, ProcessOutput, ProcessRunner, StdProcessRunner,
+    execute_bead_request_with_options, execute_bead_request_with_options_and_runner,
 };
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -45,15 +46,39 @@ impl Workspace {
             beads_dir,
             bd: binary.to_path_buf(),
         };
-        ws.command(&[
-            "init",
-            "--non-interactive",
-            "--quiet",
-            "--skip-agents",
-            "--skip-hooks",
-            "--prefix",
-            "graph",
-        ]);
+        let mut init = vec![
+            "init".to_owned(),
+            "--non-interactive".into(),
+            "--quiet".into(),
+            "--skip-agents".into(),
+            "--skip-hooks".into(),
+            "--prefix".into(),
+            "graph".into(),
+        ];
+        // A bd built without embedded Dolt needs a server. Point it at a
+        // dedicated throwaway server, never a shared one, with a database
+        // name unique to this workspace.
+        if let Some(port) = std::env::var_os("SC_COMPOSE_TEST_DOLT_PORT") {
+            fs::create_dir_all(&ws.beads_dir).expect("beads dir");
+            let database = format!(
+                "scg_{}_{}",
+                std::process::id(),
+                ws.root
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .and_then(|name| name.rsplit('-').next())
+                    .unwrap_or("0")
+            );
+            init.extend([
+                "--server".into(),
+                "--server-port".into(),
+                port.to_string_lossy().into_owned(),
+                "--database".into(),
+                database,
+            ]);
+        }
+        let init: Vec<&str> = init.iter().map(String::as_str).collect();
+        ws.command(&init);
         fs::write(ws.root.join("release.formula.toml.j2"), FORMULA).expect("template");
         ws
     }
@@ -761,14 +786,10 @@ fn advanced_conditional_nodes_preview_without_pruning_or_unqualified_apply() {
         }));
         assert_eq!(w.snapshot(), before);
         request.operation = BeadOperation::Attach;
-        let refused = sc_composer_beads::execute_bead_request(&request).unwrap();
-        assert_eq!(
-            refused.outcome,
-            BeadOutcome::Refused {
-                code: "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE".into()
-            }
-        );
-        assert_eq!(w.snapshot(), before);
+        let applied = sc_composer_beads::execute_bead_request(&request).unwrap();
+        assert_eq!(applied.outcome, BeadOutcome::Succeeded, "{applied:#?}");
+        assert_eq!(applied.graph.unwrap().ids.len(), 2);
+        assert_ne!(w.snapshot(), before, "the optional node is now created");
 
         let parent = w.parent();
         request.parent = Some(parent);
@@ -786,5 +807,289 @@ fn advanced_conditional_nodes_preview_without_pruning_or_unqualified_apply() {
             before_disabled,
             "disabled nodes are never pruned"
         );
+    });
+}
+
+/// The `release` plan with a configurable build title and extra steps.
+fn plan(build_title: &str, extra: &str) -> String {
+    format!(
+        "formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"{build_title}\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\nneeds = [\"build\"]\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\nneeds = [\"verify\"]\n{extra}"
+    )
+}
+
+impl Workspace {
+    fn set_plan(&self, text: &str) {
+        fs::write(self.root.join("release.formula.toml.j2"), text).expect("plan");
+    }
+
+    fn repour_request(&self, root: &BeadId) -> BeadComposeRequest {
+        let mut request = self.request(BeadOperation::Repour, Some(root.clone()));
+        request.ref_ = None;
+        request
+    }
+
+    fn bead_count(&self) -> usize {
+        self.json(&["list", "--all", "-n", "0", "--json"])
+            .as_array()
+            .expect("beads")
+            .len()
+    }
+
+    fn leftovers(&self) -> Vec<String> {
+        let mut names = Vec::new();
+        for dir in [self.root.clone(), self.root.join("build")] {
+            for entry in fs::read_dir(dir).expect("dir") {
+                let name = entry
+                    .expect("entry")
+                    .file_name()
+                    .to_string_lossy()
+                    .into_owned();
+                if name.contains("backup") || name.contains(".sc-compose-input") {
+                    names.push(name);
+                }
+            }
+        }
+        names
+    }
+
+    fn dependency_exists(&self, from: &str, to: &str) -> bool {
+        self.json(&["dep", "list", from, "--json"])
+            .as_array()
+            .expect("deps")
+            .iter()
+            .any(|dep| dep["id"] == to && dep["dependency_type"] == "blocks")
+    }
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn repour_converges_three_edits_on_one_store_without_deleting_or_repouring() {
+    with_workspace(|w| {
+        let poured = w.success(&w.request(BeadOperation::Pour, None));
+        let graph = poured.graph.expect("graph");
+        let root = graph.parent.clone().expect("root");
+        let ids: BTreeMap<String, String> = graph
+            .ids
+            .iter()
+            .map(|(step, id)| (step.to_string(), id.to_string()))
+            .collect();
+        let (build, verify) = (ids["build"].clone(), ids["verify"].clone());
+        w.command(&[
+            "update",
+            &build,
+            "--status",
+            "in_progress",
+            "--notes",
+            "keep this",
+            "--assignee",
+            "reviewer",
+        ]);
+        let beads = w.bead_count();
+        assert_eq!(beads, 4);
+
+        // 1. Change a field: same beads, same ids, runtime state intact.
+        w.set_plan(&plan("Build changed", ""));
+        let receipt = w.success(&w.repour_request(&root));
+        assert!(receipt.graph.expect("graph").nodes.iter().any(|node| {
+            node.step.as_ref().is_some_and(|s| s.as_str() == "build")
+                && node.action == BeadNodeAction::Updated
+        }));
+        assert_eq!(w.bead_count(), beads, "a field-only repour keeps the count");
+        let shown = w.json(&["show", &build, "--json"]);
+        assert_eq!(shown[0]["title"], "Build changed");
+        assert_eq!(shown[0]["status"], "in_progress");
+        assert_eq!(shown[0]["notes"], "keep this");
+        assert_eq!(shown[0]["assignee"], "reviewer");
+
+        // 2. Add a node.
+        w.set_plan(&plan(
+            "Build changed",
+            "[[steps]]\nid = \"ship\"\ntitle = \"Ship\"\nneeds = [\"publish\"]\n",
+        ));
+        let receipt = w.success(&w.repour_request(&root));
+        let ids_now = receipt.graph.expect("graph").ids;
+        assert_eq!(w.bead_count(), beads + 1);
+        for (step, id) in &graph.ids {
+            assert_eq!(&ids_now[step], id, "existing ids are stable");
+        }
+        let ship = ids_now[&sc_composer_beads::StepId::new("ship").expect("step")].to_string();
+        assert!(w.dependency_exists(&ship, ids["publish"].as_str()));
+
+        // 3. Add an edge between two existing beads.
+        w.set_plan(&plan(
+            "Build changed",
+            "[[steps]]\nid = \"ship\"\ntitle = \"Ship\"\nneeds = [\"publish\", \"build\"]\n",
+        ));
+        assert!(!w.dependency_exists(&ship, &build));
+        let receipt = w.success(&w.repour_request(&root));
+        assert!(
+            receipt
+                .graph
+                .expect("graph")
+                .edges
+                .iter()
+                .any(|edge| edge.action == sc_composer_beads::BeadEdgeAction::Added)
+        );
+        assert!(w.dependency_exists(&ship, &build));
+        assert_eq!(w.bead_count(), beads + 1, "nothing was poured fresh");
+        assert!(w.dependency_exists(&verify, &build));
+
+        // Independent read-back of the final graph and the preserved state.
+        let shown = w.json(&["show", &build, "--json"]);
+        assert_eq!(shown[0]["status"], "in_progress");
+        assert_eq!(shown[0]["notes"], "keep this");
+        assert_eq!(shown[0]["assignee"], "reviewer");
+        let children = w.json(&["children", root.as_str(), "--json"]);
+        assert_eq!(children.as_array().expect("children").len(), 4);
+        assert!(w.leftovers().is_empty(), "{:?}", w.leftovers());
+
+        // An unchanged plan is a no-op.
+        let before = w.snapshot();
+        w.success(&w.repour_request(&root));
+        assert_eq!(w.snapshot(), before);
+    });
+}
+
+/// Fails the Nth mutating bd call; every other call runs against real bd.
+struct FailNthMutation {
+    seen: Mutex<usize>,
+    fail_at: usize,
+}
+
+impl ProcessRunner for FailNthMutation {
+    fn run(&self, spec: &CommandSpec) -> std::io::Result<ProcessOutput> {
+        let mutating = matches!(spec.args.first().map(String::as_str), Some("update"))
+            || spec.args.starts_with(&["dep".into(), "add".into()])
+            || (spec.args.first().map(String::as_str) == Some("create")
+                && !spec.args.iter().any(|arg| arg == "--dry-run"));
+        if mutating {
+            let mut seen = self.seen.lock().expect("counter");
+            *seen += 1;
+            if *seen == self.fail_at {
+                return Ok(ProcessOutput {
+                    exit_status: Some(1),
+                    stdout: String::new(),
+                    stderr: "injected failure".into(),
+                    elapsed: std::time::Duration::ZERO,
+                });
+            }
+        }
+        StdProcessRunner.run(spec)
+    }
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn repour_interrupted_at_a_controlled_boundary_completes_on_rerun() {
+    with_workspace(|w| {
+        let graph = w
+            .success(&w.request(BeadOperation::Pour, None))
+            .graph
+            .expect("graph");
+        let root = graph.parent.expect("root");
+        w.set_plan(&plan(
+            "Build changed",
+            "[[steps]]\nid = \"ship\"\ntitle = \"Ship\"\nneeds = [\"publish\", \"build\"]\n",
+        ));
+        let request = w.repour_request(&root);
+        let options = BeadExecutionOptions {
+            render_by: BeadRenderBy::Bd,
+            strict: false,
+        };
+        // The first write is the create of `ship`; the second is the first update.
+        let runner = FailNthMutation {
+            seen: Mutex::new(0),
+            fail_at: 2,
+        };
+        let interrupted = execute_bead_request_with_options_and_runner(&request, &options, &runner)
+            .expect("valid request");
+        assert_eq!(
+            interrupted.outcome,
+            BeadOutcome::Failed {
+                code: "BEADS_GRAPH_APPLY_FAILED".into()
+            },
+            "{interrupted:#?}"
+        );
+        assert_eq!(w.bead_count(), 5, "the create before the cut was applied");
+        assert!(w.leftovers().is_empty());
+
+        let resumed = w.success(&request);
+        assert!(resumed.graph.is_some());
+        assert_eq!(w.bead_count(), 5, "the rerun does not create a second ship");
+        let build = graph.ids[&sc_composer_beads::StepId::new("build").expect("step")].clone();
+        assert_eq!(
+            w.json(&["show", build.as_str(), "--json"])[0]["title"],
+            "Build changed"
+        );
+        let after = w.snapshot();
+        w.success(&request);
+        assert_eq!(w.snapshot(), after, "a second rerun changes nothing");
+        assert!(w.leftovers().is_empty());
+    });
+}
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn repour_refuses_a_dangling_reference_and_a_conflicting_edge_with_zero_writes() {
+    with_workspace(|w| {
+        let graph = w
+            .success(&w.request(BeadOperation::Pour, None))
+            .graph
+            .expect("graph");
+        let root = graph.parent.clone().expect("root");
+        let ids = graph.ids;
+        let build = ids[&sc_composer_beads::StepId::new("build").expect("step")].to_string();
+        let verify = ids[&sc_composer_beads::StepId::new("verify").expect("step")].to_string();
+        let before = w.snapshot();
+
+        // Dangling reference: a relation to a bead that does not exist.
+        w.set_plan(&plan("Build changed", ""));
+        let mut dangling = w.repour_request(&root);
+        dangling.relations = vec![sc_composer_beads::BeadRelation {
+            from: sc_composer_beads::BeadEndpoint::Step(
+                sc_composer_beads::StepId::new("build").expect("step"),
+            ),
+            to: sc_composer_beads::BeadEndpoint::Bead(BeadId::new("graph-nope").expect("id")),
+            kind: sc_composer_beads::BeadDependencyType::Blocks,
+        }];
+        let receipt = w.run(&dangling);
+        assert_eq!(
+            receipt.outcome,
+            BeadOutcome::Refused {
+                code: "BEADS_GRAPH_RELATION_INVALID".into()
+            },
+            "{receipt:#?}"
+        );
+        assert_eq!(w.snapshot(), before);
+        assert!(w.leftovers().is_empty());
+
+        // Malformed plan: not a formula bd can cook.
+        w.set_plan("formula = \"release\"\n[[steps]\n");
+        let receipt = w.run(&w.repour_request(&root));
+        assert_eq!(
+            receipt.outcome,
+            BeadOutcome::Failed {
+                code: "BEADS_COOK_FAILED".into()
+            },
+            "{receipt:#?}"
+        );
+        assert_eq!(w.snapshot(), before);
+        assert!(w.leftovers().is_empty());
+
+        // Conflicting edge type: the stored edge is `related`, the plan says `blocks`.
+        w.set_plan(&plan("Build changed", ""));
+        w.command(&["dep", "remove", &verify, &build]);
+        w.command(&["dep", "add", &verify, &build, "--type", "related"]);
+        let conflicted = w.snapshot();
+        let receipt = w.run(&w.repour_request(&root));
+        assert_eq!(
+            receipt.outcome,
+            BeadOutcome::Refused {
+                code: "BEADS_GRAPH_EDGE_CONFLICT".into()
+            },
+            "{receipt:#?}"
+        );
+        assert_eq!(w.snapshot(), conflicted, "refusal writes nothing");
+        assert!(w.leftovers().is_empty());
     });
 }
