@@ -1067,7 +1067,11 @@ fn revision_refuses_dirty_and_unknown_and_override_is_explicit() {
             .unwrap_err();
     assert_eq!(error.code(), "BEADS_GRAPH_DIRTY");
     assert_eq!(before, bd.snapshot());
-    *bd.sql.lock().unwrap() = (1, String::new(), "unsupported query".into());
+    *bd.sql.lock().unwrap() = (
+        1,
+        String::new(),
+        "unsupported query\nadditional detail".into(),
+    );
     let error =
         execute_graph_revision_with_runner(&w.request, &options(UncommittedPolicy::Refuse), &bd)
             .unwrap_err();
