@@ -44,7 +44,7 @@ Usage: sc-compose bead attach [OPTIONS] [FORMULA]
 
 #### `sc-compose bead pour`
 
-Render, validate, and persist an authorized Beads formula pour
+Render, validate, and persist an authorized Beads formula pour. For revision guidance, run sc-compose help repour and sc-compose help repour-strategy.
 
 ```text
 Usage: sc-compose bead pour [OPTIONS] [FORMULA]
@@ -56,9 +56,12 @@ Usage: sc-compose bead pour [OPTIONS] [FORMULA]
 
 **Options:**
 
+- `--allow-uncommitted <ALLOW_UNCOMMITTED>` — choices: `true, false` — Allow repour when database changes are uncommitted or unknown
+- `--dry-run <DRY_RUN>` — choices: `true, false` — Preview graph changes without writing beads
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--root <BEAD_ID>` — Existing pour root to compare or revise
 - `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
@@ -96,9 +99,12 @@ Usage: sc-compose bead preview-pour [OPTIONS] [FORMULA]
 
 **Options:**
 
+- `--allow-uncommitted <ALLOW_UNCOMMITTED>` — choices: `true, false` — Allow repour when database changes are uncommitted or unknown
+- `--dry-run <DRY_RUN>` — choices: `true, false` — Preview graph changes without writing beads
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--root <BEAD_ID>` — Existing pour root to compare or revise
 - `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
@@ -124,7 +130,7 @@ Usage: sc-compose bead render [OPTIONS] [FORMULA]
 
 #### `sc-compose bead repour`
 
-Converge the beads of an earlier pour onto its updated plan
+Converge an earlier graph onto its updated plan. For details, run sc-compose help repour and sc-compose help repour-strategy.
 
 ```text
 Usage: sc-compose bead repour [OPTIONS] [FORMULA]
@@ -136,10 +142,12 @@ Usage: sc-compose bead repour [OPTIONS] [FORMULA]
 
 **Options:**
 
+- `--allow-uncommitted <ALLOW_UNCOMMITTED>` — choices: `true, false` — Allow repour when database changes are uncommitted or unknown
+- `--dry-run <DRY_RUN>` — choices: `true, false` — Preview graph changes without writing beads
 - `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
-- `--root <BEAD_ID>` — Pour root bead to converge (graph.parent of the original pour receipt)
+- `--root <BEAD_ID>` — Existing pour root to compare or revise
 - `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 

@@ -734,3 +734,43 @@ def test_repour_wire_values_and_additive_actions(tmp_path: Path) -> None:
     result = beads.BeadComposeReceipt.from_json(json.dumps(fixture)).to_json()
     assert result["graph"]["nodes"][0]["action"] == "updated"
     assert result["graph"]["nodes"][1]["action"] == "retained"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="fixture is a POSIX executable")
+def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> None:
+    executable = tmp_path / "fake-revision-bd"
+    executable.write_text(
+        "#!/bin/sh\n"
+        'case "$1" in\n'
+        "cook) printf '%s' '{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{\"id\":\"build\",\"title\":\"Build\"}]}' ;;\n"
+        "show) printf '%s' '[{\"id\":\"proj-1\",\"title\":\"sample\",\"description\":\"\",\"status\":\"open\",\"metadata\":{\"sc_compose_graph\":{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}]' ;;\n"
+        "children|dep) printf '[]' ;;\n"
+        "sql) printf 'probe unsupported' >&2; exit 1 ;;\n"
+        "create) printf '%s' '{\"ids\":{\"build\":\"proj-2\"}}' ;;\n"
+        "update) printf 'update failed' >&2; exit 1 ;;\n"
+        "*) exit 2 ;;\nesac\n",
+        encoding="utf-8",
+    )
+    executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
+    template = tmp_path / "sample.formula.toml.j2"
+    template.write_text('formula = "sample"\n', encoding="utf-8")
+    request = beads.BeadComposeRequest(
+        tmp_path, template, tmp_path / "sample.formula.toml", {},
+        formula_name="sample", bd_executable=executable, parent="proj-1",
+        pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+    )
+    with pytest.raises(beads.BeadComposeError) as refused:
+        beads.repour(request, dry_run=True)
+    assert refused.value.code == beads.BEADS_GRAPH_DIRTY_UNKNOWN
+    assert refused.value.details["reason"] == "unknown"
+    assert "--allow-uncommitted" in refused.value.recovery
+    receipt = beads.preview_repour(request, allow_uncommitted=True)
+    assert receipt.operation == "preview_repour"
+    assert receipt.graph["changes"]
+    assert receipt.to_json()["graph"]["changes"] == receipt.graph["changes"]
+    with pytest.raises(beads.BeadComposeError) as partial:
+        beads.repour(request, allow_uncommitted=True)
+    assert partial.value.code == beads.BEADS_GRAPH_APPLY_PARTIAL
+    assert partial.value.details["applied"]
+    assert "pending" in partial.value.details
+    assert "rerun" in partial.value.recovery

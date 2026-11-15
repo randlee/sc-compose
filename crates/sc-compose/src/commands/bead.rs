@@ -22,38 +22,7 @@ use crate::print_json;
 
 /// Run one Beads request selected by the CLI subcommand.
 pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
-    let (args, operation, root, allow_uncommitted) = match &args.command {
-        BeadSubcommand::Render(args) => (args, BeadOperation::Render, None, false),
-        BeadSubcommand::Validate(args) => (args, BeadOperation::Validate, None, false),
-        BeadSubcommand::PreviewAttach(args) => (args, BeadOperation::PreviewAttach, None, false),
-        BeadSubcommand::Attach(args) => (args, BeadOperation::Attach, None, false),
-        BeadSubcommand::PreviewPour(args) => (
-            &args.request,
-            BeadOperation::PreviewPour,
-            args.root.as_deref(),
-            args.allow_uncommitted,
-        ),
-        BeadSubcommand::Pour(args) => (
-            &args.request,
-            if args.dry_run {
-                BeadOperation::PreviewPour
-            } else {
-                BeadOperation::Pour
-            },
-            args.root.as_deref(),
-            args.allow_uncommitted,
-        ),
-        BeadSubcommand::Repour(args) => (
-            &args.request,
-            if args.dry_run {
-                BeadOperation::PreviewRepour
-            } else {
-                BeadOperation::Repour
-            },
-            args.root.as_deref(),
-            args.allow_uncommitted,
-        ),
-    };
+    let (args, operation, root, allow_uncommitted) = revision_arguments(args);
     let json = args.json;
     let options = BeadExecutionOptions {
         render_by: match args.render_by {
@@ -67,6 +36,7 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         Err(response) => return response,
     };
     if let Some(root) = root {
+        request.ref_ = None;
         request.parent = match BeadId::new(root) {
             Ok(id) => Some(id),
             Err(error) => return print_bead_error(&error, operation, json),
@@ -131,6 +101,41 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
             print_receipt(&receipt, json, &diagnostics, &ephemeral)
         }
         Err(error) => print_bead_error(&error, operation, json),
+    }
+}
+
+fn revision_arguments(args: &BeadArgs) -> (&BeadRequestArgs, BeadOperation, Option<&str>, bool) {
+    match &args.command {
+        BeadSubcommand::Render(args) => (args, BeadOperation::Render, None, false),
+        BeadSubcommand::Validate(args) => (args, BeadOperation::Validate, None, false),
+        BeadSubcommand::PreviewAttach(args) => (args, BeadOperation::PreviewAttach, None, false),
+        BeadSubcommand::Attach(args) => (args, BeadOperation::Attach, None, false),
+        BeadSubcommand::PreviewPour(args) => (
+            &args.request,
+            BeadOperation::PreviewPour,
+            args.root.as_deref(),
+            args.allow_uncommitted,
+        ),
+        BeadSubcommand::Pour(args) => (
+            &args.request,
+            if args.dry_run {
+                BeadOperation::PreviewPour
+            } else {
+                BeadOperation::Pour
+            },
+            args.root.as_deref(),
+            args.allow_uncommitted,
+        ),
+        BeadSubcommand::Repour(args) => (
+            &args.request,
+            if args.dry_run {
+                BeadOperation::PreviewRepour
+            } else {
+                BeadOperation::Repour
+            },
+            args.root.as_deref(),
+            args.allow_uncommitted,
+        ),
     }
 }
 

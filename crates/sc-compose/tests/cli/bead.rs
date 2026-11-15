@@ -1681,3 +1681,107 @@ fn cli_strict_is_explicit_and_schema_scoped() {
     fs::write(&template, "title = \"{{ value }}\"\n").unwrap();
     assert!(run(true).status.success());
 }
+
+#[cfg(unix)]
+#[test]
+fn revision_cli_refuses_unknown_database_and_previews_with_override() {
+    let fixture = TempFixture::new("bead-revision-policy");
+    let root = &fixture.path;
+    let template = root.join("sample.formula.toml.j2");
+    let rendered = root.join("sample.formula.toml");
+    let trace = root.join("trace");
+    let bd = root.join("fake-revision-bd");
+    write_file(&template, "formula = \"sample\"\n");
+    fake_exec::install(
+        &bd,
+        &format!(
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\ncase \"$1\" in\n  cook) printf '%s' '{{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{{\"id\":\"build\",\"title\":\"Build\"}}]}}';;\n  show) printf '%s' '[{{\"id\":\"proj-1\",\"title\":\"sample\",\"description\":\"\",\"status\":\"open\",\"metadata\":{{\"sc_compose_graph\":{{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}}}}]';;\n  children|dep) printf '[]';;\n  sql) printf 'probe unsupported' >&2; exit 1;;\n  create) printf '{{}}';;\n  *) exit 2;;\nesac\n",
+            trace.display()
+        ),
+    );
+    let request = root.join("request.json");
+    write_file(
+        &request,
+        &json!({
+            "schema": BEADS_SCHEMA, "operation":"repour", "working_directory":root,
+            "template":template, "rendered_formula":rendered, "compose_variables":{},
+            "formula_name":"sample", "bead_variables":{}, "bd_executable":bd,
+            "pour_authorization":"CreatePersistentBeads", "parent":"proj-1", "relations":[]
+        })
+        .to_string(),
+    );
+    let conflict = sc_compose()
+        .args(["bead", "pour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(conflict.status.code(), Some(2), "{conflict:?}");
+    let body: serde_json::Value = serde_json::from_slice(&conflict.stdout).unwrap();
+    assert_eq!(body["payload"]["error"]["code"], "BEADS_GRAPH_CONFLICT");
+    assert_eq!(
+        body["payload"]["error"]["details"]["reason"],
+        "plan_changed"
+    );
+    assert!(
+        body["payload"]["error"]["recovery"]
+            .as_str()
+            .unwrap()
+            .contains("repour")
+    );
+    let refused = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(refused.status.code(), Some(2), "{refused:?}");
+    let body: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert_eq!(
+        body["payload"]["error"]["code"],
+        "BEADS_GRAPH_DIRTY_UNKNOWN"
+    );
+    assert!(
+        body["payload"]["error"]["recovery"]
+            .as_str()
+            .unwrap()
+            .contains("--allow-uncommitted")
+    );
+    let preview = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--allow-uncommitted", "--json"])
+        .output()
+        .unwrap();
+    assert!(preview.status.success(), "{preview:?}");
+    let body: serde_json::Value = serde_json::from_slice(&preview.stdout).unwrap();
+    assert_eq!(body["payload"]["operation"], "preview_repour");
+    assert!(
+        !body["payload"]["graph"]["changes"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    let commands = fs::read_to_string(trace).unwrap();
+    assert!(
+        !commands
+            .lines()
+            .any(|line| line.starts_with("update ") || line.starts_with("dep add "))
+    );
+    assert!(
+        commands
+            .lines()
+            .any(|line| line.starts_with("create ") && line.contains("--dry-run"))
+    );
+}
+
+#[test]
+fn revision_help_points_to_both_manual_topics() {
+    let output = sc_compose()
+        .args(["bead", "repour", "--help"])
+        .output()
+        .unwrap();
+    let help = String::from_utf8(output.stdout).unwrap();
+    assert!(help.contains("sc-compose help repour"));
+    assert!(help.contains("sc-compose help repour-strategy"));
+}

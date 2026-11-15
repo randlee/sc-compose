@@ -5,7 +5,7 @@ import inspect
 
 class BeadComposeError(Exception):
     __module__ = "builtins"
-    __slots__ = ("_code", "_message", "_stage", "_details")
+    __slots__ = ("_code", "_message", "_stage", "_details", "_recovery")
 
     def __init_subclass__(cls, **kwargs):
         raise TypeError("type 'builtins.BeadComposeError' is not an acceptable base type")
@@ -46,11 +46,13 @@ class BeadComposeError(Exception):
             details = dict(sorted(details.items()))
         Exception.__init__(self, *args)
         self._code, self._message, self._stage, self._details = code, message, stage, details
+        self._recovery = None
 
     code = property(lambda self: self._code)
     message = property(lambda self: self._message)
     stage = property(lambda self: self._stage)
     details = property(lambda self: None if self._details is None else self._details.copy())
+    recovery = property(lambda self: self._recovery)
 
     def __str__(self):
         return self._message

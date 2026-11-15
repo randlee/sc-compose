@@ -1,5 +1,6 @@
 # Changelog
 
+
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
@@ -25,6 +26,8 @@ configuration, not qualified deliverables.
   included without a major version bump because the Beads API has no users.
 
 ### Added
+
+- Repour dry-run and uncommitted-state controls in CLI and Python, with typed graph revision changes and recovery details.
 
 - `sc-compose bead --render-by <sc-compose|bd>` selects the formula renderer
   on every `bead` subcommand. The Rust crate and Python package offer the same
