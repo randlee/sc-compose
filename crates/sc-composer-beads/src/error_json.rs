@@ -80,6 +80,22 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
             json!({ "index": index, "reason": reason }),
             "Correct the relation at the reported zero-based index.",
         )),
+        BeadComposeError::GraphPlanChanged { reason, changes } => Some((
+            json!({ "reason": reason, "changes": changes }),
+            "Run repour to apply the requested graph changes.",
+        )),
+        BeadComposeError::GraphDirty => Some((
+            json!({"reason": "dirty"}),
+            "Run bd dolt commit or use --allow-uncommitted.",
+        )),
+        BeadComposeError::GraphDirtyUnknown { cause } => Some((
+            json!({"reason": "unknown", "cause": cause}),
+            "Run bd dolt commit or use --allow-uncommitted.",
+        )),
+        BeadComposeError::GraphApplyPartial { details } => Some((
+            json!(details),
+            "Reconcile the uncertain operation and rerun repour.",
+        )),
         BeadComposeError::GraphConflict { id, reason } => Some((
             json!({ "id": id, "reason": reason }),
             "Inspect the named bead ownership or use a new ref.",

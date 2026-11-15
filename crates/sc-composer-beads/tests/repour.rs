@@ -237,16 +237,22 @@ impl FakeBd {
                     .collect();
                 reply(0, &Value::Array(rows).to_string(), "")
             }
-            ["dep", "list", "--json", "--", id] => {
+            ["sql", "--readonly", _, "--json"] => reply(0, "[]", ""),
+            ["dep", "list", direction, "--json", "--", id] => {
                 let store = self.store.lock().unwrap();
                 let mut rows: Vec<Value> = store
                     .deps
                     .iter()
-                    .filter(|(from, _, _)| from == id)
-                    .map(|(_, to, kind)| json!({"id": to, "dependency_type": kind}))
+                    .filter(|(from, to, _)| if *direction == "--direction=up" { to == id } else { from == id })
+                    .map(|(from, to, kind)| json!({"id": if *direction == "--direction=up" { from } else { to }, "dependency_type": kind}))
                     .collect();
-                if let Some(parent) = store.parents.get(*id) {
-                    rows.push(json!({"id": parent, "dependency_type": "parent-child"}));
+                if *direction == "--direction=down" {
+                    if let Some(parent) = store.parents.get(*id) {
+                        rows.push(json!({"id": parent, "dependency_type": "parent-child"}));
+                    }
+                } else {
+                    rows.extend(store.parents.iter().filter(|(_, parent)| parent.as_str() == *id)
+                        .map(|(child, _)| json!({"id": child, "dependency_type": "parent-child"})));
                 }
                 reply(0, &Value::Array(rows).to_string(), "")
             }
@@ -264,6 +270,17 @@ impl FakeBd {
                     return reply(1, "", "injected failure");
                 }
                 self.update(args)
+            }
+            ["dep", "remove", "--", from, to] => {
+                if self.begin_mutation(args) {
+                    return reply(1, "", "injected failure");
+                }
+                self.store
+                    .lock()
+                    .unwrap()
+                    .deps
+                    .retain(|(f, t, _)| f != from || t != to);
+                reply(0, "{}", "")
             }
             ["dep", "add", "--type", kind, "--", from, to] => {
                 if self.begin_mutation(args) {

@@ -51,6 +51,8 @@ pub enum BeadOperation {
     ///
     /// The request's `parent` names the pour root; `ref` must be absent.
     Repour,
+    /// Preview the changes of a graph revision without writing beads.
+    PreviewRepour,
 }
 
 impl BeadOperation {
@@ -65,6 +67,7 @@ impl BeadOperation {
             Self::PreviewAttach => "preview_attach",
             Self::Attach => "attach",
             Self::Repour => "repour",
+            Self::PreviewRepour => "preview_repour",
         }
     }
 }
@@ -682,6 +685,9 @@ pub struct BeadGraph {
     pub nodes: Vec<BeadGraphNode>,
     /// Edges in plan order.
     pub edges: Vec<BeadGraphEdge>,
+    /// Detailed changes planned or applied during graph revision.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub changes: Vec<crate::revision::GraphChange>,
 }
 
 /// One planned or applied graph node.

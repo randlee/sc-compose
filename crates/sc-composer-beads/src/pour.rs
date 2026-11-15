@@ -75,6 +75,7 @@ pub(crate) fn execute_pour(
             bd,
             stages,
             diagnostics,
+            None,
         );
     }
     if !request.relations.is_empty() {

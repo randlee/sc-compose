@@ -219,7 +219,10 @@ pub(super) fn validate(
     });
     let inputs = serde_json::to_vec(&json!({"mode": mode, "relations": relations}))
         .expect("contract serializes");
-    let repour = req.operation == BeadOperation::Repour;
+    let repour = matches!(
+        req.operation,
+        BeadOperation::Repour | BeadOperation::PreviewRepour
+    );
     let attached = repour && req.ref_.is_some();
     Ok(ValidatedGraph {
         mode,

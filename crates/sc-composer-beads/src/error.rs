@@ -403,6 +403,31 @@ pub enum BeadComposeError {
         /// Relation rejection reason.
         reason: GraphRelationInvalidReason,
     },
+    /// The existing graph differs from the requested pour.
+    #[error("graph plan changed ({reason}): {changes:?}; run repour to apply these changes")]
+    GraphPlanChanged {
+        /// Conflict reason.
+        reason: GraphConflictReason,
+        /// Observed differences.
+        changes: Vec<crate::revision::GraphChange>,
+    },
+    /// The database contains uncommitted changes.
+    #[error("database has uncommitted changes; run bd dolt commit or use --allow-uncommitted")]
+    GraphDirty,
+    /// The database cleanliness could not be determined.
+    #[error(
+        "database cleanliness is unknown: {cause}; run bd dolt commit or use --allow-uncommitted"
+    )]
+    GraphDirtyUnknown {
+        /// Why the bd probe failed.
+        cause: String,
+    },
+    /// Revision stopped after one or more operations.
+    #[error("graph apply partially completed: {details:?}; reconcile and rerun repour")]
+    GraphApplyPartial {
+        /// Confirmed and remaining work.
+        details: crate::revision::GraphApplyPartial,
+    },
     /// `Conflict` condition from ADR-0023.
     #[error("graph bead `{id}` conflicts: {reason}; inspect its ownership or use a new ref")]
     GraphConflict {
@@ -663,6 +688,10 @@ impl BeadComposeError {
             | Self::GraphScopeMismatch { .. }
             | Self::GraphFormulaUnsupported { .. }
             | Self::GraphRelationInvalid { .. }
+            | Self::GraphPlanChanged { .. }
+            | Self::GraphDirty
+            | Self::GraphDirtyUnknown { .. }
+            | Self::GraphApplyPartial { .. }
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
@@ -737,6 +766,10 @@ impl BeadComposeError {
             | Self::GraphScopeMismatch { .. }
             | Self::GraphFormulaUnsupported { .. }
             | Self::GraphRelationInvalid { .. }
+            | Self::GraphPlanChanged { .. }
+            | Self::GraphDirty
+            | Self::GraphDirtyUnknown { .. }
+            | Self::GraphApplyPartial { .. }
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
@@ -790,7 +823,10 @@ impl BeadComposeError {
             Self::GraphScopeMismatch { .. } => Self::GRAPH_SCOPE_MISMATCH_CODE,
             Self::GraphFormulaUnsupported { .. } => Self::GRAPH_FORMULA_UNSUPPORTED_CODE,
             Self::GraphRelationInvalid { .. } => Self::GRAPH_RELATION_INVALID_CODE,
-            Self::GraphConflict { .. } => Self::GRAPH_CONFLICT_CODE,
+            Self::GraphPlanChanged { .. } | Self::GraphConflict { .. } => Self::GRAPH_CONFLICT_CODE,
+            Self::GraphDirty => "BEADS_GRAPH_DIRTY",
+            Self::GraphDirtyUnknown { .. } => "BEADS_GRAPH_DIRTY_UNKNOWN",
+            Self::GraphApplyPartial { .. } => "BEADS_GRAPH_APPLY_PARTIAL",
             Self::GraphEdgeConflict { .. } => Self::GRAPH_EDGE_CONFLICT_CODE,
             Self::GraphEdgeMissing { .. } => Self::GRAPH_EDGE_MISSING_CODE,
             Self::GraphReadFailed { .. } => Self::GRAPH_READ_FAILED_CODE,
@@ -822,6 +858,8 @@ pub enum GraphConflictReason {
     ProvenanceDiffers,
     /// A v1 node lacks verifiable creation history for migration.
     MigrationProofMissing,
+    /// The requested plan differs from the existing graph.
+    PlanChanged,
 }
 
 impl std::fmt::Display for GraphConflictReason {
@@ -830,6 +868,7 @@ impl std::fmt::Display for GraphConflictReason {
             Self::NotOwned => "not_owned",
             Self::ProvenanceDiffers => "provenance_differs",
             Self::MigrationProofMissing => "migration_proof_missing",
+            Self::PlanChanged => "plan_changed",
         })
     }
 }

@@ -10,10 +10,7 @@
 
 use super::plan::GraphReader;
 use super::validate::ValidatedGraph;
-use crate::contract::{
-    BeadEdgeAction, BeadGraphEdge, BeadGraphMode, BeadId, GraphDependencyType, GraphEndpoint,
-    GraphRef, PROVENANCE_KEY, StepId,
-};
+use crate::contract::{BeadGraphMode, BeadId, GraphRef, PROVENANCE_KEY, StepId};
 use crate::error::{BeadComposeError, GraphConflictReason};
 use serde::Deserialize;
 use serde_json::{Map, Value};
@@ -304,28 +301,58 @@ fn provenance(value: &impl serde::Serialize) -> Map<String, Value> {
     object
 }
 
-/// Stored dependencies between poured beads that the plan no longer declares.
-///
-/// They are reported and kept; hierarchy edges are owned by bd.
-pub(super) fn retained_edges(
-    stored: &BTreeMap<(BeadId, BeadId), GraphDependencyType>,
-    declared: &BTreeSet<(BeadId, BeadId)>,
-    existing: &Existing,
-) -> Vec<BeadGraphEdge> {
-    let beads: BTreeSet<&BeadId> = existing.rows.keys().collect();
-    stored
-        .iter()
-        .filter(|((from, to), kind)| {
-            existing.ids.values().any(|id| id == from)
-                && beads.contains(to)
-                && **kind != GraphDependencyType::ParentChild
-                && !declared.contains(&(from.clone(), to.clone()))
-        })
-        .map(|((from, to), kind)| BeadGraphEdge {
-            from: GraphEndpoint::Bead(from.clone()),
-            to: GraphEndpoint::Bead(to.clone()),
-            kind: kind.clone(),
-            action: BeadEdgeAction::Retained,
-        })
-        .collect()
+/// The plan-owned field differences of existing nodes.
+pub(super) fn field_changes(v: &ValidatedGraph, existing: &Existing) -> Vec<crate::GraphChange> {
+    let mut result = Vec::new();
+    let mut targets = Vec::new();
+    if let Some(root) = &v.root {
+        let mut fields = Map::new();
+        fields.insert("title".into(), Value::String(v.formula.to_string()));
+        fields.insert("description".into(), Value::String(v.description.clone()));
+        targets.push((root, fields));
+    }
+    for step in &v.steps {
+        if let Some(id) = existing.ids.get(&step.id) {
+            targets.push((id, step.fields.clone()));
+        }
+    }
+    for (id, fields) in targets {
+        let Some(row) = existing.rows.get(id) else {
+            continue;
+        };
+        let status = row
+            .get("status")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown")
+            .to_owned();
+        let (args, _) = field_args(&fields, row);
+        for arg in args {
+            let Some((flag, _)) = arg.split_once('=') else {
+                continue;
+            };
+            let field = match flag {
+                "--title" => "title",
+                "--description" => "description",
+                "--design" => "design",
+                "--acceptance" => "acceptance_criteria",
+                "--priority" => "priority",
+                "--add-label" => "labels",
+                "--metadata" => "metadata",
+                _ => continue,
+            };
+            let before = row.get(field).cloned().unwrap_or(Value::Null);
+            let after = fields.get(field).cloned().unwrap_or(Value::Null);
+            let change = crate::GraphChange::FieldChange {
+                bead: id.clone(),
+                status: status.clone(),
+                field: field.into(),
+                before,
+                after,
+            };
+            if !result.contains(&change) {
+                result.push(change);
+            }
+        }
+    }
+    result
 }

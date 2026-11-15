@@ -76,6 +76,47 @@ pub fn execute_bead_request_with_runner(
     execute_bead_request_with_options_and_runner(request, &BeadExecutionOptions::default(), runner)
 }
 
+/// Compare or revise a named graph using the production process runner.
+///
+/// # Errors
+/// Returns the same request and process errors as [`execute_bead_request`].
+pub fn execute_graph_revision(
+    request: &BeadComposeRequest,
+    options: &crate::revision::GraphRevisionOptions,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    execute_graph_revision_with_runner(request, options, &StdProcessRunner)
+}
+
+/// Compare or revise a named graph with an injected process runner.
+///
+/// # Errors
+/// Returns the same request and process errors as [`execute_bead_request`].
+pub fn execute_graph_revision_with_runner(
+    request: &BeadComposeRequest,
+    options: &crate::revision::GraphRevisionOptions,
+    runner: &dyn ProcessRunner,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    let mut request = request.clone();
+    match &options.target {
+        crate::revision::ExistingGraphTarget::PourRoot(root) => {
+            request.parent = Some(root.clone());
+            request.ref_ = None;
+        }
+        crate::revision::ExistingGraphTarget::Attach { parent, reference } => {
+            request.parent = Some(parent.clone());
+            request.ref_ = Some(reference.clone());
+        }
+    }
+    execute_graph(
+        &request,
+        &BeadExecutionOptions::default(),
+        runner,
+        &mut |_| {},
+        validate_repour_shape_advanced,
+        Some(options.uncommitted),
+    )
+}
+
 /// Execute with explicit rendering options through the production runner.
 ///
 /// # Errors
@@ -126,7 +167,10 @@ fn execute_with_options_runner_and_diagnostics(
     if options.render_by == BeadRenderBy::ScCompose {
         let shape = if crate::graph::is_attach(request.operation) {
             validate_attach_shape_advanced
-        } else if request.operation == BeadOperation::Repour {
+        } else if matches!(
+            request.operation,
+            BeadOperation::Repour | BeadOperation::PreviewRepour
+        ) {
             validate_repour_shape_advanced
         } else {
             validate_formula_shape
@@ -144,9 +188,26 @@ fn execute_with_options_runner_and_diagnostics(
     }
     let request = &effective;
     if crate::graph::is_attach(request.operation) {
-        execute_graph(request, options, runner, diagnostics, validate_attach_shape)
-    } else if request.operation == BeadOperation::Repour {
-        execute_graph(request, options, runner, diagnostics, validate_repour_shape)
+        execute_graph(
+            request,
+            options,
+            runner,
+            diagnostics,
+            validate_attach_shape,
+            None,
+        )
+    } else if matches!(
+        request.operation,
+        BeadOperation::Repour | BeadOperation::PreviewRepour
+    ) {
+        execute_graph(
+            request,
+            options,
+            runner,
+            diagnostics,
+            validate_repour_shape,
+            None,
+        )
     } else {
         execute_formula(request, options, runner, diagnostics)
     }
@@ -159,6 +220,7 @@ fn execute_graph(
     runner: &dyn ProcessRunner,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
     validate_shape: fn(&BeadComposeRequest) -> Result<(), BeadComposeError>,
+    policy: Option<crate::revision::UncommittedPolicy>,
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     let mut normalized = validate_request(request, validate_shape)?;
     normalized.advanced = options.render_by == BeadRenderBy::ScCompose;
@@ -175,6 +237,7 @@ fn execute_graph(
         bd_executable(request),
         stages,
         diagnostics,
+        policy,
     )
 }
 
@@ -382,6 +445,7 @@ fn validate_request(
             | BeadOperation::PreviewAttach
             | BeadOperation::Attach
             | BeadOperation::Repour
+            | BeadOperation::PreviewRepour
     ) && !rendered_formula.starts_with(&working_directory)
     {
         return Err(BeadComposeError::OutputOutsideWorkingDirectory {
@@ -417,7 +481,10 @@ fn validate_request_preamble(
     }
     if matches!(
         request.operation,
-        BeadOperation::PreviewPour | BeadOperation::Pour | BeadOperation::Repour
+        BeadOperation::PreviewPour
+            | BeadOperation::Pour
+            | BeadOperation::Repour
+            | BeadOperation::PreviewRepour
     ) && request.formula_name.is_none()
     {
         return Err(BeadComposeError::FormulaNameRequired);

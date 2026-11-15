@@ -36,6 +36,7 @@ pub(crate) fn execute(
     bd: PathBuf,
     stages: Vec<BeadStageReceipt>,
     diagnostics: &mut dyn FnMut(&BeadComposeError),
+    policy: Option<crate::revision::UncommittedPolicy>,
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
     let attach = is_attach(request.operation);
     let stage = operation_stage(request.operation);
@@ -45,6 +46,7 @@ pub(crate) fn execute(
         bd,
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
+        policy,
     };
     let result = match graph_plan_path(&runtime) {
         Ok(_) => run(
@@ -91,7 +93,7 @@ fn operation_stage(operation: BeadOperation) -> BeadStage {
     match operation {
         BeadOperation::PreviewAttach => BeadStage::PreviewAttach,
         BeadOperation::Attach => BeadStage::Attach,
-        BeadOperation::Repour => BeadStage::Repour,
+        BeadOperation::Repour | BeadOperation::PreviewRepour => BeadStage::Repour,
         BeadOperation::PreviewPour => BeadStage::PreviewPour,
         _ => BeadStage::Pour,
     }
@@ -134,7 +136,10 @@ fn restore_public_formula_paths(
 
 fn graph_mode_is_pour(request: &BeadComposeRequest) -> bool {
     !(is_attach(request.operation)
-        || request.operation == BeadOperation::Repour && request.ref_.is_some())
+        || matches!(
+            request.operation,
+            BeadOperation::Repour | BeadOperation::PreviewRepour
+        ) && request.ref_.is_some())
 }
 
 fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
@@ -185,7 +190,10 @@ fn run(
             cause: short_cause(&error.to_string().replace(snapshot.as_str(), &source)),
         })?;
     let mode = if is_attach(request.operation)
-        || (request.operation == BeadOperation::Repour && request.ref_.is_some())
+        || (matches!(
+            request.operation,
+            BeadOperation::Repour | BeadOperation::PreviewRepour
+        ) && request.ref_.is_some())
     {
         BeadGraphMode::Attach
     } else {
@@ -195,13 +203,55 @@ fn run(
     runtime.stage = stage;
     // A repour always carries ownership provenance v2; it never takes bd's
     // missing-edge repair route.
-    let advanced = advanced || request.operation == BeadOperation::Repour;
+    let advanced = advanced
+        || matches!(
+            request.operation,
+            BeadOperation::Repour | BeadOperation::PreviewRepour
+        );
     let plan = plan::plan(&validated, advanced, runtime)?;
+    if matches!(
+        request.operation,
+        BeadOperation::Repour | BeadOperation::PreviewRepour
+    ) {
+        check_dirty(runtime)?;
+    }
     let graph = execute_plan(request.operation, plan, runtime)?;
     if request.operation == BeadOperation::Repour && changed(&graph) {
         confirm_readback(&validated, advanced, &graph, runtime)?;
     }
     Ok(graph)
+}
+
+/// Probe the entire database via bd; unsupported or malformed output is unknown.
+fn check_dirty(runtime: &mut Runtime<'_>) -> Result<(), BeadComposeError> {
+    if runtime.policy == Some(crate::revision::UncommittedPolicy::Allow) {
+        return Ok(());
+    }
+    let output = runtime
+        .invoke(vec![
+            "sql".into(),
+            "--readonly".into(),
+            "SELECT table_name, staged, status FROM dolt_status".into(),
+            "--json".into(),
+        ])
+        .map_err(|error| BeadComposeError::GraphDirtyUnknown {
+            cause: error.to_string(),
+        })?;
+    if output.exit_status != Some(0) {
+        return Err(BeadComposeError::GraphDirtyUnknown {
+            cause: process_failure_cause(&output),
+        });
+    }
+    let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|error| {
+        BeadComposeError::GraphDirtyUnknown {
+            cause: error.to_string(),
+        }
+    })?;
+    if rows.is_empty() {
+        Ok(())
+    } else {
+        Err(BeadComposeError::GraphDirty)
+    }
 }
 
 fn execute_plan(
@@ -214,7 +264,9 @@ fn execute_plan(
         GraphPlan::Create(pending) => {
             if matches!(
                 operation,
-                BeadOperation::PreviewAttach | BeadOperation::PreviewPour
+                BeadOperation::PreviewAttach
+                    | BeadOperation::PreviewPour
+                    | BeadOperation::PreviewRepour
             ) {
                 pending.preview(runtime)
             } else {
@@ -315,6 +367,7 @@ struct Runtime<'a> {
     bd: PathBuf,
     stage: BeadStage,
     stages: Vec<BeadStageReceipt>,
+    policy: Option<crate::revision::UncommittedPolicy>,
 }
 
 impl Runtime<'_> {
@@ -529,13 +582,31 @@ impl GraphReader for Runtime<'_> {
             .collect()
     }
 
+    fn dependents(
+        &mut self,
+        id: &BeadId,
+    ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError> {
+        self.dependencies_in_direction(id, "up")
+    }
+
     fn dependencies(
         &mut self,
         id: &BeadId,
     ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError> {
+        self.dependencies_in_direction(id, "down")
+    }
+}
+
+impl Runtime<'_> {
+    fn dependencies_in_direction(
+        &mut self,
+        id: &BeadId,
+        direction: &str,
+    ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError> {
         let output = self.invoke(vec![
             "dep".into(),
             "list".into(),
+            format!("--direction={direction}"),
             "--json".into(),
             "--".into(),
             id.to_string(),
@@ -626,13 +697,29 @@ impl PendingCreate {
         let creates = usize::from(!self.keys.is_empty());
         let updates = std::mem::take(&mut self.updates);
         let dep_adds = std::mem::take(&mut self.dep_adds);
+        let dep_removes = std::mem::take(&mut self.dep_removes);
         let total = creates
             + updates
                 .iter()
                 .map(|update| update.calls.len())
                 .sum::<usize>()
-            + dep_adds.len();
+            + dep_adds.len()
+            + dep_removes.len();
         let mut applied = 0;
+        for (from, to, _) in dep_removes {
+            write(
+                runtime,
+                vec![
+                    "dep".into(),
+                    "remove".into(),
+                    "--".into(),
+                    from.to_string(),
+                    to.to_string(),
+                ],
+            )
+            .map_err(|error| with_progress(error, applied, total))?;
+            applied += 1;
+        }
         if self.keys.is_empty() {
             self.mark_created()
                 .map_err(|cause| self.unconfirmed(Vec::new(), cause))?;
