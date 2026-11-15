@@ -35,29 +35,10 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         Ok(prepared) => prepared,
         Err(response) => return response,
     };
-    if let Some(root) = root {
-        request.ref_ = None;
-        request.parent = match BeadId::new(root) {
-            Ok(id) => Some(id),
-            Err(error) => return print_bead_error(&error, operation, json),
-        };
-    }
-    let target = request.parent.as_ref().map(|parent| match &request.ref_ {
-        Some(reference) => ExistingGraphTarget::Attach {
-            parent: parent.clone(),
-            reference: reference.clone(),
-        },
-        None => ExistingGraphTarget::PourRoot(parent.clone()),
-    });
-    let revision = matches!(
-        operation,
-        BeadOperation::Repour
-            | BeadOperation::PreviewRepour
-            | BeadOperation::Pour
-            | BeadOperation::PreviewPour
-    )
-    .then_some(target)
-    .flatten();
+    let revision = match revision_target(&mut request, operation, root) {
+        Ok(target) => target,
+        Err(error) => return print_bead_error(&error, operation, json),
+    };
     let mut diagnostics = Vec::new();
     let mut refusal_diagnostic = None;
     let result = if let Some(target) = revision {
@@ -102,6 +83,33 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         }
         Err(error) => print_bead_error(&error, operation, json),
     }
+}
+
+fn revision_target(
+    request: &mut BeadComposeRequest,
+    operation: BeadOperation,
+    root: Option<&str>,
+) -> Result<Option<ExistingGraphTarget>, BeadComposeError> {
+    if let Some(root) = root {
+        request.ref_ = None;
+        request.parent = Some(BeadId::new(root)?);
+    }
+    if !matches!(
+        operation,
+        BeadOperation::Repour
+            | BeadOperation::PreviewRepour
+            | BeadOperation::Pour
+            | BeadOperation::PreviewPour
+    ) {
+        return Ok(None);
+    }
+    Ok(request.parent.as_ref().map(|parent| match &request.ref_ {
+        Some(reference) => ExistingGraphTarget::Attach {
+            parent: parent.clone(),
+            reference: reference.clone(),
+        },
+        None => ExistingGraphTarget::PourRoot(parent.clone()),
+    }))
 }
 
 fn revision_arguments(args: &BeadArgs) -> (&BeadRequestArgs, BeadOperation, Option<&str>, bool) {
@@ -365,31 +373,7 @@ fn direct_pour_request(
     root: Option<&str>,
 ) -> Result<(BeadComposeRequest, DirectStaging), BeadComposeError> {
     let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
-    if !matches!(
-        operation,
-        BeadOperation::Pour
-            | BeadOperation::PreviewPour
-            | BeadOperation::Repour
-            | BeadOperation::PreviewRepour
-    ) {
-        return Err(bad(
-            "a direct formula is supported only by bead pour and bead repour".into(),
-        ));
-    }
-    // A repour targets the pour root; it is the request's `parent`.
-    let parent = match (operation, root) {
-        (
-            BeadOperation::Repour
-            | BeadOperation::PreviewRepour
-            | BeadOperation::Pour
-            | BeadOperation::PreviewPour,
-            Some(root),
-        ) => Some(BeadId::new(root)?),
-        (BeadOperation::Repour | BeadOperation::PreviewRepour, None) => {
-            return Err(bad("repour requires --root".into()));
-        }
-        _ => None,
-    };
+    let parent = direct_parent(operation, root)?;
     let variables = direct_variables(args)?;
     let root = std::env::current_dir().map_err(|source| BeadComposeError::DirectStagingFailed {
         path: PathBuf::from("."),
@@ -444,6 +428,39 @@ fn direct_pour_request(
         relations: Vec::new(),
     };
     Ok((request, staging))
+}
+
+fn direct_parent(
+    operation: BeadOperation,
+    root: Option<&str>,
+) -> Result<Option<BeadId>, BeadComposeError> {
+    let bad = |message: String| BeadComposeError::DirectRequestInvalid { message };
+    if !matches!(
+        operation,
+        BeadOperation::Pour
+            | BeadOperation::PreviewPour
+            | BeadOperation::Repour
+            | BeadOperation::PreviewRepour
+    ) {
+        return Err(bad(
+            "a direct formula is supported only by bead pour and bead repour".into(),
+        ));
+    }
+    // A repour targets the pour root; it is the request's `parent`.
+    let parent = match (operation, root) {
+        (
+            BeadOperation::Repour
+            | BeadOperation::PreviewRepour
+            | BeadOperation::Pour
+            | BeadOperation::PreviewPour,
+            Some(root),
+        ) => Some(BeadId::new(root)?),
+        (BeadOperation::Repour | BeadOperation::PreviewRepour, None) => {
+            return Err(bad("repour requires --root".into()));
+        }
+        _ => None,
+    };
+    Ok(parent)
 }
 
 type SourceSnapshot = (PathBuf, std::collections::BTreeMap<PathBuf, String>);

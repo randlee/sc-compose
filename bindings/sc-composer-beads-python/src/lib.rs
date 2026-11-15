@@ -722,7 +722,7 @@ fn execute_revision(
             Some(operation),
             match render_by {
                 BeadRenderBy::Bd => "bd",
-                _ => "sc-compose",
+                BeadRenderBy::ScCompose => "sc-compose",
             },
             strict,
         );
