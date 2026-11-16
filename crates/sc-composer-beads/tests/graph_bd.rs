@@ -14,13 +14,9 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::{
-    Mutex,
-    atomic::{AtomicU64, Ordering},
-};
+use std::sync::Mutex;
 
 static SERIAL: Mutex<()> = Mutex::new(());
-static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const PIPE_DRAIN_TEST_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_PIPE_DRAIN_CHILD";
 const PIPE_DRAIN_TEST_OUTPUT_BYTES: usize = 256 * 1024;
 const WORKSPACE_CHILD_ENV: &str = "SC_COMPOSER_GRAPH_BD_WORKSPACE_CHILD";
@@ -64,19 +60,15 @@ struct Workspace {
     root: PathBuf,
     beads_dir: PathBuf,
     bd: PathBuf,
-}
-impl Drop for Workspace {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.root);
-    }
+    _temp_dir: Option<tempfile::TempDir>,
 }
 impl Workspace {
     fn new(binary: &Path) -> Self {
-        let root = std::env::temp_dir().join(format!(
-            "sc-graph-bd-{}-{}",
-            std::process::id(),
-            SEQUENCE.fetch_add(1, Ordering::Relaxed)
-        ));
+        let temp_dir = tempfile::Builder::new()
+            .prefix("sc-graph-bd-")
+            .tempdir()
+            .expect("workspace tempdir");
+        let root = temp_dir.path().to_path_buf();
         fs::create_dir_all(root.join("build")).expect("workspace");
         let root = fs::canonicalize(root).expect("canonical root");
         let beads_dir = root.join(".beads");
@@ -85,6 +77,7 @@ impl Workspace {
             root,
             beads_dir,
             bd: binary.to_path_buf(),
+            _temp_dir: Some(temp_dir),
         };
         let mut init = vec![
             "init".to_owned(),
@@ -100,15 +93,15 @@ impl Workspace {
         // name unique to this workspace.
         if let Some(port) = std::env::var_os("SC_COMPOSE_TEST_DOLT_PORT") {
             fs::create_dir_all(&ws.beads_dir).expect("beads dir");
-            let database = format!(
-                "scg_{}_{}",
-                std::process::id(),
-                ws.root
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .and_then(|name| name.rsplit('-').next())
-                    .unwrap_or("0")
-            );
+            let workspace_id = ws
+                .root
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("fixture")
+                .chars()
+                .filter(char::is_ascii_alphanumeric)
+                .collect::<String>();
+            let database = format!("scg_{workspace_id}");
             init.extend([
                 "--server".into(),
                 "--server-port".into(),
@@ -420,6 +413,7 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
             root: fs::canonicalize(root).expect("canonical child root"),
             beads_dir,
             bd: PathBuf::from(binary),
+            _temp_dir: None,
         });
         println!("\n{BODY_COMPLETED}");
         return;
