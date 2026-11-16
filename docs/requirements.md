@@ -670,8 +670,12 @@ Command behavior:
   - emits the documented JSON schema when `--json` is provided.
 - `examples`
   - supports:
+    - bare `examples` as an alias for `examples list`, including `--json`
     - `examples list`
     - `examples <name>` for implicit named render
+  - listing advertises declared required variables or an adjacent sample JSON
+    var-file and the `--var-file` option; unknown names suggest a close pack
+    using names and template-extension mentions, with deterministic tie order,
   - resolves example packs from the bundled examples root,
   - uses the same render flags and output semantics as `render` for implicit
     named render.
@@ -1124,7 +1128,9 @@ Schema rules:
     "packs": [
       {
         "name": "hello",
-        "path": "/path/to/share/sc-compose/examples/hello.md.j2"
+        "path": "/path/to/share/sc-compose/examples/hello.md.j2",
+        "required_variables": ["name"],
+        "sample_vars": null
       }
     ]
   },

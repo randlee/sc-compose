@@ -15,6 +15,10 @@ configuration, not qualified deliverables.
 
 ### Changed
 
+- Bare `sc-compose examples` lists packs successfully. Listings advertise
+  required variables or sample var-files, and unknown packs suggest close
+  names or matching template formats (#1044).
+
 - Rust Beads revision APIs now use non-exhaustive enums and receipt/options
   structs. Use `GraphRevisionOptions::new`, `GraphApplyPartial::new` and
   `BeadGraph::new` instead of struct literals, and include wildcard match arms

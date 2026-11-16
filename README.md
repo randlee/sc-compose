@@ -117,7 +117,8 @@ sc-compose verify deployed.yaml --against config.yaml.2.j2 --all --pass ...
 ### Bundled Examples & Personal Templates
 
 ```bash
-sc-compose examples list                    # discover starter templates
+sc-compose examples                         # discover starter templates and inputs
+sc-compose examples list                    # same listing, with sample --var-file paths
 sc-compose examples pytest-fixture          # generate test stubs
 sc-compose templates add my-template.md.j2  # save for reuse
 sc-compose templates my-template            # render by name
