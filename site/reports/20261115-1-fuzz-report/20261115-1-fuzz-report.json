@@ -180,5 +180,96 @@
         "evidence_archive": "replacement-campaign-evidence.zip"
       }
     ]
+  },
+  "forty_node_gap": {
+    "cases": [
+      {
+        "seed": 0,
+        "status": "PASS",
+        "nodes": 40,
+        "chain_depth": 38,
+        "revisions": 10,
+        "generator_sha256": "663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963",
+        "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
+        "controller": "v2/run.py",
+        "controller_sha256": "1be3b0698a69d2fecd30e2275b4aae303fd738e9ac78d86f2ab728929fff8afc",
+        "log": "sc-forty-campaign-v2/forty-0.log"
+      },
+      {
+        "seed": 1,
+        "status": "PASS",
+        "nodes": 40,
+        "chain_depth": 38,
+        "revisions": 10,
+        "generator_sha256": "663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963",
+        "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
+        "controller": "v2/run.py",
+        "controller_sha256": "1be3b0698a69d2fecd30e2275b4aae303fd738e9ac78d86f2ab728929fff8afc",
+        "log": "sc-forty-campaign-v2/forty-1.log"
+      },
+      {
+        "seed": 2,
+        "status": "PASS",
+        "nodes": 40,
+        "chain_depth": 38,
+        "revisions": 10,
+        "generator_sha256": "663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963",
+        "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
+        "controller": "v3/run.py",
+        "controller_sha256": "c508f2b959ad50c91f51ccb698cdb797c0e124c121d387bcdea50dffb05cfc84",
+        "log": "sc-forty-campaign-v3/forty-2.log"
+      },
+      {
+        "seed": 3,
+        "status": "PASS",
+        "nodes": 40,
+        "chain_depth": 38,
+        "revisions": 10,
+        "generator_sha256": "663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963",
+        "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
+        "controller": "v3/run.py",
+        "controller_sha256": "c508f2b959ad50c91f51ccb698cdb797c0e124c121d387bcdea50dffb05cfc84",
+        "log": "sc-forty-campaign-v3/forty-3.log"
+      },
+      {
+        "seed": 4,
+        "status": "PASS",
+        "nodes": 40,
+        "chain_depth": 38,
+        "revisions": 10,
+        "generator_sha256": "663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963",
+        "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
+        "controller": "v3/run.py",
+        "controller_sha256": "c508f2b959ad50c91f51ccb698cdb797c0e124c121d387bcdea50dffb05cfc84",
+        "log": "sc-forty-campaign-v3/forty-4.log"
+      }
+    ],
+    "case_count": 5,
+    "revision_checks": 50,
+    "worktree_head_during_run": "4485e85417b480a1f488f480dc12521e5739153c",
+    "binary_sha256_during_run": "990b69db342a557a9e057a24c22044adf4b8c9c7b17fe64638ab0d6e4cf5a63a",
+    "binary_hash_caveat": "Measured during run, not proven unchanged across all cases.",
+    "hashes": {
+      "case.py": "663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963",
+      "guard.py": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
+      "v2/run.py": "1be3b0698a69d2fecd30e2275b4aae303fd738e9ac78d86f2ab728929fff8afc",
+      "v3/run.py": "c508f2b959ad50c91f51ccb698cdb797c0e124c121d387bcdea50dffb05cfc84"
+    },
+    "failed_initial_setup": "The unguarded setup targeted shared port 3308 and failed with access denied; the lead checked that no shared beads were added. Five initial attempts failed setup; they are not included in passes. Guard added; 5/5 guard unit tests reported passing.",
+    "interrupted_attempt": "v2 seed 2 timed out against its deadline and was rerun from scratch under v3; its incomplete log is retained but excluded from completed counts.",
+    "limitation": "Two controllers, sequential isolated servers and databases; absolute paths and deadline require adaptation for replay. Evidence omits server output and process-list records.",
+    "evidence_archive": "forty-node-evidence.zip",
+    "worker": {
+      "correlation_id": "forty-node-gap",
+      "status": "success",
+      "cases_run": 5,
+      "passed": 5,
+      "seed": "0–4",
+      "description": "40 nodes, 38-deep chain, ten revisions per seed",
+      "assertions": "50/50 revisions preview no-write, preview/apply equality and replay unchanged; remove, restore, replace and restore original identity assertions on revisions 1–4 per seed.",
+      "evidence_archive": "forty-node-evidence.zip",
+      "finding_ids": [],
+      "error": null
+    }
   }
 }
