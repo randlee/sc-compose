@@ -8,6 +8,10 @@ cargo build -j 2 -p sc-compose
 python3 scripts/integration_repour.py --fuzz
 ```
 
+Build `target/debug/sc-compose` from the exact source revision under review
+before running fuzz. Commit the generated report at that revision; its SHA-256
+row records the binary used for the reviewed source.
+
 The installed `bd` 1.3.4 fork and `dolt` are prerequisites. The w-5 runner owns
 the temporary home, workspace, database, server, readiness signal and teardown.
 It uses `bd init --server`, refuses port 3308, and does not use `~/.beads`.
