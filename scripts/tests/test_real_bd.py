@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import sys
 import stat
 import subprocess
 import tempfile
@@ -78,20 +80,41 @@ class RealBdQualification(unittest.TestCase):
         self.assertIn("--no-run", calls[1].args[0])
         self.assertEqual(calls[2].args[0][-2:], ["--list", "--ignored"])
         self.assertEqual(calls[3].args[0][-2:], ["--list", "--ignored"])
-        self.assertTrue(all("timeout" not in call.kwargs for call in calls))
+        self.assertEqual(calls[0].kwargs["timeout"], MODULE.BUILD_TIMEOUT_SECONDS)
+        self.assertEqual(calls[1].kwargs["timeout"], MODULE.BUILD_TIMEOUT_SECONDS)
+        self.assertTrue(all(call.kwargs["timeout"] == MODULE.LIST_TIMEOUT_SECONDS for call in calls[2:]))
+
+    def test_build_timeout_is_a_suite_failure(self) -> None:
+        suites = (("graph", ["-p", "sc-composer-beads", "--test", "graph_bd"], None),)
+        timeout = subprocess.TimeoutExpired(["cargo", "test"], MODULE.BUILD_TIMEOUT_SECONDS, output="partial")
+        stderr = StringIO()
+        with patch.object(MODULE, "selected_suites", return_value=suites), \
+             patch.object(MODULE.subprocess, "run", side_effect=timeout), redirect_stderr(stderr):
+            self.assertEqual(MODULE.prepare_suites({}), [("graph", "", [])])
+        self.assertIn("build timed out", stderr.getvalue())
+
+    def test_list_timeout_is_a_suite_failure(self) -> None:
+        suites = (("graph", ["-p", "sc-composer-beads", "--test", "graph_bd"], None),)
+        results = [subprocess.CompletedProcess([], 0, artifact("graph_bd", "graph-bin"), ""),
+                   subprocess.TimeoutExpired(["graph-bin"], MODULE.LIST_TIMEOUT_SECONDS)]
+        stderr = StringIO()
+        with patch.object(MODULE, "selected_suites", return_value=suites), \
+             patch.object(MODULE.subprocess, "run", side_effect=results), redirect_stderr(stderr):
+            self.assertEqual(MODULE.prepare_suites({}), [("graph", "graph-bin", [])])
+        self.assertIn("discovery timed out", stderr.getvalue())
 
     def test_each_ignored_test_runs_in_its_own_timed_process_and_counts_aggregate(self) -> None:
         output = StringIO()
         prepared = [("graph", "test-binary", ["first_test", "second_test"])]
         completed = subprocess.CompletedProcess([], 0, ONE_PASS, "")
         with patch.object(MODULE, "prepare_suites", return_value=prepared), \
-             patch.object(MODULE.subprocess, "run", return_value=completed) as spawn, \
+             patch.object(MODULE, "run_test_process", return_value=(completed, None)) as spawn, \
              redirect_stdout(output):
             self.assertEqual(MODULE.run_suites({}, {"bd_version": "bd 1.3", "bd_sha256": "abc", "database_mode": "server"}), 0)
         self.assertEqual(spawn.call_count, 2)
         self.assertEqual([call.args[0][1] for call in spawn.call_args_list], ["first_test", "second_test"])
         self.assertTrue(all("--exact" in call.args[0] and "--ignored" in call.args[0] for call in spawn.call_args_list))
-        self.assertTrue(all(call.kwargs["timeout"] == MODULE.PROCESS_TIMEOUT_SECONDS for call in spawn.call_args_list))
+        self.assertTrue(all(call.args[2] == MODULE.PROCESS_TIMEOUT_SECONDS for call in spawn.call_args_list))
         self.assertIn('"passed": 2', output.getvalue())
         self.assertIn('"qualification": "qualified"', output.getvalue())
         self.assertIn('"bd_version": "bd 1.3"', output.getvalue())
@@ -109,7 +132,7 @@ class RealBdQualification(unittest.TestCase):
             stderr=b"partial stderr",
         )
         with patch.object(MODULE, "prepare_suites", return_value=prepared), \
-             patch.object(MODULE.subprocess, "run", side_effect=timeout), \
+             patch.object(MODULE, "run_test_process", return_value=(None, timeout)), \
              redirect_stdout(stdout), redirect_stderr(stderr):
             self.assertEqual(MODULE.run_suites({}, {"database_mode": "server"}), 1)
         diagnostic = stderr.getvalue()
@@ -139,14 +162,51 @@ class RealBdQualification(unittest.TestCase):
 
     def test_unsupported_database_mode_cannot_qualify(self) -> None:
         stdout = StringIO()
-        result = subprocess.CompletedProcess(
-            [], 0, "SC_COMPOSE_MODE_UNSUPPORTED: BEADS_GRAPH_DIRTY_UNKNOWN\n" + ONE_PASS, ""
-        )
-        with patch.object(MODULE, "prepare_suites", return_value=[("database-mode", "test-bin", ["test_a"])]), \
-             patch.object(MODULE.subprocess, "run", return_value=result), redirect_stdout(stdout):
-            self.assertEqual(MODULE.run_suites({}, {"database_mode": "server", "bd_version": "bd 1.3.1"}, database_mode=True), 0)
-        self.assertIn('"qualification": "not_qualified"', stdout.getvalue())
-        self.assertIn('"ok": false', stdout.getvalue())
+        with tempfile.TemporaryDirectory() as tmp:
+            summary = Path(tmp) / "step-summary.md"
+            result = subprocess.CompletedProcess(
+                [], 0, "SC_COMPOSE_MODE_UNSUPPORTED: BEADS_GRAPH_DIRTY_UNKNOWN\n" + ONE_PASS, ""
+            )
+            with patch.object(MODULE, "prepare_suites", return_value=[("database-mode", "test-bin", ["test_a"])]), \
+                 patch.object(MODULE, "run_test_process", return_value=(result, None)), \
+                 patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary)}), redirect_stdout(stdout):
+                self.assertEqual(MODULE.run_suites({}, {"database_mode": "server", "bd_version": "bd 1.3.1"}, database_mode=True), 0)
+            self.assertIn('"qualification": "not_qualified"', stdout.getvalue())
+            self.assertIn('"ok": false', stdout.getvalue())
+            self.assertEqual(summary.read_text(), "bd bd 1.3.1: server not_qualified (unsupported)\n")
+
+    def test_timeout_kills_test_and_grandchild_process_group(self) -> None:
+        if os.name == "nt":
+            self.skipTest("process group liveness check is POSIX-specific")
+        with tempfile.TemporaryDirectory() as tmp:
+            pid_file = Path(tmp) / "grandchild.pid"
+            grandchild = "import threading; threading.Event().wait()"
+            parent = (
+                "import subprocess,sys,threading; "
+                "p=subprocess.Popen([sys.executable,'-c',sys.argv[1]]); "
+                "open(sys.argv[2],'w').write(str(p.pid)); "
+                "print('READY '+sys.argv[3],flush=True); threading.Event().wait()"
+            )
+            command = [sys.executable, "-c", parent, grandchild, str(pid_file), "known_hung_test"]
+
+            def trigger_timeout(proc, _timeout):
+                self.assertEqual(proc.stdout.readline().strip(), "READY known_hung_test")
+                raise subprocess.TimeoutExpired(command, 1)
+
+            with patch.object(MODULE, "wait_for_process", side_effect=trigger_timeout):
+                completed, timeout = MODULE.run_test_process(command, os.environ.copy(), 1)
+            self.assertIsNone(completed)
+            self.assertIsNotNone(timeout)
+            self.assertIn("known_hung_test", timeout.cmd)
+            pid = int(pid_file.read_text())
+            # A zombie has exited and cannot retain a pipe or execute. Linux may
+            # keep it visible until init reaps it, so accept that terminal state.
+            proc_stat = Path(f"/proc/{pid}/stat")
+            if proc_stat.exists():
+                self.assertEqual(proc_stat.read_text().split()[2], "Z")
+            else:
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(pid, 0)
 
     def test_counts_sum_across_result_lines(self) -> None:
         two_results = ONE_PASS + "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n"

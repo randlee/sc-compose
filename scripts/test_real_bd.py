@@ -19,6 +19,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -34,6 +35,65 @@ RESULT = re.compile(
     r"test result: (?:ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored"
 )
 PROCESS_TIMEOUT_SECONDS = 600
+BUILD_TIMEOUT_SECONDS = 1800
+LIST_TIMEOUT_SECONDS = 60
+POST_KILL_DRAIN_SECONDS = 5
+TREE_KILL_TIMEOUT_SECONDS = 5
+
+
+def wait_for_process(proc: subprocess.Popen[str], timeout: float) -> tuple[str, str]:
+    """Wait for a process while collecting both output streams."""
+    stdout, stderr = proc.communicate(timeout=timeout)
+    return stdout, stderr
+
+
+def kill_process_tree(proc: subprocess.Popen[str]) -> None:
+    """Kill the process group created for a test, with bounded Windows fallback."""
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                capture_output=True, text=True, check=False, timeout=TREE_KILL_TIMEOUT_SECONDS,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            proc.kill()
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            proc.kill()
+
+
+def run_test_process(command: list[str], env: dict[str, str], timeout: float):
+    """Run one test in a killable process group and bound every wait, including cleanup."""
+    options: dict[str, object] = {
+        "stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "text": True, "env": env,
+    }
+    if os.name == "nt":
+        options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        options["start_new_session"] = True
+    proc = subprocess.Popen(command, **options)
+    try:
+        stdout, stderr = wait_for_process(proc, timeout)
+        return subprocess.CompletedProcess(command, proc.returncode, stdout, stderr), None
+    except subprocess.TimeoutExpired as error:
+        kill_process_tree(proc)
+        try:
+            stdout, stderr = proc.communicate(timeout=POST_KILL_DRAIN_SECONDS)
+        except subprocess.TimeoutExpired as drain_error:
+            # A descendant may have escaped the process group while retaining a pipe.
+            # Close our pipe ends and reap the direct child without waiting on that pipe.
+            for stream in (proc.stdout, proc.stderr):
+                if stream:
+                    stream.close()
+            proc.kill()
+            proc.wait(timeout=POST_KILL_DRAIN_SECONDS)
+            stdout = drain_error.stdout or error.stdout or ""
+            stderr = drain_error.stderr or error.stderr or ""
+        return None, subprocess.TimeoutExpired(command, timeout, output=stdout, stderr=stderr)
 
 
 def timeout_diagnostic(error: subprocess.TimeoutExpired) -> None:
@@ -154,7 +214,13 @@ def prepare_suites(
         command = ["cargo", "test", "--no-run", "--message-format=json", "-j2", *args]
         if test_filter:
             command.append(test_filter)
-        build = subprocess.run(command, capture_output=True, text=True, check=False, env=env)
+        try:
+            build = subprocess.run(command, capture_output=True, text=True, check=False, env=env, timeout=BUILD_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired as error:
+            timeout_diagnostic(error)
+            print(f"real-bd suite {label} build timed out", file=sys.stderr)
+            binaries.append((label, "", test_filter))
+            continue
         sys.stderr.write(build.stderr)
         executable = executable_from_build(build.stdout, target_name)
         if build.returncode != 0 or executable is None:
@@ -173,7 +239,13 @@ def prepare_suites(
         if test_filter:
             list_command.append(test_filter)
         list_command.extend(["--list", "--ignored"])
-        listed = subprocess.run(list_command, capture_output=True, text=True, check=False, env=env)
+        try:
+            listed = subprocess.run(list_command, capture_output=True, text=True, check=False, env=env, timeout=LIST_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired as error:
+            timeout_diagnostic(error)
+            print(f"real-bd suite {label} discovery timed out", file=sys.stderr)
+            prepared.append((label, executable, []))
+            continue
         names = ignored_test_names(listed.stdout) if listed.returncode == 0 else []
         if listed.returncode != 0 or not names:
             sys.stderr.write(listed.stderr)
@@ -234,14 +306,9 @@ def run_suites(env: dict[str, str], provenance: dict[str, str], database_mode: b
         for test_name in tests:
             command = [executable, test_name, "--exact", "--ignored", "--test-threads=1", "--nocapture"]
             try:
-                proc = subprocess.run(
-                    command,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                    env=env,
-                    timeout=PROCESS_TIMEOUT_SECONDS,
-                )
+                proc, timeout_error = run_test_process(command, env, PROCESS_TIMEOUT_SECONDS)
+                if timeout_error:
+                    raise timeout_error
             except subprocess.TimeoutExpired as error:
                 print(f"real-bd test timed out: {label}::{test_name}", file=sys.stderr)
                 timeout_diagnostic(error)
