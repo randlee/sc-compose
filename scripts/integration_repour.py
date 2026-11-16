@@ -35,10 +35,29 @@ SCENARIOS = (
     "clean apply, dirty refusal and explicit override", "attach and repour via request using bd rendering",
     "partial apply reports exact progress and resumes", "sequential evolving revisions preserve identities",
 )
+DEFAULT_FUZZ_SEEDS = (24034, 24035)
 
 
 class ServerBindError(AssertionError):
     """Dolt could not bind the selected port; the child log is the evidence."""
+
+
+def fuzz_seeds_from_args(fuzz: bool, seeds: list[int] | None) -> tuple[int, ...]:
+    """Validate CLI fuzz options and return the seeds the run will use."""
+    if seeds and (not fuzz or len(seeds) > 2):
+        raise ValueError("--fuzz-seed requires --fuzz and accepts at most two seeds")
+    if not fuzz:
+        return ()
+    return tuple(seeds) if seeds else DEFAULT_FUZZ_SEEDS
+
+
+def expand_unrun_results(
+    results: list[tuple[str, str, str]], expected_scenarios: tuple[str, ...]
+) -> list[tuple[str, str, str]]:
+    """Add a stable NOT RUN row for each expected scenario without a result."""
+    completed = {name for name, _, _ in results}
+    return [*results, *((name, "NOT RUN", "A prior scenario failed")
+                         for name in expected_scenarios if name not in completed)]
 
 
 def select_server_port(configured: str | None) -> int:
@@ -500,8 +519,7 @@ def main(*, fuzz_seeds: tuple[int, ...] = (), mode: str = "server") -> int:
         results.append(("teardown", "PASS", ""))
     except Exception:
         results.append((scenario_name, "FAIL", traceback.format_exc()))
-        completed = {name for name, _, _ in results}
-        results.extend((name, "NOT RUN", "A prior scenario failed") for name in expected_scenarios if name not in completed)
+        results = expand_unrun_results(results, expected_scenarios)
     finally:
         if server is not None:
             stop_server(server)
@@ -519,6 +537,8 @@ if __name__ == "__main__":
     parser.add_argument("--fuzz", action="store_true", help="After integration passes, run two fixed small seeded cases in the same database")
     parser.add_argument("--fuzz-seed", type=int, action="append", help="Replay a seed (at most two, requires --fuzz)")
     args = parser.parse_args()
-    if args.fuzz_seed and (not args.fuzz or len(args.fuzz_seed) > 2):
-        parser.error("--fuzz-seed requires --fuzz and accepts at most two seeds")
-    raise SystemExit(main(fuzz_seeds=tuple(args.fuzz_seed or (24034, 24035)) if args.fuzz else (), mode=args.mode))
+    try:
+        fuzz_seeds = fuzz_seeds_from_args(args.fuzz, args.fuzz_seed)
+    except ValueError as error:
+        parser.error(str(error))
+    raise SystemExit(main(fuzz_seeds=fuzz_seeds, mode=args.mode))
