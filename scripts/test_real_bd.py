@@ -66,7 +66,7 @@ def kill_process_tree(proc: subprocess.Popen[str]) -> None:
             proc.kill()
 
 
-def run_test_process(command: list[str], env: dict[str, str], timeout: float):
+def run_test_process(command: list[str], env: dict[str, str], timeout: float, pass_fds: tuple[int, ...] = ()):
     """Run one test in a killable process group and bound every wait, including cleanup."""
     options: dict[str, object] = {
         "stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "text": True, "env": env,
@@ -75,6 +75,8 @@ def run_test_process(command: list[str], env: dict[str, str], timeout: float):
         options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         options["start_new_session"] = True
+        if pass_fds:
+            options["pass_fds"] = pass_fds
     proc = subprocess.Popen(command, **options)
     try:
         stdout, stderr = wait_for_process(proc, timeout)

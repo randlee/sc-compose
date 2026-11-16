@@ -4,10 +4,12 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import select
 import sys
 import stat
 import subprocess
 import tempfile
+import time
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
@@ -178,35 +180,78 @@ class RealBdQualification(unittest.TestCase):
     def test_timeout_kills_test_and_grandchild_process_group(self) -> None:
         if os.name == "nt":
             self.skipTest("process group liveness check is POSIX-specific")
-        with tempfile.TemporaryDirectory() as tmp:
-            pid_file = Path(tmp) / "grandchild.pid"
-            grandchild = "import threading; threading.Event().wait()"
-            parent = (
-                "import subprocess,sys,threading; "
-                "p=subprocess.Popen([sys.executable,'-c',sys.argv[1]]); "
-                "open(sys.argv[2],'w').write(str(p.pid)); "
-                "print('READY '+sys.argv[3],flush=True); threading.Event().wait()"
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, read_fd)
+        write_fd_open = [True]
+
+        def close_test_writer() -> None:
+            if write_fd_open[0]:
+                os.close(write_fd)
+                write_fd_open[0] = False
+
+        self.addCleanup(close_test_writer)
+        grandchild = "import threading; threading.Event().wait(60)"
+        parent = (
+            "import subprocess,sys,threading; "
+            "subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]], pass_fds=(int(sys.argv[2]),)); "
+            "print('READY '+sys.argv[3],flush=True); threading.Event().wait(60)"
+        )
+        command = [sys.executable, "-c", parent, grandchild, str(write_fd), "known_hung_test"]
+        real_popen = MODULE.subprocess.Popen
+
+        def cleanup_process(proc) -> None:
+            MODULE.kill_process_tree(proc)
+            try:
+                proc.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.communicate(timeout=5)
+
+        def tracked_popen(*args, **kwargs):
+            proc = real_popen(*args, **kwargs)
+            self.addCleanup(cleanup_process, proc)
+            return proc
+
+        def trigger_timeout(proc, _timeout):
+            deadline = time.monotonic() + 5
+            output = {proc.stdout: bytearray(), proc.stderr: bytearray()}
+            streams = list(output)
+            captured = ""
+            while streams and time.monotonic() < deadline:
+                readable, _, _ = select.select(streams, [], [], deadline - time.monotonic())
+                if not readable:
+                    break
+                for stream in readable:
+                    chunk = os.read(stream.fileno(), 4096)
+                    output[stream].extend(chunk)
+                    if stream is proc.stdout and b"\n" in output[stream]:
+                        captured = output[stream].split(b"\n", 1)[0].decode("utf-8", errors="replace")
+                        break
+                    if not chunk:
+                        streams.remove(stream)
+                if captured:
+                    break
+            captured_output = "stdout: " + output[proc.stdout].decode("utf-8", errors="replace")
+            captured_output += "\nstderr: " + output[proc.stderr].decode("utf-8", errors="replace")
+            self.assertEqual(
+                captured,
+                "READY known_hung_test",
+                f"READY handshake timed out or mismatched; command={command!r}; {captured_output}",
             )
-            command = [sys.executable, "-c", parent, grandchild, str(pid_file), "known_hung_test"]
+            raise subprocess.TimeoutExpired(command, 1)
 
-            def trigger_timeout(proc, _timeout):
-                self.assertEqual(proc.stdout.readline().strip(), "READY known_hung_test")
-                raise subprocess.TimeoutExpired(command, 1)
-
-            with patch.object(MODULE, "wait_for_process", side_effect=trigger_timeout):
-                completed, timeout = MODULE.run_test_process(command, os.environ.copy(), 1)
-            self.assertIsNone(completed)
-            self.assertIsNotNone(timeout)
-            self.assertIn("known_hung_test", timeout.cmd)
-            pid = int(pid_file.read_text())
-            # A zombie has exited and cannot retain a pipe or execute. Linux may
-            # keep it visible until init reaps it, so accept that terminal state.
-            proc_stat = Path(f"/proc/{pid}/stat")
-            if proc_stat.exists():
-                self.assertEqual(proc_stat.read_text().split()[2], "Z")
-            else:
-                with self.assertRaises(ProcessLookupError):
-                    os.kill(pid, 0)
+        with patch.object(MODULE.subprocess, "Popen", side_effect=tracked_popen), \
+             patch.object(MODULE, "wait_for_process", side_effect=trigger_timeout):
+            completed, timeout = MODULE.run_test_process(
+                command, os.environ.copy(), 1, pass_fds=(write_fd,)
+            )
+        self.assertIsNone(completed)
+        self.assertIsNotNone(timeout)
+        self.assertIn("known_hung_test", timeout.cmd)
+        close_test_writer()
+        eof_ready = bool(select.select([read_fd], [], [], 5)[0])
+        self.assertTrue(eof_ready, "grandchild retained the inherited pipe after process-tree kill")
+        self.assertEqual(os.read(read_fd, 1), b"", "expected EOF after the parent and grandchild exited")
 
     def test_counts_sum_across_result_lines(self) -> None:
         two_results = ONE_PASS + "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n"
