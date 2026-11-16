@@ -188,6 +188,11 @@ impl FakeBd {
                     labels.push(json!(value));
                     row["labels"] = Value::Array(labels);
                 }
+                "--remove-label" => {
+                    let mut labels = row["labels"].as_array().cloned().unwrap_or_default();
+                    labels.retain(|label| label != value);
+                    row["labels"] = Value::Array(labels);
+                }
                 "--metadata" => row["metadata"] = serde_json::from_str(value).unwrap(),
                 other => panic!("repour must not write {other}"),
             }
@@ -565,6 +570,31 @@ fn removed_nodes_are_marked_and_obsolete_internal_edges_removed() {
         2
     );
     assert_eq!(bd.ids_by_step(), ids);
+}
+
+#[test]
+fn restored_node_clears_removed_label_without_losing_other_labels() {
+    let (mut w, bd, root) = poured(&plan_v3());
+    let ship = bd.ids_by_step()["ship"].clone();
+    bd.edit_row(&ship, |row| row["labels"] = json!(["keep"]));
+    bd.cook(&plan_v2());
+    assert_eq!(w.repour(&bd, &root).outcome, BeadOutcome::Succeeded);
+    bd.cook(&plan_v3());
+    let options = GraphRevisionOptions::new(
+        ExistingGraphTarget::PourRoot(BeadId::new(&root).unwrap()),
+        UncommittedPolicy::Allow,
+    );
+    w.request.operation = BeadOperation::PreviewRepour;
+    let preview = execute_graph_revision_with_runner(&w.request, &options, &bd)
+        .unwrap()
+        .graph
+        .unwrap();
+    assert!(preview.changes.iter().any(|change| matches!(change, GraphChange::FieldChange { bead, field: GraphField::Labels, before, after, .. } if bead.as_str() == ship && before == &json!(["keep", "repour:removed"]) && after == &json!(["keep"]))));
+    let receipt = w.repour(&bd, &root);
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+    assert_eq!(preview.changes, receipt.graph.unwrap().changes);
+    assert_eq!(bd.row(&ship)["labels"], json!(["keep"]));
+    assert_eq!(bd.ids_by_step()["ship"], ship);
 }
 
 #[test]

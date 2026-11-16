@@ -303,6 +303,16 @@ pub(super) fn node_updates(v: &ValidatedGraph, existing: &Existing) -> Vec<NodeU
             let calls = if args.is_empty() { vec![] } else { vec![args] };
             (calls, merged)
         };
+        let active_step = v
+            .steps
+            .iter()
+            .any(|step| existing.ids.get(&step.id) == Some(id));
+        if active_step && has_removed_label(row) {
+            if calls.is_empty() {
+                calls.push(Vec::new());
+            }
+            calls[0].push("--remove-label=repour:removed".into());
+        }
         let mut after = row.clone();
         after["metadata"] = Value::Object(stored);
         let want = provenance(&expected);
@@ -318,6 +328,12 @@ pub(super) fn node_updates(v: &ValidatedGraph, existing: &Existing) -> Vec<NodeU
         }
     }
     updates
+}
+
+fn has_removed_label(row: &Value) -> bool {
+    row.get("labels")
+        .and_then(Value::as_array)
+        .is_some_and(|labels| labels.iter().any(|label| label == "repour:removed"))
 }
 
 fn provenance(value: &impl serde::Serialize) -> Map<String, Value> {
@@ -348,48 +364,78 @@ pub(super) fn field_changes(v: &ValidatedGraph, existing: &Existing) -> Vec<crat
         let Some(row) = existing.rows.get(id) else {
             continue;
         };
-        let status = row_status(row);
-        let (edits, merged_metadata) = field_edits(&fields, row);
-        for edit in edits {
-            let field = edit.field;
-            let before = row.get(field.as_str()).cloned().unwrap_or(Value::Null);
-            let after = if field == GraphField::Metadata {
-                Value::Object(merged_metadata.clone())
-            } else if field == GraphField::Labels {
-                let mut labels = row
-                    .get("labels")
-                    .and_then(Value::as_array)
-                    .cloned()
-                    .unwrap_or_default();
-                for label in fields
-                    .get("labels")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                {
-                    if !labels.contains(label) {
-                        labels.push(label.clone());
-                    }
-                }
-                Value::Array(labels)
-            } else if field == GraphField::Priority {
-                edit.value
-            } else {
-                fields.get(field.as_str()).cloned().unwrap_or(Value::Null)
-            };
-            let change = crate::GraphChange::FieldChange {
-                bead: id.clone(),
-                status: status.clone(),
-                field,
-                before,
-                after,
-            };
-            if !result.contains(&change) {
-                result.push(change);
-            }
+        append_field_changes(&mut result, id, row, &fields);
+        if v.steps
+            .iter()
+            .any(|step| existing.ids.get(&step.id) == Some(id))
+            && has_removed_label(row)
+        {
+            append_restored_label(&mut result, id, row);
         }
     }
     result
+}
+
+fn append_field_changes(
+    result: &mut Vec<crate::GraphChange>,
+    id: &BeadId,
+    row: &Value,
+    fields: &Map<String, Value>,
+) {
+    let status = row_status(row);
+    let (edits, merged_metadata) = field_edits(fields, row);
+    for edit in edits {
+        let field = edit.field;
+        let before = row.get(field.as_str()).cloned().unwrap_or(Value::Null);
+        let after = if field == GraphField::Metadata {
+            Value::Object(merged_metadata.clone())
+        } else if field == GraphField::Labels {
+            let mut labels = row
+                .get("labels")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            for label in fields
+                .get("labels")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                if !labels.contains(label) {
+                    labels.push(label.clone());
+                }
+            }
+            Value::Array(labels)
+        } else if field == GraphField::Priority {
+            edit.value
+        } else {
+            fields.get(field.as_str()).cloned().unwrap_or(Value::Null)
+        };
+        let change = crate::GraphChange::FieldChange {
+            bead: id.clone(),
+            status: status.clone(),
+            field,
+            before,
+            after,
+        };
+        if !result.contains(&change) {
+            result.push(change);
+        }
+    }
+}
+
+fn append_restored_label(result: &mut Vec<crate::GraphChange>, id: &BeadId, row: &Value) {
+    let before = row
+        .get("labels")
+        .cloned()
+        .unwrap_or_else(|| Value::Array(Vec::new()));
+    if let Some(crate::GraphChange::FieldChange { after, .. }) = result.iter_mut().find(|change| matches!(change, crate::GraphChange::FieldChange { bead, field: GraphField::Labels, .. } if bead == id)) {
+        if let Some(labels) = after.as_array_mut() { labels.retain(|label| label != "repour:removed"); }
+    } else {
+        let mut after = before.as_array().cloned().unwrap_or_default();
+        after.retain(|label| label != "repour:removed");
+        result.push(crate::GraphChange::FieldChange { bead: id.clone(), status: row_status(row), field: GraphField::Labels, before, after: Value::Array(after) });
+    }
 }
 
 /// Runtime status as reported by bd, shared by retained and changed node reports.
