@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta charset="utf-8"/><title>Repour fuzz</title></head><body>
-<h1>Repour fuzz</h1><section data-key="Darwin-arm64|bd version 1.3.4 (dev: ded3c08fa2fd)|server"><h2>Darwin arm64 — local server mode</h2><p>bd: bd version 1.3.4 (dev: ded3c08fa2fd)<br/>SHA-256: ce9fc82fe6b4b002fea817cc7a92febbfa73fa60a7066fc0b980a8dd57c975cd<br/>Dolt: dolt version 2.3.1</p>
-<table><thead><tr><th>Scenario</th><th>Result</th><th>Evidence / failure</th></tr></thead><tbody><tr><td>pour</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>changed pour refuses with changes</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>set runtime state</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>preview, apply, retained runtime and remove/add</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>repeated repour changes no stored state</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>restore removed node</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>external edges retained in both directions</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>conditional add and remove with renamed step</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>dangling reference refuses before writes</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>clean apply, dirty refusal and explicit override</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>attach and repour via request using bd rendering</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>partial apply reports exact progress and resumes</td><td>PASS</td><td><pre></pre></td></tr>
-<tr><td>sequential evolving revisions preserve identities</td><td>PASS</td><td><pre></pre></td></tr>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta charset="utf-8" /><title>Repour fuzz</title></head><body>
+<h1>Repour fuzz</h1><p>Install means per-run atmbench-owned temporary bd staging. It persists nothing after the run; no persistent account installation is performed.</p><section data-key="local|Darwin-arm64|bd version 1.3.4 (dev: ded3c08fa2fd)|server"><h2>Darwin arm64 — local server mode</h2><p>bd: bd version 1.3.4 (dev: ded3c08fa2fd)<br />SHA-256: ce9fc82fe6b4b002fea817cc7a92febbfa73fa60a7066fc0b980a8dd57c975cd<br />Dolt: dolt version 2.3.1</p>
+<p data-installed="false" data-source="not recorded in the original local run (existing executable)">Installation: not installed (existing executable)<br />Source: not recorded in the original local run (existing executable)</p><table><thead><tr><th>Scenario</th><th>Result</th><th>Evidence / failure</th></tr></thead><tbody><tr><td>pour</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>changed pour refuses with changes</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>set runtime state</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>preview, apply, retained runtime and remove/add</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>repeated repour changes no stored state</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>restore removed node</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>external edges retained in both directions</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>conditional add and remove with renamed step</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>dangling reference refuses before writes</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>clean apply, dirty refusal and explicit override</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>attach and repour via request using bd rendering</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>partial apply reports exact progress and resumes</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>sequential evolving revisions preserve identities</td><td>PASS</td><td><pre /></td></tr>
 <tr><td>fuzz executable</td><td>PASS</td><td><pre>sc-compose SHA-256: a54972653b653cc0d667ca4f90ef094f29bf0becd6eef7b7fe88cab70818bdf8</pre></td></tr>
 <tr><td>fuzz seed 24034</td><td>PASS</td><td><pre>{
   "seed": 24034,
@@ -660,4 +660,1326 @@
     }
   ]
 }</pre></td></tr>
-<tr><td>teardown</td><td>PASS</td><td><pre></pre></td></tr></tbody></table></section></body></html>
+<tr><td>teardown</td><td>PASS</td><td><pre /></td></tr></tbody></table></section>
+
+
+<section data-key="atmbench|Darwin-arm64|bd version 1.3.4 (7ef2fd05e: 7ef2fd05eb0c)|embedded"><h2>Darwin arm64 — atmbench embedded mode</h2><p>bd: bd version 1.3.4 (7ef2fd05e: 7ef2fd05eb0c)<br />SHA-256: e657e1f04aedcb4188d923d49cda1f3477aba94175eaae8c4c611fbb04f6fdb7<br />Dolt: dolt version 2.3.1</p>
+<p data-installed="true" data-source="/private/tmp/comp-w7/upstream/bd">Installation: installed (per-run temporary staging)<br />Source: /private/tmp/comp-w7/upstream/bd</p><table><thead><tr><th>Scenario</th><th>Result</th><th>Evidence / failure</th></tr></thead><tbody><tr><td>pour</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>changed pour refuses with changes</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>set runtime state</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>preview, apply, retained runtime and remove/add</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>repeated repour changes no stored state</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>restore removed node</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>external edges retained in both directions</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>conditional add and remove with renamed step</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>dangling reference refuses before writes</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>embedded unknown-state refusal and explicit override</td><td>PASS</td><td><pre>Stock bd 1.3.4 has no embedded bd sql: exact unknown-state refusal and no-write behavior verified before and after an uncommitted edit; explicit override succeeds. Clean/dirty detection is not supported or claimed.</pre></td></tr>
+<tr><td>attach and repour via request using bd rendering</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>partial apply reports exact progress and resumes</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>sequential evolving revisions preserve identities</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>fuzz executable</td><td>PASS</td><td><pre>sc-compose SHA-256: 6cbbdfa4c82440682521733e062980301f402d9c427bf7ed8b0b12e81948330a</pre></td></tr>
+<tr><td>fuzz seed 24034</td><td>PASS</td><td><pre>{
+  "seed": 24034,
+  "plans": [
+    {
+      "formula": "fuzz_24034",
+      "steps": [
+        {
+          "id": "alpha",
+          "title": "alpha revision 0: quotes \" and =",
+          "description": "seed=24034; revision=0; node=alpha",
+          "priority": 4,
+          "needs": []
+        },
+        {
+          "id": "gamma",
+          "title": "gamma revision 0: Unicode café 日本語",
+          "description": "seed=24034; revision=0; node=gamma",
+          "priority": 4,
+          "needs": [
+            "alpha"
+          ]
+        },
+        {
+          "id": "beta",
+          "title": "beta revision 0: quotes \" and =",
+          "description": "seed=24034; revision=0; node=beta",
+          "priority": 0,
+          "needs": [
+            "gamma"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24034",
+      "steps": [
+        {
+          "id": "gamma",
+          "title": "gamma revision 1: semicolon ; $literal",
+          "description": "seed=24034; revision=1; node=gamma",
+          "priority": 3,
+          "needs": []
+        },
+        {
+          "id": "delta",
+          "title": "delta revision 1: quotes \" and =",
+          "description": "seed=24034; revision=1; node=delta",
+          "priority": 4,
+          "needs": []
+        },
+        {
+          "id": "alpha",
+          "title": "alpha revision 1: line\nbreak",
+          "description": "seed=24034; revision=1; node=alpha",
+          "priority": 4,
+          "needs": [
+            "gamma",
+            "delta"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24034",
+      "steps": [
+        {
+          "id": "delta",
+          "title": "delta revision 2: Unicode café 日本語",
+          "description": "seed=24034; revision=2; node=delta",
+          "priority": 4,
+          "needs": []
+        },
+        {
+          "id": "alpha",
+          "title": "alpha revision 2: semicolon ; $literal",
+          "description": "seed=24034; revision=2; node=alpha",
+          "priority": 1,
+          "needs": []
+        },
+        {
+          "id": "beta",
+          "title": "beta revision 2: quotes \" and =",
+          "description": "seed=24034; revision=2; node=beta",
+          "priority": 2,
+          "needs": [
+            "delta",
+            "alpha"
+          ]
+        }
+      ]
+    }
+  ],
+  "trace": [
+    {
+      "revision": 1,
+      "changes": [
+        {
+          "change": "add_node",
+          "step": "delta"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-hdb",
+          "kind": "blocks",
+          "to": "it-bni"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-hdb",
+          "kind": "blocks",
+          "to": "step:delta"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-a09",
+          "kind": "blocks",
+          "to": "it-bni"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-bni",
+          "kind": "blocks",
+          "to": "it-hdb"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-dp4",
+          "kind": "blocks",
+          "to": "it-bni"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-hdb",
+          "kind": "blocks",
+          "to": "it-2dd"
+        },
+        {
+          "after": "gamma revision 1: semicolon ; $literal",
+          "bead": "it-bni",
+          "before": "gamma revision 0: Unicode café 日本語",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24034; revision=1; node=gamma",
+          "bead": "it-bni",
+          "before": "seed=24034; revision=0; node=gamma",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 3,
+          "bead": "it-bni",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "alpha revision 1: line\nbreak",
+          "bead": "it-hdb",
+          "before": "alpha revision 0: quotes \" and =",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24034; revision=1; node=alpha",
+          "bead": "it-hdb",
+          "before": "seed=24034; revision=0; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "bead": "it-a09",
+          "change": "mark_removed_node",
+          "remove_command": "bd delete -- 'it-a09'",
+          "status": "closed"
+        }
+      ],
+      "ids": {
+        "alpha": "it-hdb",
+        "delta": "it-5yc",
+        "gamma": "it-bni"
+      }
+    },
+    {
+      "revision": 2,
+      "changes": [
+        {
+          "change": "add_edge",
+          "from": "it-a09",
+          "kind": "blocks",
+          "to": "it-5yc"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-a09",
+          "kind": "blocks",
+          "to": "it-hdb"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-dp4",
+          "kind": "blocks",
+          "to": "it-bni"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-hdb",
+          "kind": "blocks",
+          "to": "it-2dd"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-hdb",
+          "kind": "blocks",
+          "to": "it-5yc"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-hdb",
+          "kind": "blocks",
+          "to": "it-bni"
+        },
+        {
+          "after": "delta revision 2: Unicode café 日本語",
+          "bead": "it-5yc",
+          "before": "delta revision 1: quotes \" and =",
+          "change": "field_change",
+          "field": "title",
+          "status": "open"
+        },
+        {
+          "after": "seed=24034; revision=2; node=delta",
+          "bead": "it-5yc",
+          "before": "seed=24034; revision=1; node=delta",
+          "change": "field_change",
+          "field": "description",
+          "status": "open"
+        },
+        {
+          "after": "alpha revision 2: semicolon ; $literal",
+          "bead": "it-hdb",
+          "before": "alpha revision 1: line\nbreak",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24034; revision=2; node=alpha",
+          "bead": "it-hdb",
+          "before": "seed=24034; revision=1; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 1,
+          "bead": "it-hdb",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "beta revision 2: quotes \" and =",
+          "bead": "it-a09",
+          "before": "beta revision 0: quotes \" and =",
+          "change": "field_change",
+          "field": "title",
+          "status": "closed"
+        },
+        {
+          "after": "seed=24034; revision=2; node=beta",
+          "bead": "it-a09",
+          "before": "seed=24034; revision=0; node=beta",
+          "change": "field_change",
+          "field": "description",
+          "status": "closed"
+        },
+        {
+          "after": 2,
+          "bead": "it-a09",
+          "before": 0,
+          "change": "field_change",
+          "field": "priority",
+          "status": "closed"
+        },
+        {
+          "after": [
+            "user:fuzz"
+          ],
+          "bead": "it-a09",
+          "before": [
+            "repour:removed",
+            "user:fuzz"
+          ],
+          "change": "field_change",
+          "field": "labels",
+          "status": "closed"
+        },
+        {
+          "bead": "it-bni",
+          "change": "mark_removed_node",
+          "remove_command": "bd delete -- 'it-bni'",
+          "status": "in_progress"
+        }
+      ],
+      "ids": {
+        "alpha": "it-hdb",
+        "beta": "it-a09",
+        "delta": "it-5yc"
+      }
+    }
+  ]
+}</pre></td></tr>
+<tr><td>fuzz seed 24035</td><td>PASS</td><td><pre>{
+  "seed": 24035,
+  "plans": [
+    {
+      "formula": "fuzz_24035",
+      "steps": [
+        {
+          "id": "alpha",
+          "title": "alpha revision 0: line\nbreak",
+          "description": "seed=24035; revision=0; node=alpha",
+          "priority": 2,
+          "needs": []
+        },
+        {
+          "id": "gamma",
+          "title": "gamma revision 0: semicolon ; $literal",
+          "description": "seed=24035; revision=0; node=gamma",
+          "priority": 2,
+          "needs": [
+            "alpha"
+          ]
+        },
+        {
+          "id": "beta",
+          "title": "beta revision 0: semicolon ; $literal",
+          "description": "seed=24035; revision=0; node=beta",
+          "priority": 2,
+          "needs": [
+            "alpha",
+            "gamma"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24035",
+      "steps": [
+        {
+          "id": "delta",
+          "title": "delta revision 1: line\nbreak",
+          "description": "seed=24035; revision=1; node=delta",
+          "priority": 4,
+          "needs": []
+        },
+        {
+          "id": "gamma",
+          "title": "gamma revision 1: quotes \" and =",
+          "description": "seed=24035; revision=1; node=gamma",
+          "priority": 1,
+          "needs": []
+        },
+        {
+          "id": "alpha",
+          "title": "alpha revision 1: Unicode café 日本語",
+          "description": "seed=24035; revision=1; node=alpha",
+          "priority": 1,
+          "needs": []
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24035",
+      "steps": [
+        {
+          "id": "delta",
+          "title": "delta revision 2: quotes \" and =",
+          "description": "seed=24035; revision=2; node=delta",
+          "priority": 1,
+          "needs": []
+        },
+        {
+          "id": "beta",
+          "title": "beta revision 2: line\nbreak",
+          "description": "seed=24035; revision=2; node=beta",
+          "priority": 0,
+          "needs": [
+            "delta"
+          ]
+        },
+        {
+          "id": "alpha",
+          "title": "alpha revision 2: line\nbreak",
+          "description": "seed=24035; revision=2; node=alpha",
+          "priority": 4,
+          "needs": [
+            "delta",
+            "beta"
+          ]
+        }
+      ]
+    }
+  ],
+  "trace": [
+    {
+      "revision": 1,
+      "changes": [
+        {
+          "change": "add_node",
+          "step": "delta"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-6va",
+          "kind": "blocks",
+          "to": "it-c2j"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-8av",
+          "kind": "blocks",
+          "to": "it-6va"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-c2j",
+          "kind": "blocks",
+          "to": "it-iif"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-m8y",
+          "kind": "blocks",
+          "to": "it-6va"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-m8y",
+          "kind": "blocks",
+          "to": "it-c2j"
+        },
+        {
+          "after": "gamma revision 1: quotes \" and =",
+          "bead": "it-6va",
+          "before": "gamma revision 0: semicolon ; $literal",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24035; revision=1; node=gamma",
+          "bead": "it-6va",
+          "before": "seed=24035; revision=0; node=gamma",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 1,
+          "bead": "it-6va",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "alpha revision 1: Unicode café 日本語",
+          "bead": "it-c2j",
+          "before": "alpha revision 0: line\nbreak",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24035; revision=1; node=alpha",
+          "bead": "it-c2j",
+          "before": "seed=24035; revision=0; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 1,
+          "bead": "it-c2j",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "bead": "it-m8y",
+          "change": "mark_removed_node",
+          "remove_command": "bd delete -- 'it-m8y'",
+          "status": "closed"
+        }
+      ],
+      "ids": {
+        "alpha": "it-c2j",
+        "delta": "it-aq8",
+        "gamma": "it-6va"
+      }
+    },
+    {
+      "revision": 2,
+      "changes": [
+        {
+          "change": "add_edge",
+          "from": "it-m8y",
+          "kind": "blocks",
+          "to": "it-aq8"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-c2j",
+          "kind": "blocks",
+          "to": "it-aq8"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-c2j",
+          "kind": "blocks",
+          "to": "it-m8y"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-8av",
+          "kind": "blocks",
+          "to": "it-6va"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-c2j",
+          "kind": "blocks",
+          "to": "it-iif"
+        },
+        {
+          "after": "delta revision 2: quotes \" and =",
+          "bead": "it-aq8",
+          "before": "delta revision 1: line\nbreak",
+          "change": "field_change",
+          "field": "title",
+          "status": "open"
+        },
+        {
+          "after": "seed=24035; revision=2; node=delta",
+          "bead": "it-aq8",
+          "before": "seed=24035; revision=1; node=delta",
+          "change": "field_change",
+          "field": "description",
+          "status": "open"
+        },
+        {
+          "after": 1,
+          "bead": "it-aq8",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "open"
+        },
+        {
+          "after": "beta revision 2: line\nbreak",
+          "bead": "it-m8y",
+          "before": "beta revision 0: semicolon ; $literal",
+          "change": "field_change",
+          "field": "title",
+          "status": "closed"
+        },
+        {
+          "after": "seed=24035; revision=2; node=beta",
+          "bead": "it-m8y",
+          "before": "seed=24035; revision=0; node=beta",
+          "change": "field_change",
+          "field": "description",
+          "status": "closed"
+        },
+        {
+          "after": 0,
+          "bead": "it-m8y",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "closed"
+        },
+        {
+          "after": [
+            "user:fuzz"
+          ],
+          "bead": "it-m8y",
+          "before": [
+            "repour:removed",
+            "user:fuzz"
+          ],
+          "change": "field_change",
+          "field": "labels",
+          "status": "closed"
+        },
+        {
+          "after": "alpha revision 2: line\nbreak",
+          "bead": "it-c2j",
+          "before": "alpha revision 1: Unicode café 日本語",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24035; revision=2; node=alpha",
+          "bead": "it-c2j",
+          "before": "seed=24035; revision=1; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 4,
+          "bead": "it-c2j",
+          "before": 1,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "bead": "it-6va",
+          "change": "mark_removed_node",
+          "remove_command": "bd delete -- 'it-6va'",
+          "status": "in_progress"
+        }
+      ],
+      "ids": {
+        "alpha": "it-c2j",
+        "beta": "it-m8y",
+        "delta": "it-aq8"
+      }
+    }
+  ]
+}</pre></td></tr>
+<tr><td>teardown</td><td>PASS</td><td><pre /></td></tr></tbody></table></section>
+<section data-key="atmbench|Darwin-arm64|bd version 1.3.4 (dev: ded3c08fa2fd)|server"><h2>Darwin arm64 — atmbench server mode</h2><p>bd: bd version 1.3.4 (dev: ded3c08fa2fd)<br />SHA-256: ce9fc82fe6b4b002fea817cc7a92febbfa73fa60a7066fc0b980a8dd57c975cd<br />Dolt: dolt version 2.3.1</p>
+<p data-installed="true" data-source="/opt/homebrew/Cellar/beads/1.2.2/bin/beads">Installation: installed (per-run temporary staging)<br />Source: /opt/homebrew/Cellar/beads/1.2.2/bin/beads</p><table><thead><tr><th>Scenario</th><th>Result</th><th>Evidence / failure</th></tr></thead><tbody><tr><td>pour</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>changed pour refuses with changes</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>set runtime state</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>preview, apply, retained runtime and remove/add</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>repeated repour changes no stored state</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>restore removed node</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>external edges retained in both directions</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>conditional add and remove with renamed step</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>dangling reference refuses before writes</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>clean apply, dirty refusal and explicit override</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>attach and repour via request using bd rendering</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>partial apply reports exact progress and resumes</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>sequential evolving revisions preserve identities</td><td>PASS</td><td><pre /></td></tr>
+<tr><td>fuzz executable</td><td>PASS</td><td><pre>sc-compose SHA-256: 6cbbdfa4c82440682521733e062980301f402d9c427bf7ed8b0b12e81948330a</pre></td></tr>
+<tr><td>fuzz seed 24034</td><td>PASS</td><td><pre>{
+  "seed": 24034,
+  "plans": [
+    {
+      "formula": "fuzz_24034",
+      "steps": [
+        {
+          "id": "alpha",
+          "title": "alpha revision 0: quotes \" and =",
+          "description": "seed=24034; revision=0; node=alpha",
+          "priority": 4,
+          "needs": []
+        },
+        {
+          "id": "gamma",
+          "title": "gamma revision 0: Unicode café 日本語",
+          "description": "seed=24034; revision=0; node=gamma",
+          "priority": 4,
+          "needs": [
+            "alpha"
+          ]
+        },
+        {
+          "id": "beta",
+          "title": "beta revision 0: quotes \" and =",
+          "description": "seed=24034; revision=0; node=beta",
+          "priority": 0,
+          "needs": [
+            "gamma"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24034",
+      "steps": [
+        {
+          "id": "gamma",
+          "title": "gamma revision 1: semicolon ; $literal",
+          "description": "seed=24034; revision=1; node=gamma",
+          "priority": 3,
+          "needs": []
+        },
+        {
+          "id": "delta",
+          "title": "delta revision 1: quotes \" and =",
+          "description": "seed=24034; revision=1; node=delta",
+          "priority": 4,
+          "needs": []
+        },
+        {
+          "id": "alpha",
+          "title": "alpha revision 1: line\nbreak",
+          "description": "seed=24034; revision=1; node=alpha",
+          "priority": 4,
+          "needs": [
+            "gamma",
+            "delta"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24034",
+      "steps": [
+        {
+          "id": "delta",
+          "title": "delta revision 2: Unicode café 日本語",
+          "description": "seed=24034; revision=2; node=delta",
+          "priority": 4,
+          "needs": []
+        },
+        {
+          "id": "alpha",
+          "title": "alpha revision 2: semicolon ; $literal",
+          "description": "seed=24034; revision=2; node=alpha",
+          "priority": 1,
+          "needs": []
+        },
+        {
+          "id": "beta",
+          "title": "beta revision 2: quotes \" and =",
+          "description": "seed=24034; revision=2; node=beta",
+          "priority": 2,
+          "needs": [
+            "delta",
+            "alpha"
+          ]
+        }
+      ]
+    }
+  ],
+  "trace": [
+    {
+      "revision": 1,
+      "changes": [
+        {
+          "change": "add_node",
+          "step": "delta"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-l1g",
+          "kind": "blocks",
+          "to": "it-5bk"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-l1g",
+          "kind": "blocks",
+          "to": "step:delta"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-38g",
+          "kind": "blocks",
+          "to": "it-5bk"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-5bk",
+          "kind": "blocks",
+          "to": "it-l1g"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-90m",
+          "kind": "blocks",
+          "to": "it-5bk"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-l1g",
+          "kind": "blocks",
+          "to": "it-3i1"
+        },
+        {
+          "after": "gamma revision 1: semicolon ; $literal",
+          "bead": "it-5bk",
+          "before": "gamma revision 0: Unicode café 日本語",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24034; revision=1; node=gamma",
+          "bead": "it-5bk",
+          "before": "seed=24034; revision=0; node=gamma",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 3,
+          "bead": "it-5bk",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "alpha revision 1: line\nbreak",
+          "bead": "it-l1g",
+          "before": "alpha revision 0: quotes \" and =",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24034; revision=1; node=alpha",
+          "bead": "it-l1g",
+          "before": "seed=24034; revision=0; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "bead": "it-90m",
+          "change": "mark_removed_node",
+          "remove_command": "bd delete -- 'it-90m'",
+          "status": "closed"
+        }
+      ],
+      "ids": {
+        "alpha": "it-l1g",
+        "delta": "it-0bj",
+        "gamma": "it-5bk"
+      }
+    },
+    {
+      "revision": 2,
+      "changes": [
+        {
+          "change": "add_edge",
+          "from": "it-90m",
+          "kind": "blocks",
+          "to": "it-0bj"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-90m",
+          "kind": "blocks",
+          "to": "it-l1g"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-38g",
+          "kind": "blocks",
+          "to": "it-5bk"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-l1g",
+          "kind": "blocks",
+          "to": "it-0bj"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-l1g",
+          "kind": "blocks",
+          "to": "it-3i1"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-l1g",
+          "kind": "blocks",
+          "to": "it-5bk"
+        },
+        {
+          "after": "delta revision 2: Unicode café 日本語",
+          "bead": "it-0bj",
+          "before": "delta revision 1: quotes \" and =",
+          "change": "field_change",
+          "field": "title",
+          "status": "open"
+        },
+        {
+          "after": "seed=24034; revision=2; node=delta",
+          "bead": "it-0bj",
+          "before": "seed=24034; revision=1; node=delta",
+          "change": "field_change",
+          "field": "description",
+          "status": "open"
+        },
+        {
+          "after": "alpha revision 2: semicolon ; $literal",
+          "bead": "it-l1g",
+          "before": "alpha revision 1: line\nbreak",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24034; revision=2; node=alpha",
+          "bead": "it-l1g",
+          "before": "seed=24034; revision=1; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 1,
+          "bead": "it-l1g",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "beta revision 2: quotes \" and =",
+          "bead": "it-90m",
+          "before": "beta revision 0: quotes \" and =",
+          "change": "field_change",
+          "field": "title",
+          "status": "closed"
+        },
+        {
+          "after": "seed=24034; revision=2; node=beta",
+          "bead": "it-90m",
+          "before": "seed=24034; revision=0; node=beta",
+          "change": "field_change",
+          "field": "description",
+          "status": "closed"
+        },
+        {
+          "after": 2,
+          "bead": "it-90m",
+          "before": 0,
+          "change": "field_change",
+          "field": "priority",
+          "status": "closed"
+        },
+        {
+          "after": [
+            "user:fuzz"
+          ],
+          "bead": "it-90m",
+          "before": [
+            "repour:removed",
+            "user:fuzz"
+          ],
+          "change": "field_change",
+          "field": "labels",
+          "status": "closed"
+        },
+        {
+          "bead": "it-5bk",
+          "change": "mark_removed_node",
+          "remove_command": "bd delete -- 'it-5bk'",
+          "status": "in_progress"
+        }
+      ],
+      "ids": {
+        "alpha": "it-l1g",
+        "beta": "it-90m",
+        "delta": "it-0bj"
+      }
+    }
+  ]
+}</pre></td></tr>
+<tr><td>fuzz seed 24035</td><td>PASS</td><td><pre>{
+  "seed": 24035,
+  "plans": [
+    {
+      "formula": "fuzz_24035",
+      "steps": [
+        {
+          "id": "alpha",
+          "title": "alpha revision 0: line\nbreak",
+          "description": "seed=24035; revision=0; node=alpha",
+          "priority": 2,
+          "needs": []
+        },
+        {
+          "id": "gamma",
+          "title": "gamma revision 0: semicolon ; $literal",
+          "description": "seed=24035; revision=0; node=gamma",
+          "priority": 2,
+          "needs": [
+            "alpha"
+          ]
+        },
+        {
+          "id": "beta",
+          "title": "beta revision 0: semicolon ; $literal",
+          "description": "seed=24035; revision=0; node=beta",
+          "priority": 2,
+          "needs": [
+            "alpha",
+            "gamma"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24035",
+      "steps": [
+        {
+          "id": "delta",
+          "title": "delta revision 1: line\nbreak",
+          "description": "seed=24035; revision=1; node=delta",
+          "priority": 4,
+          "needs": []
+        },
+        {
+          "id": "gamma",
+          "title": "gamma revision 1: quotes \" and =",
+          "description": "seed=24035; revision=1; node=gamma",
+          "priority": 1,
+          "needs": []
+        },
+        {
+          "id": "alpha",
+          "title": "alpha revision 1: Unicode café 日本語",
+          "description": "seed=24035; revision=1; node=alpha",
+          "priority": 1,
+          "needs": []
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24035",
+      "steps": [
+        {
+          "id": "delta",
+          "title": "delta revision 2: quotes \" and =",
+          "description": "seed=24035; revision=2; node=delta",
+          "priority": 1,
+          "needs": []
+        },
+        {
+          "id": "beta",
+          "title": "beta revision 2: line\nbreak",
+          "description": "seed=24035; revision=2; node=beta",
+          "priority": 0,
+          "needs": [
+            "delta"
+          ]
+        },
+        {
+          "id": "alpha",
+          "title": "alpha revision 2: line\nbreak",
+          "description": "seed=24035; revision=2; node=alpha",
+          "priority": 4,
+          "needs": [
+            "delta",
+            "beta"
+          ]
+        }
+      ]
+    }
+  ],
+  "trace": [
+    {
+      "revision": 1,
+      "changes": [
+        {
+          "change": "add_node",
+          "step": "delta"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-1g2",
+          "kind": "blocks",
+          "to": "it-iyy"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-7o0",
+          "kind": "blocks",
+          "to": "it-iyy"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-7o0",
+          "kind": "blocks",
+          "to": "it-tge"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-iyy",
+          "kind": "blocks",
+          "to": "it-tge"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-tge",
+          "kind": "blocks",
+          "to": "it-3mc"
+        },
+        {
+          "after": "gamma revision 1: quotes \" and =",
+          "bead": "it-iyy",
+          "before": "gamma revision 0: semicolon ; $literal",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24035; revision=1; node=gamma",
+          "bead": "it-iyy",
+          "before": "seed=24035; revision=0; node=gamma",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 1,
+          "bead": "it-iyy",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "alpha revision 1: Unicode café 日本語",
+          "bead": "it-tge",
+          "before": "alpha revision 0: line\nbreak",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24035; revision=1; node=alpha",
+          "bead": "it-tge",
+          "before": "seed=24035; revision=0; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 1,
+          "bead": "it-tge",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "bead": "it-7o0",
+          "change": "mark_removed_node",
+          "remove_command": "bd delete -- 'it-7o0'",
+          "status": "closed"
+        }
+      ],
+      "ids": {
+        "alpha": "it-tge",
+        "delta": "it-bez",
+        "gamma": "it-iyy"
+      }
+    },
+    {
+      "revision": 2,
+      "changes": [
+        {
+          "change": "add_edge",
+          "from": "it-7o0",
+          "kind": "blocks",
+          "to": "it-bez"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-tge",
+          "kind": "blocks",
+          "to": "it-bez"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-tge",
+          "kind": "blocks",
+          "to": "it-7o0"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-1g2",
+          "kind": "blocks",
+          "to": "it-iyy"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-tge",
+          "kind": "blocks",
+          "to": "it-3mc"
+        },
+        {
+          "after": "delta revision 2: quotes \" and =",
+          "bead": "it-bez",
+          "before": "delta revision 1: line\nbreak",
+          "change": "field_change",
+          "field": "title",
+          "status": "open"
+        },
+        {
+          "after": "seed=24035; revision=2; node=delta",
+          "bead": "it-bez",
+          "before": "seed=24035; revision=1; node=delta",
+          "change": "field_change",
+          "field": "description",
+          "status": "open"
+        },
+        {
+          "after": 1,
+          "bead": "it-bez",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "open"
+        },
+        {
+          "after": "beta revision 2: line\nbreak",
+          "bead": "it-7o0",
+          "before": "beta revision 0: semicolon ; $literal",
+          "change": "field_change",
+          "field": "title",
+          "status": "closed"
+        },
+        {
+          "after": "seed=24035; revision=2; node=beta",
+          "bead": "it-7o0",
+          "before": "seed=24035; revision=0; node=beta",
+          "change": "field_change",
+          "field": "description",
+          "status": "closed"
+        },
+        {
+          "after": 0,
+          "bead": "it-7o0",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "closed"
+        },
+        {
+          "after": [
+            "user:fuzz"
+          ],
+          "bead": "it-7o0",
+          "before": [
+            "repour:removed",
+            "user:fuzz"
+          ],
+          "change": "field_change",
+          "field": "labels",
+          "status": "closed"
+        },
+        {
+          "after": "alpha revision 2: line\nbreak",
+          "bead": "it-tge",
+          "before": "alpha revision 1: Unicode café 日本語",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24035; revision=2; node=alpha",
+          "bead": "it-tge",
+          "before": "seed=24035; revision=1; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 4,
+          "bead": "it-tge",
+          "before": 1,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "bead": "it-iyy",
+          "change": "mark_removed_node",
+          "remove_command": "bd delete -- 'it-iyy'",
+          "status": "in_progress"
+        }
+      ],
+      "ids": {
+        "alpha": "it-tge",
+        "beta": "it-7o0",
+        "delta": "it-bez"
+      }
+    }
+  ]
+}</pre></td></tr>
+<tr><td>teardown</td><td>PASS</td><td><pre /></td></tr></tbody></table></section></body></html>

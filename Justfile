@@ -119,3 +119,8 @@ lint-ci-consumer: ensure-lint-runtime
 integration:
     cargo build -j 1 -p sc-compose
     {{python}} scripts/integration_repour.py
+
+# Run on the local atmbench account; installation requires --install-bd-from.
+integration-atmbench *args:
+    cargo build -j 1 -p sc-compose
+    {{python}} scripts/integration_repour_target.py {{args}}
