@@ -175,3 +175,120 @@ fn custom_delimiters_use_the_frontmatter_scan_with_strict_off() {
     assert!(report.ok, "{report:?}");
     assert!(report.warnings.is_empty(), "{report:?}");
 }
+
+const FRAGMENT: &str = "{% autoescape false %}literal{% endautoescape %}{% raw %}{{ hidden_raw }}{% endraw %}{# {{ hidden_comment }} #}";
+
+fn included_fragment(frontmatter: bool, real_variable: bool) -> Fixture {
+    let header = if frontmatter { HEADER } else { "" };
+    let fixture = Fixture::new(&format!("{header}{{{{ x }}}}\n@<fragment.md.j2>\n"));
+    let variable = if real_variable { "{{ x }}" } else { "" };
+    fs::write(
+        fixture.0.join("fragment.md.j2"),
+        format!("{FRAGMENT}{variable}"),
+    )
+    .unwrap();
+    fixture
+}
+
+#[test]
+fn frontmatter_root_applies_argument_scan_to_schemaless_fragment_and_its_warning() {
+    let fixture = included_fragment(true, false);
+    let result = compose(&fixture.request()).unwrap();
+    assert!(result.rendered_text.starts_with("a<b\n"), "{result:?}");
+    assert!(
+        result.rendered_text.contains("literal{{ hidden_raw }}"),
+        "{result:?}"
+    );
+    assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+}
+
+#[test]
+fn fragment_with_a_real_reference_still_warns_and_renders_the_root_input() {
+    let fixture = included_fragment(true, true);
+    let result = compose(&fixture.request()).unwrap();
+    assert_eq!(result.rendered_text.matches("a<b").count(), 2, "{result:?}");
+    assert_eq!(result.warnings.len(), 1, "{:?}", result.warnings);
+    let warning = &result.warnings[0];
+    assert_eq!(warning.code, DiagnosticCode::ErrValMissingFrontmatter);
+    assert!(
+        warning
+            .message
+            .starts_with("included file has no frontmatter;"),
+        "{warning:?}"
+    );
+    assert_eq!(
+        warning.path.as_ref().unwrap().file_name().unwrap(),
+        "fragment.md.j2"
+    );
+}
+
+#[test]
+fn schemaless_root_keeps_legacy_fragment_tokens_and_both_missing_header_warnings() {
+    let fixture = included_fragment(false, false);
+    let mut request = fixture.request();
+    request.policy.unknown_variable_policy = UnknownVariablePolicy::Ignore;
+    request.policy.unbound_variable_policy = Some(UnknownVariablePolicy::Ignore);
+    let result = compose(&request).unwrap();
+    let tokens: Vec<_> = result
+        .warnings
+        .iter()
+        .filter(|warning| warning.code == DiagnosticCode::ErrValUndeclaredToken)
+        .map(|warning| warning.message.as_str())
+        .collect();
+    assert_eq!(
+        tokens,
+        [
+            "undeclared referenced token: autoescape",
+            "undeclared referenced token: endautoescape",
+            "undeclared referenced token: endraw",
+            "undeclared referenced token: hidden_comment",
+            "undeclared referenced token: hidden_raw",
+            "undeclared referenced token: raw",
+            "undeclared referenced token: x",
+        ]
+    );
+    let missing: Vec<_> = result
+        .warnings
+        .iter()
+        .filter(|warning| warning.code == DiagnosticCode::ErrValMissingFrontmatter)
+        .collect();
+    assert_eq!(missing.len(), 2, "{missing:?}");
+    assert!(
+        missing[0]
+            .message
+            .starts_with("root template has no frontmatter;")
+    );
+    assert!(
+        missing[1]
+            .message
+            .starts_with("included file has no frontmatter;")
+    );
+    assert_eq!(
+        missing[1].path.as_ref().unwrap().file_name().unwrap(),
+        "fragment.md.j2"
+    );
+}
+
+#[test]
+fn strict_schemaless_root_keeps_legacy_missing_fragment_frontmatter_warning() {
+    let fixture = included_fragment(false, false);
+    fs::write(fixture.0.join("template.md.j2"), "@<fragment.md.j2>\n").unwrap();
+    let mut request = fixture.request();
+    request.vars_input.clear();
+    request.policy.strict_undeclared_variables = true;
+    let result = compose(&request).unwrap();
+    assert_eq!(result.warnings.len(), 1, "{:?}", result.warnings);
+    assert_eq!(
+        result.warnings[0].code,
+        DiagnosticCode::ErrValMissingFrontmatter
+    );
+    assert_eq!(
+        result.warnings[0]
+            .path
+            .as_ref()
+            .unwrap()
+            .file_name()
+            .unwrap(),
+        "fragment.md.j2"
+    );
+}
