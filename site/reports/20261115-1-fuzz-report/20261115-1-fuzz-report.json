@@ -62,10 +62,17 @@
     "worker_method": "The primary agent directed an adversarial-fuzz coordinator; it assigned focused deep, larger, refusal and partial probes serially. Follow-on forty-node and retitle runs used controlled serial probe scripts; a report agent rendered evidence. No probes ran concurrently.",
     "historical_probe_limit": "The earlier *-probe.py files are historical evidence, with absolute host-specific paths and raw unsorted dependency comparisons. They are not portable, reproducible CI tests.",
     "sources": "Frozen forty-node generator, guard and v2/v3 controllers and their hashes are in forty-node-evidence.zip and forty_node_gap.cases. Retitle sources and hashes are in retitle-evidence.zip and retitle_churn.hashes. Replacement sources in replacement-campaign-evidence.zip changed during the run: the final sources cannot exactly replay all earlier cases; retained per-case logs contain actual inputs and commands.",
-    "scale_status": "PARTIAL: five of the 30 forty-node, ten-revision seeds ran. Rand accepted the reduced budget of 90 cases plus five forty-node, ten-revision seeds on 2026-11-16 (\"accept\").",
+    "scale_status": "PARTIAL: five of the 30 forty-node, ten-revision seeds ran. Rand accepted the reduced budget of 90 cases plus five forty-node, ten-revision seeds on 2026-11-16 (\"accept\"). Source: comp-w-6.fuzz-campaign bead note, 2026-11-16. The lead reduced the budget under Rand’s no-load rule; the remaining 25 forty-node seeds are not required.",
     "shared_server": "Five initial 40-node setup attempts and the first replacement-run setup attempted the shared :3308 endpoint; access was denied. The lead checked and reported no shared beads were added. Historical server checks and current pgrep are recorded in forty_node_gap.post_run_servers.",
     "coverage_gaps": "Only the second mutation position was fault injected; embedded-mode, crash and concurrent probes were not performed. Retained trace is absent for 3 earlier refusal cases.",
-    "archive_verification": "Independent archive evidence review at bf2f50fd: all three ZIP integrity checks passed; 90 replacement case assertions completed, 64 structural plus 30 refusal conflict responses = 94, 30 dangling, 30 dirty, 30 partial responses, five 40-node logs with 50 revision events, and four retitle revision events. Assertion relationships rely on imported integration_repour_fuzz.py and were not independently replayed. Four earlier logs have PASS markers; the three earlier refusal cases have no trace."
+    "archive_verification": "Independent archive evidence review at bf2f50fd: all three ZIP integrity checks passed; 90 replacement case assertions completed, 64 structural plus 30 refusal conflict responses = 94, 30 dangling, 30 dirty, 30 partial responses, five 40-node logs with 50 revision events, and four retitle revision events. Assertion relationships rely on imported integration_repour_fuzz.py and were not independently replayed. Four earlier logs have PASS markers; the three earlier refusal cases have no trace.",
+    "denominator_exclusions": "Earlier structural seeds 25000 and 25001 and prior seeded-run seeds 24034 and 24035 are outside the 103-case denominator; HARNESS-25001 is an earlier structural finding.",
+    "archive_verifier": "/root/evidence_verifier; read-only archive review at bf2f50fd, not an independent replay.",
+    "forty_archive_member_sha256": {
+      "sc-forty-campaign-v2/case.py": "663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963",
+      "sc-forty-campaign-v2/run.py": "1be3b0698a69d2fecd30e2275b4aae303fd738e9ac78d86f2ab728929fff8afc",
+      "sc-forty-campaign-v3/run.py": "c508f2b959ad50c91f51ccb698cdb797c0e124c121d387bcdea50dffb05cfc84"
+    }
   },
   "workers": [
     {
