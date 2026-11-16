@@ -62,7 +62,7 @@
     "worker_method": "The primary agent directed an adversarial-fuzz coordinator; it assigned focused deep, larger, refusal and partial probes serially. Follow-on forty-node and retitle runs used controlled serial probe scripts; a report agent rendered evidence. No probes ran concurrently.",
     "historical_probe_limit": "The earlier *-probe.py files are historical evidence, with absolute host-specific paths and raw unsorted dependency comparisons. They are not portable, reproducible CI tests.",
     "sources": "Frozen forty-node generator, guard and v2/v3 controllers and their hashes are in forty-node-evidence.zip and forty_node_gap.cases. Retitle sources and hashes are in retitle-evidence.zip and retitle_churn.hashes. Replacement sources in replacement-campaign-evidence.zip changed during the run: the final sources cannot exactly replay all earlier cases; retained per-case logs contain actual inputs and commands.",
-    "scale_status": "PARTIAL: the lead-approved budget was 30 seeds × 40 nodes × 10 revisions. Five such seeds ran; explicit owner acceptance of the reduction is pending.",
+    "scale_status": "PARTIAL: five of the 30 forty-node, ten-revision seeds ran. Rand accepted the reduced budget of 90 cases plus five forty-node, ten-revision seeds on 2026-11-16 (\"accept\").",
     "shared_server": "Five initial 40-node setup attempts and the first replacement-run setup attempted the shared :3308 endpoint; access was denied. The lead checked and reported no shared beads were added. Historical server checks and current pgrep are recorded in forty_node_gap.post_run_servers.",
     "coverage_gaps": "Only the second mutation position was fault injected; embedded-mode, crash and concurrent probes were not performed. Retained trace is absent for 3 earlier refusal cases.",
     "archive_verification": "Independent archive evidence review at bf2f50fd: all three ZIP integrity checks passed; 90 replacement case assertions completed, 64 structural plus 30 refusal conflict responses = 94, 30 dangling, 30 dirty, 30 partial responses, five 40-node logs with 50 revision events, and four retitle revision events. Assertion relationships rely on imported integration_repour_fuzz.py and were not independently replayed. Four earlier logs have PASS markers; the three earlier refusal cases have no trace."
@@ -256,7 +256,8 @@
     "intentional_boundaries": 0,
     "inconclusive": 3,
     "failed_workers": 0,
-    "owner_acceptance": "pending"
+    "owner_acceptance": "accepted",
+    "owner_acceptance_detail": "Rand: \"accept\", 2026-11-16; reduced budget of 90 cases plus five forty-node, ten-revision seeds."
   },
   "replacement_campaign": {
     "cases_run": 90,
