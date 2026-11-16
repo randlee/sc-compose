@@ -5,13 +5,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Candidate for 1.8.0. Workspace crates and Python packages carry version
-1.8.0. The release is not published, and production publishing happens after
-Phase V. The release candidate tag, the hosted Release Preflight, and the
-dispatch-only full install matrix (`go-native-preflight.yml`) have not yet run
-on the final candidate; they remain pending and no 1.8.0 tag exists. The
-platform and wheel entries below describe declared and locally checked
-configuration, not qualified deliverables.
+## [1.9.0] - Unreleased
+
+### Added
+
+- `sc-compose bead repour FORMULA --root <bead-id>` updates an already poured
+  or attached plan in place (an attach by request file with `parent` and `ref`). Plan-owned fields are updated, missing nodes and edges are
+  created, and ids and runtime state (status, notes, assignee, close state)
+  are kept. Obsolete internal edges are removed; external edges are retained
+  and reported. Removed nodes retain their runtime state, receive the
+  `repour:removed` label, and are reported with a separate remove command. `pour` and `attach` no longer refuse a run that mixes
+  new and existing beads; the retired refusal code is
+  `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`. Receipt actions add `update`,
+  `updated`, and `retained`.
+
+- CLI and Python provide dry-run previews and structured revision changes. A
+  changed existing target refuses `pour` and `preview-pour` with a conflict
+  recommending `repour`. Repour refuses dirty or unknown database state by
+  default; `--allow-uncommitted` (Python `allow_uncommitted=True`) overrides
+  it. Partial failures report applied and pending work. Run `sc-compose help
+  repour` and `sc-compose help repour-strategy` for guidance.
+
+- Example pack `evidence-report` (`.xhtml.j2`) renders well-formed XHTML;
+  a test parses the rendered output as XML (#1045).
 
 ### Changed
 
@@ -36,6 +52,94 @@ configuration, not qualified deliverables.
   unknown database-state errors retain `cause_code`. Partial-error details are
   boxed to keep the error type small. These source changes are
   included without a major version bump because the Beads API has no users.
+
+### Fixed
+
+- Homebrew installs the bundled examples under `pkgshare/examples`, where
+  pack discovery looks, so `sc-compose examples list` finds them after
+  `brew install` (#1039). Release CI now runs `examples list` against each
+  staged release archive. The README records which install channels ship the
+  examples; winget is not yet verified on Windows.
+
+- The real-bd qualification runner (`scripts/test_real_bd.py`) builds test
+  binaries first and runs each ignored test in its own process group with a
+  hang guard, instead of one wall-clock limit for the whole suite.
+
+### Known limitations
+
+- Server-mode dirty/clean detection, real partial failure, and real graph
+  cycles are deferred to the post-Phase W integration-test suite.
+
+- Winget installs are not yet verified to keep the bundled examples next to
+  the executable (#1039); this is checked after the 1.9.0 publish.
+
+## [1.8.0] - 2026-11-06
+
+### Added
+
+- `sc-compose bead --render-by <sc-compose|bd>` selects the formula renderer
+  on every `bead` subcommand. The Rust crate and Python package offer the same
+  selection: Python `render_by=` keyword, Rust `BeadRenderBy` with the
+  `execute_bead_request_with_options*` functions. The existing request layouts
+  are unchanged.
+  - The default, `sc-compose`, renders both `{{ name }}` and `{{{ name }}}`
+    once; caller values that contain delimiters stay data.
+  - `--render-by bd` keeps the 1.7.0 behaviour: triple braces are sc-compose
+    expressions, and double braces are left for bd.
+- `sc-compose bead pour FORMULA [--var KEY=VALUE ...]`: a direct pour form that
+  takes a formula path or registry name. The command supplies
+  `CreatePersistentBeads` itself. The JSON request form still requires
+  `pour_authorization` explicitly.
+- `--strict` (Python `strict=`) turns on undeclared-variable validation for
+  templates that declare a schema. It is off by default. Templates without
+  frontmatter or a schema render as in 1.7.0, and there is no strict-only
+  default (#783).
+- Advanced-renderer graph beads record stable provenance, which ownership
+  checks use on re-runs.
+- `sc-sha-go` declares six native target coordinates and canonical release
+  staging. The windows/amd64 and windows/arm64 GNU cross-checks run through
+  `cargo xwin` as a compile-time check only, not an MSVC validation.
+- Python wheels are declared for six runner coordinates for each of
+  `sc-compose`, `sc-composer-beads` and `sc-sha`. The wheels are abi3-py39
+  with `requires-python >=3.9`; Windows ARM64 requires 3.11+.
+- `sc-compose reference [--json]` exports the live CLI reference model.
+  Routine CI checks that the generated CLI reference is up to date.
+
+### Known limitations
+
+- **Mixed graph updates are refused.** With the default renderer, `pour` and
+  `attach` refuse a run that would combine planned additions with
+  already-existing operation-owned beads, or add edges to an otherwise
+  unchanged graph. The refusal is `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`, and
+  it happens before any write, because no atomic bd update with ownership
+  preconditions is qualified. Fresh creates and exact replays are unaffected.
+  Automatic declared-edge additions between existing beads are therefore not
+  delivered in this candidate.
+- sc-compose does not serialize concurrent pours or attaches. Under a race, bd
+  decides the committed state.
+- Full-platform qualification (30 cells) is pending the single V7 run. Go
+  linking and running on the six coordinates is a manual preflight step.
+
+### Fixed
+
+- ADR-0026 review fixes: template-root escapes are reported distinctly from
+  other resolution errors; duplicate-key detection has a single visitor owner;
+  rendering diagnostics keep custom delimiters; include line-ending layout and
+  source lines after conditional includes are preserved; a valid profile match
+  is retained when other candidates are invalid; containment holds across
+  Windows root aliases and reentry through existing paths is refused.
+- Python `ScRenderError` for a template syntax error carries
+  `ERR_RENDER_TEMPLATE`.
+- Bead identifiers that contain control characters are refused with
+  `BEADS_GRAPH_ID_INVALID`. This covers constructors, the request `parent`,
+  and `bead:` relation endpoints.
+- Python wheel render entry points now reject malformed JSON output in line
+  with the CLI (#787). Callers that previously received malformed JSON from
+  `compose`, `compose_file`, or `render_loaded_template` now receive
+  `ScRenderError` with code `ERR_RENDER_JSON_MALFORMED`.
+
+### Changed
+
 - Release tooling: the repository opts into the sc-publish GitHub prerelease
   path through `release/sc-publish-install.json` (`[prerelease]` in the
   rendered `release/publish-artifacts.toml`), with the consumer-owned
@@ -77,80 +181,6 @@ configuration, not qualified deliverables.
 - Pinned MiniJinja to 2.18.0 to preserve template boolean rendering; upgraded
   `process-wrap` to 10.0.1.
 - Updated CI Actions and semver-compatible dependencies in the lockfile.
-
-### Added
-
-- CLI and Python provide dry-run previews and structured revision changes. A
-  changed existing target refuses `pour` and `preview-pour` with a conflict
-  recommending `repour`. Repour refuses dirty or unknown database state by
-  default; `--allow-uncommitted` (Python `allow_uncommitted=True`) overrides
-  it. Partial failures report applied and pending work. Run `sc-compose help
-  repour` and `sc-compose help repour-strategy` for guidance.
-
-- `sc-compose bead --render-by <sc-compose|bd>` selects the formula renderer
-  on every `bead` subcommand. The Rust crate and Python package offer the same
-  selection: Python `render_by=` keyword, Rust `BeadRenderBy` with the
-  `execute_bead_request_with_options*` functions. The existing request layouts
-  are unchanged.
-  - The default, `sc-compose`, renders both `{{ name }}` and `{{{ name }}}`
-    once; caller values that contain delimiters stay data.
-  - `--render-by bd` keeps the 1.7.0 behaviour: triple braces are sc-compose
-    expressions, and double braces are left for bd.
-- `sc-compose bead pour FORMULA [--var KEY=VALUE ...]`: a direct pour form that
-  takes a formula path or registry name. The command supplies
-  `CreatePersistentBeads` itself. The JSON request form still requires
-  `pour_authorization` explicitly.
-- `--strict` (Python `strict=`) turns on undeclared-variable validation for
-  templates that declare a schema. It is off by default. Templates without
-  frontmatter or a schema render as in 1.7.0, and there is no strict-only
-  default (#783).
-- Advanced-renderer graph beads record stable provenance, which ownership
-  checks use on re-runs.
-- `sc-sha-go` declares six native target coordinates and canonical release
-  staging. The windows/amd64 and windows/arm64 GNU cross-checks run through
-  `cargo xwin` as a compile-time check only, not an MSVC validation.
-- Python wheels are declared for six runner coordinates for each of
-  `sc-compose`, `sc-composer-beads` and `sc-sha`. The wheels are abi3-py39
-  with `requires-python >=3.9`; Windows ARM64 requires 3.11+.
-- `sc-compose reference [--json]` exports the live CLI reference model.
-  Routine CI checks that the generated CLI reference is up to date.
-
-- `sc-compose bead repour FORMULA --root <bead-id>` updates an already poured
-  or attached plan in place (an attach by request file with `parent` and `ref`). Plan-owned fields are updated, missing nodes and edges are
-  created, and ids and runtime state (status, notes, assignee, close state)
-  are kept. Obsolete internal edges are removed; external edges are retained
-  and reported. Removed nodes retain their runtime state, receive the
-  `repour:removed` label, and are reported with a separate remove command. `pour` and `attach` no longer refuse a run that mixes
-  new and existing beads; the retired refusal code is
-  `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`. Receipt actions add `update`,
-  `updated`, and `retained`.
-
-### Known limitations
-
-- Server-mode dirty/clean detection, real partial failure, and real graph
-  cycles are deferred to the post-Phase W integration-test suite.
-- sc-compose does not serialize concurrent pours or attaches. Under a race, bd
-  decides the committed state.
-- Full-platform qualification (30 cells) is pending the single V7 run. Go
-  linking and running on the six coordinates is a manual preflight step.
-
-### Fixed
-
-- ADR-0026 review fixes: template-root escapes are reported distinctly from
-  other resolution errors; duplicate-key detection has a single visitor owner;
-  rendering diagnostics keep custom delimiters; include line-ending layout and
-  source lines after conditional includes are preserved; a valid profile match
-  is retained when other candidates are invalid; containment holds across
-  Windows root aliases and reentry through existing paths is refused.
-- Python `ScRenderError` for a template syntax error carries
-  `ERR_RENDER_TEMPLATE`.
-- Bead identifiers that contain control characters are refused with
-  `BEADS_GRAPH_ID_INVALID`. This covers constructors, the request `parent`,
-  and `bead:` relation endpoints.
-- Python wheel render entry points now reject malformed JSON output in line
-  with the CLI (#787). Callers that previously received malformed JSON from
-  `compose`, `compose_file`, or `render_loaded_template` now receive
-  `ScRenderError` with code `ERR_RENDER_JSON_MALFORMED`.
 
 ## [1.7.0] - 2026-10-08
 
