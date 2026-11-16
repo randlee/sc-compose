@@ -100,6 +100,19 @@ fn bead_manual_documents_the_versioned_request_protocol() {
 }
 
 #[test]
+fn bead_manual_documents_render_modes_and_repour_topics() {
+    assert_topic_contains(
+        "bead",
+        &[
+            "default is `--render-by sc-compose`",
+            "sc-compose bead pour --request request.json --render-by bd",
+            "sc-compose help repour",
+            "sc-compose help repour-strategy",
+        ],
+    );
+}
+
+#[test]
 fn bead_manual_documents_all_subcommands_and_human_graph_output() {
     assert_topic_contains(
         "bead",

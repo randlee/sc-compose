@@ -27,6 +27,22 @@ fn reference_exports_live_command_tree_in_diagnostic_envelope() {
             .iter()
             .any(|a| a["long"] == "--json")
     );
+    let repour = commands
+        .iter()
+        .find(|c| c["name"] == "bead")
+        .and_then(|bead| bead["subcommands"].as_array())
+        .and_then(|subcommands| subcommands.iter().find(|c| c["name"] == "repour"))
+        .expect("repour command");
+    let allow_uncommitted = repour["options"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|option| option["long"] == "--allow-uncommitted")
+        .expect("allow-uncommitted flag");
+    assert!(allow_uncommitted["value_name"].is_null());
+    assert_eq!(allow_uncommitted["choices"], serde_json::json!([]));
+    assert!(allow_uncommitted["min_values"].is_null());
+    assert!(allow_uncommitted["max_values"].is_null());
     let bead = commands
         .iter()
         .find(|c| c["name"] == "bead")

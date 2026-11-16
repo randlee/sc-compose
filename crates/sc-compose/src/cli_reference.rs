@@ -96,12 +96,15 @@ fn command_arguments(command: &Command) -> (Vec<OptionModel>, Vec<ArgumentModel>
             .get_default_values()
             .first()
             .map(|v| v.to_string_lossy().into_owned());
-        let choices = arg
-            .get_possible_values()
-            .iter()
-            .filter(|v| !v.is_hide_set())
-            .map(|v| v.get_name().to_owned())
-            .collect();
+        let choices = if arg.get_action().takes_values() {
+            arg.get_possible_values()
+                .iter()
+                .filter(|v| !v.is_hide_set())
+                .map(|v| v.get_name().to_owned())
+                .collect()
+        } else {
+            Vec::new()
+        };
         if long.is_none() && short.is_none() {
             arguments.push(ArgumentModel {
                 name: name.to_owned(),
@@ -127,7 +130,19 @@ fn option_model(
     default_value: Option<String>,
     choices: Vec<String>,
 ) -> OptionModel {
-    let range = arg.get_num_args();
+    let takes_values = arg.get_action().takes_values();
+    let range = if takes_values {
+        arg.get_num_args()
+    } else {
+        None
+    };
+    let value_name = if takes_values {
+        arg.get_value_names()
+            .and_then(|names| names.first())
+            .map(ToString::to_string)
+    } else {
+        None
+    };
     OptionModel {
         name: arg.get_id().as_str().to_owned(),
         long,
@@ -137,10 +152,7 @@ fn option_model(
             .get_long_help()
             .map(ToString::to_string)
             .unwrap_or_default(),
-        value_name: arg
-            .get_value_names()
-            .and_then(|names| names.first())
-            .map(ToString::to_string),
+        value_name,
         required: arg.is_required_set(),
         default_value,
         choices,
@@ -152,7 +164,7 @@ fn option_model(
 #[cfg(test)]
 mod tests {
     use super::command_model;
-    use clap::{Arg, Command};
+    use clap::{Arg, ArgAction, Command};
 
     #[test]
     fn walks_new_nested_commands_and_argument_metadata() {
@@ -173,5 +185,21 @@ mod tests {
         );
         assert_eq!(child["options"][0]["default_value"], "json");
         assert!(child["usage"].as_str().unwrap().contains("demo future"));
+    }
+
+    #[test]
+    fn flag_options_do_not_advertise_values_or_choices() {
+        let command = Command::new("demo").arg(
+            Arg::new("enabled")
+                .long("enabled")
+                .action(ArgAction::SetTrue),
+        );
+        let model = serde_json::to_value(command_model(&command, "demo")).unwrap();
+        let option = &model["options"][0];
+
+        assert!(option["value_name"].is_null());
+        assert_eq!(option["choices"], serde_json::json!([]));
+        assert!(option["min_values"].is_null());
+        assert!(option["max_values"].is_null());
     }
 }

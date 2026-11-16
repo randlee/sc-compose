@@ -53,6 +53,7 @@ pub(crate) fn execute(
         stages,
         policy,
         compare_only,
+        applied_changes: Vec::new(),
     };
     let result = match graph_plan_path(&runtime) {
         Ok(_) => run(
@@ -263,15 +264,8 @@ fn execute_revision_plan(
         confirm_readback(validated, advanced, &graph, runtime).map_err(|error| {
             BeadComposeError::GraphApplyPartial {
                 details: Box::new(crate::GraphApplyPartial {
-                    applied: Vec::new(),
-                    pending: graph
-                        .changes
-                        .iter()
-                        .filter(|change| {
-                            !matches!(change, crate::GraphChange::RetainExternalEdge { .. })
-                        })
-                        .cloned()
-                        .collect(),
+                    applied: runtime.applied_changes.clone(),
+                    pending: Vec::new(),
                     failed_operation: "read-back".into(),
                     outcome_uncertain: true,
                     cause_code: error.code().into(),
@@ -429,14 +423,14 @@ fn partial_error(
     if runtime.stage != BeadStage::Repour {
         return with_progress(error, count, total);
     }
-    // Local preparation and spawn/argument failures retain their typed errors.
-    // Only a command that ran can have an uncertain write outcome.
-    if !matches!(
+    // A failure before invocation is certain, but must retain prior progress.
+    let outcome_uncertain = matches!(
         error,
         BeadComposeError::GraphApplyFailed { .. }
             | BeadComposeError::GraphApplyUnconfirmed { .. }
             | BeadComposeError::ProcessOutputLimitExceeded { .. }
-    ) {
+    );
+    if !outcome_uncertain && count == 0 {
         return error;
     }
     BeadComposeError::GraphApplyPartial {
@@ -448,7 +442,7 @@ fn partial_error(
                 .map(|arg| crate::error::shell_quote(arg))
                 .collect::<Vec<_>>()
                 .join(" "),
-            outcome_uncertain: true,
+            outcome_uncertain,
             cause_code: error.code().into(),
             cause: match &error {
                 BeadComposeError::GraphApplyFailed { cause, .. }
@@ -536,6 +530,7 @@ struct Runtime<'a> {
     stages: Vec<BeadStageReceipt>,
     policy: Option<crate::revision::UncommittedPolicy>,
     compare_only: bool,
+    applied_changes: Vec<crate::GraphChange>,
 }
 
 impl Runtime<'_> {
@@ -892,6 +887,7 @@ mod presentation_tests {
                 stages: Vec::new(),
                 policy: Some(crate::UncommittedPolicy::Refuse),
                 compare_only: false,
+                applied_changes: Vec::new(),
             };
             let error = check_dirty(&mut runtime).unwrap_err();
             assert_eq!(error.code(), code);
@@ -961,6 +957,7 @@ mod presentation_tests {
             stages: Vec::new(),
             policy: None,
             compare_only: false,
+            applied_changes: Vec::new(),
         };
         let output = runtime
             .invoke_presenting(
@@ -1010,6 +1007,7 @@ mod presentation_tests {
             stages: Vec::new(),
             policy: None,
             compare_only: false,
+            applied_changes: Vec::new(),
         };
         let error = runtime
             .invoke_presenting(

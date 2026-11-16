@@ -4,10 +4,10 @@ import builtins
 import inspect
 import json
 import os
-import shlex
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -18,6 +18,92 @@ import sc_composer_beads as beads
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"
 GRAPH_FIXTURE_ROOT = FIXTURE_ROOT / "graph"
+CLI_BUILD_HANG_GUARD_SECONDS = 30 * 60
+
+
+def _resolve_sc_compose_cli() -> Path:
+    """Resolve a supplied binary, or build once before the parity test runs."""
+    supplied = os.environ.get("SC_COMPOSE_TEST_CLI")
+    if supplied:
+        executable = Path(supplied).resolve()
+        if not executable.is_file():
+            pytest.fail(f"SC_COMPOSE_TEST_CLI is not a prebuilt executable: {executable}")
+        return executable
+    # Cold builds have no speed assertion. This generous deadline only bounds
+    # a hung setup (for example a held Cargo lock or a stalled registry).
+    try:
+        built = subprocess.run(
+            ["cargo", "build", "-j", "2", "-p", "sc-compose", "--bin", "sc-compose", "--message-format=json"],
+            cwd=REPOSITORY_ROOT, check=True, capture_output=True, text=True,
+            timeout=CLI_BUILD_HANG_GUARD_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        pytest.fail(
+            f"CLI setup cargo build hit the {CLI_BUILD_HANG_GUARD_SECONDS}s failure-only hang guard: {exc}. "
+            "Inspect Cargo target locks and registry/network access, or supply SC_COMPOSE_TEST_CLI "
+            f"from a separate build step. stdout={exc.stdout!r}; stderr={exc.stderr!r}"
+        )
+    artifacts = [json.loads(line) for line in built.stdout.splitlines() if line.startswith("{")]
+    executables = [Path(item["executable"]) for item in artifacts
+                   if item.get("reason") == "compiler-artifact" and item.get("executable")
+                   and item["target"]["name"] == "sc-compose"]
+    assert len(executables) == 1, f"expected one CLI build artifact, got {executables}"
+    return executables[0]
+
+
+@pytest.fixture(scope="session")
+def sc_compose_cli() -> Path:
+    return _resolve_sc_compose_cli()
+
+
+def test_cli_setup_timeout_reports_the_cause_without_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SC_COMPOSE_TEST_CLI", raising=False)
+    calls = []
+
+    def stalled_build(command, **options):
+        calls.append(command)
+        assert options["timeout"] >= 600, "setup needs a generous hang guard"
+        raise subprocess.TimeoutExpired(
+            command, options["timeout"], output="waiting for target lock", stderr="registry request pending"
+        )
+
+    monkeypatch.setattr(subprocess, "run", stalled_build)
+    with pytest.raises(pytest.fail.Exception) as failure:
+        _resolve_sc_compose_cli()
+    message = str(failure.value)
+    assert "failure-only hang guard" in message
+    assert "waiting for target lock" in message and "registry request pending" in message
+    assert "SC_COMPOSE_TEST_CLI" in message
+    assert len(calls) == 1, "a stalled build must fail without retrying"
+
+
+def test_cli_setup_supplied_binary_does_not_start_cargo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    executable = tmp_path / "prebuilt-cli"
+    executable.touch()
+    monkeypatch.setenv("SC_COMPOSE_TEST_CLI", str(executable))
+
+    def unexpected_build(*_args, **_options):
+        pytest.fail("a supplied prebuilt CLI must bypass Cargo entirely")
+
+    monkeypatch.setattr(subprocess, "run", unexpected_build)
+    assert _resolve_sc_compose_cli() == executable.resolve()
+
+
+def _write_revision_bd(root: Path, *, scenario: str = "policy") -> tuple[Path, Path, Path]:
+    """Run the same closed revision fixture as the Rust CLI tests, on every OS."""
+    runner = REPOSITORY_ROOT / "crates/test-support/fake_revision_bd.py"
+    config = root / "revision-bd.json"
+    trace = root / "trace"
+    config.write_text(json.dumps({"trace": str(trace), "scenario": scenario}), encoding="utf-8")
+    executable = root / ("fake-revision-bd.cmd" if os.name == "nt" else "fake-revision-bd")
+    if os.name == "nt":
+        executable.write_text(
+            f'@echo off\r\n"{sys.executable}" "{runner}" --config "{config}" %*\r\nexit /b %errorlevel%\r\n',
+            encoding="utf-8", newline="",
+        )
+    else:
+        executable.symlink_to(runner)
+    return executable, config, trace
 
 
 def _write_fake_bd(root: Path) -> tuple[Path, Path]:
@@ -324,7 +410,7 @@ def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
     assert trace.read_text(encoding="utf-8").splitlines() == ["cook", "cook", "where", "mol"]
 
 
-def test_python_and_cli_preview_receipts_have_the_same_stages(tmp_path: Path) -> None:
+def test_python_and_cli_preview_receipts_have_the_same_stages(tmp_path: Path, sc_compose_cli: Path) -> None:
     executable, _trace = _write_fake_bd(tmp_path)
     request = _request(tmp_path, executable, operation="preview_pour")
     request_path = tmp_path / "request.json"
@@ -350,12 +436,7 @@ def test_python_and_cli_preview_receipts_have_the_same_stages(tmp_path: Path) ->
     try:
         completed = subprocess.run(
             [
-                "cargo",
-                "run",
-                "--quiet",
-                "-p",
-                "sc-compose",
-                "--",
+                str(sc_compose_cli),
                 "bead",
                 "preview-pour",
                 "--request",
@@ -369,7 +450,7 @@ def test_python_and_cli_preview_receipts_have_the_same_stages(tmp_path: Path) ->
             timeout=120,
         )
     except subprocess.TimeoutExpired as exc:
-        pytest.fail(f"cargo-run timed out; stdout={exc.stdout!r}; stderr={exc.stderr!r}")
+        pytest.fail(f"prebuilt CLI did not finish; stdout={exc.stdout!r}; stderr={exc.stderr!r}")
     cli_receipt = json.loads(completed.stdout)["payload"]
     assert cli_receipt["operation"] == python_receipt.operation
     assert [stage["stage"] for stage in cli_receipt["stages"]] == [
@@ -741,25 +822,8 @@ def test_repour_wire_values_and_additive_actions(tmp_path: Path) -> None:
     assert result["graph"]["nodes"][1]["action"] == "retained"
 
 
-@pytest.mark.skipif(os.name == "nt", reason="fixture is a POSIX executable")
 def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> None:
-    executable = tmp_path / "fake-revision-bd"
-    script = executable.with_name(executable.name + ".sh")
-    executable.symlink_to(REPOSITORY_ROOT / "crates/test-support/fake-exec")
-    trace = tmp_path / "trace"
-    script.write_text(
-        "#!/bin/sh\n"
-        + f"printf '%s\\n' \"$*\" >> {shlex.quote(str(trace))}\n"
-        + 'case "$1" in\n'
-        "cook) printf '%s' '{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{\"id\":\"build\",\"title\":\"Build\"}]}' ;;\n"
-        "show) printf '%s' '[{\"id\":\"proj-1\",\"title\":\"old\",\"description\":\"\",\"status\":\"open\",\"metadata\":{\"sc_compose_graph\":{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}]' ;;\n"
-        "children|dep) printf '[]' ;;\n"
-        "sql) printf 'probe unsupported' >&2; exit 1 ;;\n"
-        "create) printf '%s' '{\"ids\":{\"build\":\"proj-2\"}}' ;;\n"
-        "update) printf 'update failed' >&2; exit 1 ;;\n"
-        "*) exit 2 ;;\nesac\n",
-        encoding="utf-8",
-    )
+    executable, config, trace = _write_revision_bd(tmp_path)
     template = tmp_path / "sample.formula.toml.j2"
     template.write_text('formula = "sample"\n', encoding="utf-8")
     request = beads.BeadComposeRequest(
@@ -795,11 +859,9 @@ def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> 
     assert "rerun" in partial.value.recovery
     # Known-dirty apply refuses without writing; an explicit override reaches apply.
     trace.unlink()
-    body = script.read_text(encoding="utf-8").replace(
-        "sql) printf 'probe unsupported' >&2; exit 1 ;;",
-        "sql) printf '%s' '[{\"table_name\":\"issues\",\"staged\":false,\"status\":\"modified\"}]' ;;",
-    )
-    script.write_text(body, encoding="utf-8")
+    settings = json.loads(config.read_text(encoding="utf-8"))
+    settings["sql"] = "dirty"
+    config.write_text(json.dumps(settings), encoding="utf-8")
     with pytest.raises(beads.BeadComposeError) as dirty:
         beads.repour(request)
     assert dirty.value.code == beads.BEADS_GRAPH_DIRTY
@@ -811,8 +873,8 @@ def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> 
     assert any(line.startswith("create ") for line in trace.read_text().splitlines())
     # Validation failure occurs before any bead or dependency write.
     trace.unlink()
-    body = body.replace('case "$1" in', 'if [ "$1" = cook ]; then echo invalid >&2; exit 1; fi\ncase "$1" in', 1)
-    script.write_text(body, encoding="utf-8")
+    settings["invalid"] = True
+    config.write_text(json.dumps(settings), encoding="utf-8")
     invalid = beads.repour(request, allow_uncommitted=True)
     assert invalid.outcome.kind == "failed" and invalid.outcome.code == "BEADS_COOK_FAILED"
     assert invalid.graph is None
@@ -848,26 +910,8 @@ def test_revision_blocked_graph_path_has_a_typed_diagnostic(tmp_path: Path) -> N
     assert refused.value.details["field"] == "graph_plan"
 
 
-@pytest.mark.skipif(os.name == "nt", reason="fixture uses the repository's POSIX executable shim")
 def test_revision_execution_reports_exact_graph_changes(tmp_path: Path) -> None:
-    executable = tmp_path / "fake-graph-bd"
-    executable.symlink_to(REPOSITORY_ROOT / "crates/test-support/fake-exec")
-    executable.with_name(executable.name + ".sh").write_text(
-        '''#!/bin/sh
-case "$1" in
-cook) printf '%s' '{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"},{"id":"verify","title":"Verify","needs":["build"]}]}' ;;
-show) printf '%s' '[{"id":"proj-1","title":"old","description":"","status":"open","metadata":{"sc_compose_graph":{"mode":"pour","formula":"sample","step":null}}}]' ;;
-children) printf '%s' '[{"id":"proj-3","status":"closed","labels":[],"metadata":{"sc_compose_graph":{"mode":"pour","formula":"sample","step":"obsolete"}}}]' ;;
-dep)
-  case "$3:$6" in
-    --direction=down:proj-3) printf '%s' '[{"id":"proj-1","dependency_type":"blocks"},{"id":"outside-2","dependency_type":"blocks"}]' ;;
-    --direction=up:proj-3) printf '%s' '[{"id":"outside-1","dependency_type":"blocks"}]' ;;
-    *) printf '[]' ;;
-  esac ;;
-create) printf '{}' ;;
-*) exit 1 ;;
-esac
-''', encoding="utf-8")
+    executable, _config, _trace = _write_revision_bd(tmp_path, scenario="graph")
     template = tmp_path / "sample.formula.toml.j2"
     template.write_text('formula = "sample"\n', encoding="utf-8")
     request = beads.BeadComposeRequest(

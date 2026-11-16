@@ -1707,19 +1707,34 @@ fn cli_strict_is_explicit_and_schema_scoped() {
     assert!(run(true).status.success());
 }
 
-#[cfg(unix)]
+fn revision_config(fixture: &TempFixture, scenario: &str, sql: &str, invalid: bool) {
+    write_file(&fixture.path.join("revision-bd.json"), &json!({
+        "trace": fixture.path.join("trace"), "scenario": scenario, "sql": sql, "invalid": invalid,
+    }).to_string());
+}
+
 fn revision_cli_fixture(fixture: &TempFixture) -> (PathBuf, PathBuf) {
     let root = &fixture.path;
     let template = root.join("sample.formula.toml.j2");
     let rendered = root.join("sample.formula.toml");
     let trace = root.join("trace");
-    let bd = root.join("fake-revision-bd");
+    let runner = Path::new(env!("CARGO_MANIFEST_DIR")).join("../test-support/fake_revision_bd.py");
+    let bd = root.join(if cfg!(windows) {
+        "fake-revision-bd.cmd"
+    } else {
+        "fake-revision-bd"
+    });
     write_file(&template, "formula = \"sample\"\n");
-    fake_exec::install(
+    revision_config(fixture, "policy", "unknown", false);
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&runner, &bd).expect("link committed Python fixture");
+    #[cfg(windows)]
+    write_file(
         &bd,
         &format!(
-            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\ncase \"$1\" in\n  cook) printf '%s' '{{\"formula\":\"sample\",\"type\":\"workflow\",\"steps\":[{{\"id\":\"build\",\"title\":\"Build\"}}]}}';;\n  show) printf '%s' '[{{\"id\":\"proj-1\",\"title\":\"old\",\"description\":\"\",\"status\":\"open\",\"metadata\":{{\"sc_compose_graph\":{{\"mode\":\"pour\",\"formula\":\"sample\",\"step\":null}}}}}}]';;\n  children|dep) printf '[]';;\n  sql) printf 'probe unsupported' >&2; exit 1;;\n  create) printf '%s' '{{\"ids\":{{\"build\":\"proj-2\"}}}}';;\n  update) printf 'injected update failure' >&2; exit 1;;\n  *) exit 2;;\nesac\n",
-            trace.display()
+            "@echo off\r\npython \"{}\" --config \"{}\" %*\r\nexit /b %errorlevel%\r\n",
+            runner.display(),
+            root.join("revision-bd.json").display()
         ),
     );
     let request = root.join("request.json");
@@ -1736,7 +1751,6 @@ fn revision_cli_fixture(fixture: &TempFixture) -> (PathBuf, PathBuf) {
     (request, trace)
 }
 
-#[cfg(unix)]
 #[test]
 fn revision_cli_refuses_unknown_database_and_previews_with_override() {
     let fixture = TempFixture::new("bead-revision-policy");
@@ -1816,7 +1830,6 @@ fn revision_cli_refuses_unknown_database_and_previews_with_override() {
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn revision_cli_reports_partial_revision() {
     let fixture = TempFixture::new("bead-revision-partial");
@@ -1843,7 +1856,6 @@ fn revision_cli_reports_partial_revision() {
     assert!(details["pending"].as_array().unwrap().contains(&json!({"change":"field_change", "bead":"proj-1", "status":"open", "field":"title", "before":"old", "after":"sample"})));
 }
 
-#[cfg(unix)]
 #[test]
 fn revision_cli_blocks_invalid_graph_path_before_bd() {
     let fixture = TempFixture::new("bead-revision-blocked-path");
@@ -1866,15 +1878,11 @@ fn revision_cli_blocks_invalid_graph_path_before_bd() {
     assert!(!trace.exists(), "a blocked graph path must not invoke bd");
 }
 
-#[cfg(unix)]
 #[test]
 fn revision_cli_dirty_and_invalid_plans_never_write_without_override() {
     let fixture = TempFixture::new("revision-dirty-validation");
     let (request, trace) = revision_cli_fixture(&fixture);
-    let script = fake_exec::script_path(&fixture.path.join("fake-revision-bd"));
-    let original = fs::read_to_string(&script).unwrap();
-    let dirty = original.replace("sql) printf 'probe unsupported' >&2; exit 1;;", "sql) printf '%s' '[{\"table_name\":\"issues\",\"staged\":false,\"status\":\"modified\"}]';;");
-    fs::write(&script, &dirty).unwrap();
+    revision_config(&fixture, "policy", "dirty", false);
     let run = |args: &[&str]| {
         sc_compose()
             .args(["bead", "repour", "--request"])
@@ -1907,15 +1915,7 @@ fn revision_cli_dirty_and_invalid_plans_never_write_without_override() {
             .any(|line| line.starts_with("create "))
     );
     fs::remove_file(&trace).unwrap();
-    fs::write(
-        &script,
-        dirty.replacen(
-            "case \"$1\" in",
-            "if [ \"$1\" = cook ]; then echo invalid >&2; exit 1; fi\ncase \"$1\" in",
-            1,
-        ),
-    )
-    .unwrap();
+    revision_config(&fixture, "policy", "dirty", true);
     let invalid = run(&["--allow-uncommitted"]);
     let value: serde_json::Value = serde_json::from_slice(&invalid.stdout).unwrap();
     assert_eq!(
@@ -1940,27 +1940,10 @@ fn revision_help_points_to_both_manual_topics() {
     assert!(help.contains("sc-compose help repour-strategy"));
 }
 
-#[cfg(unix)]
 fn configure_revision_graph(fixture: &TempFixture) {
-    let script = fake_exec::script_path(&fixture.path.join("fake-revision-bd"));
-    fs::write(&script, r#"#!/bin/sh
-case "$1" in
-cook) printf '%s' '{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"},{"id":"verify","title":"Verify","needs":["build"]}]}' ;;
-show) printf '%s' '[{"id":"proj-1","title":"old","description":"","status":"open","metadata":{"sc_compose_graph":{"mode":"pour","formula":"sample","step":null}}}]' ;;
-children) printf '%s' '[{"id":"proj-3","status":"closed","labels":[],"metadata":{"sc_compose_graph":{"mode":"pour","formula":"sample","step":"obsolete"}}}]' ;;
-dep)
-  case "$3:$6" in
-    --direction=down:proj-3) printf '%s' '[{"id":"proj-1","dependency_type":"blocks"},{"id":"outside-2","dependency_type":"blocks"}]' ;;
-    --direction=up:proj-3) printf '%s' '[{"id":"outside-1","dependency_type":"blocks"}]' ;;
-    *) printf '[]' ;;
-  esac ;;
-create) printf '{}' ;;
-*) printf 'unexpected command' >&2; exit 1 ;;
-esac
-"#).unwrap();
+    revision_config(fixture, "graph", "unknown", false);
 }
 
-#[cfg(unix)]
 #[test]
 fn revision_cli_reports_exact_graph_change_variants() {
     let fixture = TempFixture::new("revision-delta");
