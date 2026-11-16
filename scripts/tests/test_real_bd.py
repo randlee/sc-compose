@@ -2,23 +2,30 @@
 from __future__ import annotations
 
 import importlib.util
-import os
+import json
 import stat
+import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
-import subprocess
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("test_real_bd", ROOT / "scripts" / "test_real_bd.py")
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
-OK_OUT = (
-    "test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out\n"
-    "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n"
-)
+ONE_PASS = "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n"
+
+
+def artifact(target: str, executable: str) -> str:
+    return json.dumps({
+        "reason": "compiler-artifact",
+        "target": {"name": target, "kind": ["test"], "test": True},
+        "executable": executable,
+    }) + "\n"
 
 
 class RealBdQualification(unittest.TestCase):
@@ -27,37 +34,94 @@ class RealBdQualification(unittest.TestCase):
         self.assertEqual(MODULE.database_mode({"SC_COMPOSE_TEST_DOLT_PORT": ""}), "server")
         self.assertEqual(MODULE.database_mode({"SC_COMPOSE_TEST_DOLT_PORT": "3317"}), "server")
 
+    def test_selected_suites_preserve_database_mode_filter(self) -> None:
+        self.assertEqual(len(MODULE.selected_suites(False)), 3)
+        label, args, test_filter = MODULE.selected_suites(True)[0]
+        self.assertEqual(label, "database-mode")
+        self.assertIn("graph_bd", args)
+        self.assertEqual(test_filter, "repour_clean_dirty_database_mode")
+
     def test_invalid_arguments_are_rejected_before_bd(self) -> None:
         with patch.object(MODULE.sys, "argv", ["test_real_bd.py", "--invalid"]), \
              patch.object(MODULE, "resolve_bd") as resolve:
             self.assertEqual(MODULE.main(), 2)
             resolve.assert_not_called()
 
-    def test_database_mode_selects_one_test_and_ordinary_mode_skips_it(self) -> None:
-        result = subprocess.CompletedProcess([], 0, OK_OUT, "")
-        with patch.object(MODULE.subprocess, "run", return_value=result) as spawn:
-            self.assertEqual(MODULE.run_suites({}, {"database_mode": "server"}, database_mode=True), 0)
-            args = spawn.call_args.args[0]
-            self.assertIn("repour_clean_dirty_database_mode", args)
-            self.assertNotIn("--skip", args)
-        with patch.object(MODULE, "SUITES", (("graph", []),)), \
-             patch.object(MODULE.subprocess, "run", return_value=result) as spawn:
-            self.assertEqual(MODULE.run_suites({}, {"database_mode": "embedded"}), 0)
-            args = spawn.call_args.args[0]
-            self.assertIn("--skip", args)
-            self.assertIn("repour_clean_dirty_database_mode", args)
+    def test_missing_bd_keeps_not_run_path_and_does_not_build_suites(self) -> None:
+        stderr = StringIO()
+        with patch.object(MODULE, "resolve_bd", return_value="BD_EXECUTABLE is not set"), \
+             patch.object(MODULE.sys, "argv", ["test_real_bd.py"]), \
+             patch.object(MODULE, "prepare_suites") as prepare, redirect_stderr(stderr):
+            self.assertEqual(MODULE.main(), 2)
+        self.assertIn("real-bd qualification NOT RUN: BD_EXECUTABLE is not set", stderr.getvalue())
+        prepare.assert_not_called()
 
-    def test_timed_out_cargo_reports_partial_output_and_fails(self) -> None:
-        from contextlib import redirect_stderr
-        from io import StringIO
+    def test_builds_all_targets_before_listing_ignored_tests(self) -> None:
+        suites = (
+            ("sc-composer-beads/graph_bd", ["-p", "sc-composer-beads", "--test", "graph_bd"], None),
+            ("sc-composer-beads/bd_integration", ["-p", "sc-composer-beads", "--test", "bd_integration"], None),
+        )
+        results = [
+            subprocess.CompletedProcess([], 0, artifact("graph_bd", "graph-bin"), ""),
+            subprocess.CompletedProcess([], 0, artifact("bd_integration", "integration-bin"), ""),
+            subprocess.CompletedProcess([], 0, "first_test: test\nrepour_clean_dirty_database_mode: test\n", ""),
+            subprocess.CompletedProcess([], 0, "second_test: test\n", ""),
+        ]
+        with patch.object(MODULE, "selected_suites", return_value=suites), \
+             patch.object(MODULE.subprocess, "run", side_effect=results) as spawn:
+            prepared = MODULE.prepare_suites({})
+        self.assertEqual(prepared, [("sc-composer-beads/graph_bd", "graph-bin", ["first_test"]),
+                                    ("sc-composer-beads/bd_integration", "integration-bin", ["second_test"]) ])
+        calls = spawn.call_args_list
+        self.assertIn("--no-run", calls[0].args[0])
+        self.assertIn("-j2", calls[0].args[0])
+        self.assertIn("--no-run", calls[1].args[0])
+        self.assertEqual(calls[2].args[0][-2:], ["--list", "--ignored"])
+        self.assertEqual(calls[3].args[0][-2:], ["--list", "--ignored"])
+        self.assertTrue(all("timeout" not in call.kwargs for call in calls))
 
+    def test_each_ignored_test_runs_in_its_own_timed_process_and_counts_aggregate(self) -> None:
         output = StringIO()
-        error = subprocess.TimeoutExpired(["cargo"], 600, output=b"partial out", stderr=b"partial err")
-        with patch.object(MODULE, "SUITES", (("graph", []),)), \
-             patch.object(MODULE.subprocess, "run", side_effect=error), redirect_stderr(output):
+        prepared = [("graph", "test-binary", ["first_test", "second_test"])]
+        completed = subprocess.CompletedProcess([], 0, ONE_PASS, "")
+        with patch.object(MODULE, "prepare_suites", return_value=prepared), \
+             patch.object(MODULE.subprocess, "run", return_value=completed) as spawn, \
+             redirect_stdout(output):
+            self.assertEqual(MODULE.run_suites({}, {"bd_version": "bd 1.3", "bd_sha256": "abc", "database_mode": "server"}), 0)
+        self.assertEqual(spawn.call_count, 2)
+        self.assertEqual([call.args[0][1] for call in spawn.call_args_list], ["first_test", "second_test"])
+        self.assertTrue(all("--exact" in call.args[0] and "--ignored" in call.args[0] for call in spawn.call_args_list))
+        self.assertTrue(all(call.kwargs["timeout"] == MODULE.PROCESS_TIMEOUT_SECONDS for call in spawn.call_args_list))
+        self.assertIn('"passed": 2', output.getvalue())
+        self.assertIn('"qualification": "qualified"', output.getvalue())
+        self.assertIn('"bd_version": "bd 1.3"', output.getvalue())
+        self.assertIn('"bd_sha256": "abc"', output.getvalue())
+        self.assertIn('"database_mode": "server"', output.getvalue())
+
+    def test_hung_stub_command_timeout_names_the_test(self) -> None:
+        stdout = StringIO()
+        stderr = StringIO()
+        prepared = [("graph", "stub-test-binary", ["known_hung_test"])]
+        timeout = subprocess.TimeoutExpired(
+            ["stub-test-binary", "known_hung_test", "--exact", "--ignored"],
+            MODULE.PROCESS_TIMEOUT_SECONDS,
+            output=b"partial stdout",
+            stderr=b"partial stderr",
+        )
+        with patch.object(MODULE, "prepare_suites", return_value=prepared), \
+             patch.object(MODULE.subprocess, "run", side_effect=timeout), \
+             redirect_stdout(stdout), redirect_stderr(stderr):
             self.assertEqual(MODULE.run_suites({}, {"database_mode": "server"}), 1)
-        self.assertIn("partial out", output.getvalue())
-        self.assertIn("partial err", output.getvalue())
+        diagnostic = stderr.getvalue()
+        self.assertIn("real-bd test timed out: graph::known_hung_test", diagnostic)
+        self.assertIn("stub-test-binary", diagnostic)
+        self.assertIn("known_hung_test", diagnostic)
+        self.assertIn("partial stdout", diagnostic)
+        self.assertIn("partial stderr", diagnostic)
+        self.assertIn('"passed": 0', stdout.getvalue())
+        self.assertIn('"failed": 1', stdout.getvalue())
+        self.assertIn('"exit": 1', stdout.getvalue())
+        self.assertIn('"qualification": "failed"', stdout.getvalue())
 
     def assert_bad_version(self, status: int, output: str) -> None:
         with patch.object(MODULE, "resolve_bd", return_value=Path("/fake/bd")), \
@@ -73,33 +137,20 @@ class RealBdQualification(unittest.TestCase):
     def test_empty_version_probe_fails_before_suites(self) -> None:
         self.assert_bad_version(0, "  ")
 
-    def test_each_suite_result_records_version_hash_and_mode(self) -> None:
-        from contextlib import redirect_stdout
-        from io import StringIO
-
-        provenance = {"bd_version": "bd 1.3", "bd_sha256": "abc", "database_mode": "server"}
-        output = StringIO()
-        with patch.object(MODULE, "SUITES", (("graph", []),)), \
-             patch.object(MODULE.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, OK_OUT, "")), \
-             redirect_stdout(output):
-            self.assertEqual(MODULE.run_suites({}, provenance), 0)
-        self.assertIn('"bd_version": "bd 1.3"', output.getvalue())
-        self.assertIn('"bd_sha256": "abc"', output.getvalue())
-        self.assertIn('"database_mode": "server"', output.getvalue())
-
     def test_unsupported_database_mode_cannot_qualify(self) -> None:
-        from contextlib import redirect_stdout
-        from io import StringIO
-
-        output = "SC_COMPOSE_MODE_UNSUPPORTED: BEADS_GRAPH_DIRTY_UNKNOWN\n" + OK_OUT
-        captured = StringIO()
-        with patch.object(MODULE.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, output, "")), redirect_stdout(captured):
+        stdout = StringIO()
+        result = subprocess.CompletedProcess(
+            [], 0, "SC_COMPOSE_MODE_UNSUPPORTED: BEADS_GRAPH_DIRTY_UNKNOWN\n" + ONE_PASS, ""
+        )
+        with patch.object(MODULE, "prepare_suites", return_value=[("database-mode", "test-bin", ["test_a"])]), \
+             patch.object(MODULE.subprocess, "run", return_value=result), redirect_stdout(stdout):
             self.assertEqual(MODULE.run_suites({}, {"database_mode": "server", "bd_version": "bd 1.3.1"}, database_mode=True), 0)
-        self.assertIn('"qualification": "not_qualified"', captured.getvalue())
-        self.assertIn('"ok": false', captured.getvalue())
+        self.assertIn('"qualification": "not_qualified"', stdout.getvalue())
+        self.assertIn('"ok": false', stdout.getvalue())
 
     def test_counts_sum_across_result_lines(self) -> None:
-        self.assertEqual(MODULE.parse_counts(OK_OUT), (15, 0, 1))
+        two_results = ONE_PASS + "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n"
+        self.assertEqual(MODULE.parse_counts(two_results), (13, 0, 0))
 
     def test_zero_executed_is_not_a_pass(self) -> None:
         zero = "test result: ok. 0 passed; 0 failed; 15 ignored; 0 measured\n"
@@ -113,7 +164,7 @@ class RealBdQualification(unittest.TestCase):
         self.assertIsNotNone(MODULE.verdict(1, (3, 0, 0)))
 
     def test_clean_run_passes(self) -> None:
-        self.assertIsNone(MODULE.verdict(0, MODULE.parse_counts(OK_OUT)))
+        self.assertIsNone(MODULE.verdict(0, MODULE.parse_counts(ONE_PASS)))
 
     def test_missing_or_bad_bd_is_refused_not_skipped(self) -> None:
         self.assertIsInstance(MODULE.resolve_bd({}), str)
