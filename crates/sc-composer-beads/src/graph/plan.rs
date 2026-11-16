@@ -772,6 +772,39 @@ fn check_edge(
 mod tests {
     use super::*;
 
+    #[test]
+    fn unowned_node_conflict_has_execution_error_class() {
+        let step = StepId::new("build").unwrap();
+        let id = BeadId::new("proj-1.rel-build").unwrap();
+        let digest = crate::Sha256Digest::new(format!("sha256:{}", "a".repeat(64))).unwrap();
+        let graph = ValidatedGraph {
+            mode: BeadGraphMode::Attach,
+            parent: Some(BeadId::new("proj-1").unwrap()),
+            root: None,
+            repour: true,
+            reference: Some(crate::GraphRef::new("rel").unwrap()),
+            formula: crate::FormulaName::new("example").unwrap(),
+            description: String::new(),
+            revision: digest.clone(),
+            inputs: digest,
+            steps: vec![Step {
+                id: step.clone(),
+                fields: Map::new(),
+                needs: vec![],
+            }],
+            relations: vec![],
+        };
+        let error = check_ownership(
+            &graph,
+            true,
+            &BTreeMap::from([(step, id.clone())]),
+            &BTreeMap::from([(id, json!({"metadata": {}}))]),
+        )
+        .unwrap_err();
+        assert_eq!(error.code(), "BEADS_GRAPH_CONFLICT");
+        assert_eq!(error.class(), crate::BeadErrorClass::Execution);
+    }
+
     fn graph() -> BeadGraph {
         let step = StepId::new("build").unwrap();
         BeadGraph {

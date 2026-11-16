@@ -56,7 +56,9 @@ impl std::fmt::Display for GraphIdField {
 
 pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
     match field {
-        GraphIdField::Bead => "bead ids are non-empty without whitespace",
+        GraphIdField::Bead => {
+            "bead ids are non-empty and contain no whitespace or control characters"
+        }
         GraphIdField::Ref => "ref is [A-Za-z0-9_-]{1,32}",
         GraphIdField::Step => "step is [A-Za-z0-9_]{1,64}; hyphens are forbidden",
         GraphIdField::Digest => "digest is sha256: plus exactly 64 lowercase hex digits",

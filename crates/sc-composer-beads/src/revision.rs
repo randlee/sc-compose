@@ -215,7 +215,7 @@ pub enum GraphChange {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct GraphApplyPartial {
-    /// Changes confirmed applied.
+    /// Changes applied before the failure.
     pub applied: Vec<GraphChange>,
     /// Changes still pending or whose outcome is uncertain.
     pub pending: Vec<GraphChange>,
@@ -256,7 +256,7 @@ impl std::fmt::Display for GraphApplyPartial {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} changes confirmed applied ({}), {} pending ({}); {} failed ({}): {}",
+            "{} changes applied before failure ({}), {} pending ({}); {} failed ({}): {}",
             self.applied.len(),
             change_summary(&self.applied),
             self.pending.len(),

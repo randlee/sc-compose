@@ -1243,7 +1243,7 @@ fn assert_native_bead_id_error(error: &BeadComposeError, invalid: &str) {
         wire["message"]
             .as_str()
             .unwrap()
-            .contains("bead ids are non-empty without whitespace")
+            .contains("bead ids are non-empty and contain no whitespace or control characters")
     );
 }
 

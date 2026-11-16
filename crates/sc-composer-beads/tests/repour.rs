@@ -932,12 +932,10 @@ fn attach_repour_refuses_foreign_and_unowned_planned_ids_before_any_write() {
         reason.contains("not owned") || reason.contains("not_owned"),
         "{reason}"
     );
-    let conflict = BeadComposeError::GraphConflict {
-        id: BeadId::new("proj-1.rel-build").unwrap(),
-        reason: GraphConflictReason::NotOwned,
-    };
-    assert_eq!(conflict.code(), "BEADS_GRAPH_CONFLICT");
-    assert_eq!(conflict.class(), BeadErrorClass::Execution);
+    assert!(matches!(
+        &receipt.stages.last().unwrap().outcome,
+        BeadStageOutcome::Failed { code } if code == "BEADS_GRAPH_CONFLICT"
+    ));
 
     // Foreign: provenance of another attachment.
     let mut foreign = saved;
@@ -1017,7 +1015,7 @@ fn a_partial_failure_reports_applied_and_pending_work_with_a_rerun_hint() {
     let evidence = &receipt.stages.last().unwrap().stderr_excerpt;
     assert!(evidence.contains("1 new nodes"), "{evidence}");
     assert!(
-        evidence.contains("3 changes confirmed applied"),
+        evidence.contains("3 changes applied before failure"),
         "{evidence}"
     );
     assert!(evidence.contains("2 pending"), "{evidence}");
