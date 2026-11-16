@@ -1,0 +1,42 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>larger-revision-probe</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker larger-revision-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;larger-revision-probe&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 1, &quot;passed&quot;: 1, &quot;seed&quot;: 24037, &quot;description&quot;: &quot;16-node chain; 7 plans and 6 revisions&quot;, &quot;assertions&quot;: &quot;6 changed-pour refusals, 6 preview/apply comparisons and 6 replay no-ops; runtime state and two external edges&quot;, &quot;reproducer&quot;: &quot;larger-revision-probe-probe.py&quot;, &quot;trace&quot;: &quot;larger-revision-probe-result.log&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="6 changed-pour refusals, 6 preview/apply comparisons and 6 replay no-ops; runtime state and two external edges; exact inputs in retained script and trace where available. Baseline 200f1945.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">16-node chain; 7 plans and 6 revisions</th>
+        <td>1</td>
+        <td>1/1</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">24037</th><td><code>6 changed-pour refusals, 6 preview/apply comparisons and 6 replay no-ops; runtime state and two external edges</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

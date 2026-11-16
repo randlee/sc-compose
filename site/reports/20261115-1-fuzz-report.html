@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Phase W: bounded adversarial repour campaign</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-fail { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Phase W: bounded adversarial repour campaign</h1>
+    <p class="subtitle">Serial real-bd probes with reproducible inputs</p>
+    <p class="generated-at">Generated: 2026-11-15 America/Los_Angeles</p>
+    <div class="top-status"><span class="status status-pass">PASS</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+    </div>
+    <p>Five focused probes exercised isolated databases. No product bugs found or fixed. Fault injection in the partial-apply case was simulated; its database and resume used real bd. The refusal worker reported three passes but its stdout was not retained.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">8-node chain; 4 plans and 3 revisions</th>
+          <td>1</td>
+          <td>1/1</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">16-node chain; 7 plans and 6 revisions</th>
+          <td>1</td>
+          <td>1/1</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Changed pour, missing dependency, and dirty graph refusals</th>
+          <td>3</td>
+          <td>3/3</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Partial apply and resume</th>
+          <td>1</td>
+          <td>1/1</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Step ID rename and dependency behavior</th>
+          <td>1</td>
+          <td>1/1</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>deep-revision-probe</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker deep-revision-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;deep-revision-probe&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 1, &quot;passed&quot;: 1, &quot;seed&quot;: 24036, &quot;description&quot;: &quot;8-node chain; 4 plans and 3 revisions&quot;, &quot;assertions&quot;: &quot;3 changed-pour refusals, 3 preview/apply comparisons and 3 replay no-ops; runtime state and two external edges&quot;, &quot;reproducer&quot;: &quot;deep-revision-probe-probe.py&quot;, &quot;trace&quot;: &quot;deep-revision-probe-result.log&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="3 changed-pour refusals, 3 preview/apply comparisons and 3 replay no-ops; runtime state and two external edges; exact inputs in retained script and trace where available. Baseline 200f1945.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">8-node chain; 4 plans and 3 revisions</th>
+        <td>1</td>
+        <td>1/1</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">24036</th><td><code>3 changed-pour refusals, 3 preview/apply comparisons and 3 replay no-ops; runtime state and two external edges</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>larger-revision-probe</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker larger-revision-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;larger-revision-probe&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 1, &quot;passed&quot;: 1, &quot;seed&quot;: 24037, &quot;description&quot;: &quot;16-node chain; 7 plans and 6 revisions&quot;, &quot;assertions&quot;: &quot;6 changed-pour refusals, 6 preview/apply comparisons and 6 replay no-ops; runtime state and two external edges&quot;, &quot;reproducer&quot;: &quot;larger-revision-probe-probe.py&quot;, &quot;trace&quot;: &quot;larger-revision-probe-result.log&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="6 changed-pour refusals, 6 preview/apply comparisons and 6 replay no-ops; runtime state and two external edges; exact inputs in retained script and trace where available. Baseline 200f1945.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">16-node chain; 7 plans and 6 revisions</th>
+        <td>1</td>
+        <td>1/1</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">24037</th><td><code>6 changed-pour refusals, 6 preview/apply comparisons and 6 replay no-ops; runtime state and two external edges</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>refusal-probe</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker refusal-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;refusal-probe&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 3, &quot;passed&quot;: 3, &quot;seed&quot;: null, &quot;description&quot;: &quot;Changed pour, missing dependency, and dirty graph refusals&quot;, &quot;assertions&quot;: &quot;Expected diagnostics and unchanged snapshots; PASS is worker-reported, original result.log is empty&quot;, &quot;reproducer&quot;: &quot;refusal-probe-probe.py&quot;, &quot;trace&quot;: null, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Expected diagnostics and unchanged snapshots; PASS is worker-reported, original result.log is empty; exact inputs in retained script and trace where available. Baseline 200f1945.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Changed pour, missing dependency, and dirty graph refusals</th>
+        <td>3</td>
+        <td>3/3</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">refusal-probe</th><td><code>Expected diagnostics and unchanged snapshots; PASS is worker-reported, original result.log is empty</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>partial-apply-probe</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker partial-apply-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;partial-apply-probe&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 1, &quot;passed&quot;: 1, &quot;seed&quot;: null, &quot;description&quot;: &quot;Partial apply and resume&quot;, &quot;assertions&quot;: &quot;A wrapper injected a failure on the second mutation; actual database and recovery use real bd&quot;, &quot;reproducer&quot;: &quot;partial-apply-probe-probe.py&quot;, &quot;trace&quot;: &quot;partial-apply-probe-result.log&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="A wrapper injected a failure on the second mutation; actual database and recovery use real bd; exact inputs in retained script and trace where available. Baseline 200f1945.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Partial apply and resume</th>
+        <td>1</td>
+        <td>1/1</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">partial-apply-probe</th><td><code>A wrapper injected a failure on the second mutation; actual database and recovery use real bd</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>rename-probe</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker rename-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;rename-probe&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 1, &quot;passed&quot;: 1, &quot;seed&quot;: null, &quot;description&quot;: &quot;Step ID rename and dependency behavior&quot;, &quot;assertions&quot;: &quot;Old-to-new ID rename retargets the dependent edge; preview matches apply, replay preserves state, runtime fields remain intact&quot;, &quot;reproducer&quot;: &quot;rename-probe-probe.py&quot;, &quot;trace&quot;: &quot;rename-probe-result.log&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Old-to-new ID rename retargets the dependent edge; preview matches apply, replay preserves state, runtime fields remain intact; exact inputs in retained script and trace where available. Baseline 200f1945.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Step ID rename and dependency behavior</th>
+        <td>1</td>
+        <td>1/1</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">rename-probe</th><td><code>Old-to-new ID rename retargets the dependent edge; preview matches apply, replay preserves state, runtime fields remain intact</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">Tested sc-compose commit</th><td>200f1945c9bd9c052d24e13c17bfee48e0495eef</td></tr>
+      <tr><th scope="row">bd CLI</th><td>1.3.4 dev fork; SHA-256 ce9fc82fe6b4b002fea817cc7a92febbfa73fa60a7066fc0b980a8dd57c975cd</td></tr>
+      <tr><th scope="row">Dolt</th><td>2.3.1</td></tr>
+      <tr><th scope="row">Isolation</th><td>serial; one throwaway server at a time</td></tr>
+      <tr><th scope="row">Reproduction</th><td>Replay scripts contain host-specific absolute paths and require adapting for another machine. Refusal stdout was not retained.</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+    <p>Worker panels and evidence: <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-deep-revision-probe.xhtml">deep-revision-probe</a> <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-larger-revision-probe.xhtml">larger-revision-probe</a> <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-refusal-probe.xhtml">refusal-probe</a> <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-partial-apply-probe.xhtml">partial-apply-probe</a> <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-rename-probe.xhtml">rename-probe</a> · <a href="20261115-1-fuzz-report/20261115-1-fuzz-report.json">JSON evidence</a></p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

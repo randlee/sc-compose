@@ -1,0 +1,100 @@
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "campaign_id": "20261115-1-fuzz-report",
+    "worktree_path": "/Users/randlee/github/sc-compose-worktrees/sprint/w-6-adversarial-fuzz",
+    "target": "repour/pour",
+    "baseline_ref": "200f1945c9bd9c052d24e13c17bfee48e0495eef",
+    "max_workers": 1,
+    "seeds": [
+      24036,
+      24037
+    ],
+    "bd_version": "1.3.4 dev fork",
+    "bd_sha256": "ce9fc82fe6b4b002fea817cc7a92febbfa73fa60a7066fc0b980a8dd57c975cd",
+    "dolt_version": "2.3.1",
+    "execution": "serial; one throwaway server at a time",
+    "findings_found": 0,
+    "findings_fixed": 0,
+    "limitations": "Replay scripts contain host-specific absolute paths and require adapting for another machine. Refusal stdout was not retained."
+  },
+  "workers": [
+    {
+      "correlation_id": "deep-revision-probe",
+      "status": "success",
+      "cases_run": 1,
+      "passed": 1,
+      "seed": 24036,
+      "description": "8-node chain; 4 plans and 3 revisions",
+      "assertions": "3 changed-pour refusals, 3 preview/apply comparisons and 3 replay no-ops; runtime state and two external edges",
+      "reproducer": "deep-revision-probe-probe.py",
+      "trace": "deep-revision-probe-result.log",
+      "finding_ids": [],
+      "error": null
+    },
+    {
+      "correlation_id": "larger-revision-probe",
+      "status": "success",
+      "cases_run": 1,
+      "passed": 1,
+      "seed": 24037,
+      "description": "16-node chain; 7 plans and 6 revisions",
+      "assertions": "6 changed-pour refusals, 6 preview/apply comparisons and 6 replay no-ops; runtime state and two external edges",
+      "reproducer": "larger-revision-probe-probe.py",
+      "trace": "larger-revision-probe-result.log",
+      "finding_ids": [],
+      "error": null
+    },
+    {
+      "correlation_id": "refusal-probe",
+      "status": "success",
+      "cases_run": 3,
+      "passed": 3,
+      "seed": null,
+      "description": "Changed pour, missing dependency, and dirty graph refusals",
+      "assertions": "Expected diagnostics and unchanged snapshots; PASS is worker-reported, original result.log is empty",
+      "reproducer": "refusal-probe-probe.py",
+      "trace": null,
+      "finding_ids": [],
+      "error": null
+    },
+    {
+      "correlation_id": "partial-apply-probe",
+      "status": "success",
+      "cases_run": 1,
+      "passed": 1,
+      "seed": null,
+      "description": "Partial apply and resume",
+      "assertions": "A wrapper injected a failure on the second mutation; actual database and recovery use real bd",
+      "reproducer": "partial-apply-probe-probe.py",
+      "trace": "partial-apply-probe-result.log",
+      "finding_ids": [],
+      "error": null
+    },
+    {
+      "correlation_id": "rename-probe",
+      "status": "success",
+      "cases_run": 1,
+      "passed": 1,
+      "seed": null,
+      "description": "Step ID rename and dependency behavior",
+      "assertions": "Old-to-new ID rename retargets the dependent edge; preview matches apply, replay preserves state, runtime fields remain intact",
+      "reproducer": "rename-probe-probe.py",
+      "trace": "rename-probe-result.log",
+      "finding_ids": [],
+      "error": null
+    }
+  ],
+  "findings": [],
+  "promoted_tests": [],
+  "unresolved_candidates": [],
+  "summary": {
+    "all_successful": true,
+    "confirmed_bugs": 0,
+    "intentional_boundaries": 3,
+    "inconclusive": 0,
+    "failed_workers": 0,
+    "cases_run": 7,
+    "cases_passed": 7
+  }
+}
