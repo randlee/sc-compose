@@ -23,6 +23,8 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "site" / "reports"
+# Keep one report date per process, including runs or controlled checks spanning midnight.
+RUN_DATE = datetime.date.today()
 TIMEOUT = 120
 SCENARIOS = (
     "pour", "changed pour refuses with changes", "set runtime state",
@@ -168,21 +170,21 @@ def xml_escape(value: str, *, quote: bool = False) -> str:
     return html.escape(valid, quote=quote)
 
 
-def write_report(version: str, digest: str, dolt_version: str, results: list[tuple[str, str, str]], *, profile: str = "integration") -> Path:
+def write_report(version: str, digest: str, dolt_version: str, results: list[tuple[str, str, str]], *, profile: str = "integration", mode: str = "server", target: str = "local") -> Path:
     REPORTS.mkdir(parents=True, exist_ok=True)
-    name = f"{datetime.date.today():%Y%m%d}-repour-{profile}.xhtml"
+    name = f"{RUN_DATE:%Y%m%d}-repour-{profile}.xhtml"
     report = REPORTS / name
     legacy_name = name.removesuffix(".xhtml") + ".html"
     previous = report if report.exists() else REPORTS / legacy_name
     esc = xml_escape
     rows = "\n".join(f"<tr><td>{esc(name)}</td><td>{esc(status)}</td><td><pre>{esc(detail)}</pre></td></tr>" for name, status, detail in results)
-    key = f"{platform.system()}-{platform.machine()}|{version}|server"
+    key = f"{target}|{platform.system()}-{platform.machine()}|{version}|{mode}"
     sections: dict[str, str] = {}
     if previous.exists():
         for section in ET.parse(previous).getroot().iter("{http://www.w3.org/1999/xhtml}section"):
             if section.get("data-key"):
                 sections[section.attrib["data-key"]] = ET.tostring(section, encoding="unicode")
-    sections[key] = f'''<section data-key="{esc(key, quote=True)}"><h2>{esc(platform.system())} {esc(platform.machine())} — local server mode</h2><p>bd: {esc(version)}<br/>SHA-256: {esc(digest)}<br/>Dolt: {esc(dolt_version)}</p>
+    sections[key] = f'''<section data-key="{esc(key, quote=True)}"><h2>{esc(platform.system())} {esc(platform.machine())} — {esc(target)} {esc(mode)} mode</h2><p>bd: {esc(version)}<br/>SHA-256: {esc(digest)}<br/>Dolt: {esc(dolt_version)}</p>
 <table><thead><tr><th>Scenario</th><th>Result</th><th>Evidence / failure</th></tr></thead><tbody>{rows}</tbody></table></section>'''
     panels = "\n".join(sections.values())
     report.write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
@@ -201,13 +203,34 @@ def write_report(version: str, digest: str, dolt_version: str, results: list[tup
     return report
 
 
-def main(*, fuzz_seeds: tuple[int, ...] = ()) -> int:
+def database_scenario(mode: str) -> str:
+    return "embedded unknown-state refusal and explicit override" if mode == "embedded" else "clean apply, dirty refusal and explicit override"
+
+
+def assert_embedded_unknown(error: dict) -> None:
+    assert error["code"] == "BEADS_GRAPH_DIRTY_UNKNOWN", error
+    assert error["details"]["cause_code"] == "BEADS_GRAPH_READ_FAILED", error
+    assert "not yet supported in embedded mode" in error["details"]["cause"], error
+
+
+def initialization_args(mode: str, port: int | None) -> list[str]:
+    args = ["init", "--non-interactive", "--quiet", "--skip-agents", "--skip-hooks", "--prefix", "it"]
+    if mode == "server":
+        if port is None or port == 3308:
+            raise AssertionError("server mode requires an isolated port")
+        args.extend(["--server", "--server-port", str(port), "--database", "integration"])
+    elif mode != "embedded":
+        raise AssertionError(f"unsupported storage mode: {mode}")
+    return args
+
+
+def main(*, fuzz_seeds: tuple[int, ...] = (), mode: str = "server") -> int:
     results: list[tuple[str, str, str]] = []
     version = digest = dolt_version = "unavailable"
     server: subprocess.Popen[bytes] | None = None
     baseline: set[str] = set()
     scenario_name = "setup"
-    expected_scenarios = (*SCENARIOS, *(f"fuzz seed {seed}" for seed in fuzz_seeds))
+    expected_scenarios = (*(database_scenario(mode) if name == "clean apply, dirty refusal and explicit override" else name for name in SCENARIOS), *(f"fuzz seed {seed}" for seed in fuzz_seeds))
     try:
         bd_name, dolt_name = shutil.which("bd"), shutil.which("dolt")
         if not bd_name or not dolt_name:
@@ -236,21 +259,23 @@ def main(*, fuzz_seeds: tuple[int, ...] = ()) -> int:
             dolt_version = run([dolt, "version"], cwd=data, env=env).stdout.splitlines()[0].strip()
             run([dolt, "config", "--global", "--add", "user.name", "integration"], cwd=data, env=env)
             run([dolt, "config", "--global", "--add", "user.email", "integration@example.invalid"], cwd=data, env=env)
-            port = select_server_port(env.get("SC_COMPOSE_TEST_DOLT_PORT"))
-            env["SC_COMPOSE_TEST_DOLT_PORT"] = str(port)
-            server_log = stack.enter_context((root / "server.log").open("wb"))
-            server = subprocess.Popen([dolt, "sql-server", "--host", "127.0.0.1", "--port", str(port)], cwd=data, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            assert server.stdout is not None
-            events: queue.Queue = queue.Queue()
-            reader = threading.Thread(target=read_server_output, args=(server.stdout, server_log, port, events), daemon=True)
-            reader.start()
-            stack.callback(server.stdout.close)
-            stack.callback(join_server_reader, reader)
-            stack.callback(stop_server, server)
-            wait_for_server(events, server, root / "server.log")
+            port = None
+            if mode == "server":
+                port = select_server_port(env.get("SC_COMPOSE_TEST_DOLT_PORT"))
+                env["SC_COMPOSE_TEST_DOLT_PORT"] = str(port)
+                server_log = stack.enter_context((root / "server.log").open("wb"))
+                server = subprocess.Popen([dolt, "sql-server", "--host", "127.0.0.1", "--port", str(port)], cwd=data, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                assert server.stdout is not None
+                events: queue.Queue = queue.Queue()
+                reader = threading.Thread(target=read_server_output, args=(server.stdout, server_log, port, events), daemon=True)
+                reader.start()
+                stack.callback(server.stdout.close)
+                stack.callback(join_server_reader, reader)
+                stack.callback(stop_server, server)
+                wait_for_server(events, server, root / "server.log")
             def bd_run(*args: str) -> str:
                 return run([bd, *args], cwd=workspace, env=env).stdout
-            bd_run("init", "--non-interactive", "--quiet", "--skip-agents", "--skip-hooks", "--server", "--server-port", str(port), "--database", "integration", "--prefix", "it")
+            bd_run(*initialization_args(mode, port))
             def scenario(name: str, action):
                 nonlocal scenario_name
                 scenario_name = name
@@ -360,20 +385,32 @@ def main(*, fuzz_seeds: tuple[int, ...] = ()) -> int:
             scenario("dangling reference refuses before writes", dangling)
             def dirty():
                 bd_run("dolt", "commit", "-m", "integration baseline")
-                clean = cli("repour", a, "--var", "literal=v1", "--root", root_id)
-                assert clean["payload"]["outcome"] == "succeeded"
+                if mode == "embedded":
+                    before = snapshot()
+                    unknown = cli("repour", a, "--var", "literal=v1", "--root", root_id, expected=2)
+                    assert_embedded_unknown(unknown["payload"]["error"])
+                    assert snapshot() == before
+                else:
+                    clean = cli("repour", a, "--var", "literal=v1", "--root", root_id)
+                    assert clean["payload"]["outcome"] == "succeeded"
                 bd_run("--dolt-auto-commit=off", "update", ids["build"], "--notes", "dirty")
-                assert json.loads(bd_run("sql", "--readonly", "SELECT table_name, staged, status FROM dolt_status", "--json"))
+                if mode == "server":
+                    assert json.loads(bd_run("sql", "--readonly", "SELECT table_name, staged, status FROM dolt_status", "--json"))
                 before = snapshot()
                 refused = cli("repour", b, "--var", "literal=v1", "--root", root_id, expected=2)
-                assert refused["payload"]["error"]["code"] == "BEADS_GRAPH_DIRTY", refused
+                if mode == "embedded":
+                    assert_embedded_unknown(refused["payload"]["error"])
+                else:
+                    assert refused["payload"]["error"]["code"] == "BEADS_GRAPH_DIRTY", refused
                 assert snapshot() == before
                 changed = cli("repour", b, "--var", "literal=v1", "--root", root_id, "--allow-uncommitted")
                 assert changed["payload"]["outcome"] == "succeeded"
                 assert show(ids["build"])["notes"] == "dirty"
                 assert show(ids["verify"])["title"] == "Verify revised"
                 snapshot()
-            scenario("clean apply, dirty refusal and explicit override", dirty)
+                if mode == "embedded":
+                    return "Stock bd 1.3.4 has no embedded bd sql: exact unknown-state refusal and no-write behavior verified before and after an uncommitted edit; explicit override succeeds. Clean/dirty detection is not supported or claimed."
+            scenario(database_scenario(mode), dirty)
             def attach_request():
                 example = ROOT / "examples" / "beads" / "release-under-epic"
                 template = workspace / "attached.formula.toml.j2"
@@ -453,8 +490,9 @@ def main(*, fuzz_seeds: tuple[int, ...] = ()) -> int:
                 for seed in fuzz_seeds:
                     scenario(f"fuzz seed {seed}", lambda seed=seed: run_seed(seed, workspace, cli, bd_run, show, snapshot))
             scenario_name = "teardown"
-            stop_server(server)
-            server = None
+            if server is not None:
+                stop_server(server)
+                server = None
             owned = processes_referencing(root, workspace, env)
             assert not owned, f"processes still reference temporary workspace: {owned}"
         remaining = server_processes()
@@ -473,7 +511,7 @@ def main(*, fuzz_seeds: tuple[int, ...] = ()) -> int:
                     results.append(("teardown", "FAIL", f"unexpected Dolt server processes: {remaining}") )
             except Exception as error:
                 results.append(("teardown", "FAIL", str(error)))
-        report = write_report(version, digest, dolt_version, results, profile="fuzz" if fuzz_seeds else "integration")
+        report = write_report(version, digest, dolt_version, results, profile="fuzz" if fuzz_seeds else "integration", mode=mode, target=os.environ.get("SC_COMPOSE_TEST_TARGET", "local"))
         print(f"integration report: {report}")
         for name, status, detail in results:
             print(f"{status}: {name}" + (f": {detail}" if detail else ""))
@@ -483,9 +521,10 @@ def main(*, fuzz_seeds: tuple[int, ...] = ()) -> int:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--mode", choices=("server", "embedded"), default="server", help="Isolated storage mode; never installs executables")
     parser.add_argument("--fuzz", action="store_true", help="After integration passes, run two fixed small seeded cases in the same database")
     parser.add_argument("--fuzz-seed", type=int, action="append", help="Replay a seed (at most two, requires --fuzz)")
     args = parser.parse_args()
     if args.fuzz_seed and (not args.fuzz or len(args.fuzz_seed) > 2):
         parser.error("--fuzz-seed requires --fuzz and accepts at most two seeds")
-    raise SystemExit(main(fuzz_seeds=tuple(args.fuzz_seed or (24034, 24035)) if args.fuzz else ()))
+    raise SystemExit(main(fuzz_seeds=tuple(args.fuzz_seed or (24034, 24035)) if args.fuzz else (), mode=args.mode))
