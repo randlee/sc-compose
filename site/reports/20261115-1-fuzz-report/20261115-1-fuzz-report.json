@@ -65,9 +65,9 @@
     "scale_status": "PARTIAL: five of the 30 forty-node, ten-revision seeds ran. Rand accepted the reduced budget of 90 cases plus five forty-node, ten-revision seeds on 2026-11-16 (\"accept\"). Source: comp-w-6.fuzz-campaign bead note, 2026-11-16. The lead reduced the budget under Rand’s no-load rule; the remaining 25 forty-node seeds are not required.",
     "shared_server": "Five initial 40-node setup attempts and the first replacement-run setup attempted the shared :3308 endpoint; access was denied. The lead checked and reported no shared beads were added. Historical server checks and current pgrep are recorded in forty_node_gap.post_run_servers.",
     "coverage_gaps": "Only the second mutation position was fault injected; embedded-mode, crash and concurrent probes were not performed. Retained trace is absent for 3 earlier refusal cases.",
-    "archive_verification": "Independent archive evidence review at bf2f50fd: all three ZIP integrity checks passed; 90 replacement case assertions completed, 64 structural plus 30 refusal conflict responses = 94, 30 dangling, 30 dirty, 30 partial responses, five 40-node logs with 50 revision events, and four retitle revision events. Assertion relationships rely on imported integration_repour_fuzz.py and were not independently replayed. Four earlier logs have PASS markers; the three earlier refusal cases have no trace.",
+    "archive_verification": "Archive evidence review by Codex subagent evidence_verifier at bf2f50fd: all three ZIP integrity checks passed; 90 replacement case assertions completed, 64 structural plus 30 refusal conflict responses = 94, 30 dangling, 30 dirty, 30 partial responses, five 40-node logs with 50 revision events, and four retitle revision events. Assertion relationships rely on imported integration_repour_fuzz.py and were not independently replayed. Four earlier logs have PASS markers; the three earlier refusal cases have no trace.",
     "denominator_exclusions": "Earlier structural seeds 25000 and 25001 and prior seeded-run seeds 24034 and 24035 are outside the 103-case denominator; HARNESS-25001 is an earlier structural finding.",
-    "archive_verifier": "/root/evidence_verifier; read-only archive review at bf2f50fd, not an independent replay.",
+    "archive_verifier": "Codex subagent evidence_verifier; read-only archive review at bf2f50fd, not an independent replay.",
     "forty_archive_member_sha256": {
       "sc-forty-campaign-v2/case.py": "663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963",
       "sc-forty-campaign-v2/run.py": "1be3b0698a69d2fecd30e2275b4aae303fd738e9ac78d86f2ab728929fff8afc",
@@ -308,7 +308,7 @@
     "harness_defects": 1,
     "harness_defect": "Earlier seed 25001 exposed an order-sensitive dependency snapshot; this is a flaky test-harness oracle, not a confirmed product defect. Fixed in scripts/integration_repour.py with unit coverage.",
     "initial_run": "Initial shared-server run stopped on a formula-name harness setup error; a replacement server and database were started for the 90-case run. The initial error log was not retained.",
-    "coverage_limits": "Lead-approved scale budget: 30 seeds × 40 nodes × 10 revisions. Replacement achieved 90 cases across structural, refusal and partial families, with a maximum structural case of 20 nodes and 6 revisions; the later gap round achieved five 40-node, 10-revision seeds. Only the second mutation was fault-injected. Embedded-mode, crash and concurrency probes were not performed.",
+    "coverage_limits": "The lead reduced the scale budget under the owner no-load rule; Rand accepted it on 2026-11-16: 30 seeds per generator, up to 40 nodes and 10 revisions. Replacement achieved 90 cases across structural, refusal and partial families, with a maximum structural case of 20 nodes and 6 revisions; the later gap round achieved five 40-node, 10-revision seeds. Only the second mutation was fault-injected. Embedded-mode, crash and concurrency probes were not performed.",
     "evidence_note": "Per-case inputs and command stdout/stderr captured in the zip; unrelated process-list records removed from orchestration and earlier structural logs. Final scripts changed during the run and cannot exactly reproduce every earlier case; earlier source versions unavailable. Host-specific paths and a historical deadline require adaptation.",
     "evidence_archive": "replacement-campaign-evidence.zip",
     "workers": [
@@ -518,7 +518,7 @@
   },
   "validation": {
     "tested_revision": "d8933f9634364eff501f9aa130a8de7555083b31",
-    "note": "Python and lint tests ran against this revision; report-validation commands checked the updated report. Controlled tests include expected simulated failure output.",
+    "note": "Python tests ran at tested_revision. At dcda76ef83fb09f944297ad3f88d84913c265de9, html-validate, xmllint and just lint also passed; later edits changed only the report HTML and JSON. Controlled tests include expected simulated failure output.",
     "commands": [
       {
         "command": "python3 -m unittest discover -s scripts/tests",
@@ -545,6 +545,7 @@
         "exit_code": 0,
         "log": "validation/xmllint.log"
       }
-    ]
+    ],
+    "report_checks_revision": "dcda76ef83fb09f944297ad3f88d84913c265de9"
   }
 }
