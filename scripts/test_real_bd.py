@@ -75,6 +75,10 @@ def isolated_environment(environ: dict[str, str], home: Path) -> dict[str, str]:
 
 
 def main() -> int:
+    mode = sys.argv[1:]
+    if mode not in ([], ["--database-mode"]):
+        print("usage: test_real_bd.py [--database-mode]", file=sys.stderr)
+        return 2
     bd = resolve_bd(dict(os.environ))
     if isinstance(bd, str):
         print(f"real-bd qualification NOT RUN: {bd}", file=sys.stderr)
@@ -96,14 +100,15 @@ def main() -> int:
             "database_mode": "server" if env.get("SC_COMPOSE_TEST_DOLT_PORT") else "embedded",
         }
         print(json.dumps(provenance))
-        return run_suites(env, provenance)
+        return run_suites(env, provenance, database_mode=bool(mode))
 
 
-def run_suites(env: dict[str, str], provenance: dict[str, str]) -> int:
+def run_suites(env: dict[str, str], provenance: dict[str, str], database_mode: bool = False) -> int:
     status = 0
-    for label, args in SUITES:
+    suites = (("database-mode", ["-p", "sc-composer-beads", "--test", "graph_bd", "repour_clean_dirty_database_mode"]),) if database_mode else SUITES
+    for label, args in suites:
         proc = subprocess.run(
-            ["cargo", "test", "-j2", *args, "--", "--ignored", "--test-threads=1"],
+            ["cargo", "test", "-j2", *args, "--", "--ignored", "--test-threads=1", "--nocapture", *([] if database_mode else ["--skip", "repour_clean_dirty_database_mode"])],
             capture_output=True,
             text=True,
             check=False,
@@ -113,12 +118,19 @@ def run_suites(env: dict[str, str], provenance: dict[str, str]) -> int:
         sys.stderr.write(proc.stderr)
         counts = parse_counts(proc.stdout)
         reason = verdict(proc.returncode, counts)
+        unsupported = "SC_COMPOSE_MODE_UNSUPPORTED:" in proc.stdout
         print(
             json.dumps(
                 {**provenance, "suite": label, "passed": counts[0], "failed": counts[1],
-                 "exit": proc.returncode, "ok": reason is None}
+                 "exit": proc.returncode, "ok": reason is None and not unsupported,
+                 "qualification": "failed" if reason else ("not_qualified" if unsupported else "qualified")}
             )
         )
+        if unsupported and reason is None:
+            summary = os.environ.get("GITHUB_STEP_SUMMARY")
+            if summary:
+                with open(summary, "a", encoding="utf-8") as stream:
+                    stream.write(f"bd {provenance['bd_version']}: {provenance['database_mode']} not_qualified (unsupported)\n")
         if reason:
             print(f"real-bd suite {label} FAILED: {reason}", file=sys.stderr)
             status = 1

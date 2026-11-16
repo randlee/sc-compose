@@ -24,6 +24,7 @@ OK_OUT = (
 class RealBdQualification(unittest.TestCase):
     def assert_bad_version(self, status: int, output: str) -> None:
         with patch.object(MODULE, "resolve_bd", return_value=Path("/fake/bd")), \
+             patch.object(MODULE.sys, "argv", ["test_real_bd.py"]), \
              patch.object(MODULE.subprocess, "run", return_value=subprocess.CompletedProcess([], status, output, "")), \
              patch.object(MODULE, "run_suites") as suites:
             self.assertEqual(MODULE.main(), 1)
@@ -48,6 +49,17 @@ class RealBdQualification(unittest.TestCase):
         self.assertIn('"bd_version": "bd 1.3"', output.getvalue())
         self.assertIn('"bd_sha256": "abc"', output.getvalue())
         self.assertIn('"database_mode": "server"', output.getvalue())
+
+    def test_unsupported_database_mode_cannot_qualify(self) -> None:
+        from contextlib import redirect_stdout
+        from io import StringIO
+
+        output = "SC_COMPOSE_MODE_UNSUPPORTED: BEADS_GRAPH_DIRTY_UNKNOWN\n" + OK_OUT
+        captured = StringIO()
+        with patch.object(MODULE.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, output, "")), redirect_stdout(captured):
+            self.assertEqual(MODULE.run_suites({}, {"database_mode": "server", "bd_version": "bd 1.3.1"}, database_mode=True), 0)
+        self.assertIn('"qualification": "not_qualified"', captured.getvalue())
+        self.assertIn('"ok": false', captured.getvalue())
 
     def test_counts_sum_across_result_lines(self) -> None:
         self.assertEqual(MODULE.parse_counts(OK_OUT), (15, 0, 1))

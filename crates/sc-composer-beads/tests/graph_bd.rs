@@ -543,6 +543,9 @@ fn with_workspace(test: impl FnOnce(&Workspace)) {
         .env("BEADS_DIR", bd_environment_directory(&workspace.beads_dir))
         .env("BEADS_NO_DAEMON", "1");
     let output = run_command(&mut child);
+    if String::from_utf8_lossy(&output.stdout).contains("SC_COMPOSE_MODE_UNSUPPORTED:") {
+        print!("{}", String::from_utf8_lossy(&output.stdout));
+    }
     assert!(
         output.status.success(),
         "isolated {name}: {}\n{}",
@@ -1435,5 +1438,83 @@ fn repour_flattens_and_reverses_edges_with_external_edges_intact() {
         assert!(!w.dependency_exists(&verify, &build));
         assert!(w.dependency_exists(&outside_gate, &build));
         assert!(w.dependency_exists(&publish, &outside_task));
+    });
+}
+
+#[test]
+#[ignore = "separate isolated database-mode qualification only"]
+/// Embedded bd 1.3.1 cannot establish cleanliness; its typed unknown is not qualified.
+fn repour_clean_dirty_database_mode() {
+    use sc_composer_beads::{
+        ExistingGraphTarget, GraphRevisionOptions, UncommittedPolicy, execute_graph_revision,
+    };
+    with_workspace(|w| {
+        let graph = w
+            .success(&w.request(BeadOperation::Pour, None))
+            .graph
+            .unwrap();
+        let root = graph.parent.unwrap();
+        if std::env::var_os("SC_COMPOSE_TEST_DOLT_PORT").is_some() {
+            w.command(&["dolt", "commit", "-m", "integration baseline"]);
+        }
+        w.set_plan(&plan("Build changed", ""));
+        let request = w.repour_request(&root);
+        let target = ExistingGraphTarget::PourRoot(root);
+        let refuse = GraphRevisionOptions::new(target.clone(), UncommittedPolicy::Refuse);
+        let mut preview = request.clone();
+        preview.operation = BeadOperation::PreviewRepour;
+        let clean = execute_graph_revision(&preview, &refuse);
+        if std::env::var_os("SC_COMPOSE_TEST_DOLT_PORT").is_none() {
+            let error = clean.unwrap_err();
+            assert_eq!(error.code(), "BEADS_GRAPH_DIRTY_UNKNOWN", "{error}");
+            println!("SC_COMPOSE_MODE_UNSUPPORTED: {error}");
+            return;
+        }
+        assert_eq!(
+            clean.expect("server clean-state probe").outcome,
+            BeadOutcome::Succeeded
+        );
+        let status_query = "SELECT table_name, staged, status FROM dolt_status";
+        assert!(
+            w.json(&["sql", "--readonly", status_query, "--json"])
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        let build = graph.ids[&sc_composer_beads::StepId::new("build").unwrap()].to_string();
+        w.command(&[
+            "--dolt-auto-commit=off",
+            "update",
+            &build,
+            "--notes",
+            "dirty fixture",
+        ]);
+        assert!(
+            !w.json(&["sql", "--readonly", status_query, "--json"])
+                .as_array()
+                .unwrap()
+                .is_empty(),
+            "fixture must really be dirty"
+        );
+        let before = w.snapshot();
+        assert!(
+            !w.json(&["sql", "--readonly", status_query, "--json"])
+                .as_array()
+                .unwrap()
+                .is_empty(),
+            "inspection must preserve dirty state"
+        );
+        let error = execute_graph_revision(&request, &refuse).unwrap_err();
+        assert_eq!(error.code(), "BEADS_GRAPH_DIRTY", "{error}");
+        assert_eq!(w.snapshot(), before);
+        let allow = GraphRevisionOptions::new(target, UncommittedPolicy::Allow);
+        assert_eq!(
+            execute_graph_revision(&request, &allow).unwrap().outcome,
+            BeadOutcome::Succeeded
+        );
+        assert_eq!(
+            w.json(&["show", &build, "--json"])[0]["title"],
+            "Build changed"
+        );
     });
 }
