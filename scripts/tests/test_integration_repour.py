@@ -62,6 +62,23 @@ class IntegrationRunnerTests(unittest.TestCase):
             self.assertEqual(len(list(tree.getroot().iter("{http://www.w3.org/1999/xhtml}section"))), 2)
             self.assertIn(report.name, (reports / "index.html").read_text())
 
+    def test_report_migrates_legacy_html_and_preserves_other_panels(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            reports = Path(tmp)
+            index = reports / "index.html"
+            index.write_text("<html><body>\n    <ul>\n    </ul>\n</body></html>")
+            with patch.object(MODULE, "REPORTS", reports):
+                report = MODULE.write_report("bd first", "abc", "dolt 2", [("first", "PASS", "")])
+                legacy = report.with_suffix(".html")
+                report.rename(legacy)
+                index.write_text(index.read_text().replace(report.name, legacy.name))
+                updated = MODULE.write_report("bd second", "def", "dolt 2", [("second", "PASS", "")])
+            self.assertFalse(legacy.exists())
+            self.assertEqual(updated.suffix, ".xhtml")
+            self.assertEqual(len(list(ET.parse(updated).getroot().iter("{http://www.w3.org/1999/xhtml}section"))), 2)
+            self.assertIn(updated.name, index.read_text())
+            self.assertNotIn(legacy.name, index.read_text())
+
 
 if __name__ == "__main__":
     unittest.main()

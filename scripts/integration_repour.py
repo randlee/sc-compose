@@ -99,14 +99,16 @@ def xml_escape(value: str, *, quote: bool = False) -> str:
 
 def write_report(version: str, digest: str, dolt_version: str, results: list[tuple[str, str, str]]) -> Path:
     REPORTS.mkdir(parents=True, exist_ok=True)
-    name = f"{datetime.date.today():%Y%m%d}-repour-integration.html"
+    name = f"{datetime.date.today():%Y%m%d}-repour-integration.xhtml"
     report = REPORTS / name
+    legacy_name = name.removesuffix(".xhtml") + ".html"
+    previous = report if report.exists() else REPORTS / legacy_name
     esc = xml_escape
     rows = "\n".join(f"<tr><td>{esc(name)}</td><td>{esc(status)}</td><td><pre>{esc(detail)}</pre></td></tr>" for name, status, detail in results)
     key = f"{platform.system()}-{platform.machine()}|{version}|server"
     sections: dict[str, str] = {}
-    if report.exists():
-        for section in ET.parse(report).getroot().iter("{http://www.w3.org/1999/xhtml}section"):
+    if previous.exists():
+        for section in ET.parse(previous).getroot().iter("{http://www.w3.org/1999/xhtml}section"):
             if section.get("data-key"):
                 sections[section.attrib["data-key"]] = ET.tostring(section, encoding="unicode")
     sections[key] = f'''<section data-key="{esc(key, quote=True)}"><h2>{esc(platform.system())} {esc(platform.machine())} — local server mode</h2><p>bd: {esc(version)}<br/>SHA-256: {esc(digest)}<br/>Dolt: {esc(dolt_version)}</p>
@@ -119,9 +121,12 @@ def write_report(version: str, digest: str, dolt_version: str, results: list[tup
     index = REPORTS / "index.html"
     text = index.read_text(encoding="utf-8")
     entry = f'<li><a href="{name}">{name} — local repour integration</a></li>'
+    legacy_entry = f'<li><a href="{legacy_name}">{legacy_name} — local repour integration</a></li>'
+    text = text.replace(legacy_entry, entry)
+    (REPORTS / legacy_name).unlink(missing_ok=True)
     if entry not in text:
         text = text.replace("    <ul>\n", "    <ul>\n      " + entry + "\n", 1)
-        index.write_text(text, encoding="utf-8")
+    index.write_text(text, encoding="utf-8")
     return report
 
 
@@ -155,7 +160,8 @@ def main() -> int:
             if "1.3.4" not in version:
                 raise AssertionError(f"expected installed bd 1.3.4 or its fork, got {version}")
             digest = hashlib.sha256(Path(bd).read_bytes()).hexdigest()
-            dolt_version = run([dolt, "version"], cwd=data, env=env).stdout.strip()
+            run([dolt, "config", "--global", "--add", "versioncheck.disabled", "true"], cwd=data, env=env)
+            dolt_version = run([dolt, "version"], cwd=data, env=env).stdout.splitlines()[0].strip()
             run([dolt, "config", "--global", "--add", "user.name", "integration"], cwd=data, env=env)
             run([dolt, "config", "--global", "--add", "user.email", "integration@example.invalid"], cwd=data, env=env)
             with socket.socket() as probe:
