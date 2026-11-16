@@ -125,13 +125,14 @@ class TargetTests(unittest.TestCase):
         self.assertEqual({remote[index + 1] for index, arg in enumerate(remote) if arg == '--tool-dir'}, {str(Path(path).parent) for path in tools.values()})
 
     def test_report_preserves_target_build_and_mode_panels(self):
+        installation = {'installed': False, 'source': 'controlled fixture bd'}
         with tempfile.TemporaryDirectory() as tmp:
             reports = Path(tmp)
             (reports / 'index.html').write_text('<html><body>\n    <ul>\n    </ul>\n</body></html>')
-            with patch.object(suite, 'REPORTS', reports), patch.object(suite, 'RUN_DATE', datetime.date(2001, 1, 2)):
-                suite.write_report('stock 1.3.4', 'stockhash', 'dolt', [('embedded', 'PASS', '')], profile='fuzz', mode='embedded', target='atmbench')
-                report = suite.write_report('fork 1.3.4', 'forkhash', 'dolt', [('server', 'PASS', '')], profile='fuzz', mode='server', target='atmbench')
-                suite.write_report('fork 1.3.4', 'localhash', 'dolt', [('local', 'PASS', '')], profile='fuzz', target='local')
+            with patch.object(suite, 'REPORTS', reports), patch.object(suite, 'RUN_DATE', datetime.date(2001, 1, 2)), patch.dict(os.environ, {'SC_COMPOSE_TEST_INSTALLATION': 'malformed JSON', 'PATH': ''}):
+                suite.write_report('stock 1.3.4', 'stockhash', 'dolt', [('embedded', 'PASS', '')], profile='fuzz', mode='embedded', target='atmbench', installation=installation)
+                report = suite.write_report('fork 1.3.4', 'forkhash', 'dolt', [('server', 'PASS', '')], profile='fuzz', mode='server', target='atmbench', installation=installation)
+                suite.write_report('fork 1.3.4', 'localhash', 'dolt', [('local', 'PASS', '')], profile='fuzz', target='local', installation=installation)
             sections = list(ET.parse(report).getroot().iter('{http://www.w3.org/1999/xhtml}section'))
             self.assertEqual(report.name, '20010102-repour-fuzz.xhtml')
             self.assertEqual(len(sections), 3)

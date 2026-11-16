@@ -129,28 +129,30 @@ class IntegrationRunnerTests(unittest.TestCase):
         self.assertEqual(server.wait.call_count, 2)
 
     def test_report_is_xhtml_and_escapes_assertion(self) -> None:
+        installation = {"installed": False, "source": "controlled fixture bd"}
         with tempfile.TemporaryDirectory() as tmp:
             reports = Path(tmp)
             (reports / "index.html").write_text("<html><body>\n    <ul>\n    </ul>\n</body></html>")
-            with patch.object(MODULE, "REPORTS", reports):
-                report = MODULE.write_report("bd <version>", "abc", "dolt 2", [("scenario", "FAIL", "a < b\x1b")])
-                MODULE.write_report("bd other", "def", "dolt 2", [("other", "PASS", "")])
+            with patch.object(MODULE, "REPORTS", reports), patch.dict(MODULE.os.environ, {"SC_COMPOSE_TEST_INSTALLATION": "malformed JSON", "PATH": ""}):
+                report = MODULE.write_report("bd <version>", "abc", "dolt 2", [("scenario", "FAIL", "a < b\x1b")], installation=installation)
+                MODULE.write_report("bd other", "def", "dolt 2", [("other", "PASS", "")], installation=installation)
             tree = ET.parse(report)
             self.assertIn("a < b", "".join(tree.getroot().itertext()))
             self.assertEqual(len(list(tree.getroot().iter("{http://www.w3.org/1999/xhtml}section"))), 2)
             self.assertIn(report.name, (reports / "index.html").read_text())
 
     def test_report_migrates_legacy_html_and_preserves_other_panels(self) -> None:
+        installation = {"installed": False, "source": "controlled fixture bd"}
         with tempfile.TemporaryDirectory() as tmp:
             reports = Path(tmp)
             index = reports / "index.html"
             index.write_text("<html><body>\n    <ul>\n    </ul>\n</body></html>")
-            with patch.object(MODULE, "REPORTS", reports):
-                report = MODULE.write_report("bd first", "abc", "dolt 2", [("first", "PASS", "")])
+            with patch.object(MODULE, "REPORTS", reports), patch.dict(MODULE.os.environ, {"SC_COMPOSE_TEST_INSTALLATION": "malformed JSON", "PATH": ""}):
+                report = MODULE.write_report("bd first", "abc", "dolt 2", [("first", "PASS", "")], installation=installation)
                 legacy = report.with_suffix(".html")
                 report.rename(legacy)
                 index.write_text(index.read_text().replace(report.name, legacy.name))
-                updated = MODULE.write_report("bd second", "def", "dolt 2", [("second", "PASS", "")])
+                updated = MODULE.write_report("bd second", "def", "dolt 2", [("second", "PASS", "")], installation=installation)
             self.assertFalse(legacy.exists())
             self.assertEqual(updated.suffix, ".xhtml")
             self.assertEqual(len(list(ET.parse(updated).getroot().iter("{http://www.w3.org/1999/xhtml}section"))), 2)
