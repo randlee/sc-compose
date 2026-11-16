@@ -96,5 +96,89 @@
     "failed_workers": 0,
     "cases_run": 7,
     "cases_passed": 7
+  },
+  "replacement_campaign": {
+    "cases_run": 90,
+    "cases_passed": 90,
+    "seeds": "0–29 for each of three families",
+    "oracles": {
+      "structural_revisions_each": {
+        "passed": 64,
+        "tried": 64
+      },
+      "changed_pour_conflict_total": {
+        "passed": 94,
+        "tried": 94
+      },
+      "dangling_refusal": {
+        "passed": 30,
+        "tried": 30
+      },
+      "dirty_refusal": {
+        "passed": 30,
+        "tried": 30
+      },
+      "partial_apply_resume": {
+        "passed": 30,
+        "tried": 30
+      },
+      "conditional_var": {
+        "passed": 1,
+        "tried": 1
+      },
+      "request_attach_repour": {
+        "passed": 1,
+        "tried": 1
+      },
+      "cycle_refusal": {
+        "passed": 1,
+        "tried": 1
+      }
+    },
+    "product_findings": 0,
+    "harness_defects": 1,
+    "harness_defect": "Earlier seed 25001 exposed an order-sensitive dependency snapshot; this is a flaky test-harness oracle, not a confirmed product defect. Fixed in scripts/integration_repour.py with unit coverage.",
+    "initial_run": "Initial shared-server run stopped on a formula-name harness setup error; a replacement server and database were started for the 90-case run. The initial error log was not retained.",
+    "coverage_limits": "Requested 200 nodes / 100 revisions; campaign was capped at 30 nodes / 40 revisions and replacement run reached 20 nodes / 6 revisions. Only the second mutation was fault-injected. No rename onto a previously removed identity, embedded-mode, crash, or concurrent probes.",
+    "evidence_note": "Per-case inputs and command stdout/stderr captured in the zip; unrelated process-list records removed from orchestration and earlier structural logs. Final scripts changed during the run and cannot exactly reproduce every earlier case; earlier source versions unavailable. Host-specific paths and a historical deadline require adaptation.",
+    "evidence_archive": "replacement-campaign-evidence.zip",
+    "workers": [
+      {
+        "correlation_id": "replacement-structural",
+        "cases_run": 30,
+        "passed": 30,
+        "seed": "0–29",
+        "description": "Structural mutations and revisions",
+        "assertions": "64/64 revisions: changed-pour conflict, preview no writes, preview/apply changes, replay no-op, identity/state/edge/runtime and external-edge preservation. Seed 12: 20 nodes, six revisions. Seed 5: conditional variable 1/1 and request attach/repour 1/1.",
+        "status": "success",
+        "finding_ids": [],
+        "error": null,
+        "evidence_archive": "replacement-campaign-evidence.zip"
+      },
+      {
+        "correlation_id": "replacement-refusal",
+        "cases_run": 30,
+        "passed": 30,
+        "seed": "0–29",
+        "description": "Conflict, dangling and dirty refusals",
+        "assertions": "Each refusal and unchanged-state oracle passed 30/30. Seed 5 additionally tested cycle refusal without writes 1/1.",
+        "status": "success",
+        "finding_ids": [],
+        "error": null,
+        "evidence_archive": "replacement-campaign-evidence.zip"
+      },
+      {
+        "correlation_id": "replacement-partial",
+        "cases_run": 30,
+        "passed": 30,
+        "seed": "0–29",
+        "description": "Partial apply and resume",
+        "assertions": "Applied/pending result and real-bd resume passed 30/30; one injected fault location, the second mutation, varied case text.",
+        "status": "success",
+        "finding_ids": [],
+        "error": null,
+        "evidence_archive": "replacement-campaign-evidence.zip"
+      }
+    ]
   }
 }

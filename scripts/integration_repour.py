@@ -42,6 +42,16 @@ class ServerBindError(AssertionError):
     """Dolt could not bind the selected port; the child log is the evidence."""
 
 
+def canonical_snapshot_entry(row: dict, dependencies: list) -> dict:
+    """Compare dependency sets without depending on bd's output ordering."""
+    row = dict(row)
+    def key(value):
+        return json.dumps(value, sort_keys=True, ensure_ascii=False)
+    if "dependencies" in row:
+        row["dependencies"] = sorted(row["dependencies"], key=key)
+    return {"row": row, "deps": sorted(dependencies, key=key)}
+
+
 def fuzz_seeds_from_args(fuzz: bool, seeds: list[int] | None) -> tuple[int, ...]:
     """Validate CLI fuzz options and return the seeds the run will use."""
     if seeds and (not fuzz or len(seeds) > 2):
@@ -332,7 +342,7 @@ def main(*, fuzz_seeds: tuple[int, ...] = (), mode: str = "server") -> int:
                 return value[0]
             def snapshot() -> dict:
                 rows = json.loads(bd_run("list", "--all", "-n", "0", "--json"))
-                return {row["id"]: {"row": show(row["id"]), "deps": json.loads(bd_run("dep", "list", row["id"], "--json"))} for row in rows}
+                return {row["id"]: canonical_snapshot_entry(show(row["id"]), json.loads(bd_run("dep", "list", row["id"], "--json"))) for row in rows}
             def formula(path: Path, steps: str):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('formula = "release"\nversion = 1\ntype = "workflow"\n' + steps, encoding="utf-8")

@@ -61,7 +61,7 @@
 <body>
   <header>
     <h1>Phase W: bounded adversarial repour campaign</h1>
-    <p class="subtitle">Serial real-bd probes with reproducible inputs</p>
+    <p class="subtitle">Replacement campaign and prior probes</p>
     <p class="generated-at">Generated: 2026-11-15 America/Los_Angeles</p>
     <div class="top-status"><span class="status status-pass">PASS</span></div>
   </header>
@@ -70,36 +70,54 @@
     <div class="section-head">
       <h2>Summary</h2>
     </div>
-    <p>Five focused probes exercised isolated databases. No product bugs found or fixed. Fault injection in the partial-apply case was simulated; its database and resume used real bd. The refusal worker reported three passes but its stdout was not retained.</p>
+    <p>Replacement run: 90/90 cases, 30 each structural, refusal, and partial apply/resume. No confirmed product findings; one flaky snapshot-order harness defect was fixed. Initial run stopped on a formula-name setup error and was replaced with a fresh isolated server and database; its error log was not retained.</p><p>The failure injection targets the second mutation only. The earlier probe family totals 7/7 cases. Earlier seed 25001 was incomplete because the order-sensitive snapshot oracle failed.</p>
     <table class="session-summary">
       <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
       <tbody>
         <tr>
-          <th scope="row">8-node chain; 4 plans and 3 revisions</th>
+          <th scope="row">Structural mutations and revisions</th>
+          <td>30</td>
+          <td>30/30</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Conflict, dangling and dirty refusals</th>
+          <td>30</td>
+          <td>30/30</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Partial apply and resume</th>
+          <td>30</td>
+          <td>30/30</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Earlier: 8-node chain; 4 plans and 3 revisions</th>
           <td>1</td>
           <td>1/1</td>
           <td><span class="status status-pass">PASS</span></td>
         </tr>
         <tr>
-          <th scope="row">16-node chain; 7 plans and 6 revisions</th>
+          <th scope="row">Earlier: 16-node chain; 7 plans and 6 revisions</th>
           <td>1</td>
           <td>1/1</td>
           <td><span class="status status-pass">PASS</span></td>
         </tr>
         <tr>
-          <th scope="row">Changed pour, missing dependency, and dirty graph refusals</th>
+          <th scope="row">Earlier: Changed pour, missing dependency, and dirty graph refusals</th>
           <td>3</td>
           <td>3/3</td>
           <td><span class="status status-pass">PASS</span></td>
         </tr>
         <tr>
-          <th scope="row">Partial apply and resume</th>
+          <th scope="row">Earlier: Partial apply and resume</th>
           <td>1</td>
           <td>1/1</td>
           <td><span class="status status-pass">PASS</span></td>
         </tr>
         <tr>
-          <th scope="row">Step ID rename and dependency behavior</th>
+          <th scope="row">Earlier: Step ID rename and dependency behavior</th>
           <td>1</td>
           <td>1/1</td>
           <td><span class="status status-pass">PASS</span></td>
@@ -109,6 +127,132 @@
   </section>
 
 
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>replacement-structural</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker replacement-structural</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;replacement-structural&quot;, &quot;cases_run&quot;: 30, &quot;passed&quot;: 30, &quot;seed&quot;: &quot;0–29&quot;, &quot;description&quot;: &quot;Structural mutations and revisions&quot;, &quot;assertions&quot;: &quot;64/64 revisions: changed-pour conflict, preview no writes, preview/apply changes, replay no-op, identity/state/edge/runtime and external-edge preservation. Seed 12: 20 nodes, six revisions. Seed 5: conditional variable 1/1 and request attach/repour 1/1.&quot;, &quot;status&quot;: &quot;success&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null, &quot;evidence_archive&quot;: &quot;replacement-campaign-evidence.zip&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="64/64 revisions: changed-pour conflict, preview no writes, preview/apply changes, replay no-op, identity/state/edge/runtime and external-edge preservation. Seed 12: 20 nodes, six revisions. Seed 5: conditional variable 1/1 and request attach/repour 1/1. Actual per-case inputs and output in replacement-campaign-evidence.zip; final script changed during execution.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Structural mutations and revisions</th>
+        <td>30</td>
+        <td>30/30</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">seeds 0–29</th><td><code>64/64 revisions: changed-pour conflict, preview no writes, preview/apply changes, replay no-op, identity/state/edge/runtime and external-edge preservation. Seed 12: 20 nodes, six revisions. Seed 5: conditional variable 1/1 and request attach/repour 1/1.</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>replacement-refusal</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker replacement-refusal</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;replacement-refusal&quot;, &quot;cases_run&quot;: 30, &quot;passed&quot;: 30, &quot;seed&quot;: &quot;0–29&quot;, &quot;description&quot;: &quot;Conflict, dangling and dirty refusals&quot;, &quot;assertions&quot;: &quot;Each refusal and unchanged-state oracle passed 30/30. Seed 5 additionally tested cycle refusal without writes 1/1.&quot;, &quot;status&quot;: &quot;success&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null, &quot;evidence_archive&quot;: &quot;replacement-campaign-evidence.zip&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Each refusal and unchanged-state oracle passed 30/30. Seed 5 additionally tested cycle refusal without writes 1/1. Actual per-case inputs and output in replacement-campaign-evidence.zip; final script changed during execution.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Conflict, dangling and dirty refusals</th>
+        <td>30</td>
+        <td>30/30</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">seeds 0–29</th><td><code>Each refusal and unchanged-state oracle passed 30/30. Seed 5 additionally tested cycle refusal without writes 1/1.</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>replacement-partial</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker replacement-partial</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;replacement-partial&quot;, &quot;cases_run&quot;: 30, &quot;passed&quot;: 30, &quot;seed&quot;: &quot;0–29&quot;, &quot;description&quot;: &quot;Partial apply and resume&quot;, &quot;assertions&quot;: &quot;Applied/pending result and real-bd resume passed 30/30; one injected fault location, the second mutation, varied case text.&quot;, &quot;status&quot;: &quot;success&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null, &quot;evidence_archive&quot;: &quot;replacement-campaign-evidence.zip&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Applied/pending result and real-bd resume passed 30/30; one injected fault location, the second mutation, varied case text. Actual per-case inputs and output in replacement-campaign-evidence.zip; final script changed during execution.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Partial apply and resume</th>
+        <td>30</td>
+        <td>30/30</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">seeds 0–29</th><td><code>Applied/pending result and real-bd resume passed 30/30; one injected fault location, the second mutation, varied case text.</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
 <section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
   <header class="agent-header fuzz-agent-header">
     <div>
@@ -327,13 +471,14 @@
       <tr><th scope="row">Tested sc-compose commit</th><td>200f1945c9bd9c052d24e13c17bfee48e0495eef</td></tr>
       <tr><th scope="row">bd CLI</th><td>1.3.4 dev fork; SHA-256 ce9fc82fe6b4b002fea817cc7a92febbfa73fa60a7066fc0b980a8dd57c975cd</td></tr>
       <tr><th scope="row">Dolt</th><td>2.3.1</td></tr>
-      <tr><th scope="row">Isolation</th><td>serial; one throwaway server at a time</td></tr>
-      <tr><th scope="row">Reproduction</th><td>Replay scripts contain host-specific absolute paths and require adapting for another machine. Refusal stdout was not retained.</td></tr>
+      <tr><th scope="row">Execution</th><td>Replacement: 90 cases, sequentially, one throwaway server and one database.</td></tr>
+      <tr><th scope="row">Limits</th><td>Requested 200 nodes / 100 revisions; campaign was capped at 30 nodes / 40 revisions and replacement run reached 20 nodes / 6 revisions. Only the second mutation was fault-injected. No rename onto a previously removed identity, embedded-mode, crash, or concurrent probes.</td></tr>
+      <tr><th scope="row">Evidence limits</th><td>Per-case inputs and command stdout/stderr captured in the zip; unrelated process-list records removed from orchestration and earlier structural logs. Final scripts changed during the run and cannot exactly reproduce every earlier case; earlier source versions unavailable. Host-specific paths and a historical deadline require adaptation.</td></tr>
     </tbody></table>
   </section>
 
   <footer>
-    <p>Worker panels and evidence: <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-deep-revision-probe.xhtml">deep-revision-probe</a> <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-larger-revision-probe.xhtml">larger-revision-probe</a> <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-refusal-probe.xhtml">refusal-probe</a> <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-partial-apply-probe.xhtml">partial-apply-probe</a> <a href="20261115-1-fuzz-report/20261115-1-fuzz-report-rename-probe.xhtml">rename-probe</a> · <a href="20261115-1-fuzz-report/20261115-1-fuzz-report.json">JSON evidence</a></p>
+    <p><a href="20261115-1-fuzz-report/replacement-campaign-evidence.zip">Recorded inputs, stdout/stderr, and scripts (ZIP)</a> · <a href="20261115-1-fuzz-report/20261115-1-fuzz-report.json">JSON evidence</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-structural.xhtml">replacement-structural panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-refusal.xhtml">replacement-refusal panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-partial.xhtml">replacement-partial panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-deep-revision-probe.xhtml">deep-revision-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-larger-revision-probe.xhtml">larger-revision-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-refusal-probe.xhtml">refusal-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-partial-apply-probe.xhtml">partial-apply-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-rename-probe.xhtml">rename-probe panel</a></p>
   </footer>
 
   <script>

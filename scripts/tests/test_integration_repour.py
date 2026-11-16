@@ -19,6 +19,15 @@ SPEC.loader.exec_module(MODULE)
 
 
 class IntegrationRunnerTests(unittest.TestCase):
+    def test_snapshot_ignores_dependency_order_but_preserves_changes(self) -> None:
+        first = {"id": "root", "dependencies": [{"id": "a"}, {"id": "b"}]}
+        reversed_row = {"id": "root", "dependencies": [{"id": "b"}, {"id": "a"}]}
+        edges = [{"id": "a", "type": "blocks"}, {"id": "b", "type": "blocks"}]
+        snapshot = MODULE.canonical_snapshot_entry(first, edges)
+        self.assertEqual(snapshot, MODULE.canonical_snapshot_entry(reversed_row, list(reversed(edges))))
+        changed = [{"id": "a", "type": "blocks"}, {"id": "b", "type": "related"}]
+        self.assertNotEqual(snapshot, MODULE.canonical_snapshot_entry(reversed_row, changed))
+
     def test_owned_child_ready_line_for_expected_port_signals_readiness(self) -> None:
         events = queue.Queue()
         stream = io.BytesIO(b'Starting server with Config HP="127.0.0.1:49200"\nServer ready. Accepting connections.\n')
