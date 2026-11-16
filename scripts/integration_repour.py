@@ -33,6 +33,35 @@ SCENARIOS = (
 )
 
 
+class ServerBindError(AssertionError):
+    """Dolt could not bind the selected port; the child log is the evidence."""
+
+
+def select_server_port(configured: str | None) -> int:
+    """Select a candidate; Dolt must bind it itself and can reject a collision."""
+    if configured is None:
+        with socket.socket() as listener:
+            listener.bind(("127.0.0.1", 0))
+            port = listener.getsockname()[1]
+    else:
+        try:
+            port = int(configured)
+        except ValueError as error:
+            raise AssertionError("DOLT_PORT_INVALID: expected a numeric port") from error
+    if not 1024 <= port <= 65535 or port == 3308:
+        raise AssertionError(f"DOLT_PORT_INVALID: refusing port {port}")
+    return port
+
+
+def assert_server_running(server: subprocess.Popen[bytes], log: Path) -> None:
+    if server.poll() is not None:
+        output = log.read_text(errors="replace")
+        message = output.lower()
+        if "address already in use" in message or ("port " in message and "already in use" in message):
+            raise ServerBindError(f"DOLT_SERVER_BIND_FAILED: {output}")
+        raise AssertionError(f"DOLT_SERVER_START_FAILED: {output}")
+
+
 def run(args: list[str], *, cwd: Path, env: dict[str, str], expected: int = 0) -> subprocess.CompletedProcess[str]:
     try:
         result = subprocess.run(args, cwd=cwd, env=env, text=True, capture_output=True, timeout=TIMEOUT, check=False)
@@ -164,18 +193,16 @@ def main() -> int:
             dolt_version = run([dolt, "version"], cwd=data, env=env).stdout.splitlines()[0].strip()
             run([dolt, "config", "--global", "--add", "user.name", "integration"], cwd=data, env=env)
             run([dolt, "config", "--global", "--add", "user.email", "integration@example.invalid"], cwd=data, env=env)
-            with socket.socket() as probe:
-                if probe.connect_ex(("127.0.0.1", 3317)) == 0:
-                    raise AssertionError("refusing to use occupied port 3317")
+            port = select_server_port(env.get("SC_COMPOSE_TEST_DOLT_PORT"))
+            env["SC_COMPOSE_TEST_DOLT_PORT"] = str(port)
             server_log = stack.enter_context((root / "server.log").open("wb"))
-            server = subprocess.Popen([dolt, "sql-server", "--host", "127.0.0.1", "--port", "3317"], cwd=data, env=env, stdout=server_log, stderr=subprocess.STDOUT)
+            server = subprocess.Popen([dolt, "sql-server", "--host", "127.0.0.1", "--port", str(port)], cwd=data, env=env, stdout=server_log, stderr=subprocess.STDOUT)
             stack.callback(stop_server, server)
             deadline = time.monotonic() + 30
             while True:
-                if server.poll() is not None:
-                    raise AssertionError(f"server exited: {(root / 'server.log').read_text(errors='replace')}")
+                assert_server_running(server, root / "server.log")
                 try:
-                    with socket.create_connection(("127.0.0.1", 3317), timeout=1):
+                    with socket.create_connection(("127.0.0.1", port), timeout=1):
                         if "Server ready. Accepting connections" in (root / "server.log").read_text(errors="replace") and server.poll() is None:
                             break
                 except OSError:
@@ -185,7 +212,7 @@ def main() -> int:
                 time.sleep(0.05)
             def bd_run(*args: str) -> str:
                 return run([bd, *args], cwd=workspace, env=env).stdout
-            bd_run("init", "--non-interactive", "--quiet", "--skip-agents", "--skip-hooks", "--server", "--server-port", "3317", "--database", "integration", "--prefix", "it")
+            bd_run("init", "--non-interactive", "--quiet", "--skip-agents", "--skip-hooks", "--server", "--server-port", str(port), "--database", "integration", "--prefix", "it")
             def scenario(name: str, action):
                 nonlocal scenario_name
                 scenario_name = name

@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import subprocess
+import socket
 import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
@@ -16,6 +17,34 @@ SPEC.loader.exec_module(MODULE)
 
 
 class IntegrationRunnerTests(unittest.TestCase):
+    def test_os_selects_candidate_and_explicit_port_is_validated(self) -> None:
+        listener = MagicMock()
+        listener.__enter__.return_value = listener
+        listener.getsockname.return_value = ("127.0.0.1", 49157)
+        with patch.object(MODULE.socket, "socket", return_value=listener):
+            self.assertEqual(MODULE.select_server_port(None), 49157)
+        listener.bind.assert_called_once_with(("127.0.0.1", 0))
+        self.assertEqual(MODULE.select_server_port("45678"), 45678)
+        with self.assertRaisesRegex(AssertionError, "DOLT_PORT_INVALID"):
+            MODULE.select_server_port("3308")
+        with self.assertRaisesRegex(AssertionError, "DOLT_PORT_INVALID"):
+            MODULE.select_server_port("invalid")
+
+    def test_conflicting_bound_port_reports_child_log(self) -> None:
+        with socket.socket() as held, tempfile.TemporaryDirectory() as tmp:
+            held.bind(("127.0.0.1", 0))
+            held.listen()
+            port = held.getsockname()[1]
+            child = MagicMock()
+            child.poll.return_value = 1
+            log = Path(tmp) / "server.log"
+            log.write_text(f"listen 127.0.0.1:{port}: address already in use")
+            with self.assertRaisesRegex(MODULE.ServerBindError, f"DOLT_SERVER_BIND_FAILED.*{port}"):
+                MODULE.assert_server_running(child, log)
+            log.write_text(f"Port {port} already in use.")
+            with self.assertRaisesRegex(MODULE.ServerBindError, f"DOLT_SERVER_BIND_FAILED.*{port}"):
+                MODULE.assert_server_running(child, log)
+
     @unittest.skipIf(MODULE.os.name == "nt", "Unix pgrep format")
     def test_server_listing_does_not_count_shells_that_mention_dolt(self) -> None:
         sample = "12 /opt/bin/dolt sql-server --port 3308\n13 /bin/zsh -c 'pgrep -fl dolt sql-server'\n"
