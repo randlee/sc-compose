@@ -4,7 +4,6 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 python := if os_family() == "windows" { "python scripts/sc_lint_python.py" } else { "python3 scripts/sc_lint_python.py" }
 
 sc-compose := "cargo run --quiet --bin sc-compose --"
-sc-compose-test-cli := if os_family() == "windows" { "target/debug/sc-compose.exe" } else { "target/debug/sc-compose" }
 
 # Regenerate committed UniFFI Go output. Use `just generate-sc-sha-go check`
 # in CI to fail when the pinned generator would change it.
@@ -100,22 +99,8 @@ set windows-shell := ["cmd.exe", "/c"]
 import '.sc-lint/justfile'
 # <<< sc-lint managed integration <<<
 
-# Preserve the legacy fast checks alongside the released native analyzers.
-# Identity literals remain skipped due to the legacy parser's unicode failure.
-lint-ci-consumer: ensure-lint-runtime
-    cargo fmt --all --check
-    python3 .just/check_version_sync.py
-    python3 .just/lint_manifests.py
-    python3 .just/lint_codespell.py
-    cargo build -j 2 -p sc-compose --bin sc-compose
-    SC_COMPOSE_TEST_CLI="{{justfile_directory()}}/{{sc-compose-test-cli}}" python3 .just/run_pytests.py
-    python3 .just/lint_cargo_deny.py --root .
-    cargo shear
-    {{sc-compose}} lint --root . --target sc-boundary --json
-    {{sc-compose}} lint --root . --target sc-portability --json
-    {{sc-compose}} lint --root . --target line-counts --json
-    @set -euo pipefail; report="$$(mktemp)"; trap 'rm -f "$$report"' EXIT; SC_COMPOSE_TEMPLATE_CONTRACTS_SCOPE=production {{sc-compose}} lint --root . --target template-contracts --json >"$$report"; jq -e '.payload.command_id == "template-contracts" and .payload.outcome == "pass" and .payload.raw_payload.data.scope == "production" and (.payload.raw_payload.data.templates_scanned > 0) and (.payload.findings_count == 0)' "$$report" >/dev/null
-    @echo "sc-lint identity-literals skipped: v0.4.0 parser rejects Rust unicode escapes"
+# Keep the legacy entrypoint on the maintained, portable lint profile.
+lint-ci-consumer: lint
 
 # Run the local, isolated real-bd integration suite with installed bd and Dolt.
 integration:
