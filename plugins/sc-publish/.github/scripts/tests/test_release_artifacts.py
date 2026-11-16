@@ -2815,6 +2815,8 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
         bundle = next(item for item in binary["bundled_paths"] if item["source"] == "examples")
         assert bundle["destination"] == "share/sc-compose/examples"
         assert bundle["homebrew_destination_components"] == ["pkgshare", "examples"]
+        assert bundle["stage_smoke_args"] == ["examples", "list"]
+        assert bundle["stage_smoke_line"] == "hello"
         formula_config = next(item for item in release_manifest()["channels"]["homebrew"]["formulas"] if item["class"] == "ScCompose")
         assert formula_config["test_command"] == "examples list"
         assert formula_config["test_output"] == "hello"
@@ -2836,6 +2838,34 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
     manifest = json.loads(scoop)
     assert manifest["description"] == 'Quoted "description"'
     assert manifest["architecture"]["64bit"]["bin"] == "bin/sc-compose.exe"
+
+
+def test_scoop_archive_preserves_examples_next_to_binary(tmp_path: Path) -> None:
+    scoop = render_release_template(tmp_path, "release/scoop/manifest.json.j2", {
+        "version": "1.4.2", "description": "example", "homepage": "https://example.invalid",
+        "license": "MIT", "windows_url": "https://example.invalid/windows.zip",
+        "windows_sha256": "d" * 64, "extract_dir": "sc-compose_1.4.2_x86_64-pc-windows-msvc",
+        "binary": "bin/sc-compose.exe",
+    })
+    manifest = json.loads(scoop)
+    if renderer_binary() != "sc-compose":
+        pytest.skip("consumer is not sc-compose")
+    binary = next(item for item in release_manifest()["release_binaries"] if item["name"] == "sc-compose")
+    bundle = next(item for item in binary["bundled_paths"] if item["source"] == "examples")
+    config = manifest["architecture"]["64bit"]
+    archive = tmp_path / "release.zip"
+    with zipfile.ZipFile(archive, "w") as output:
+        output.writestr(f'{config["extract_dir"]}/{config["bin"]}', b"fixture executable")
+        output.writestr(
+            f'{config["extract_dir"]}/{bundle["destination"]}/hello.md.j2',
+            (repo_root() / bundle["source"] / "hello.md.j2").read_bytes(),
+        )
+    extracted = tmp_path / "extracted"
+    with zipfile.ZipFile(archive) as output:
+        output.extractall(extracted)
+    executable = extracted / config["extract_dir"] / config["bin"]
+    examples = executable.parent.parent / "share" / "sc-compose" / "examples"
+    assert (examples / "hello.md.j2").read_bytes() == (repo_root() / "examples/hello.md.j2").read_bytes()
 
 
 def test_homebrew_formula_tracks_and_binaries_are_documented() -> None:
