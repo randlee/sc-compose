@@ -9,9 +9,7 @@ use crate::BeadComposeError;
 struct ErrorEnvelope<'a> {
     code: &'a str,
     message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     details: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     recovery: Option<String>,
 }
 

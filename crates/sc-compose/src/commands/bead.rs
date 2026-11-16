@@ -754,7 +754,7 @@ fn human_error_fields(envelope: &serde_json::Value) -> String {
     let mut output = String::new();
     if let Some(fields) = envelope.as_object() {
         for (name, value) in fields {
-            if matches!(name.as_str(), "code" | "message") {
+            if matches!(name.as_str(), "code" | "message") || value.is_null() {
                 continue;
             }
             output.push('\n');

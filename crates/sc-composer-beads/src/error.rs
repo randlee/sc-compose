@@ -83,8 +83,8 @@ pub(crate) fn graph_apply_recovery(command: &[String]) -> &'static str {
 /// Stable errors returned before or during Beads composition.
 ///
 /// Serializes as `code` and `message`, with additive `details` and `recovery`
-/// fields for graph failures and request-file read failures. Other errors
-/// preserve their original two-field shape.
+/// fields for graph failures and request-file read failures. Errors without
+/// structured context serialize those additive fields as null.
 ///
 /// Adapters must not match every variant: the enum is `#[non_exhaustive]`,
 /// so new conditions are additive. Use [`BeadComposeError::code`],

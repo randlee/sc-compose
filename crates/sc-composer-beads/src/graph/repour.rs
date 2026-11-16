@@ -169,26 +169,44 @@ pub(super) struct NodeUpdate {
     pub calls: Vec<Vec<String>>,
 }
 
-/// The `bd update` flags that bring `row` in line with the plan `fields`, and
+/// A plan-owned edit, shared by command construction and change reporting.
+struct FieldEdit {
+    field: GraphField,
+    value: Value,
+}
+
+impl FieldEdit {
+    fn arg(&self) -> String {
+        let value = match &self.value {
+            Value::String(text) => text.clone(),
+            value => value.to_string(),
+        };
+        format!("{}={value}", self.field.as_flag())
+    }
+}
+
+/// The `bd update` edits that bring `row` in line with the plan `fields`, and
 /// the metadata object the bead holds once they are applied.
 ///
 /// A field the plan states, including an explicitly empty one, is applied; a
 /// field the plan does not state is left alone.
-fn field_args(fields: &Map<String, Value>, row: &Value) -> (Vec<String>, Map<String, Value>) {
-    let mut args = Vec::new();
+fn field_edits(fields: &Map<String, Value>, row: &Value) -> (Vec<FieldEdit>, Map<String, Value>) {
+    let mut edits = Vec::new();
     for field in [
         GraphField::Title,
         GraphField::Description,
         GraphField::Design,
         GraphField::AcceptanceCriteria,
     ] {
-        let flag = field.as_flag();
-        let field = field.as_str();
-        let stored = row.get(field).and_then(Value::as_str).unwrap_or_default();
-        if let Some(want) = fields.get(field).and_then(Value::as_str)
+        let key = field.as_str();
+        let stored = row.get(key).and_then(Value::as_str).unwrap_or_default();
+        if let Some(want) = fields.get(key).and_then(Value::as_str)
             && want != stored
         {
-            args.push(format!("{flag}={want}"));
+            edits.push(FieldEdit {
+                field,
+                value: Value::String(want.into()),
+            });
         }
     }
     let priority = fields.get("priority").and_then(|value| {
@@ -201,7 +219,10 @@ fn field_args(fields: &Map<String, Value>, row: &Value) -> (Vec<String>, Map<Str
     if let Some(want) = priority
         && row.get("priority").and_then(Value::as_i64) != Some(want)
     {
-        args.push(format!("--priority={want}"));
+        edits.push(FieldEdit {
+            field: GraphField::Priority,
+            value: Value::from(want),
+        });
     }
     // Labels are only added: a label someone attached at runtime stays.
     let stored: BTreeSet<&str> = row
@@ -219,14 +240,20 @@ fn field_args(fields: &Map<String, Value>, row: &Value) -> (Vec<String>, Map<Str
         .filter_map(Value::as_str)
         .filter(|label| !stored.contains(label))
     {
-        args.push(format!("--add-label={label}"));
+        edits.push(FieldEdit {
+            field: GraphField::Labels,
+            value: Value::String(label.into()),
+        });
     }
     let want = fields.get("metadata").and_then(Value::as_object);
     let (merged, changed) = merge_metadata(row, want);
     if changed {
-        args.push(format!("--metadata={}", Value::Object(merged.clone())));
+        edits.push(FieldEdit {
+            field: GraphField::Metadata,
+            value: Value::Object(merged.clone()),
+        });
     }
-    (args, merged)
+    (edits, merged)
 }
 
 /// Merge `want` into the stored metadata object, keeping every other key.
@@ -271,7 +298,8 @@ pub(super) fn node_updates(v: &ValidatedGraph, existing: &Existing) -> Vec<NodeU
             continue;
         };
         let (mut calls, stored) = {
-            let (args, merged) = field_args(&fields, row);
+            let (edits, merged) = field_edits(&fields, row);
+            let args: Vec<_> = edits.iter().map(FieldEdit::arg).collect();
             let calls = if args.is_empty() { vec![] } else { vec![args] };
             (calls, merged)
         };
@@ -321,13 +349,9 @@ pub(super) fn field_changes(v: &ValidatedGraph, existing: &Existing) -> Vec<crat
             continue;
         };
         let status = row_status(row);
-        let (args, merged_metadata) = field_args(&fields, row);
-        for arg in args {
-            let (flag, value) = arg.split_once('=').expect("field args use --flag=value");
-            let field = GraphField::ALL
-                .into_iter()
-                .find(|field| field.as_flag() == flag)
-                .expect("field_args emits only plan-owned flags");
+        let (edits, merged_metadata) = field_edits(&fields, row);
+        for edit in edits {
+            let field = edit.field;
             let before = row.get(field.as_str()).cloned().unwrap_or(Value::Null);
             let after = if field == GraphField::Metadata {
                 Value::Object(merged_metadata.clone())
@@ -349,7 +373,7 @@ pub(super) fn field_changes(v: &ValidatedGraph, existing: &Existing) -> Vec<crat
                 }
                 Value::Array(labels)
             } else if field == GraphField::Priority {
-                serde_json::json!(value.parse::<i64>().expect("priority flag is normalized"))
+                edit.value
             } else {
                 fields.get(field.as_str()).cloned().unwrap_or(Value::Null)
             };
