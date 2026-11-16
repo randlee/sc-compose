@@ -16,6 +16,10 @@ use std::time::Duration;
 #[path = "../../test-support/fake_exec.rs"]
 mod fake_exec;
 
+#[cfg(unix)]
+#[path = "../../test-support/bounded_command.rs"]
+mod bounded_command;
+
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COOKED: &str =
     r#"{"formula":"sample","type":"workflow","steps":[{"id":"build","title":"Build"}]}"#;
@@ -856,6 +860,71 @@ fn fuzz_041_parent_self_relation_reports_self_edge() {
 }
 
 #[cfg(unix)]
+fn fifo_held_fake(w: &mut Workspace, bytes: &[u8], redirect: &str) -> (fs::File, PathBuf) {
+    let output = w.root.join("oversized-output");
+    fs::write(&output, bytes).unwrap();
+    let bd = w.root.join("fake-bd");
+    let hold = w.root.join("hold-open");
+    let captured = w.root.join("captured-output");
+    let result = bounded_command::run_command(std::process::Command::new("mkfifo").arg(&hold));
+    assert!(result.status.success(), "{result:?}");
+    // Opening both ends makes release a bounded one-byte write even if the
+    // runner already killed the fake. The child cannot finish until released.
+    let release = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&hold)
+        .unwrap();
+    fake_exec::install(
+        &bd,
+        &format!(
+            "#!/bin/sh\ncat '{}' | tee '{}'{redirect}\nread _ < '{}'\n",
+            output.display(),
+            captured.display(),
+            hold.display()
+        ),
+    );
+    w.req.bd_executable = Some(bd);
+    (release, captured)
+}
+
+#[cfg(unix)]
+fn execute_with_fifo_deadline(
+    request: &BeadComposeRequest,
+    mut release: fs::File,
+    captured: &Path,
+    deadline: Duration,
+) -> Result<BeadComposeReceipt, BeadComposeError> {
+    use std::io::{Read, Write};
+    let request = request.clone();
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        let _ = sender.send(execute_bead_request(&request));
+    });
+    match receiver.recv_timeout(deadline) {
+        Ok(result) => {
+            worker.join().expect("request worker panicked");
+            result
+        }
+        Err(failure) => {
+            // This failure path frees the fake even if cap termination regresses.
+            // The worker's runner waits/reaps its child before reporting a result.
+            let released = release.write_all(b"\n");
+            let cleanup = receiver.recv_timeout(Duration::from_secs(60));
+            let joined = (!matches!(cleanup, Err(std::sync::mpsc::RecvTimeoutError::Timeout)))
+                .then(|| worker.join());
+            let mut excerpt = Vec::new();
+            let capture =
+                fs::File::open(captured).and_then(|file| file.take(512).read_to_end(&mut excerpt));
+            panic!(
+                "FIFO-held fake bd did not finish within {deadline:?} failure deadline: {failure:?}; release: {released:?}; cleanup/reap: {cleanup:?}; worker: {joined:?}; captured output ({capture:?}): {}",
+                String::from_utf8_lossy(&excerpt)
+            );
+        }
+    }
+}
+
+#[cfg(unix)]
 #[test]
 fn graph_capture_overflow_reports_the_actual_stream_limit() {
     use sc_composer_beads::runner::{GRAPH_OUTPUT_LIMIT_BYTES, PROCESS_OUTPUT_LIMIT_BYTES};
@@ -864,24 +933,10 @@ fn graph_capture_overflow_reports_the_actual_stream_limit() {
         (PROCESS_OUTPUT_LIMIT_BYTES, " >&2"),
     ] {
         let mut w = Workspace::new();
-        let output = w.root.join("oversized-output");
-        fs::write(&output, vec![b'x'; limit + 1]).unwrap();
-        let bd = w.root.join("fake-bd");
-        let hold = w.root.join("hold-open");
-        // After emitting limit+1 bytes the fake stays alive on a FIFO nobody writes, with no
-        // timer: it can only end when the runner terminates it on the cap breach, so the
-        // terminate path stays exercised without a sleep or any timing dependence.
-        fake_exec::install(
-            &bd,
-            &format!(
-                "#!/bin/sh\ncat '{}'{redirect}\nmkfifo '{}'\nread _ < '{}'\n",
-                output.display(),
-                hold.display(),
-                hold.display()
-            ),
-        );
-        w.req.bd_executable = Some(bd);
-        let error = execute_bead_request(&w.req).unwrap_err();
+        let (release, captured) = fifo_held_fake(&mut w, &vec![b'x'; limit + 1], redirect);
+        let error =
+            execute_with_fifo_deadline(&w.req, release, &captured, Duration::from_secs(600))
+                .unwrap_err();
         assert_eq!(error.code(), "BEADS_PROCESS_OUTPUT_LIMIT");
         assert!(
             matches!(error, BeadComposeError::ProcessOutputLimitExceeded { stage: BeadStage::Validate, limit_bytes } if limit_bytes == limit)
@@ -893,6 +948,24 @@ fn graph_capture_overflow_reports_the_actual_stream_limit() {
                 .exists()
         );
     }
+}
+
+#[cfg(unix)]
+#[test]
+fn fifo_deadline_releases_and_reaps_a_blocked_fake_with_captured_output() {
+    let mut w = Workspace::new();
+    let (release, captured) = fifo_held_fake(&mut w, b"deadline capture sentinel\n", "");
+    // No overflow can terminate this fake. A zero guard deterministically takes
+    // the failure branch: execution cannot complete before we release the FIFO.
+    let failure = std::panic::catch_unwind(|| {
+        execute_with_fifo_deadline(&w.req, release, &captured, Duration::ZERO)
+    })
+    .expect_err("the blocked fixture must hit the injected failure deadline");
+    let message = failure.downcast_ref::<String>().expect("deadline message");
+    assert!(message.contains("failure deadline: Timeout"), "{message}");
+    assert!(message.contains("cleanup/reap: Ok("), "{message}");
+    assert!(message.contains("worker: Some(Ok(()))"), "{message}");
+    assert!(message.contains("deadline capture sentinel"), "{message}");
 }
 
 // FUZZ-021: semantic graph ids retain typed errors across request parsing.
