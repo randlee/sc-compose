@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import importlib.util
+import io
+import queue
 from pathlib import Path
 import subprocess
 import socket
@@ -17,6 +19,39 @@ SPEC.loader.exec_module(MODULE)
 
 
 class IntegrationRunnerTests(unittest.TestCase):
+    def test_owned_child_ready_line_for_expected_port_signals_readiness(self) -> None:
+        events = queue.Queue()
+        stream = io.BytesIO(b'Starting server with Config HP="127.0.0.1:49200"\nServer ready. Accepting connections.\n')
+        log = io.BytesIO()
+        MODULE.read_server_output(stream, log, 49200, events)
+        self.assertEqual(events.get_nowait(), "ready")
+        self.assertIn(b"Server ready", log.getvalue())
+
+    def test_ready_from_wrong_port_is_not_accepted(self) -> None:
+        events = queue.Queue()
+        stream = io.BytesIO(b'Starting server with Config HP="127.0.0.1:49201"\nServer ready. Accepting connections.\n')
+        MODULE.read_server_output(stream, io.BytesIO(), 49200, events)
+        self.assertEqual(events.get_nowait(), "wrong-port")
+
+    def test_eof_reports_typed_bind_failure_and_captured_log(self) -> None:
+        events = queue.Queue()
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "server.log"
+            with log_path.open("wb") as log:
+                MODULE.read_server_output(io.BytesIO(b"address already in use\n"), log, 49200, events)
+            with self.assertRaisesRegex(MODULE.ServerBindError, "DOLT_SERVER_BIND_FAILED.*address already in use"):
+                MODULE.wait_for_server(events, MagicMock(), log_path)
+
+    def test_readiness_timeout_is_a_failure_only_backstop(self) -> None:
+        events = MagicMock()
+        events.get.side_effect = queue.Empty
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "server.log"
+            log_path.write_text("partial server output")
+            with self.assertRaisesRegex(AssertionError, "DOLT_SERVER_NOT_READY.*partial server output"):
+                MODULE.wait_for_server(events, MagicMock(), log_path)
+        events.get.assert_called_once_with(timeout=30)
+
     def test_os_selects_candidate_and_explicit_port_is_validated(self) -> None:
         listener = MagicMock()
         listener.__enter__.return_value = listener

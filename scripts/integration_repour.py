@@ -9,6 +9,7 @@ import html
 import json
 import os
 import platform
+import queue
 import shlex
 from pathlib import Path
 import shutil
@@ -16,7 +17,7 @@ import socket
 import subprocess
 import sys
 import tempfile
-import time
+import threading
 import traceback
 import xml.etree.ElementTree as ET
 
@@ -53,13 +54,54 @@ def select_server_port(configured: str | None) -> int:
     return port
 
 
+def raise_server_failure(log: Path) -> None:
+    output = log.read_text(errors="replace")
+    message = output.lower()
+    if "address already in use" in message or ("port " in message and "already in use" in message):
+        raise ServerBindError(f"DOLT_SERVER_BIND_FAILED: {output}")
+    raise AssertionError(f"DOLT_SERVER_START_FAILED: {output}")
+
+
 def assert_server_running(server: subprocess.Popen[bytes], log: Path) -> None:
     if server.poll() is not None:
-        output = log.read_text(errors="replace")
-        message = output.lower()
-        if "address already in use" in message or ("port " in message and "already in use" in message):
-            raise ServerBindError(f"DOLT_SERVER_BIND_FAILED: {output}")
-        raise AssertionError(f"DOLT_SERVER_START_FAILED: {output}")
+        raise_server_failure(log)
+
+
+def read_server_output(stream, log, port: int, events: queue.Queue) -> None:
+    """Drain the owned child and signal only its configured port's ready line."""
+    configured = False
+    signalled = False
+    try:
+        for line in iter(stream.readline, b""):
+            log.write(line)
+            log.flush()
+            if b"Starting server with Config" in line and f"127.0.0.1:{port}".encode() in line:
+                configured = True
+            if b"Server ready. Accepting connections" in line and not signalled:
+                events.put("ready" if configured else "wrong-port")
+                signalled = True
+        if not signalled:
+            events.put("eof")
+    except Exception as error:
+        events.put(f"reader-error: {error}")
+
+
+def wait_for_server(events: queue.Queue, server: subprocess.Popen[bytes], log: Path) -> None:
+    try:
+        event = events.get(timeout=30)
+    except queue.Empty as error:
+        raise AssertionError(f"DOLT_SERVER_NOT_READY: {log.read_text(errors='replace')}") from error
+    if event == "eof":
+        raise_server_failure(log)
+    if event != "ready":
+        raise AssertionError(f"DOLT_SERVER_NOT_READY ({event}): {log.read_text(errors='replace')}")
+    assert_server_running(server, log)
+
+
+def join_server_reader(reader: threading.Thread) -> None:
+    reader.join(timeout=15)
+    if reader.is_alive():
+        raise AssertionError("DOLT_SERVER_READER_NOT_STOPPED")
 
 
 def run(args: list[str], *, cwd: Path, env: dict[str, str], expected: int = 0) -> subprocess.CompletedProcess[str]:
@@ -196,20 +238,15 @@ def main() -> int:
             port = select_server_port(env.get("SC_COMPOSE_TEST_DOLT_PORT"))
             env["SC_COMPOSE_TEST_DOLT_PORT"] = str(port)
             server_log = stack.enter_context((root / "server.log").open("wb"))
-            server = subprocess.Popen([dolt, "sql-server", "--host", "127.0.0.1", "--port", str(port)], cwd=data, env=env, stdout=server_log, stderr=subprocess.STDOUT)
+            server = subprocess.Popen([dolt, "sql-server", "--host", "127.0.0.1", "--port", str(port)], cwd=data, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            assert server.stdout is not None
+            events: queue.Queue = queue.Queue()
+            reader = threading.Thread(target=read_server_output, args=(server.stdout, server_log, port, events), daemon=True)
+            reader.start()
+            stack.callback(server.stdout.close)
+            stack.callback(join_server_reader, reader)
             stack.callback(stop_server, server)
-            deadline = time.monotonic() + 30
-            while True:
-                assert_server_running(server, root / "server.log")
-                try:
-                    with socket.create_connection(("127.0.0.1", port), timeout=1):
-                        if "Server ready. Accepting connections" in (root / "server.log").read_text(errors="replace") and server.poll() is None:
-                            break
-                except OSError:
-                    pass
-                if time.monotonic() >= deadline:
-                    raise AssertionError(f"server did not start: {(root / 'server.log').read_text(errors='replace')}")
-                time.sleep(0.05)
+            wait_for_server(events, server, root / "server.log")
             def bd_run(*args: str) -> str:
                 return run([bd, *args], cwd=workspace, env=env).stdout
             bd_run("init", "--non-interactive", "--quiet", "--skip-agents", "--skip-hooks", "--server", "--server-port", str(port), "--database", "integration", "--prefix", "it")
