@@ -58,6 +58,11 @@ not implemented by this suite or its target runner.
 Here, **"install" means per-run atmbench-owned temporary bd staging**. It
 persists nothing after the run and performs no persistent account installation.
 
+**Operator precondition:** before using `--install-bd-from`, the local w-6
+integration suite and bounded fuzz run must have passed for the reviewed
+revision. Run the existing `python3 scripts/integration_repour.py --fuzz`
+procedure and check its recorded PASS results before the target step.
+
 The default `just integration` command uses installed executables and never
 installs anything. To qualify another build on the local `atmbench` account,
 use the explicit target command (requires SSH access to `atmbench@localhost`):
