@@ -270,7 +270,7 @@ the CLI or its bundled example files.
 
 | | |
 |---|---|
-| Version | 1.8.0 (latest release); 1.9.0 in preparation |
+| Version | 1.9.0 (unreleased); 1.8.0 is the latest release |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
