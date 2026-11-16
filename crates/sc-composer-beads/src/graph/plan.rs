@@ -524,6 +524,7 @@ fn plan_edges(
     if let Some(existing) = repoured {
         note_revision_edges(existing, &existing_edges, &declared, pending);
     }
+    validate_post_delta_cycles(pending, &existing_edges)?;
     if advanced {
         Ok(edges)
     } else {
@@ -683,6 +684,97 @@ fn planned_edge_json(from: Endpoint, to: Endpoint, kind: &GraphDependencyType) -
 
 type PlannedEdges = Vec<(BeadEndpoint, BeadEndpoint, GraphDependencyType)>;
 type ExistingEdges = BTreeMap<(BeadId, BeadId), GraphDependencyType>;
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum CycleNode {
+    Bead(BeadId),
+    Step(StepId),
+    Root,
+}
+
+impl From<&GraphEndpoint> for CycleNode {
+    fn from(endpoint: &GraphEndpoint) -> Self {
+        match endpoint {
+            GraphEndpoint::Bead(id) => Self::Bead(id.clone()),
+            GraphEndpoint::Step(id) => Self::Step(id.clone()),
+            GraphEndpoint::Root => Self::Root,
+        }
+    }
+}
+
+/// Validate the final plan, not an intermediate union that would falsely reject
+/// an edge reversal. Nonblocking relations follow bd's cycle semantics.
+fn validate_post_delta_cycles(
+    pending: &PendingCreate,
+    existing: &ExistingEdges,
+) -> Result<(), BeadComposeError> {
+    let blocking = |kind: &GraphDependencyType| {
+        matches!(
+            kind,
+            GraphDependencyType::Known(
+                BeadDependencyType::Blocks | BeadDependencyType::ConditionalBlocks
+            )
+        )
+    };
+    let removed: BTreeSet<_> = pending
+        .dep_removes
+        .iter()
+        .map(|(from, to, _)| (from.clone(), to.clone()))
+        .collect();
+    let mut edges: BTreeMap<CycleNode, BTreeSet<CycleNode>> = BTreeMap::new();
+    for ((from, to), kind) in existing {
+        if blocking(kind) && !removed.contains(&(from.clone(), to.clone())) {
+            edges
+                .entry(CycleNode::Bead(from.clone()))
+                .or_default()
+                .insert(CycleNode::Bead(to.clone()));
+        }
+    }
+    for edge in &pending.graph.edges {
+        if blocking(&edge.kind) {
+            edges
+                .entry(CycleNode::from(&edge.from))
+                .or_default()
+                .insert(CycleNode::from(&edge.to));
+        }
+    }
+    if has_cycle(&edges) {
+        return Err(BeadComposeError::GraphApplyFailed {
+            command: Vec::new(),
+            status: None,
+            cause: "graph contains a blocking dependency cycle (local plan preflight)".into(),
+        });
+    }
+    Ok(())
+}
+
+fn has_cycle(edges: &BTreeMap<CycleNode, BTreeSet<CycleNode>>) -> bool {
+    let mut incoming = BTreeMap::new();
+    for (from, targets) in edges {
+        incoming.entry(from.clone()).or_insert(0usize);
+        for to in targets {
+            *incoming.entry(to.clone()).or_insert(0) += 1;
+        }
+    }
+    let mut ready: BTreeSet<_> = incoming
+        .iter()
+        .filter(|(_, count)| **count == 0)
+        .map(|(node, _)| node.clone())
+        .collect();
+    let mut visited = 0;
+    while let Some(node) = ready.pop_first() {
+        visited += 1;
+        for to in edges.get(&node).into_iter().flatten() {
+            if let Some(count) = incoming.get_mut(to) {
+                *count -= 1;
+                if *count == 0 {
+                    ready.insert(to.clone());
+                }
+            }
+        }
+    }
+    visited != incoming.len()
+}
 
 fn read_edges(
     v: &ValidatedGraph,

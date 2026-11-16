@@ -75,7 +75,9 @@ pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
 }
 
 pub(crate) fn graph_apply_recovery(command: &[String]) -> &'static str {
-    if command.iter().any(|arg| arg == "--dry-run") {
+    if command.is_empty() {
+        "correct the graph plan and retry; no graph write was attempted"
+    } else if command.iter().any(|arg| arg == "--dry-run") {
         "fix bd and retry; no graph write was attempted"
     } else {
         "fix bd and rerun the same command; earlier writes may have been applied"
@@ -478,9 +480,9 @@ pub enum BeadComposeError {
         "graph apply failed ({status:?}): {cause}; {command:?}; {}", graph_apply_recovery(.command)
     )]
     GraphApplyFailed {
-        /// Attempted bd argv.
+        /// Attempted bd argv, or empty for local plan preflight.
         command: Vec<String>,
-        /// Exit status, or None when killed by a signal.
+        /// Exit status, or None for local preflight or a signal.
         status: Option<i32>,
         /// Short diagnostic for the process, parse, or response-shape failure.
         cause: String,

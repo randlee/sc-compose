@@ -1200,6 +1200,30 @@ fn explicit_pour_target_rejects_changed_plan_and_recommends_repour() {
 }
 
 #[test]
+fn cyclic_existing_repour_refuses_before_any_field_or_edge_write() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    bd.cook(&json!([
+        {"id":"build","title":"Must not change","needs":["verify"]},
+        {"id":"verify","title":"Must not change","needs":["build"]}
+    ]));
+    bd.fail_nth_mutation(None);
+    let before = bd.snapshot();
+    let receipt = w.repour(&bd, &root);
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Failed {
+            code: "BEADS_GRAPH_APPLY_FAILED".into()
+        },
+        "{receipt:#?}"
+    );
+    assert_eq!(bd.snapshot(), before);
+    assert_eq!(bd.mutation_count(), 0);
+    let cause = &receipt.stages.last().unwrap().stderr_excerpt;
+    assert!(cause.contains("cycle"), "{cause}");
+    assert!(cause.contains("no graph write was attempted"), "{cause}");
+}
+
+#[test]
 fn preview_and_apply_reverse_an_edge_and_keep_both_external_directions() {
     let (mut w, bd, root) = poured(&plan_v1());
     let ids = bd.ids_by_step();
