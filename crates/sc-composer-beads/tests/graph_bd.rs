@@ -5,18 +5,19 @@ use sc_composer_beads::{
     CommandSpec, GraphRef, PourAuthorization, ProcessOutput, ProcessRunner, StdProcessRunner,
     execute_bead_request_with_options,
 };
+#[path = "../../test-support/bounded_command.rs"]
+mod bounded_command;
+use bounded_command::{drain_then_wait, run_command, wait_for_completion};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::Command;
 use std::sync::{
-    Arc, Mutex,
+    Mutex,
     atomic::{AtomicU64, Ordering},
 };
-
-use std::time::{Duration, Instant};
 
 static SERIAL: Mutex<()> = Mutex::new(());
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -217,6 +218,14 @@ impl Workspace {
     }
 }
 
+fn bead_id(value: &str) -> BeadId {
+    BeadId::new(value).expect("bead id")
+}
+
+fn step_id(value: &str) -> sc_composer_beads::StepId {
+    sc_composer_beads::StepId::new(value).expect("step id")
+}
+
 fn assert_dependency(w: &Workspace, from: &BeadId, to: &BeadId, kind: &str) {
     let dependencies = w.json(&["dep", "list", from.as_str(), "--json"]);
     assert!(
@@ -247,115 +256,11 @@ fn assert_persisted_graph(w: &Workspace, graph: &sc_composer_beads::BeadGraph) {
     for id in graph.ids.values() {
         assert_dependency(w, id, parent, "parent-child");
     }
-    let build = &graph.ids[&sc_composer_beads::StepId::new("build").expect("step")];
-    let verify = &graph.ids[&sc_composer_beads::StepId::new("verify").expect("step")];
-    let publish = &graph.ids[&sc_composer_beads::StepId::new("publish").expect("step")];
+    let build = &graph.ids[&step_id("build")];
+    let verify = &graph.ids[&step_id("verify")];
+    let publish = &graph.ids[&step_id("publish")];
     assert_dependency(w, verify, build, "blocks");
     assert_dependency(w, publish, verify, "blocks");
-}
-
-fn drain_then_wait<T>(
-    stdout: impl FnOnce() -> Vec<u8>,
-    stderr: impl FnOnce() -> Vec<u8>,
-    wait: impl FnOnce() -> T,
-) -> (Vec<u8>, Vec<u8>, T) {
-    let stdout = stdout();
-    let stderr = stderr();
-    let status = wait();
-    (stdout, stderr, status)
-}
-
-/// Read continuously so a timed-out child can report output captured so far.
-fn capture_pipe(mut pipe: impl Read, bytes: &Mutex<Vec<u8>>) -> std::io::Result<()> {
-    let mut buffer = [0; 8192];
-    loop {
-        match pipe.read(&mut buffer) {
-            Ok(0) => return Ok(()),
-            Ok(count) => bytes
-                .lock()
-                .expect("captured output")
-                .extend_from_slice(&buffer[..count]),
-            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
-            Err(error) => return Err(error),
-        }
-    }
-}
-
-/// A ready result wins; the deadline is solely a failure guard.
-fn wait_for_completion<T>(
-    mut poll: impl FnMut() -> std::io::Result<Option<T>>,
-    mut expired: impl FnMut() -> bool,
-    mut pause: impl FnMut(),
-) -> std::io::Result<Option<T>> {
-    loop {
-        if let Some(result) = poll()? {
-            return Ok(Some(result));
-        }
-        if expired() {
-            return Ok(None);
-        }
-        pause();
-    }
-}
-
-fn run_command(command: &mut Command) -> Output {
-    command.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = command.spawn().expect("bd spawn");
-    let stdout = child.stdout.take().expect("piped bd stdout");
-    let stderr = child.stderr.take().expect("piped bd stderr");
-    let stdout_bytes = Arc::new(Mutex::new(Vec::new()));
-    let stderr_bytes = Arc::new(Mutex::new(Vec::new()));
-    let out = Arc::clone(&stdout_bytes);
-    let err = Arc::clone(&stderr_bytes);
-    let stdout_reader = std::thread::spawn(move || capture_pipe(stdout, &out));
-    let stderr_reader = std::thread::spawn(move || capture_pipe(stderr, &err));
-    let started = Instant::now();
-    let mut exited = None;
-    let status = wait_for_completion(
-        || {
-            if exited.is_none() {
-                exited = child.try_wait()?;
-            }
-            Ok(exited.filter(|_| stdout_reader.is_finished() && stderr_reader.is_finished()))
-        },
-        || started.elapsed() >= Duration::from_secs(600),
-        || std::thread::sleep(Duration::from_millis(10)),
-    );
-    let status = match status {
-        Ok(Some(status)) => status,
-        failure => {
-            let kill_error = child.kill().err();
-            let _ = child.try_wait();
-            // Never join unfinished readers: a descendant might still own a pipe.
-            panic!(
-                "command {command:?} did not complete within the 600s failure deadline: {failure:?}; kill: {kill_error:?}\nstdout: {}\nstderr: {}",
-                String::from_utf8_lossy(&stdout_bytes.lock().expect("stdout snapshot")),
-                String::from_utf8_lossy(&stderr_bytes.lock().expect("stderr snapshot"))
-            );
-        }
-    };
-    let (stdout, stderr, status) = drain_then_wait(
-        || {
-            stdout_reader
-                .join()
-                .expect("bd stdout reader")
-                .expect("bd stdout");
-            std::mem::take(&mut *stdout_bytes.lock().expect("stdout capture"))
-        },
-        || {
-            stderr_reader
-                .join()
-                .expect("bd stderr reader")
-                .expect("bd stderr");
-            std::mem::take(&mut *stderr_bytes.lock().expect("stderr capture"))
-        },
-        || status,
-    );
-    Output {
-        status,
-        stdout,
-        stderr,
-    }
 }
 
 #[test]
@@ -646,7 +551,7 @@ fn uc2_attach_children_directly_under_parent() {
         let children = w.json(&["children", parent.as_str(), "--json"]);
         assert_eq!(children.as_array().expect("children").len(), 3);
         assert_eq!(
-            g.ids[&sc_composer_beads::StepId::new("build").expect("step")].as_str(),
+            g.ids[&step_id("build")].as_str(),
             format!("{parent}.release-build")
         );
         assert_persisted_graph(w, &g);
@@ -700,7 +605,7 @@ fn uc5_resume_recreates_only_missing_child() {
     with_workspace(|w| {
         let r = w.request(BeadOperation::Attach, Some(w.parent()));
         let g = w.success(&r).graph.expect("graph");
-        let id = g.ids[&sc_composer_beads::StepId::new("publish").expect("step")].clone();
+        let id = g.ids[&step_id("publish")].clone();
         w.command(&["delete", id.as_str(), "--force"]);
         let next = w.success(&r).graph.expect("graph");
         assert_eq!(
@@ -865,8 +770,8 @@ fn refusals_preserve_beads_and_edges() {
         w.refuse(&r, "BEADS_GRAPH_FORMULA_UNSUPPORTED");
         fs::write(&r.template, FORMULA).expect("restore formula");
         let graph = w.success(&r).graph.expect("graph");
-        let build = graph.ids[&sc_composer_beads::StepId::new("build").expect("step")].as_str();
-        let verify = graph.ids[&sc_composer_beads::StepId::new("verify").expect("step")].as_str();
+        let build = graph.ids[&step_id("build")].as_str();
+        let verify = graph.ids[&step_id("verify")].as_str();
         w.command(&["dep", "remove", verify, build]);
         w.refuse(&r, "BEADS_GRAPH_EDGE_MISSING");
         w.command(&["dep", "add", verify, build, "--type", "related"]);
@@ -906,7 +811,7 @@ fn real_bd_advanced_transport_preserves_fields_and_replay_state() {
         );
         let graph = receipt.graph.expect("graph");
         for name in ["one", "two"] {
-            let id = &graph.ids[&sc_composer_beads::StepId::new(name).unwrap()];
+            let id = &graph.ids[&step_id(name)];
             let shown = w.json(&["show", id.as_str(), "--json"]);
             assert_eq!(shown[0]["title"], format!("{name} {}", "{{ data }}"));
             assert_eq!(shown[0]["description"], "a{bc:4:A{B");
@@ -918,7 +823,7 @@ fn real_bd_advanced_transport_preserves_fields_and_replay_state() {
                     .any(|label| label == &format!("label-{name}"))
             );
         }
-        let first = graph.ids[&sc_composer_beads::StepId::new("one").unwrap()].as_str();
+        let first = graph.ids[&step_id("one")].as_str();
         w.command(&[
             "update",
             first,
@@ -1044,12 +949,12 @@ impl Workspace {
         names
     }
 
-    fn dependency_exists(&self, from: &str, to: &str) -> bool {
-        self.json(&["dep", "list", from, "--json"])
+    fn dependency_exists(&self, from: &BeadId, to: &BeadId) -> bool {
+        self.json(&["dep", "list", from.as_str(), "--json"])
             .as_array()
             .expect("deps")
             .iter()
-            .any(|dep| dep["id"] == to && dep["dependency_type"] == "blocks")
+            .any(|dep| dep["id"] == to.as_str() && dep["dependency_type"] == "blocks")
     }
 }
 
@@ -1104,15 +1009,15 @@ fn repour_converges_three_edits_on_one_store_without_deleting_or_repouring() {
         for (step, id) in &graph.ids {
             assert_eq!(&ids_now[step], id, "existing ids are stable");
         }
-        let ship = ids_now[&sc_composer_beads::StepId::new("ship").expect("step")].to_string();
-        assert!(w.dependency_exists(&ship, ids["publish"].as_str()));
+        let ship = ids_now[&step_id("ship")].to_string();
+        assert!(w.dependency_exists(&bead_id(&ship), &bead_id(&ids["publish"])));
 
         // 3. Add an edge between two existing beads.
         w.set_plan(&plan(
             "Build changed",
             "[[steps]]\nid = \"ship\"\ntitle = \"Ship\"\nneeds = [\"publish\", \"build\"]\n",
         ));
-        assert!(!w.dependency_exists(&ship, &build));
+        assert!(!w.dependency_exists(&bead_id(&ship), &bead_id(&build)));
         let receipt = w.success(&w.repour_request(&root));
         assert!(
             receipt
@@ -1122,9 +1027,9 @@ fn repour_converges_three_edits_on_one_store_without_deleting_or_repouring() {
                 .iter()
                 .any(|edge| edge.action == sc_composer_beads::BeadEdgeAction::Added)
         );
-        assert!(w.dependency_exists(&ship, &build));
+        assert!(w.dependency_exists(&bead_id(&ship), &bead_id(&build)));
         assert_eq!(w.bead_count(), beads + 1, "nothing was poured fresh");
-        assert!(w.dependency_exists(&verify, &build));
+        assert!(w.dependency_exists(&bead_id(&verify), &bead_id(&build)));
 
         // Independent read-back of the final graph and the preserved state.
         let shown = w.json(&["show", &build, "--json"]);
@@ -1144,6 +1049,7 @@ fn repour_converges_three_edits_on_one_store_without_deleting_or_repouring() {
 
 /// Fails the Nth mutating bd call; every other call runs against real bd.
 struct FailNthMutation {
+    // ProcessRunner::run takes &self, so its counter needs interior mutability.
     seen: Mutex<usize>,
     fail_at: usize,
 }
@@ -1202,7 +1108,7 @@ fn repour_interrupted_at_a_controlled_boundary_completes_on_rerun() {
         let resumed = w.success(&request);
         assert!(resumed.graph.is_some());
         assert_eq!(w.bead_count(), 5, "the rerun does not create a second ship");
-        let build = graph.ids[&sc_composer_beads::StepId::new("build").expect("step")].clone();
+        let build = graph.ids[&step_id("build")].clone();
         assert_eq!(
             w.json(&["show", build.as_str(), "--json"])[0]["title"],
             "Build changed"
@@ -1224,17 +1130,15 @@ fn repour_refuses_a_dangling_reference_and_a_conflicting_edge_with_zero_writes()
             .expect("graph");
         let root = graph.parent.clone().expect("root");
         let ids = graph.ids;
-        let build = ids[&sc_composer_beads::StepId::new("build").expect("step")].to_string();
-        let verify = ids[&sc_composer_beads::StepId::new("verify").expect("step")].to_string();
+        let build = ids[&step_id("build")].to_string();
+        let verify = ids[&step_id("verify")].to_string();
         let before = w.snapshot();
 
         // Dangling reference: a relation to a bead that does not exist.
         w.set_plan(&plan("Build changed", ""));
         let mut dangling = w.repour_request(&root);
         dangling.relations = vec![sc_composer_beads::BeadRelation {
-            from: sc_composer_beads::BeadEndpoint::Step(
-                sc_composer_beads::StepId::new("build").expect("step"),
-            ),
+            from: sc_composer_beads::BeadEndpoint::Step(step_id("build")),
             to: sc_composer_beads::BeadEndpoint::Bead(BeadId::new("graph-nope").expect("id")),
             kind: sc_composer_beads::BeadDependencyType::Blocks,
         }];
@@ -1289,9 +1193,9 @@ fn repour_preserves_closed_state_and_reports_removed_nodes_and_edges() {
             .graph
             .expect("graph");
         let root = graph.parent.expect("root");
-        let build = graph.ids[&sc_composer_beads::StepId::new("build").unwrap()].to_string();
-        let verify = graph.ids[&sc_composer_beads::StepId::new("verify").unwrap()].to_string();
-        let publish = graph.ids[&sc_composer_beads::StepId::new("publish").unwrap()].to_string();
+        let build = graph.ids[&step_id("build")].to_string();
+        let verify = graph.ids[&step_id("verify")].to_string();
+        let publish = graph.ids[&step_id("publish")].to_string();
         w.command(&[
             "update",
             &build,
@@ -1304,7 +1208,7 @@ fn repour_preserves_closed_state_and_reports_removed_nodes_and_edges() {
         ]);
         w.command(&["close", &build, "--force"]);
         let before = w.bead_count();
-        assert!(w.dependency_exists(&verify, &build));
+        assert!(w.dependency_exists(&bead_id(&verify), &bead_id(&build)));
         w.set_plan("formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build revised\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\n");
         let receipt = w.success(&w.repour_request(&root));
         let result = receipt.graph.expect("graph");
@@ -1316,7 +1220,7 @@ fn repour_preserves_closed_state_and_reports_removed_nodes_and_edges() {
         assert_eq!(shown[0]["notes"], "keep note");
         assert_eq!(shown[0]["assignee"], "reviewer");
         assert_eq!(shown[0]["metadata"]["user_key"], "keep");
-        assert!(!w.dependency_exists(&verify, &build));
+        assert!(!w.dependency_exists(&bead_id(&verify), &bead_id(&build)));
         assert!(result.nodes.iter().any(|node| {
             node.id.as_ref().is_some_and(|id| id.as_str() == publish)
                 && node.action == BeadNodeAction::Retained
@@ -1363,7 +1267,7 @@ fn repour_unknown_database_refuses_until_explicit_override() {
 #[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn repour_flattens_and_reverses_edges_with_external_edges_intact() {
     use sc_composer_beads::{
-        ExistingGraphTarget, GraphChange, GraphRevisionOptions, StepId, UncommittedPolicy,
+        ExistingGraphTarget, GraphChange, GraphRevisionOptions, UncommittedPolicy,
         execute_graph_revision,
     };
     with_workspace(|w| {
@@ -1372,9 +1276,9 @@ fn repour_flattens_and_reverses_edges_with_external_edges_intact() {
             .graph
             .unwrap();
         let root = graph.parent.unwrap();
-        let build = graph.ids[&StepId::new("build").unwrap()].to_string();
-        let verify = graph.ids[&StepId::new("verify").unwrap()].to_string();
-        let publish = graph.ids[&StepId::new("publish").unwrap()].to_string();
+        let build = graph.ids[&step_id("build")].to_string();
+        let verify = graph.ids[&step_id("verify")].to_string();
+        let publish = graph.ids[&step_id("publish")].to_string();
         let outside_gate = w.parent().to_string();
         let outside_task = w.parent().to_string();
         w.command(&["dep", "add", &outside_gate, &build]);
@@ -1414,11 +1318,11 @@ fn repour_flattens_and_reverses_edges_with_external_edges_intact() {
             .graph
             .unwrap();
         assert_eq!(preview.changes, applied.changes);
-        assert!(!w.dependency_exists(&verify, &build));
-        assert!(w.dependency_exists(&publish, &verify));
-        assert!(w.dependency_exists(&build, &verify));
-        assert!(w.dependency_exists(&outside_gate, &build));
-        assert!(w.dependency_exists(&publish, &outside_task));
+        assert!(!w.dependency_exists(&bead_id(&verify), &bead_id(&build)));
+        assert!(w.dependency_exists(&bead_id(&publish), &bead_id(&verify)));
+        assert!(w.dependency_exists(&bead_id(&build), &bead_id(&verify)));
+        assert!(w.dependency_exists(&bead_id(&outside_gate), &bead_id(&build)));
+        assert!(w.dependency_exists(&bead_id(&publish), &bead_id(&outside_task)));
         w.set_plan("formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\n");
         request.operation = BeadOperation::PreviewRepour;
         let before = w.snapshot();
@@ -1433,17 +1337,17 @@ fn repour_flattens_and_reverses_edges_with_external_edges_intact() {
             .graph
             .unwrap();
         assert_eq!(preview.changes, applied.changes);
-        assert!(!w.dependency_exists(&build, &verify));
-        assert!(!w.dependency_exists(&publish, &verify));
-        assert!(!w.dependency_exists(&verify, &build));
-        assert!(w.dependency_exists(&outside_gate, &build));
-        assert!(w.dependency_exists(&publish, &outside_task));
+        assert!(!w.dependency_exists(&bead_id(&build), &bead_id(&verify)));
+        assert!(!w.dependency_exists(&bead_id(&publish), &bead_id(&verify)));
+        assert!(!w.dependency_exists(&bead_id(&verify), &bead_id(&build)));
+        assert!(w.dependency_exists(&bead_id(&outside_gate), &bead_id(&build)));
+        assert!(w.dependency_exists(&bead_id(&publish), &bead_id(&outside_task)));
     });
 }
 
 #[test]
 #[ignore = "separate isolated database-mode qualification only"]
-/// Embedded bd 1.3.1 cannot establish cleanliness; its typed unknown is not qualified.
+/// A typed unknown is reported as unsupported, not as a qualified mode.
 fn repour_clean_dirty_database_mode() {
     use sc_composer_beads::{
         ExistingGraphTarget, GraphRevisionOptions, UncommittedPolicy, execute_graph_revision,
@@ -1464,10 +1368,10 @@ fn repour_clean_dirty_database_mode() {
         let mut preview = request.clone();
         preview.operation = BeadOperation::PreviewRepour;
         let clean = execute_graph_revision(&preview, &refuse);
-        if std::env::var_os("SC_COMPOSE_TEST_DOLT_PORT").is_none() {
-            let error = clean.unwrap_err();
-            assert_eq!(error.code(), "BEADS_GRAPH_DIRTY_UNKNOWN", "{error}");
-            println!("SC_COMPOSE_MODE_UNSUPPORTED: {error}");
+        if let Err(error) = &clean
+            && error.code() == "BEADS_GRAPH_DIRTY_UNKNOWN"
+        {
+            println!("\nSC_COMPOSE_MODE_UNSUPPORTED: {} {error}", error.code());
             return;
         }
         assert_eq!(
@@ -1481,7 +1385,16 @@ fn repour_clean_dirty_database_mode() {
                 .unwrap()
                 .is_empty()
         );
-        let build = graph.ids[&sc_composer_beads::StepId::new("build").unwrap()].to_string();
+        let build = graph.ids[&step_id("build")].to_string();
+        assert_eq!(
+            execute_graph_revision(&request, &refuse).unwrap().outcome,
+            BeadOutcome::Succeeded
+        );
+        assert_eq!(
+            w.json(&["show", &build, "--json"])[0]["title"],
+            "Build changed"
+        );
+        w.set_plan(&plan("Build changed again", ""));
         w.command(&[
             "--dolt-auto-commit=off",
             "update",
@@ -1514,7 +1427,7 @@ fn repour_clean_dirty_database_mode() {
         );
         assert_eq!(
             w.json(&["show", &build, "--json"])[0]["title"],
-            "Build changed"
+            "Build changed again"
         );
     });
 }

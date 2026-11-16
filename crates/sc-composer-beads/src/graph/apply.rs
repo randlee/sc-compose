@@ -53,9 +53,13 @@ fn apply_updates_and_edges(
                 partial_error(error, done, pending, &args, *applied_count, total, runtime)
             })?;
             take_changes(pending, done, |change| match change {
-                crate::GraphChange::FieldChange { bead, field, .. } if bead == &update.id => call
-                    .iter()
-                    .any(|arg| arg.starts_with(&format!("{}=", field.as_flag()))),
+                crate::GraphChange::FieldChange { bead, field, .. } if bead == &update.id => {
+                    call.iter().any(|arg| {
+                        arg.starts_with(&format!("{}=", field.as_flag()))
+                            || (*field == crate::GraphField::Labels
+                                && arg == "--remove-label=repour:removed")
+                    })
+                }
                 crate::GraphChange::MarkRemovedNode { bead, .. } => {
                     bead == &update.id && call.iter().any(|arg| arg == "--add-label=repour:removed")
                 }

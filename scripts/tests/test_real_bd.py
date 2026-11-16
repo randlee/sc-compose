@@ -22,6 +22,43 @@ OK_OUT = (
 
 
 class RealBdQualification(unittest.TestCase):
+    def test_database_mode_matches_presence_even_for_empty_value(self) -> None:
+        self.assertEqual(MODULE.database_mode({}), "embedded")
+        self.assertEqual(MODULE.database_mode({"SC_COMPOSE_TEST_DOLT_PORT": ""}), "server")
+        self.assertEqual(MODULE.database_mode({"SC_COMPOSE_TEST_DOLT_PORT": "3317"}), "server")
+
+    def test_invalid_arguments_are_rejected_before_bd(self) -> None:
+        with patch.object(MODULE.sys, "argv", ["test_real_bd.py", "--invalid"]), \
+             patch.object(MODULE, "resolve_bd") as resolve:
+            self.assertEqual(MODULE.main(), 2)
+            resolve.assert_not_called()
+
+    def test_database_mode_selects_one_test_and_ordinary_mode_skips_it(self) -> None:
+        result = subprocess.CompletedProcess([], 0, OK_OUT, "")
+        with patch.object(MODULE.subprocess, "run", return_value=result) as spawn:
+            self.assertEqual(MODULE.run_suites({}, {"database_mode": "server"}, database_mode=True), 0)
+            args = spawn.call_args.args[0]
+            self.assertIn("repour_clean_dirty_database_mode", args)
+            self.assertNotIn("--skip", args)
+        with patch.object(MODULE, "SUITES", (("graph", []),)), \
+             patch.object(MODULE.subprocess, "run", return_value=result) as spawn:
+            self.assertEqual(MODULE.run_suites({}, {"database_mode": "embedded"}), 0)
+            args = spawn.call_args.args[0]
+            self.assertIn("--skip", args)
+            self.assertIn("repour_clean_dirty_database_mode", args)
+
+    def test_timed_out_cargo_reports_partial_output_and_fails(self) -> None:
+        from contextlib import redirect_stderr
+        from io import StringIO
+
+        output = StringIO()
+        error = subprocess.TimeoutExpired(["cargo"], 600, output=b"partial out", stderr=b"partial err")
+        with patch.object(MODULE, "SUITES", (("graph", []),)), \
+             patch.object(MODULE.subprocess, "run", side_effect=error), redirect_stderr(output):
+            self.assertEqual(MODULE.run_suites({}, {"database_mode": "server"}), 1)
+        self.assertIn("partial out", output.getvalue())
+        self.assertIn("partial err", output.getvalue())
+
     def assert_bad_version(self, status: int, output: str) -> None:
         with patch.object(MODULE, "resolve_bd", return_value=Path("/fake/bd")), \
              patch.object(MODULE.sys, "argv", ["test_real_bd.py"]), \

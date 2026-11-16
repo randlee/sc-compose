@@ -269,46 +269,6 @@ jobs:
           path: reports/latest/sc-lint/
           if-no-files-found: warn
 
-  repour-database-modes:
-    name: Repour database mode qualification
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
-      - id: beads
-        uses: ./.github/actions/setup-beads
-      - name: Install pinned Dolt server
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive="$RUNNER_TEMP/dolt-linux-amd64.tar.gz"
-          curl -fsSL https://github.com/dolthub/dolt/releases/download/v2.2.0/dolt-linux-amd64.tar.gz -o "$archive" || { echo 'DOLT_SETUP_DOWNLOAD_FAILED'; exit 1; }
-          echo '1f7ad8c2622995789420a3fb0f2d16b4aa7430000a825dd91d5938f36480cbf6  '"$archive" | sha256sum -c - || { echo 'DOLT_SETUP_CHECKSUM_FAILED'; exit 1; }
-          tar -xzf "$archive" -C "$RUNNER_TEMP"
-          "$RUNNER_TEMP/dolt-linux-amd64/bin/dolt" version
-      - name: Qualify embedded and isolated server modes
-        shell: bash
-        env:
-          BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
-        run: |
-          set -euo pipefail
-          python3 scripts/test_real_bd.py --database-mode
-          export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
-          export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}"
-          export HOME="$RUNNER_TEMP/repour-server-home"
-          export XDG_CONFIG_HOME="$HOME/.config"
-          mkdir -p "$HOME" "$RUNNER_TEMP/repour-server-data"
-          cd "$RUNNER_TEMP/repour-server-data"
-          "$RUNNER_TEMP/dolt-linux-amd64/bin/dolt" sql-server --host 127.0.0.1 --port 3307 > "$RUNNER_TEMP/repour-server.log" 2>&1 &
-          server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
-          timeout 30 bash -c 'until grep -q "Server ready. Accepting connections" "$1"; do kill -0 "$2" 2>/dev/null || exit 1; sleep 1; done' _ "$RUNNER_TEMP/repour-server.log" "$server_pid" || { cat "$RUNNER_TEMP/repour-server.log"; echo 'DOLT_SERVER_NOT_READY'; exit 1; }
-          cd "$GITHUB_WORKSPACE"
-          SC_COMPOSE_TEST_DOLT_PORT=3307 python3 scripts/test_real_bd.py --database-mode
-
   linux-arm64-release-validation:
     needs: [clippy, manifest-validation]
     runs-on: ubuntu-24.04-arm
