@@ -2,7 +2,7 @@
     dead_code,
     reason = "shared test helper is used by multiple test binaries"
 )]
-use std::io::Read;
+use std::io::{self, Read};
 use std::process::{Command, Output, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -51,13 +51,17 @@ pub fn wait_for_completion<T>(
     }
 }
 
+pub fn run_command(command: &mut Command) -> Output {
+    try_run_command(command).expect("bd spawn")
+}
+
 #[allow(
     clippy::zombie_processes,
     reason = "a failed kill cannot be followed by a potentially unbounded wait"
 )]
-pub fn run_command(command: &mut Command) -> Output {
+pub fn try_run_command(command: &mut Command) -> io::Result<Output> {
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = command.spawn().expect("bd spawn");
+    let mut child = command.spawn()?;
     let stdout = child.stdout.take().expect("piped bd stdout");
     let stderr = child.stderr.take().expect("piped bd stderr");
     let stdout_bytes = Arc::new(Mutex::new(Vec::new()));
@@ -110,9 +114,9 @@ pub fn run_command(command: &mut Command) -> Output {
         },
         || status,
     );
-    Output {
+    Ok(Output {
         status,
         stdout,
         stderr,
-    }
+    })
 }
