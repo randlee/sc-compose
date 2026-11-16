@@ -1803,8 +1803,27 @@ comments, raw bodies, Jinja syntax names (for example `autoescape`,
 variables; a template without frontmatter keeps the v1.7.0 whole-statement
 token scan unchanged (issues #783 and #1043); JSON/TOML escaping is
 applied once, while expression results and nested values remain data and are
-not reparsed as template source. These are current contract details for V1 to
-pin and V3 to implement, not additional historical corpus or fuzz gates.
+not reparsed as template source. These details are implemented and pinned by
+regression tests; they are not additional historical corpus or fuzz gates.
+
+Token-scan contract (issue #1043, narrow ruling), as implemented:
+
+- The scan mode is chosen once per composition from the root template: a root
+  that declares frontmatter, or `--strict` (the matching API option), selects
+  the argument-only scan. Included fragments are scanned in the root's mode,
+  whether or not they declare frontmatter themselves. The missing-frontmatter
+  warning follows the root's frontmatter only: argument-only under a root with
+  frontmatter, and the v1.7.0 heuristic under a root without it, even with
+  `--strict`.
+- The argument-only scan drops a block tag's own name (`autoescape`,
+  `endautoescape`, `raw`/`endraw`, and the leading `filter`/`call` name) and
+  does not read comments or raw bodies. In both modes, Jinja test names and the
+  `is` keyword (`x is defined`, `y is not none`) and filter names after `|` are
+  never input variables.
+- Choosing the mode adds no public field: `ComposePolicy` is unchanged, so
+  library callers keep compiling. A caller that passes a tag name such as
+  `autoescape` as an undeclared input under a root with frontmatter now gets
+  the configured unknown-variable diagnostic.
 
 #### Design contract and unresolved evidence
 

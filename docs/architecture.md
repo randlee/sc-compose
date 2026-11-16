@@ -1327,7 +1327,9 @@ packs and exits 0)
 }
 ```
 
-`required_variables` lists the inputs the pack requires;
+`required_variables` lists the inputs the pack's frontmatter declares as
+required, or is `null` when the pack declares no variable schema or its
+frontmatter does not parse (the pack is still listed);
 `sample_vars` is the adjacent `<name>.sample-vars.json` path, usable
 with `--var-file`, or `null` when the pack ships none. An unknown pack name
 fails with `ERR_CONFIG_PACK_NOT_FOUND`, and the message suggests the nearest
