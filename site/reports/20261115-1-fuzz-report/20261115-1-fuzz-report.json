@@ -517,7 +517,7 @@
     "post_run_servers": "816 /opt/homebrew/bin/dolt sql-server --config /Users/randlee/.beads/shared-server/dolt/config.yaml"
   },
   "validation": {
-    "tested_revision": "02459467f0123e9d12cecd3cbdbc2d3dc5ffab66",
+    "tested_revision": "d8933f9634364eff501f9aa130a8de7555083b31",
     "note": "Python and lint tests ran against this revision; report-validation commands checked the updated report. Controlled tests include expected simulated failure output.",
     "commands": [
       {

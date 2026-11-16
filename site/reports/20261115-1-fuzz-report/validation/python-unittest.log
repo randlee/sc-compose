@@ -3,7 +3,7 @@
 ...usage: test_real_bd.py [--database-mode]
 ......
 ----------------------------------------------------------------------
-Ran 104 tests in 3.590s
+Ran 104 tests in 3.819s
 
 OK
 test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out
