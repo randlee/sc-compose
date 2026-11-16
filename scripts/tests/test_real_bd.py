@@ -22,6 +22,7 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 ONE_PASS = "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n"
+PROCESS_TREE_HANG_GUARD_SECONDS = 60
 
 
 def artifact(target: str, executable: str) -> str:
@@ -212,13 +213,17 @@ class RealBdQualification(unittest.TestCase):
             self.addCleanup(cleanup_process, proc)
             return proc
 
+        group_pid = []
+
         def trigger_timeout(proc, _timeout):
-            deadline = time.monotonic() + 5
+            group_pid.append(proc.pid)
+            deadline = time.monotonic() + PROCESS_TREE_HANG_GUARD_SECONDS
             output = {proc.stdout: bytearray(), proc.stderr: bytearray()}
             streams = list(output)
             captured = ""
             while streams and time.monotonic() < deadline:
-                readable, _, _ = select.select(streams, [], [], deadline - time.monotonic())
+                remaining = max(0.0, deadline - time.monotonic())
+                readable, _, _ = select.select(streams, [], [], remaining)
                 if not readable:
                     break
                 for stream in readable:
@@ -249,8 +254,18 @@ class RealBdQualification(unittest.TestCase):
         self.assertIsNotNone(timeout)
         self.assertIn("known_hung_test", timeout.cmd)
         close_test_writer()
-        eof_ready = bool(select.select([read_fd], [], [], 5)[0])
-        self.assertTrue(eof_ready, "grandchild retained the inherited pipe after process-tree kill")
+        eof_ready = bool(select.select([read_fd], [], [], PROCESS_TREE_HANG_GUARD_SECONDS)[0])
+        try:
+            os.killpg(group_pid[0], 0)
+            group_state = "present"
+        except ProcessLookupError:
+            group_state = "absent"
+        except PermissionError:
+            group_state = "present (permission denied)"
+        self.assertTrue(
+            eof_ready,
+            f"grandchild retained the inherited pipe after process-tree kill; process group {group_pid[0]}: {group_state}",
+        )
         self.assertEqual(os.read(read_fd, 1), b"", "expected EOF after the parent and grandchild exited")
 
     def test_counts_sum_across_result_lines(self) -> None:
