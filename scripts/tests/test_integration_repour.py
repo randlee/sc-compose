@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import copy
 import io
 import queue
 from pathlib import Path
@@ -19,6 +20,32 @@ SPEC.loader.exec_module(MODULE)
 
 
 class IntegrationRunnerTests(unittest.TestCase):
+    def test_cycle_scenario_checks_both_operations_and_rejects_any_mutation(self) -> None:
+        state = {"root": {"title": "unchanged", "deps": []}}
+        error = {"code": "BEADS_COOK_FAILED", "message": "dependency cycle"}
+        cli = MagicMock(return_value={"payload": {"error": error}})
+        snapshot = lambda: copy.deepcopy(state)
+        detail = MODULE.check_cycle_refusals(cli, snapshot, Path("cycle.formula.toml"), "root")
+        self.assertIn("snapshots unchanged", detail)
+        self.assertEqual(MODULE.cycle_diagnostic({"payload": {
+            "outcome": {"failed": {"code": "BEADS_GRAPH_APPLY_FAILED"}},
+            "stages": [{"stderr_excerpt": "blocking dependency cycle"}]
+        }}), "BEADS_GRAPH_APPLY_FAILED")
+        self.assertEqual(cli.call_args_list[0].args[0], "pour")
+        self.assertEqual(cli.call_args_list[1].args, ("repour", Path("cycle.formula.toml"), "--root", "root", "--allow-uncommitted"))
+        def mutate_on_repour(operation, *_args, **_kwargs):
+            if operation == "repour":
+                state["root"]["title"] = "changed"
+            return {"payload": {"error": error}}
+        cli.side_effect = mutate_on_repour
+        with self.assertRaisesRegex(AssertionError, "cyclic repour changed bd state"):
+            MODULE.check_cycle_refusals(cli, snapshot, Path("cycle.formula.toml"), "root")
+        state["root"]["title"] = "unchanged"
+        cli.side_effect = None
+        cli.return_value = {"payload": {"error": {"code": "BEADS_GRAPH_DIRTY", "message": "dirty"}}}
+        with self.assertRaises(AssertionError):
+            MODULE.check_cycle_refusals(cli, snapshot, Path("cycle.formula.toml"), "root")
+
     def test_snapshot_ignores_dependency_order_but_preserves_changes(self) -> None:
         first = {"id": "root", "dependencies": [{"id": "a"}, {"id": "b"}]}
         reversed_row = {"id": "root", "dependencies": [{"id": "b"}, {"id": "a"}]}

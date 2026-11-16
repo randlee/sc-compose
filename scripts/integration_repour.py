@@ -32,10 +32,37 @@ SCENARIOS = (
     "preview, apply, retained runtime and remove/add", "repeated repour changes no stored state",
     "restore removed node", "external edges retained in both directions",
     "conditional add and remove with renamed step", "dangling reference refuses before writes",
+    "graph cycle refuses pour and repour before writes",
     "clean apply, dirty refusal and explicit override", "attach and repour via request using bd rendering",
     "partial apply reports exact progress and resumes", "sequential evolving revisions preserve identities",
 )
 DEFAULT_FUZZ_SEEDS = (24034, 24035)
+
+
+def cycle_diagnostic(response: dict) -> str:
+    payload = response["payload"]
+    if "error" in payload:
+        error = payload["error"]
+        code, message = error["code"], error["message"]
+    else:
+        failure = payload["outcome"].get("failed", {})
+        code = failure.get("code")
+        message = "\n".join(stage["stderr_excerpt"] for stage in payload["stages"])
+    assert code in ("BEADS_COOK_FAILED", "BEADS_GRAPH_APPLY_FAILED"), response
+    assert "cycle" in message.lower(), response
+    return code
+
+
+def check_cycle_refusals(cli, snapshot, path: Path, root_id: str) -> str:
+    """A cyclic new pour and an existing-graph revision must leave no writes."""
+    before = snapshot()
+    poured = cli("pour", path, expected=2)
+    assert snapshot() == before, ("cyclic pour changed bd state", poured)
+    pour_code = cycle_diagnostic(poured)
+    repoured = cli("repour", path, "--root", root_id, "--allow-uncommitted", expected=2)
+    assert snapshot() == before, ("cyclic repour changed bd state", repoured)
+    repour_code = cycle_diagnostic(repoured)
+    return f"pour: {pour_code}; repour: {repour_code}; complete bd snapshots unchanged"
 
 
 class ServerBindError(AssertionError):
@@ -436,6 +463,11 @@ def main(*, fuzz_seeds: tuple[int, ...] = (), mode: str = "server") -> int:
                 assert out["payload"]["outcome"] != "succeeded", out
                 assert snapshot() == before
             scenario("dangling reference refuses before writes", dangling)
+            def cyclic():
+                bad = workspace / "cycle" / "release.formula.toml.j2"
+                formula(bad, '[[steps]]\nid = "build"\ntitle = "Build must not change"\nneeds = ["verify"]\n[[steps]]\nid = "verify"\ntitle = "Verify must not change"\nneeds = ["build"]\n')
+                return check_cycle_refusals(cli, snapshot, bad, root_id)
+            scenario("graph cycle refuses pour and repour before writes", cyclic)
             def dirty():
                 bd_run("dolt", "commit", "-m", "integration baseline")
                 if mode == "embedded":
