@@ -240,6 +240,7 @@ fn examples_list_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     let packs = value["payload"]["packs"].as_array().unwrap();
     assert!(packs.iter().any(|pack| pack["name"] == "hello"));
+    assert!(packs.iter().any(|pack| pack["name"] == "evidence-report"));
     assert!(
         packs
             .iter()

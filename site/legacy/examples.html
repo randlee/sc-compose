@@ -41,7 +41,15 @@ sc-compose examples service-config --var-file svc.json --output deploy/config.ya
 sc-compose examples sprint-report-html \
   --var-file examples/sprint-report-html.sample-vars.json \
   --output sprint-report.html
+
+# Generate a well-formed XHTML evidence report
+sc-compose examples evidence-report \
+  --var-file examples/evidence-report.sample-vars.json \
+  --output evidence-report.xhtml
 </code></pre>
+
+<p>Templates ending in <code>.html.j2</code>, <code>.htm.j2</code>,
+<code>.xml.j2</code>, or <code>.xhtml.j2</code> use markup auto-escaping.</p>
 
 <p>The examples directory is located automatically from the binary path
 (<code>../share/sc-compose/legacy/examples/</code> relative to the binary, following Homebrew

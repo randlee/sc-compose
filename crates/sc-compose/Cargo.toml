@@ -32,6 +32,9 @@ time.workspace = true
 toml.workspace = true
 ulid.workspace = true
 
+[dev-dependencies]
+quick-xml.workspace = true
+
 [lints]
 workspace = true
 

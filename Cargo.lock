@@ -727,6 +727,7 @@ dependencies = [
  "clap",
  "glob",
  "mimalloc",
+ "quick-xml",
  "sc-composer",
  "sc-composer-beads",
  "sc-observability",

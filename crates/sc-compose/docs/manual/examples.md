@@ -64,6 +64,16 @@ Use a JSON var-file for an example with structured inputs:
 $ sc-compose examples pytest-fixture --var-file ./vars.json --output ./fixture.py
 ```
 
+The bundled `evidence-report` pack renders well-formed XHTML using its sample
+variables:
+
+```console
+$ sc-compose examples evidence-report --var-file examples/evidence-report.sample-vars.json --output evidence-report.xhtml
+```
+
+Templates ending in `.html.j2`, `.htm.j2`, `.xml.j2`, or `.xhtml.j2` use
+markup auto-escaping.
+
 When running from a checkout, point discovery at the repository data root:
 
 ```console
