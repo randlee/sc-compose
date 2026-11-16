@@ -61,7 +61,7 @@ pub(crate) fn validate_expanded_with_delimiters(
             &expanded.text,
             open_delimiter,
             close_delimiter,
-            request.policy.strict_undeclared_variables,
+            state::discovery_scan_mode(expanded, request.policy.strict_undeclared_variables),
         );
         state.referenced_variables_by_pass.clear();
         state.declared_variables_by_pass.clear();
@@ -798,7 +798,7 @@ mod tests {
     }
 
     #[test]
-    fn expanded_context_non_strict_reports_commented_token_as_v170_did() {
+    fn expanded_context_frontmatter_skips_commented_tokens_without_strict() {
         let root = temp_root("validation_declared_context_default");
         write_file(
             &root.join("template.md.j2"),
@@ -814,7 +814,8 @@ mod tests {
         );
 
         assert_eq!(context.get("greeting"), Some(&json!("hello")));
-        assert!(mentions_missing(&reported, "commented"), "{reported:?}");
+        assert!(reported.ok, "{reported:?}");
+        assert!(!mentions_missing(&reported, "commented"), "{reported:?}");
     }
 
     fn request_for_file(root: &Path, file: &str, policy: ComposePolicy) -> ComposeRequest {

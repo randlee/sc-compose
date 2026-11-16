@@ -26,6 +26,15 @@ enum ScopeKind {
     Block,
 }
 
+/// Discovery syntax is independent of whether undeclared references are fatal.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ScanMode {
+    /// Preserve the v1.7.0 whole-statement and literal-region scan.
+    WholeStatement,
+    /// Skip tag names, filter targets, comments and literal raw-block bodies.
+    ArgumentsOnly,
+}
+
 /// Discover declared template variable tokens without running full validation.
 ///
 /// Returns the set of variable names referenced by `text` using the standard
@@ -38,14 +47,14 @@ pub fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
 /// Discover declared template variable tokens for a caller-provided brace count.
 #[must_use]
 pub fn discover_tokens_with_brace_count(text: &str, brace_count: usize) -> BTreeSet<VariableName> {
-    discover_tokens_for(text, brace_count, false)
+    discover_tokens_for(text, brace_count, ScanMode::WholeStatement)
 }
 
-/// Brace-count discovery; `strict` also ignores comments, raw blocks and statement tag names.
+/// Brace-count discovery with an explicit compatibility or argument-only scan.
 pub(crate) fn discover_tokens_for(
     text: &str,
     brace_count: usize,
-    strict: bool,
+    mode: ScanMode,
 ) -> BTreeSet<VariableName> {
     if brace_count < 2 {
         return BTreeSet::new();
@@ -55,7 +64,7 @@ pub(crate) fn discover_tokens_for(
         text,
         &"{".repeat(brace_count),
         &"}".repeat(brace_count),
-        strict,
+        mode,
     )
 }
 
@@ -67,15 +76,20 @@ pub fn discover_tokens_with_delimiters(
     open_delimiter: &str,
     close_delimiter: &str,
 ) -> BTreeSet<VariableName> {
-    discover_delimited_tokens(text, open_delimiter, close_delimiter, false)
+    discover_delimited_tokens(
+        text,
+        open_delimiter,
+        close_delimiter,
+        ScanMode::WholeStatement,
+    )
 }
 
-/// Delimiter discovery; `strict` also ignores comments, raw blocks and statement tag names.
+/// Delimiter discovery with an explicit compatibility or argument-only scan.
 pub(crate) fn discover_delimited_tokens(
     text: &str,
     open_delimiter: &str,
     close_delimiter: &str,
-    strict: bool,
+    mode: ScanMode,
 ) -> BTreeSet<VariableName> {
     if open_delimiter.is_empty() || close_delimiter.is_empty() {
         return BTreeSet::new();
@@ -89,14 +103,14 @@ pub(crate) fn discover_delimited_tokens(
     walk_template(
         text,
         &expression_delimiters,
-        strict,
+        mode == ScanMode::ArgumentsOnly,
         |delimiter, expression| {
             match delimiter {
                 Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
                 Delimiter::Statement => {
                     discover_statement(
                         expression,
-                        strict,
+                        mode,
                         &mut scopes,
                         &mut scope_kinds,
                         &mut tokens,
@@ -111,7 +125,7 @@ pub(crate) fn discover_delimited_tokens(
 
 fn discover_statement(
     expression: &str,
-    strict: bool,
+    mode: ScanMode,
     scopes: &mut Vec<LoopScope>,
     scope_kinds: &mut Vec<ScopeKind>,
     tokens: &mut BTreeSet<VariableName>,
@@ -152,7 +166,7 @@ fn discover_statement(
         scope_kinds.push(ScopeKind::Block);
     } else if expression.starts_with("endblock") {
         pop_scope(scopes, scope_kinds, ScopeKind::Block);
-    } else if !strict {
+    } else if mode == ScanMode::WholeStatement {
         // v1.7.0 default scan: the whole statement is scanned, tag name included.
         collect_identifiers(expression, scopes, tokens);
     } else {
@@ -231,13 +245,13 @@ pub(crate) fn has_bare_for_loop_over(text: &str, variable: &str) -> bool {
 pub fn discover_all_pass_tokens(
     parsed: &ParsedTemplate,
 ) -> BTreeMap<usize, BTreeSet<VariableName>> {
-    discover_all_pass_tokens_for(parsed, false)
+    discover_all_pass_tokens_for(parsed, ScanMode::WholeStatement)
 }
 
-/// Per-pass discovery; `strict` also ignores comments, raw blocks and statement tag names.
+/// Per-pass discovery with an explicit compatibility or argument-only scan.
 pub(crate) fn discover_all_pass_tokens_for(
     parsed: &ParsedTemplate,
-    strict: bool,
+    mode: ScanMode,
 ) -> BTreeMap<usize, BTreeSet<VariableName>> {
     parsed
         .passes()
@@ -247,7 +261,7 @@ pub(crate) fn discover_all_pass_tokens_for(
             let brace_count = pass_number + 1;
             (
                 pass_number,
-                discover_tokens_for(parsed.body(), brace_count, strict),
+                discover_tokens_for(parsed.body(), brace_count, mode),
             )
         })
         .collect()
@@ -256,10 +270,23 @@ pub(crate) fn discover_all_pass_tokens_for(
 #[cfg(test)]
 mod tests {
     use super::{
-        discover_all_pass_tokens, discover_tokens, discover_tokens_for,
-        discover_tokens_with_brace_count, discover_tokens_with_delimiters, has_bare_for_loop_over,
+        discover_all_pass_tokens, discover_tokens, discover_tokens_with_brace_count,
+        discover_tokens_with_delimiters, has_bare_for_loop_over,
     };
     use crate::parse_template_document;
+
+    fn discover_tokens_for(
+        text: &str,
+        brace_count: usize,
+        arguments_only: bool,
+    ) -> std::collections::BTreeSet<crate::VariableName> {
+        let mode = if arguments_only {
+            super::ScanMode::ArgumentsOnly
+        } else {
+            super::ScanMode::WholeStatement
+        };
+        super::discover_tokens_for(text, brace_count, mode)
+    }
 
     #[test]
     fn leading_statement_whitespace_control_marker_is_not_a_token() {

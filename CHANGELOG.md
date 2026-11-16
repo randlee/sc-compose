@@ -15,6 +15,14 @@ configuration, not qualified deliverables.
 
 ### Changed
 
+- Templates with frontmatter now use argument-only variable discovery even
+  without `--strict`: Jinja tag names and filter targets no longer count as
+  variables, and comments and literal raw-block bodies are skipped (#1043).
+  Passing an undeclared input such as `autoescape` now produces an unknown/
+  extra-input diagnostic under the configured unknown-variable policy.
+  Templates without frontmatter retain their v1.7.0 default scan; strict
+  diagnostics and the public `ComposePolicy` structure are unchanged.
+
 - Bare `sc-compose examples` lists packs successfully. Listings advertise
   required variables or sample var-files, and unknown packs suggest close
   names or matching template formats (#1044).
