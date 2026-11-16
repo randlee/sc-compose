@@ -1055,6 +1055,7 @@ def test_no_single_repo_concerns_leak_into_kit_workflows_actions_or_scripts() ->
         "worker_result.py",
         "release_python.py",
         "release_gate.sh",
+        "check_rc_python_compat.py",
         "release-preflight-docli.sh",
         "run-consumer-preflight.sh",
     )
