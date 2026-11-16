@@ -79,7 +79,7 @@ wait_after_publish_seconds = 0
 
 [[release_binaries]]
 name = "sc-compose"
-bundled_paths = [{ source = "examples", destination = "share/sc-compose/examples", homebrew_destination_components = ["pkgshare"] }]
+bundled_paths = [{ source = "examples", destination = "share/sc-compose/examples", homebrew_destination_components = ["pkgshare", "examples"], stage_smoke_args = ["examples", "list"], stage_smoke_line = "hello" }]
 
 [[python_packages]]
 artifact = "sc-sha-python"
@@ -141,8 +141,8 @@ template = "release/homebrew/formula.rb.j2"
 class = "ScCompose"
 binaries = ["sc-compose"]
 test_binary = "sc-compose"
-test_command = "--help"
-test_output = "Standalone template composition CLI"
+test_command = "examples list"
+test_output = "hello"
 release_track = "stable"
 
 [[channels.homebrew.assets]]

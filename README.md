@@ -117,7 +117,8 @@ sc-compose verify deployed.yaml --against config.yaml.2.j2 --all --pass ...
 ### Bundled Examples & Personal Templates
 
 ```bash
-sc-compose examples list                    # discover starter templates
+sc-compose examples                         # discover starter templates and inputs
+sc-compose examples list                    # same listing, with sample --var-file paths
 sc-compose examples pytest-fixture          # generate test stubs
 sc-compose templates add my-template.md.j2  # save for reuse
 sc-compose templates my-template            # render by name
@@ -188,7 +189,7 @@ sc-compose bead attach         --request req.json --json  # create under an exis
   `"pour_authorization": "CreatePersistentBeads"`; previews never write.
 - **Missing inputs fail.** An unset `{{{ variable }}}` with no frontmatter
   default is refused with `BEADS_RENDER_FAILED` before anything is written.
-- **Renderer choice (unreleased 1.8.0 candidate).**
+- **Renderer choice (since 1.8.0).**
   - The default, `--render-by sc-compose`, renders both `{{ }}` and `{{{ }}}`
     once. `--render-by bd` keeps the 1.7.0 behaviour.
   - `bead pour FORMULA --var KEY=VALUE` pours a formula directly, without a
@@ -246,12 +247,15 @@ handoff requirements.
 | Any (Python) | PyPI | `pip install sc-compose` |
 | Any (Python) | PyPI | `pip install sc-composer-beads` (Beads composition) |
 | Any (source) | cargo | `cargo build --release -p sc-compose` |
-| Rust lib | Cargo.toml | `sc-composer = "1.7.0"` |
-| Rust lib (Beads) | Cargo.toml | `sc-composer-beads = "1.7.0"` |
+| Rust lib | Cargo.toml | `sc-composer = "1.8.0"` |
+| Rust lib (Beads) | Cargo.toml | `sc-composer-beads = "1.8.0"` |
 
-Bundled examples are guaranteed in Homebrew, Scoop, Winget, and GitHub Release
-installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
-examples.
+Homebrew, Scoop, and GitHub Release archives include the bundled examples.
+Winget's portable ZIP installation has not been qualified for example
+discovery; if the examples are missing, set `SC_COMPOSE_DATA_DIR` to a
+directory containing `examples/`. `cargo install` ships the binary only and
+requires the same override. The PyPI package provides Python bindings, not
+the CLI or its bundled example files.
 
 ---
 
@@ -259,7 +263,7 @@ examples.
 
 | | |
 |---|---|
-| Version | 1.7.0 (latest release); 1.8.0 candidate is unreleased and pending full-platform qualification |
+| Version | 1.8.0 (latest release); 1.9.0 in preparation |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |

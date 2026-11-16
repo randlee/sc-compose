@@ -240,6 +240,11 @@ def load_install_values(path: Path) -> dict[str, object]:
                 bundled.get("homebrew_destination_components"),
                 "bundled_paths.homebrew_destination_components",
             )
+            if "stage_smoke_args" in bundled or "stage_smoke_line" in bundled:
+                args = _require_string_array(bundled.get("stage_smoke_args"), "bundled_paths.stage_smoke_args")
+                if not args:
+                    raise argparse.ArgumentTypeError("bundled_paths.stage_smoke_args must not be empty")
+                _require_string(bundled.get("stage_smoke_line"), "bundled_paths.stage_smoke_line")
 
     if "prerelease" in values:
         prerelease = _require_mapping(values["prerelease"], "prerelease")

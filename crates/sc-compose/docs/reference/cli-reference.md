@@ -1,6 +1,6 @@
 # sc-compose CLI Reference
 
-Version 1.8.0
+Version 1.9.0
 
 Generated from the CLI command tree. Do not hand-edit.
 

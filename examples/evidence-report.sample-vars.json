@@ -1,0 +1,10 @@
+{
+  "report": {
+    "title": "Build & release evidence",
+    "summary": "Checks for the <candidate> release."
+  },
+  "checks": [
+    { "name": "Unit tests", "result": "passed" },
+    { "name": "Review & approval", "result": "ready" }
+  ]
+}

@@ -1,0 +1,32 @@
+---
+metadata:
+  name: evidence-report
+  description: A reusable XML-well-formed evidence report.
+required_variables:
+  - report.title
+  - report.summary
+  - checks.name
+  - checks.result
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ report.title }}</title>
+</head>
+<body>
+  <main>
+    <h1>{{ report.title }}</h1>
+    <p>{{ report.summary }}</p>
+    <table>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+{% for check in checks %}
+        <tr><td>{{ check.name }}</td><td>{{ check.result }}</td></tr>
+{% endfor %}
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

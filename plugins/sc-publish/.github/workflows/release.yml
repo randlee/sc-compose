@@ -262,7 +262,12 @@ jobs:
               raise SystemExit(f"unsupported archive type: {target['archive']}")
           with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env:
               env.write(f"ARCHIVE={archive}\n")
+              env.write(f"STAGE_DIR={stage}\n")
           PY
+
+      - name: Verify staged release examples
+        shell: bash
+        run: python3 .github/scripts/stage_examples_smoke.py "$STAGE_DIR" "${{ matrix.target }}" "$RELEASE_ARTIFACT_MANIFEST"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
