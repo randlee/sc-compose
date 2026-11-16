@@ -250,9 +250,12 @@ handoff requirements.
 | Rust lib | Cargo.toml | `sc-composer = "1.7.0"` |
 | Rust lib (Beads) | Cargo.toml | `sc-composer-beads = "1.7.0"` |
 
-Bundled examples are guaranteed in Homebrew, Scoop, Winget, and GitHub Release
-installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
-examples.
+Homebrew, Scoop, and GitHub Release archives include the bundled examples.
+Winget's portable ZIP installation has not been qualified for example
+discovery; if the examples are missing, set `SC_COMPOSE_DATA_DIR` to a
+directory containing `examples/`. `cargo install` ships the binary only and
+requires the same override. The PyPI package provides Python bindings, not
+the CLI or its bundled example files.
 
 ---
 

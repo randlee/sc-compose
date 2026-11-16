@@ -2794,7 +2794,7 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
             "binary_paths": ["bin/sc-compose", "bin/sc-compose-daemon"],
             "bundled_paths": [
                 {
-                    "destination_components": ["pkgshare"],
+                    "destination_components": ["pkgshare", "examples"],
                     "source_glob": "share/sc-compose/examples/*",
                 },
                 {
@@ -2807,9 +2807,17 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
     assert_homebrew_formula_install_executes(formula)
     assert 'bin.install "bin/sc-compose"' in formula
     assert 'bin.install "bin/sc-compose-daemon"' in formula
-    assert '(pkgshare).install Dir["share/sc-compose/examples/*"]' in formula
+    assert '(pkgshare/"examples").install Dir["share/sc-compose/examples/*"]' in formula
     assert '(pkgshare/"examples"/"nested").install Dir["share/sc-compose/nested/*"]' in formula
     assert 'shell_output("#{bin}/" + "sc-compose-daemon"' in formula
+    if renderer_binary() == "sc-compose":
+        binary = next(item for item in release_manifest()["release_binaries"] if item["name"] == "sc-compose")
+        bundle = next(item for item in binary["bundled_paths"] if item["source"] == "examples")
+        assert bundle["destination"] == "share/sc-compose/examples"
+        assert bundle["homebrew_destination_components"] == ["pkgshare", "examples"]
+        formula_config = next(item for item in release_manifest()["channels"]["homebrew"]["formulas"] if item["class"] == "ScCompose")
+        assert formula_config["test_command"] == "examples list"
+        assert formula_config["test_output"] == "hello"
 
     scoop = render_release_template(
         tmp_path,
