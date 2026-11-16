@@ -1795,9 +1795,13 @@ FR-24.12 (documentation/regressions) to FR-24.30–32. They do not retain the
 superseded legacy-default assumption.
 
 Additional retained contract details are: bead render emits the rendered body
-only and removes frontmatter (historical issue #785); variable validation
-counts only selected brace expressions and does not treat comments, raw bodies,
-Jinja syntax names, or literal data as input variables; JSON/TOML escaping is
+only and removes frontmatter (historical issue #785); for a template whose
+root declares frontmatter, or under `--strict` (the matching API option),
+variable validation counts only selected brace expressions and does not treat
+comments, raw bodies, Jinja syntax names (for example `autoescape`,
+`endautoescape`, `raw` or a `filter`/`call` name), or literal data as input
+variables; a template without frontmatter keeps the v1.7.0 whole-statement
+token scan unchanged (issues #783 and #1043); JSON/TOML escaping is
 applied once, while expression results and nested values remain data and are
 not reparsed as template source. These are current contract details for V1 to
 pin and V3 to implement, not additional historical corpus or fuzz gates.

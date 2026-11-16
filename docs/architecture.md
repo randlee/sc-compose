@@ -1311,14 +1311,37 @@ source of truth.
 }
 ```
 
-`examples list --json` and `templates list --json`
+`examples list --json` (bare `examples` with no pack name lists the same
+packs and exits 0)
+
+```json
+{
+  "packs": [
+    {
+      "name": "changelog-categories",
+      "path": "/path/to/share/sc-compose/examples/changelog-categories.md.j2",
+      "required_variables": ["categories", "date", "version"],
+      "sample_vars": "/path/to/share/sc-compose/examples/changelog-categories.sample-vars.json"
+    }
+  ]
+}
+```
+
+`required_variables` lists the inputs the pack requires;
+`sample_vars` is the adjacent `<name>.sample-vars.json` path, usable
+with `--var-file`, or `null` when the pack ships none. An unknown pack name
+fails with `ERR_CONFIG_PACK_NOT_FOUND`, and the message suggests the nearest
+discovered pack name when one is close (for example
+``example pack `hellp` was not found; did you mean `hello`?``).
+
+`templates list --json`
 
 ```json
 {
   "packs": [
     {
       "name": "hello",
-      "path": "/path/to/share/sc-compose/examples/hello.md.j2"
+      "path": "/path/to/templates/hello"
     }
   ]
 }
