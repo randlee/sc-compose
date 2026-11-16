@@ -3,3 +3,5 @@
 {"sprint":"w-3","depends_on":["w-2"]}
 {"sprint":"w-4"}
 {"sprint":"w-5"}
+{"sprint":"w-6","depends_on":["w-5"]}
+{"sprint":"w-7","depends_on":["w-6"]}
