@@ -4,6 +4,7 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 python := if os_family() == "windows" { "python scripts/sc_lint_python.py" } else { "python3 scripts/sc_lint_python.py" }
 
 sc-compose := "cargo run --quiet --bin sc-compose --"
+sc-compose-test-cli := if os_family() == "windows" { "target/debug/sc-compose.exe" } else { "target/debug/sc-compose" }
 
 # Regenerate committed UniFFI Go output. Use `just generate-sc-sha-go check`
 # in CI to fail when the pinned generator would change it.
@@ -106,7 +107,8 @@ lint-ci-consumer: ensure-lint-runtime
     python3 .just/check_version_sync.py
     python3 .just/lint_manifests.py
     python3 .just/lint_codespell.py
-    python3 .just/run_pytests.py
+    cargo build -j 2 -p sc-compose --bin sc-compose
+    SC_COMPOSE_TEST_CLI="{{justfile_directory()}}/{{sc-compose-test-cli}}" python3 .just/run_pytests.py
     python3 .just/lint_cargo_deny.py --root .
     cargo shear
     {{sc-compose}} lint --root . --target sc-boundary --json
