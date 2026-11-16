@@ -1,3 +1,13 @@
+use crate::support::bounded_command;
+
+trait BoundedOutput {
+    fn bounded_output(&mut self) -> std::io::Result<std::process::Output>;
+}
+impl BoundedOutput for std::process::Command {
+    fn bounded_output(&mut self) -> std::io::Result<std::process::Output> {
+        Ok(bounded_command::run_command(self))
+    }
+}
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -39,7 +49,7 @@ fn blocked_graph_plan_reports_its_path_before_bd() {
         .args(["bead", "preview-attach", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run CLI");
     assert_eq!(output.status.code(), Some(2), "{output:?}");
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("JSON");
@@ -101,6 +111,7 @@ fn write_request(
 }
 
 fn initialize_beads_workspace(root: &Path, bd: &Path) {
+    fs::create_dir_all(root.join(".home")).expect("isolated home");
     let output = Command::new(bd)
         .args([
             "init",
@@ -110,9 +121,12 @@ fn initialize_beads_workspace(root: &Path, bd: &Path) {
             "--skip-hooks",
         ])
         .env("BEADS_NO_DAEMON", "1")
+        .env("HOME", root.join(".home"))
+        .env("XDG_CONFIG_HOME", root.join(".home/.config"))
+        .env("USERPROFILE", root.join(".home"))
         .env("BEADS_DIR", root.join(".beads"))
         .current_dir(root)
-        .output()
+        .bounded_output()
         .expect("start pinned bd init");
     assert!(
         output.status.success(),
@@ -210,7 +224,7 @@ fn validate_loads_the_complete_request_and_emits_the_receipt_envelope() {
         .args(["bead", "validate", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run bead validate");
 
     assert!(command.status.success(), "{command:?}");
@@ -242,7 +256,7 @@ fn failed_validation_stops_preview_before_registry_or_pour() {
         .args(["bead", "preview-pour", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run bead preview");
 
     assert_eq!(command.status.code(), Some(2), "{command:?}");
@@ -264,7 +278,7 @@ fn repour_without_a_target_is_a_usage_error_that_starts_no_bd() {
     let output = sc_compose()
         .args(["bead", "repour", "plan.formula.toml.j2"])
         .current_dir(&fixture.path)
-        .output()
+        .bounded_output()
         .expect("run bead repour");
     assert_eq!(output.status.code(), Some(3), "{output:?}");
     assert!(
@@ -291,7 +305,7 @@ fn repour_with_an_invalid_root_id_returns_the_typed_id_error() {
         ])
         .arg("--json")
         .current_dir(&fixture.path)
-        .output()
+        .bounded_output()
         .expect("run bead repour");
     assert_eq!(output.status.code(), Some(2), "{output:?}");
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -311,7 +325,7 @@ fn persistent_pour_refuses_before_starting_bd_without_authorization() {
         .args(["bead", "pour", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run bead pour");
 
     assert_eq!(command.status.code(), Some(3), "{command:?}");
@@ -336,7 +350,7 @@ fn malformed_request_preserves_the_r1_deserialization_code() {
         .args(["bead", "validate", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run malformed request");
 
     assert_eq!(command.status.code(), Some(3), "{command:?}");
@@ -356,7 +370,7 @@ fn unreadable_request_preserves_path_and_io_kind() {
         .args(["bead", "validate", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run unreadable request");
 
     assert_eq!(command.status.code(), Some(3), "{command:?}");
@@ -387,7 +401,7 @@ fn invalid_utf8_request_is_a_read_failure() {
         .args(["bead", "validate", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .unwrap();
     assert_eq!(command.status.code(), Some(3));
     let envelope: serde_json::Value = serde_json::from_slice(&command.stdout).unwrap();
@@ -421,7 +435,7 @@ fn render_failure_uses_the_r1_receipt_code_and_nonzero_exit() {
         .args(["bead", "render", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run bead render");
 
     assert_eq!(command.status.code(), Some(2), "{command:?}");
@@ -450,7 +464,7 @@ fn unavailable_bd_preserves_the_r1_error_code_and_nonzero_exit() {
         .args(["bead", "validate", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run unavailable bd request");
 
     assert_eq!(command.status.code(), Some(2), "{command:?}");
@@ -475,7 +489,7 @@ fn failed_preview_reports_its_exact_r1_stage_code() {
         .args(["bead", "preview-pour", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run failed bead preview");
 
     assert_eq!(command.status.code(), Some(2), "{command:?}");
@@ -510,7 +524,7 @@ fn authorized_failed_pour_reports_its_exact_r1_stage_code() {
         .args(["bead", "pour", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run failed authorized pour");
 
     assert_eq!(command.status.code(), Some(2), "{command:?}");
@@ -542,8 +556,11 @@ fn pinned_bd_validates_the_canonical_cli_fixture_when_configured() {
         .arg(&request)
         .arg("--json")
         .env("BEADS_NO_DAEMON", "1")
+        .env("HOME", fixture.path.join(".home"))
+        .env("XDG_CONFIG_HOME", fixture.path.join(".home/.config"))
+        .env("USERPROFILE", fixture.path.join(".home"))
         .env("BEADS_DIR", fixture.path.join(".beads"))
-        .output()
+        .bounded_output()
         .expect("run pinned bd validation");
 
     assert!(command.status.success(), "{command:?}");
@@ -563,7 +580,7 @@ fn invalid_pour_authorization_returns_its_code_before_render_or_bd() {
         .args(["bead", "pour", "--request"])
         .arg(request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("bead pour");
     assert_eq!(command.status.code(), Some(3), "{command:?}");
     let envelope: serde_json::Value = serde_json::from_slice(&command.stdout).expect("envelope");
@@ -592,7 +609,7 @@ fn malformed_relation_endpoint_has_stable_request_code_before_side_effects() {
         .args(["bead", "render", "--request"])
         .arg(request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .unwrap();
     assert_eq!(result.status.code(), Some(3));
     let envelope: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
@@ -614,6 +631,7 @@ impl GraphCliWorkspace {
     fn new(bd: PathBuf) -> Self {
         let fixture = TempFixture::new("bead-graph-e2e");
         let beads_dir = fixture.path.join(".beads");
+        fs::create_dir_all(fixture.path.join(".home")).expect("isolated home");
         let workspace = Self {
             fixture,
             bd,
@@ -654,13 +672,16 @@ impl GraphCliWorkspace {
     }
 
     fn bd_output(&self, args: &[&str]) -> String {
-        let output = Command::new(&self.bd)
+        let mut command = Command::new(&self.bd);
+        command
             .args(args)
             .current_dir(&self.fixture.path)
+            .env("HOME", self.fixture.path.join(".home"))
+            .env("XDG_CONFIG_HOME", self.fixture.path.join(".home/.config"))
+            .env("USERPROFILE", self.fixture.path.join(".home"))
             .env("BEADS_DIR", &self.beads_dir)
-            .env("BEADS_NO_DAEMON", "1")
-            .output()
-            .expect("fixture bd");
+            .env("BEADS_NO_DAEMON", "1");
+        let output = bounded_command::run_command(&mut command);
         assert!(output.status.success(), "{args:?}: {output:?}");
         String::from_utf8(output.stdout).expect("bd UTF-8")
     }
@@ -692,12 +713,15 @@ impl GraphCliWorkspace {
             .arg(request)
             .args(["--render-by", "bd"])
             .current_dir(&self.fixture.path)
+            .env("HOME", self.fixture.path.join(".home"))
+            .env("XDG_CONFIG_HOME", self.fixture.path.join(".home/.config"))
+            .env("USERPROFILE", self.fixture.path.join(".home"))
             .env("BEADS_DIR", &self.beads_dir)
             .env("BEADS_NO_DAEMON", "1");
         if json_output {
             command.arg("--json");
         }
-        let output = command.output().expect("bead CLI");
+        let output = command.bounded_output().expect("bead CLI");
         assert_eq!(output.status.code(), Some(code), "{operation}: {output:?}");
         output
     }
@@ -751,9 +775,15 @@ fn direct_plan_fix_pour_persists_values_and_declared_dependency() {
         ])
         .current_dir(root)
         .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
-        .output()
+        .bounded_output()
         .unwrap();
     assert!(output.status.success(), "{output:?}");
     let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -816,9 +846,15 @@ fn assert_plan_fix_path_matches(
         ])
         .current_dir(&workspace.fixture.path)
         .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
-        .output()
+        .bounded_output()
         .unwrap();
     assert!(output.status.success(), "{output:?}");
     let receipt: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -856,9 +892,15 @@ fn assert_plan_fix_json_matches(
         .arg(&request)
         .arg("--json")
         .current_dir(root)
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
-        .output()
+        .bounded_output()
         .unwrap();
     assert!(json_output.status.success(), "{json_output:?}");
     let json_receipt: serde_json::Value = serde_json::from_slice(&json_output.stdout).unwrap();
@@ -911,9 +953,15 @@ fn assert_direct_pour_refusals_preserve_state(workspace: &GraphCliWorkspace) {
             .args(*args)
             .current_dir(root)
             .env("PATH", workspace.fixture.path_with_fake_tools())
+            .env("HOME", workspace.fixture.path.join(".home"))
+            .env(
+                "XDG_CONFIG_HOME",
+                workspace.fixture.path.join(".home/.config"),
+            )
+            .env("USERPROFILE", workspace.fixture.path.join(".home"))
             .env("BEADS_DIR", &workspace.beads_dir)
             .env("BEADS_NO_DAEMON", "1")
-            .output()
+            .bounded_output()
             .unwrap();
         assert!(!result.status.success(), "{args:?}: {result:?}");
         assert_eq!(
@@ -960,7 +1008,7 @@ fn pinned_bd_graph_pour_and_attach_run_the_release_example_with_text_and_exit_co
     assert_missing_edge_recovery(&workspace, &request, &parent);
     let help = sc_compose()
         .args(["help", "bead"])
-        .output()
+        .bounded_output()
         .expect("help bead");
     assert!(help.status.success());
     assert!(String::from_utf8_lossy(&help.stdout).contains("Release under an epic"));
@@ -1135,7 +1183,7 @@ fn direct_pour_rejects_duplicate_mixed_and_missing_sources_before_staging() {
         let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
             .args(*args)
             .current_dir(&root.path)
-            .output()
+            .bounded_output()
             .expect("run direct pour refusal");
         assert!(!output.status.success(), "{args:?}: {output:?}");
         assert_eq!(fs::read_dir(&root.path).unwrap().count(), 0, "{args:?}");
@@ -1148,7 +1196,7 @@ fn missing_direct_formula_reports_typed_source_failure() {
     let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
         .args(["bead", "pour", "missing.formula.toml", "--json"])
         .current_dir(&root.path)
-        .output()
+        .bounded_output()
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
     let text = String::from_utf8(output.stdout).unwrap();
@@ -1191,9 +1239,10 @@ fn direct_pour_receipt_flags_staged_paths_removed_on_exit() {
     )
     .expect("copy plan-fix example");
     // A failing cook stops the pour after the formula is rendered and staged.
-    let (fake_bd, _trace) = write_fake_bd(root, 1, 0);
+    let (fake_bd, trace) = write_fake_bd(root, 1, 0);
     fs::create_dir(root.join("fake-bin")).expect("fake-bin");
-    fs::copy(&fake_bd, root.join("fake-bin/bd")).expect("install fake bd on PATH");
+    let body = fs::read_to_string(fake_exec::script_path(&fake_bd)).expect("fake bd script");
+    fake_exec::install(&root.join("fake-bin/bd"), &body);
     let pour = |json: bool| {
         let mut command = sc_compose();
         command
@@ -1205,7 +1254,7 @@ fn direct_pour_receipt_flags_staged_paths_removed_on_exit() {
         if json {
             command.arg("--json");
         }
-        let output = command.output().expect("run direct pour");
+        let output = command.bounded_output().expect("run direct pour");
         assert_eq!(output.status.code(), Some(2), "{output:?}");
         output
     };
@@ -1225,6 +1274,11 @@ fn direct_pour_receipt_flags_staged_paths_removed_on_exit() {
     );
 
     let human = String::from_utf8(pour(false).stdout).expect("human receipt");
+    assert_eq!(
+        trace_stages(&trace),
+        ["cook", "cook"],
+        "configured fake handled both calls"
+    );
     let line = human
         .lines()
         .find(|line| line.starts_with("rendered_formula: "))
@@ -1251,7 +1305,7 @@ fn direct_pour_receipt_flags_staged_paths_removed_on_exit() {
         .args(["bead", "render", "--request"])
         .arg(&request)
         .arg("--json")
-        .output()
+        .bounded_output()
         .expect("run request render");
     assert!(rendered.status.success(), "{rendered:?}");
     let envelope: serde_json::Value = serde_json::from_slice(&rendered.stdout).expect("envelope");
@@ -1292,9 +1346,15 @@ fn direct_bd_owned_registry_pour_passes_variables_to_bd() {
         ])
         .current_dir(root)
         .env("PATH", workspace.fixture.path_with_fake_tools())
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
-        .output()
+        .bounded_output()
         .unwrap();
     assert!(output.status.success(), "{output:?}");
     let receipt: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -1389,7 +1449,7 @@ fn direct_named_user_registry_snapshots_confined_includes() {
         .env("GT_ROOT", &home.path)
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
-        .output()
+        .bounded_output()
         .unwrap();
     assert!(priority.status.success(), "{priority:?}");
     let priority_receipt: serde_json::Value = serde_json::from_slice(&priority.stdout).unwrap();
@@ -1413,7 +1473,7 @@ fn direct_named_user_registry_snapshots_confined_includes() {
         .env("GT_ROOT", &home.path)
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
-        .output()
+        .bounded_output()
         .unwrap();
     assert!(!refused.status.success());
     assert_eq!(workspace.snapshot(), before);
@@ -1436,7 +1496,7 @@ fn run_external_registry_pour(workspace: &GraphCliWorkspace, home: &Path) -> ser
         .env("GT_ROOT", home)
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
-        .output()
+        .bounded_output()
         .unwrap();
     assert!(output.status.success(), "{output:?}");
     serde_json::from_slice(&output.stdout).unwrap()
@@ -1554,7 +1614,10 @@ fn repour_by_request_updates_an_attached_plan_and_keeps_runtime_state() {
 
     request["compose_variables"] = json!({"version": "1.6.2"});
     let edited = workspace.write_request(&request);
-    let repoured = advanced_graph_cli(&workspace, "repour", &edited);
+    // Pinned bd 1.3.1 embedded mode cannot probe Dolt state; this case checks
+    // applied runtime preservation. Refusal remains covered by revision_cli tests.
+    let repoured =
+        advanced_graph_cli_with_args(&workspace, "repour", &edited, &["--allow-uncommitted"]);
     assert!(repoured.status.success(), "{repoured:?}");
     let value: serde_json::Value = serde_json::from_slice(&repoured.stdout).unwrap();
     assert_eq!(value["payload"]["outcome"], "succeeded", "{value:#}");
@@ -1570,13 +1633,19 @@ fn repour_by_request_updates_an_attached_plan_and_keeps_runtime_state() {
         "nothing poured fresh"
     );
 
-    let replay = advanced_graph_cli(&workspace, "repour", &edited);
+    let replay =
+        advanced_graph_cli_with_args(&workspace, "repour", &edited, &["--allow-uncommitted"]);
     assert!(replay.status.success(), "{replay:?}");
 
     // A target that does not exist is refused (exit 2) before any write.
     let before = workspace.snapshot();
     request["parent"] = json!("cli-nope");
-    let missing = advanced_graph_cli(&workspace, "repour", &workspace.write_request(&request));
+    let missing = advanced_graph_cli_with_args(
+        &workspace,
+        "repour",
+        &workspace.write_request(&request),
+        &["--allow-uncommitted"],
+    );
     assert_eq!(missing.status.code(), Some(2), "{missing:?}");
     let value: serde_json::Value = serde_json::from_slice(&missing.stdout).unwrap();
     assert_eq!(
@@ -1591,14 +1660,30 @@ fn advanced_graph_cli(
     operation: &str,
     request: &Path,
 ) -> std::process::Output {
+    advanced_graph_cli_with_args(workspace, operation, request, &[])
+}
+
+fn advanced_graph_cli_with_args(
+    workspace: &GraphCliWorkspace,
+    operation: &str,
+    request: &Path,
+    extra_args: &[&str],
+) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_sc-compose"))
         .args(["bead", operation, "--request"])
         .arg(request)
         .arg("--json")
+        .args(extra_args)
         .current_dir(&workspace.fixture.path)
+        .env("HOME", workspace.fixture.path.join(".home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            workspace.fixture.path.join(".home/.config"),
+        )
+        .env("USERPROFILE", workspace.fixture.path.join(".home"))
         .env("BEADS_DIR", &workspace.beads_dir)
         .env("BEADS_NO_DAEMON", "1")
-        .output()
+        .bounded_output()
         .unwrap()
 }
 
@@ -1624,10 +1709,275 @@ fn cli_strict_is_explicit_and_schema_scoped() {
         if strict {
             command.arg("--strict");
         }
-        command.output().unwrap()
+        command.bounded_output().unwrap()
     };
     assert!(run(false).status.success());
     assert_eq!(run(true).status.code(), Some(2));
     fs::write(&template, "title = \"{{ value }}\"\n").unwrap();
     assert!(run(true).status.success());
+}
+
+fn revision_config(fixture: &TempFixture, scenario: &str, sql: &str, invalid: bool) {
+    write_file(&fixture.path.join("revision-bd.json"), &json!({
+        "trace": fixture.path.join("trace"), "scenario": scenario, "sql": sql, "invalid": invalid,
+    }).to_string());
+}
+
+fn revision_cli_fixture(fixture: &TempFixture) -> (PathBuf, PathBuf) {
+    let root = &fixture.path;
+    let template = root.join("sample.formula.toml.j2");
+    let rendered = root.join("sample.formula.toml");
+    let trace = root.join("trace");
+    let runner = Path::new(env!("CARGO_MANIFEST_DIR")).join("../test-support/fake_revision_bd.py");
+    let bd = root.join(if cfg!(windows) {
+        "fake-revision-bd.cmd"
+    } else {
+        "fake-revision-bd"
+    });
+    write_file(&template, "formula = \"sample\"\n");
+    revision_config(fixture, "policy", "unknown", false);
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&runner, &bd).expect("link committed Python fixture");
+    #[cfg(windows)]
+    write_file(
+        &bd,
+        &format!(
+            "@echo off\r\npython \"{}\" --config \"{}\" %*\r\nexit /b %errorlevel%\r\n",
+            runner.display(),
+            root.join("revision-bd.json").display()
+        ),
+    );
+    let request = root.join("request.json");
+    write_file(
+        &request,
+        &json!({
+            "schema": BEADS_SCHEMA, "operation":"repour", "working_directory":root,
+            "template":template, "rendered_formula":rendered, "compose_variables":{},
+            "formula_name":"sample", "bead_variables":{}, "bd_executable":bd,
+            "pour_authorization":"CreatePersistentBeads", "parent":"proj-1", "relations":[]
+        })
+        .to_string(),
+    );
+    (request, trace)
+}
+
+#[test]
+fn revision_cli_refuses_unknown_database_and_previews_with_override() {
+    let fixture = TempFixture::new("bead-revision-policy");
+    let (request, trace) = revision_cli_fixture(&fixture);
+    let conflict = sc_compose()
+        .args(["bead", "pour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--json"])
+        .bounded_output()
+        .unwrap();
+    assert_eq!(conflict.status.code(), Some(2), "{conflict:?}");
+    let body: serde_json::Value = serde_json::from_slice(&conflict.stdout).unwrap();
+    assert_eq!(body["payload"]["error"]["code"], "BEADS_GRAPH_CONFLICT");
+    assert_eq!(
+        body["payload"]["error"]["details"]["reason"],
+        "plan_changed"
+    );
+    assert!(
+        body["payload"]["error"]["recovery"]
+            .as_str()
+            .unwrap()
+            .contains("repour")
+    );
+    let human = sc_compose()
+        .args(["bead", "pour", "--request"])
+        .arg(&request)
+        .arg("--dry-run")
+        .bounded_output()
+        .unwrap();
+    assert_eq!(human.status.code(), Some(2));
+    let text = String::from_utf8(human.stderr).unwrap();
+    assert!(
+        text.contains("plan_changed") && text.contains("repour"),
+        "{text}"
+    );
+    let refused = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--json"])
+        .bounded_output()
+        .unwrap();
+    assert_eq!(refused.status.code(), Some(2), "{refused:?}");
+    let body: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert_eq!(
+        body["payload"]["error"]["code"],
+        "BEADS_GRAPH_DIRTY_UNKNOWN"
+    );
+    assert!(
+        body["payload"]["error"]["recovery"]
+            .as_str()
+            .unwrap()
+            .contains("--allow-uncommitted")
+    );
+    let preview = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--allow-uncommitted", "--json"])
+        .bounded_output()
+        .unwrap();
+    assert!(preview.status.success(), "{preview:?}");
+    let body: serde_json::Value = serde_json::from_slice(&preview.stdout).unwrap();
+    assert_eq!(body["payload"]["operation"], "preview_repour");
+    let changes = body["payload"]["graph"]["changes"].as_array().unwrap();
+    assert!(changes.contains(&json!({"change":"add_node", "step":"build"})));
+    assert!(changes.contains(&json!({"change":"field_change", "bead":"proj-1", "status":"open", "field":"title", "before":"old", "after":"sample"})));
+    let commands = fs::read_to_string(&trace).unwrap();
+    assert!(
+        !commands
+            .lines()
+            .any(|line| line.starts_with("update ") || line.starts_with("dep add "))
+    );
+    let commands = fs::read_to_string(trace).unwrap();
+    assert!(
+        commands
+            .lines()
+            .any(|line| line.starts_with("create ") && line.contains("--dry-run"))
+    );
+}
+
+#[test]
+fn revision_cli_reports_partial_revision() {
+    let fixture = TempFixture::new("bead-revision-partial");
+    let (request, _) = revision_cli_fixture(&fixture);
+    let partial = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(&request)
+        .args(["--allow-uncommitted", "--json"])
+        .bounded_output()
+        .unwrap();
+    assert_eq!(partial.status.code(), Some(2), "{partial:?}");
+    let body: serde_json::Value = serde_json::from_slice(&partial.stdout).unwrap();
+    assert_eq!(
+        body["payload"]["error"]["code"],
+        "BEADS_GRAPH_APPLY_PARTIAL"
+    );
+    let details = &body["payload"]["error"]["details"];
+    assert_eq!(
+        details["applied"],
+        json!([{"change":"add_node", "step":"build"}])
+    );
+    assert_eq!(
+        details["pending"],
+        json!([{"change":"field_change", "bead":"proj-1", "status":"open", "field":"title", "before":"old", "after":"sample"}])
+    );
+}
+
+#[test]
+fn revision_cli_blocks_invalid_graph_path_before_bd() {
+    let fixture = TempFixture::new("bead-revision-blocked-path");
+    let (request, trace) = revision_cli_fixture(&fixture);
+    let blocked = fixture.path.join("sample.formula.toml.graph.json");
+    fs::create_dir(&blocked).unwrap();
+    let output = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--json"])
+        .bounded_output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let body: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        body["payload"]["error"]["code"],
+        "BEADS_OUTPUT_PATH_INVALID"
+    );
+    assert_eq!(body["payload"]["error"]["details"]["field"], "graph_plan");
+    assert!(!trace.exists(), "a blocked graph path must not invoke bd");
+}
+
+#[test]
+fn revision_cli_dirty_and_invalid_plans_never_write_without_override() {
+    let fixture = TempFixture::new("revision-dirty-validation");
+    let (request, trace) = revision_cli_fixture(&fixture);
+    revision_config(&fixture, "policy", "dirty", false);
+    let run = |args: &[&str]| {
+        sc_compose()
+            .args(["bead", "repour", "--request"])
+            .arg(&request)
+            .args(args)
+            .arg("--json")
+            .bounded_output()
+            .unwrap()
+    };
+    let refused = run(&[]);
+    let value: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert_eq!(value["payload"]["error"]["code"], "BEADS_GRAPH_DIRTY");
+    let recovery = value["payload"]["error"]["recovery"].as_str().unwrap();
+    assert!(recovery.contains("bd dolt commit") && recovery.contains("--allow-uncommitted"));
+    let calls = fs::read_to_string(&trace).unwrap();
+    assert!(!calls.lines().any(|line| line.starts_with("create ")
+        || line.starts_with("update ")
+        || line.starts_with("dep add ")
+        || line.starts_with("dep remove ")));
+    let overridden = run(&["--allow-uncommitted"]);
+    let value: serde_json::Value = serde_json::from_slice(&overridden.stdout).unwrap();
+    assert_eq!(
+        value["payload"]["error"]["code"],
+        "BEADS_GRAPH_APPLY_PARTIAL"
+    );
+    assert!(
+        fs::read_to_string(&trace)
+            .unwrap()
+            .lines()
+            .any(|line| line.starts_with("create "))
+    );
+    fs::remove_file(&trace).unwrap();
+    revision_config(&fixture, "policy", "dirty", true);
+    let invalid = run(&["--allow-uncommitted"]);
+    let value: serde_json::Value = serde_json::from_slice(&invalid.stdout).unwrap();
+    assert_eq!(
+        value["payload"]["outcome"]["failed"]["code"],
+        "BEADS_COOK_FAILED"
+    );
+    let calls = fs::read_to_string(trace).unwrap();
+    assert!(!calls.lines().any(|line| line.starts_with("create ")
+        || line.starts_with("update ")
+        || line.starts_with("dep add ")
+        || line.starts_with("dep remove ")));
+}
+
+#[test]
+fn revision_help_points_to_both_manual_topics() {
+    let output = sc_compose()
+        .args(["bead", "repour", "--help"])
+        .bounded_output()
+        .unwrap();
+    let help = String::from_utf8(output.stdout).unwrap();
+    assert!(help.contains("sc-compose help repour"));
+    assert!(help.contains("sc-compose help repour-strategy"));
+}
+
+fn configure_revision_graph(fixture: &TempFixture) {
+    revision_config(fixture, "graph", "unknown", false);
+}
+
+#[test]
+fn revision_cli_reports_exact_graph_change_variants() {
+    let fixture = TempFixture::new("revision-delta");
+    let (request, _) = revision_cli_fixture(&fixture);
+    configure_revision_graph(&fixture);
+    let output = sc_compose()
+        .args(["bead", "repour", "--request"])
+        .arg(&request)
+        .args(["--dry-run", "--allow-uncommitted", "--json"])
+        .bounded_output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let changes = value["payload"]["graph"]["changes"].as_array().unwrap();
+    assert!(changes.contains(&json!({"change":"add_node", "step":"build"})));
+    assert!(changes.contains(&json!({"change":"add_node", "step":"verify"})));
+    assert!(changes.contains(
+        &json!({"change":"add_edge", "from":"step:verify", "to":"step:build", "kind":"blocks"})
+    ));
+    assert!(changes.contains(
+        &json!({"change":"remove_internal_edge", "from":"proj-3", "to":"proj-1", "kind":"blocks"})
+    ));
+    assert!(changes.contains(&json!({"change":"retain_external_edge", "from":"outside-1", "to":"proj-3", "kind":"blocks"})));
+    assert!(changes.contains(&json!({"change":"retain_external_edge", "from":"proj-3", "to":"outside-2", "kind":"blocks"})));
+    assert!(changes.contains(&json!({"change":"mark_removed_node", "bead":"proj-3", "status":"closed", "remove_command":"bd delete -- 'proj-3'"})));
 }

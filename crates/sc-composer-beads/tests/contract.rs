@@ -460,6 +460,49 @@ fn library_owns_error_stages_and_the_pour_authorization_token() {
 }
 
 #[test]
+fn revision_errors_map_to_repour_and_partial_recovery_matches_uncertainty() {
+    let errors = [
+        BeadComposeError::GraphPlanChanged {
+            reason: GraphConflictReason::PlanChanged,
+            changes: vec![],
+        },
+        BeadComposeError::GraphPlanPathInvalid {
+            path: PathBuf::from("graph.json"),
+            rule: "blocked".into(),
+        },
+        BeadComposeError::GraphDirty,
+        BeadComposeError::GraphDirtyUnknown {
+            cause: "unavailable".into(),
+            cause_code: "PROBE_FAILED".into(),
+        },
+    ];
+    for error in errors {
+        assert_eq!(error.stage(), Some(BeadStage::Repour), "{}", error.code());
+    }
+    for uncertain in [false, true] {
+        let error = BeadComposeError::GraphApplyPartial {
+            details: Box::new(sc_composer_beads::GraphApplyPartial::new(
+                vec![],
+                vec![],
+                "update".into(),
+                "failed".into(),
+                "BD_FAILED".into(),
+                uncertain,
+            )),
+        };
+        assert_eq!(error.stage(), Some(BeadStage::Repour));
+        let value = serde_json::to_value(&error).unwrap();
+        let recovery = value["recovery"].as_str().unwrap();
+        assert_eq!(
+            recovery.contains("uncertain operation"),
+            uncertain,
+            "{recovery}"
+        );
+        assert!(recovery.contains("rerun repour"), "{recovery}");
+    }
+}
+
+#[test]
 fn duplicate_bead_variables_are_rejected_with_a_stable_contract_error() {
     let request = r#"{
         "schema":"sc-compose/beads/v1",
@@ -652,7 +695,7 @@ fn invalid_identifier_messages_name_only_the_failing_fields_rule() {
             GraphIdField::Bead,
             "a b",
             BeadId::new("a b").expect_err("invalid bead"),
-            "bead ids are non-empty without whitespace",
+            "bead ids are non-empty and contain no whitespace or control characters",
         ),
         (
             GraphIdField::Ref,

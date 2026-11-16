@@ -2257,7 +2257,11 @@ graph.
 | w-2 | Graph delta, preflight safety, and typed revision seam in `sc-composer-beads` |
 | w-3 | CLI and Python pass-through adapters and generated reference |
 | w-4 | Installed repour and repour-strategy documentation |
+| w-5 | Local-first real-bd integration suite with isolated database state and versioned reports |
+| w-6 | Bounded repour fuzz campaign and report, following w-5 |
+| w-7 | Optional temporary bd installation for the atmbench integration target, following w-6 |
 
-After Phase W, a separate bd/Dolt integration-test suite will cover server-mode
-dirty/clean detection, real partial failure, and graph cycles against a real
-database.
+The w-5 suite exercises server-mode dirty/clean detection, partial-failure
+recovery and graph-cycle refusal against an isolated real bd/Dolt database.
+Pour and repour refuse a cycle before any graph write. The w-6 campaign also
+records a real-bd cycle-refusal probe.

@@ -244,17 +244,14 @@ matches on `BeadComposeError` need a wildcard arm because the enum is
 | `BEADS_GRAPH_FORMULA_UNSUPPORTED` | execution | the cooked formula uses a construct graph planning cannot express (reason is a stable token) | graph planning |
 | `BEADS_GRAPH_RELATION_INVALID` | execution | a request relation is invalid (its index is named) | graph planning |
 | `BEADS_GRAPH_CONFLICT` | execution | a target or planned ID is unowned or has a conflicting identity; for pour/preview_pour on an existing target, reason `plan_changed` names why and directs the caller to repour | graph planning |
-| `BEADS_GRAPH_DIRTY` | execution | planned: re-pour refused before writes because the entire database has uncommitted changes; recovery names `bd dolt commit` and `--allow-uncommitted` | graph preflight |
-| `BEADS_GRAPH_DIRTY_UNKNOWN` | execution | planned: re-pour refused before writes because bd could not determine database dirty state; details give the reason and recovery names `bd dolt commit` and `--allow-uncommitted` | graph preflight |
-| `BEADS_GRAPH_APPLY_PARTIAL` | execution | planned: sequential re-pour failed after mutations; carries applied and pending changes and a rerun hint | graph apply |
 | `BEADS_GRAPH_EDGE_CONFLICT` | execution | an existing edge has a different type than requested | graph planning |
 | `BEADS_GRAPH_EDGE_MISSING` | execution | legacy graph mode found absent edges; advanced repour adds missing declared edges | graph planning, attach |
-| `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` | retired | Phase W removes this refusal and its branches | advanced graph planning, attach |
+| `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE` | retired | Phase W retired this code and removed its refusal branches | advanced graph planning, attach |
 | `BEADS_GRAPH_READ_FAILED` | execution | reading existing beads with `bd show` failed; large id sets are read in batches | graph planning |
 | `BEADS_GRAPH_DIRTY` | execution | re-pour refused before writes because the entire database has uncommitted changes; recovery names `bd dolt commit` and `--allow-uncommitted` | graph preflight |
 | `BEADS_GRAPH_DIRTY_UNKNOWN` | execution | re-pour refused before writes because bd could not determine database dirty state; details give the reason and recovery names `bd dolt commit` and `--allow-uncommitted` | graph preflight |
 | `BEADS_GRAPH_APPLY_PARTIAL` | execution | sequential re-pour failed after mutations; carries applied and pending changes and a rerun hint | graph apply |
-| `BEADS_GRAPH_APPLY_FAILED` | execution | a graph apply (pour) failed (execution class, failed receipt, CLI exit 2); a repour failure after writes uses `BEADS_GRAPH_APPLY_PARTIAL` | graph apply |
+| `BEADS_GRAPH_APPLY_FAILED` | execution | a graph apply (pour) failed (execution class, failed receipt, CLI exit 2); a repour failure after writes uses `BEADS_GRAPH_APPLY_PARTIAL`; a local-plan cycle preflight also uses this code with an empty command before writes, so nothing was written | graph apply |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | execution | `bd create --graph` exited 0 but its response cannot be consumed, so beads may exist; reconcile with `bd show` before pouring again | graph apply |
 | `BEADS_RECEIPT_DESERIALIZATION_FAILED` | adapter | a receipt document cannot be parsed back; an adapter-level code (`BeadComposeError::RECEIPT_DESERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |
 | `BEADS_OUTPUT_SERIALIZATION_FAILED` | adapter | a value the adapter returns to its caller (receipt, graph, relations) cannot be serialized; reported with stage `output`; an adapter-level code (`BeadComposeError::OUTPUT_SERIALIZATION_FAILED_CODE`), not a `BeadComposeError` variant | Python adapter |

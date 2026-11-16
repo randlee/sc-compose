@@ -1,0 +1,42 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>replacement-partial</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker replacement-partial</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;replacement-partial&quot;, &quot;cases_run&quot;: 30, &quot;passed&quot;: 30, &quot;seed&quot;: &quot;0–29&quot;, &quot;description&quot;: &quot;Partial apply and resume&quot;, &quot;assertions&quot;: &quot;Applied/pending result and real-bd resume passed 30/30; one injected fault location, the second mutation, varied case text.&quot;, &quot;status&quot;: &quot;success&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null, &quot;evidence_archive&quot;: &quot;replacement-campaign-evidence.zip&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Applied/pending result and real-bd resume passed 30/30; one injected fault location, the second mutation, varied case text. Actual per-case inputs and output in replacement-campaign-evidence.zip; final script changed during execution.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Partial apply and resume</th>
+        <td>30</td>
+        <td>30/30</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">seeds 0–29</th><td><code>Applied/pending result and real-bd resume passed 30/30; one injected fault location, the second mutation, varied case text.</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

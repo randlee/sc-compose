@@ -104,7 +104,7 @@ fn graph_errors_preserve_typed_details_and_recovery() {
 }
 
 #[test]
-fn existing_request_error_wire_shape_is_unchanged() {
+fn non_graph_error_preserves_existing_fields_and_adds_context_fields() {
     let error = Error::UnknownSchema {
         actual: "future".into(),
     };
@@ -112,7 +112,9 @@ fn existing_request_error_wire_shape_is_unchanged() {
         serde_json::to_value(&error).unwrap(),
         json!({
             "code": "BEADS_UNKNOWN_SCHEMA",
-            "message": "unsupported Beads composition schema `future`"
+            "message": "unsupported Beads composition schema `future`",
+            "details": null,
+            "recovery": null
         })
     );
 }

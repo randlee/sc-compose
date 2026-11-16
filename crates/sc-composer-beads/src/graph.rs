@@ -1,5 +1,6 @@
 //! Shared read/validate/plan/apply engine for attach and by-path pour.
 
+mod apply;
 mod plan;
 mod repour;
 mod validate;
@@ -34,9 +35,14 @@ pub(crate) fn execute(
     normalized: &NormalizedRequest,
     formula_input: &InputSnapshot,
     bd: PathBuf,
-    stages: Vec<BeadStageReceipt>,
+    staging: (
+        Vec<BeadStageReceipt>,
+        Option<crate::revision::UncommittedPolicy>,
+        bool,
+    ),
     diagnostics: &mut dyn FnMut(&BeadComposeError),
 ) -> Result<BeadComposeReceipt, BeadComposeError> {
+    let (stages, policy, compare_only) = staging;
     let attach = is_attach(request.operation);
     let stage = operation_stage(request.operation);
     let mut runtime = Runtime {
@@ -45,6 +51,9 @@ pub(crate) fn execute(
         bd,
         stage: if attach { BeadStage::Validate } else { stage },
         stages,
+        policy,
+        compare_only,
+        applied_changes: Vec::new(),
     };
     let result = match graph_plan_path(&runtime) {
         Ok(_) => run(
@@ -66,6 +75,18 @@ pub(crate) fn execute(
     let (graph, outcome) = match result {
         Ok(graph) => (Some(graph), BeadOutcome::Succeeded),
         Err(error) => {
+            if policy.is_some()
+                && matches!(
+                    error,
+                    BeadComposeError::GraphPlanChanged { .. }
+                        | BeadComposeError::GraphPlanPathInvalid { .. }
+                        | BeadComposeError::GraphDirty
+                        | BeadComposeError::GraphDirtyUnknown { .. }
+                        | BeadComposeError::GraphApplyPartial { .. }
+                )
+            {
+                return Err(error);
+            }
             if is_phase_r_process_error(&error) {
                 return Err(error);
             }
@@ -91,7 +112,7 @@ fn operation_stage(operation: BeadOperation) -> BeadStage {
     match operation {
         BeadOperation::PreviewAttach => BeadStage::PreviewAttach,
         BeadOperation::Attach => BeadStage::Attach,
-        BeadOperation::Repour => BeadStage::Repour,
+        BeadOperation::Repour | BeadOperation::PreviewRepour => BeadStage::Repour,
         BeadOperation::PreviewPour => BeadStage::PreviewPour,
         _ => BeadStage::Pour,
     }
@@ -104,6 +125,7 @@ fn classify(error: &BeadComposeError) -> BeadOutcome {
         error,
         BeadComposeError::GraphReadFailed { .. }
             | BeadComposeError::GraphApplyFailed { .. }
+            | BeadComposeError::GraphApplyPartial { .. }
             | BeadComposeError::GraphApplyUnconfirmed { .. }
             | BeadComposeError::CookFailed { .. }
             | BeadComposeError::RenderFailed { .. }
@@ -134,7 +156,10 @@ fn restore_public_formula_paths(
 
 fn graph_mode_is_pour(request: &BeadComposeRequest) -> bool {
     !(is_attach(request.operation)
-        || request.operation == BeadOperation::Repour && request.ref_.is_some())
+        || matches!(
+            request.operation,
+            BeadOperation::Repour | BeadOperation::PreviewRepour
+        ) && request.ref_.is_some())
 }
 
 fn is_phase_r_process_error(error: &BeadComposeError) -> bool {
@@ -185,7 +210,10 @@ fn run(
             cause: short_cause(&error.to_string().replace(snapshot.as_str(), &source)),
         })?;
     let mode = if is_attach(request.operation)
-        || (request.operation == BeadOperation::Repour && request.ref_.is_some())
+        || (matches!(
+            request.operation,
+            BeadOperation::Repour | BeadOperation::PreviewRepour
+        ) && request.ref_.is_some())
     {
         BeadGraphMode::Attach
     } else {
@@ -195,13 +223,134 @@ fn run(
     runtime.stage = stage;
     // A repour always carries ownership provenance v2; it never takes bd's
     // missing-edge repair route.
-    let advanced = advanced || request.operation == BeadOperation::Repour;
-    let plan = plan::plan(&validated, advanced, runtime)?;
-    let graph = execute_plan(request.operation, plan, runtime)?;
-    if request.operation == BeadOperation::Repour && changed(&graph) {
-        confirm_readback(&validated, advanced, &graph, runtime)?;
+    let advanced = advanced
+        || matches!(
+            request.operation,
+            BeadOperation::Repour | BeadOperation::PreviewRepour
+        );
+    execute_revision_plan(request.operation, &validated, advanced, runtime)
+}
+
+fn execute_revision_plan(
+    operation: BeadOperation,
+    validated: &validate::ValidatedGraph,
+    advanced: bool,
+    runtime: &mut Runtime<'_>,
+) -> Result<BeadGraph, BeadComposeError> {
+    let plan = plan::plan(validated, advanced, runtime).map_err(|error| {
+        if runtime.compare_only
+            && let BeadComposeError::GraphEdgeConflict {
+                from,
+                to,
+                existing,
+                requested,
+            } = error
+        {
+            return BeadComposeError::GraphPlanChanged {
+                reason: crate::GraphConflictReason::PlanChanged,
+                changes: vec![crate::GraphChange::EdgeTypeChange {
+                    from,
+                    to,
+                    before: existing,
+                    after: requested,
+                }],
+            };
+        }
+        error
+    })?;
+    check_revision_preflight(operation, &plan, runtime)?;
+    let graph = execute_plan(operation, plan, runtime)?;
+    if operation == BeadOperation::Repour && changed(&graph) {
+        confirm_readback(validated, advanced, &graph, runtime).map_err(|error| {
+            BeadComposeError::GraphApplyPartial {
+                details: Box::new(crate::GraphApplyPartial {
+                    applied: runtime.applied_changes.clone(),
+                    pending: Vec::new(),
+                    failed_operation: "read-back".into(),
+                    outcome_uncertain: true,
+                    cause_code: error.code().into(),
+                    cause: error.to_string(),
+                }),
+            }
+        })?;
     }
     Ok(graph)
+}
+fn check_revision_preflight(
+    operation: BeadOperation,
+    plan: &GraphPlan,
+    runtime: &mut Runtime<'_>,
+) -> Result<(), BeadComposeError> {
+    if runtime.compare_only {
+        let graph = match plan {
+            GraphPlan::Noop(graph) => graph,
+            GraphPlan::Create(pending) => &pending.graph,
+        };
+        let changes: Vec<_> = graph
+            .changes
+            .iter()
+            .filter(|change| !matches!(change, crate::GraphChange::RetainExternalEdge { .. }))
+            .cloned()
+            .collect();
+        if !changes.is_empty() {
+            return Err(BeadComposeError::GraphPlanChanged {
+                reason: crate::GraphConflictReason::PlanChanged,
+                changes,
+            });
+        }
+    } else if matches!(
+        operation,
+        BeadOperation::Repour | BeadOperation::PreviewRepour
+    ) {
+        check_dirty(runtime)?;
+    }
+    Ok(())
+}
+
+/// Probe the entire database via bd; unsupported or malformed output is unknown.
+/// bd 1.3.1 embedded mode has no `bd sql`, so its database state is unknown
+/// after the probe fails and repour reports `DIRTY_UNKNOWN`.
+fn check_dirty(runtime: &mut Runtime<'_>) -> Result<(), BeadComposeError> {
+    if runtime.policy == Some(crate::revision::UncommittedPolicy::Allow) {
+        return Ok(());
+    }
+    let output = runtime.invoke(vec![
+        "sql".into(),
+        "--readonly".into(),
+        "SELECT table_name, staged, status FROM dolt_status".into(),
+        "--json".into(),
+    ])?;
+    if output.exit_status != Some(0) {
+        let cause = if output.stderr.is_empty() {
+            output.stdout
+        } else {
+            output.stderr
+        };
+        let error = BeadComposeError::GraphReadFailed {
+            command: runtime
+                .stages
+                .last()
+                .map_or_else(Vec::new, |stage| stage.argv.clone()),
+            status: output.exit_status,
+            cause,
+        };
+        return Err(BeadComposeError::GraphDirtyUnknown {
+            cause_code: error.code().into(),
+            cause: error.to_string(),
+        });
+    }
+    let rows: Vec<Value> = serde_json::from_str(&output.stdout).map_err(|cause| {
+        let error = runtime.read_error(output.exit_status, &cause.to_string());
+        BeadComposeError::GraphDirtyUnknown {
+            cause_code: error.code().into(),
+            cause: error.to_string(),
+        }
+    })?;
+    if rows.is_empty() {
+        Ok(())
+    } else {
+        Err(BeadComposeError::GraphDirty)
+    }
 }
 
 fn execute_plan(
@@ -214,7 +363,9 @@ fn execute_plan(
         GraphPlan::Create(pending) => {
             if matches!(
                 operation,
-                BeadOperation::PreviewAttach | BeadOperation::PreviewPour
+                BeadOperation::PreviewAttach
+                    | BeadOperation::PreviewPour
+                    | BeadOperation::PreviewRepour
             ) {
                 pending.preview(runtime)
             } else {
@@ -246,6 +397,64 @@ fn with_progress(error: BeadComposeError, applied: usize, total: usize) -> BeadC
     }
 }
 
+fn take_changes(
+    pending: &mut Vec<crate::GraphChange>,
+    applied: &mut Vec<crate::GraphChange>,
+    predicate: impl Fn(&crate::GraphChange) -> bool,
+) {
+    let mut remaining = Vec::new();
+    for change in pending.drain(..) {
+        if predicate(&change) {
+            applied.push(change);
+        } else {
+            remaining.push(change);
+        }
+    }
+    *pending = remaining;
+}
+
+fn partial_error(
+    error: BeadComposeError,
+    applied: &[crate::GraphChange],
+    pending: &[crate::GraphChange],
+    command: &[String],
+    count: usize,
+    total: usize,
+    runtime: &Runtime<'_>,
+) -> BeadComposeError {
+    if runtime.stage != BeadStage::Repour {
+        return with_progress(error, count, total);
+    }
+    // A failure before invocation is certain, but must retain prior progress.
+    let outcome_uncertain = matches!(
+        error,
+        BeadComposeError::GraphApplyFailed { .. }
+            | BeadComposeError::GraphApplyUnconfirmed { .. }
+            | BeadComposeError::ProcessOutputLimitExceeded { .. }
+    );
+    if !outcome_uncertain && count == 0 {
+        return error;
+    }
+    BeadComposeError::GraphApplyPartial {
+        details: Box::new(crate::GraphApplyPartial {
+            applied: applied.to_vec(),
+            pending: pending.to_vec(),
+            failed_operation: command
+                .iter()
+                .map(|arg| crate::error::shell_quote(arg))
+                .collect::<Vec<_>>()
+                .join(" "),
+            outcome_uncertain,
+            cause_code: error.code().into(),
+            cause: match &error {
+                BeadComposeError::GraphApplyFailed { cause, .. }
+                | BeadComposeError::GraphApplyUnconfirmed { cause, .. } => cause.clone(),
+                _ => error.to_string(),
+            },
+        }),
+    }
+}
+
 /// Run one bd write, reporting a non-zero exit as an apply failure.
 fn write(runtime: &mut Runtime<'_>, args: Vec<String>) -> Result<(), BeadComposeError> {
     let output = runtime.invoke(args)?;
@@ -268,6 +477,12 @@ fn changed(graph: &BeadGraph) -> bool {
         matches!(
             node.action,
             BeadNodeAction::Created | BeadNodeAction::Updated
+        )
+    }) || graph.changes.iter().any(|change| {
+        matches!(
+            change,
+            crate::GraphChange::RemoveInternalEdge { .. }
+                | crate::GraphChange::MarkRemovedNode { .. }
         )
     }) || graph
         .edges
@@ -315,6 +530,9 @@ struct Runtime<'a> {
     bd: PathBuf,
     stage: BeadStage,
     stages: Vec<BeadStageReceipt>,
+    policy: Option<crate::revision::UncommittedPolicy>,
+    compare_only: bool,
+    applied_changes: Vec<crate::GraphChange>,
 }
 
 impl Runtime<'_> {
@@ -401,8 +619,21 @@ impl Runtime<'_> {
     }
 
     fn record_error(&mut self, error: &BeadComposeError) {
-        if self.stages.last().is_none_or(|s| s.stage != self.stage) {
-            self.stages.push(process_receipt(
+        let record = |stage: &mut crate::BeadStageReceipt| {
+            stage.outcome = BeadStageOutcome::Failed {
+                code: error.code().into(),
+            };
+            if !stage.stderr_excerpt.is_empty() {
+                stage.stderr_excerpt.push('\n');
+            }
+            stage.stderr_excerpt.push_str(&error.to_string());
+        };
+        if let Some(stage) = self.stages.last_mut()
+            && stage.stage == self.stage
+        {
+            record(stage);
+        } else {
+            let mut stage = process_receipt(
                 self.stage,
                 &CommandSpec {
                     executable: self.bd.clone(),
@@ -416,21 +647,11 @@ impl Runtime<'_> {
                     elapsed: Duration::ZERO,
                 },
                 BeadStageOutcome::Succeeded,
-            ));
-            self.stages
-                .last_mut()
-                .expect("just added stage")
-                .argv
-                .clear();
+            );
+            stage.argv.clear();
+            record(&mut stage);
+            self.stages.push(stage);
         }
-        let stage = self.stages.last_mut().expect("error stage exists");
-        stage.outcome = BeadStageOutcome::Failed {
-            code: error.code().into(),
-        };
-        if !stage.stderr_excerpt.is_empty() {
-            stage.stderr_excerpt.push('\n');
-        }
-        stage.stderr_excerpt.push_str(&error.to_string());
     }
 }
 
@@ -529,17 +750,33 @@ impl GraphReader for Runtime<'_> {
             .collect()
     }
 
+    fn dependents(
+        &mut self,
+        id: &BeadId,
+    ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError> {
+        self.dependencies_in_direction(id, "up")
+    }
+
     fn dependencies(
         &mut self,
         id: &BeadId,
     ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError> {
-        let output = self.invoke(vec![
-            "dep".into(),
-            "list".into(),
-            "--json".into(),
-            "--".into(),
-            id.to_string(),
-        ])?;
+        self.dependencies_in_direction(id, "down")
+    }
+}
+
+impl Runtime<'_> {
+    fn dependencies_in_direction(
+        &mut self,
+        id: &BeadId,
+        direction: &str,
+    ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError> {
+        let mut args = vec!["dep".into(), "list".into()];
+        if self.stage == BeadStage::Repour || direction == "up" {
+            args.push(format!("--direction={direction}"));
+        }
+        args.extend(["--json".into(), "--".into(), id.to_string()]);
+        let output = self.invoke(args)?;
         if output.exit_status != Some(0) {
             return Err(self.read_error(output.exit_status, &process_failure_cause(&output)));
         }
@@ -609,211 +846,58 @@ fn graph_plan_path_error(error: BeadComposeError) -> BeadComposeError {
     }
 }
 
-impl PendingCreate {
-    fn preview(mut self, runtime: &mut Runtime<'_>) -> Result<BeadGraph, BeadComposeError> {
-        // Without new nodes there is nothing for `bd create --graph` to check.
-        if !self.keys.is_empty() {
-            self.create(runtime, true)?;
-        }
-        Ok(self.graph)
-    }
-
-    /// Apply the plan: create missing nodes, update drifted plan-owned fields,
-    /// then add the remaining missing edges. Each write is independent, so a
-    /// repeat run recomputes the plan from the stored beads and finishes
-    /// whatever an interrupted run left.
-    fn apply(mut self, runtime: &mut Runtime<'_>) -> Result<BeadGraph, BeadComposeError> {
-        let creates = usize::from(!self.keys.is_empty());
-        let updates = std::mem::take(&mut self.updates);
-        let dep_adds = std::mem::take(&mut self.dep_adds);
-        let total = creates
-            + updates
-                .iter()
-                .map(|update| update.calls.len())
-                .sum::<usize>()
-            + dep_adds.len();
-        let mut applied = 0;
-        if self.keys.is_empty() {
-            self.mark_created()
-                .map_err(|cause| self.unconfirmed(Vec::new(), cause))?;
-        } else {
-            self.create(runtime, false)
-                .map_err(|error| with_progress(error, applied, total))?;
-            applied += 1;
-        }
-        for update in updates {
-            for call in update.calls {
-                let mut args = vec!["update".into()];
-                args.extend(call);
-                args.extend(["--".into(), update.id.to_string()]);
-                write(runtime, args).map_err(|error| with_progress(error, applied, total))?;
-                applied += 1;
-            }
-        }
-        for (from, to, kind) in dep_adds {
-            let args = vec![
-                "dep".into(),
-                "add".into(),
-                "--type".into(),
-                kind.to_string(),
-                "--".into(),
-                from.to_string(),
-                to.to_string(),
-            ];
-            write(runtime, args).map_err(|error| with_progress(error, applied, total))?;
-            applied += 1;
-        }
-        for node in &mut self.graph.nodes {
-            if node.action == BeadNodeAction::Update {
-                node.action = BeadNodeAction::Updated;
-            }
-        }
-        Ok(self.graph)
-    }
-
-    fn unconfirmed(&self, command: Vec<String>, cause: &str) -> BeadComposeError {
-        BeadComposeError::GraphApplyUnconfirmed {
-            command,
-            cause: short_cause(cause),
-            ids: self
-                .graph
-                .parent
-                .iter()
-                .chain(self.graph.ids.values())
-                .cloned()
-                .collect(),
-        }
-    }
-
-    fn create(&mut self, runtime: &mut Runtime<'_>, preview: bool) -> Result<(), BeadComposeError> {
-        let (path, public_path) = graph_plan_path(runtime)?;
-        let bytes = serde_json::to_vec(&self.payload).expect("plan JSON serializes");
-        let plan_input = InputSnapshot::write(&path, &bytes)
-            .map_err(|error| crate::snapshot::output_error(&path, error))?;
-        plan_input.publish_copy(&path)?;
-        self.graph.plan_path = Some(public_path.clone());
-        let mut args = vec![
-            "create".into(),
-            "--graph".into(),
-            plan_input.path().to_string_lossy().into_owned(),
-        ];
-        if preview {
-            args.push("--dry-run".into());
-        }
-        args.push("--json".into());
-        let mut presented_args = args.clone();
-        presented_args[2] = public_path.to_string_lossy().into_owned();
-        let command = CommandSpec {
-            executable: runtime.bd.clone(),
-            args: presented_args,
-            working_directory: runtime.normalized.working_directory.clone(),
-        }
-        .argv();
-        let output = runtime.invoke_presenting(args, Some((plan_input.path(), &public_path)))?;
-        let present = |text: &str| {
-            text.replace(
-                plan_input.path().to_string_lossy().as_ref(),
-                public_path.to_string_lossy().as_ref(),
-            )
-        };
-        let failure = |cause: String| BeadComposeError::GraphApplyFailed {
-            command: command.clone(),
-            status: output.exit_status,
-            cause: short_cause(&present(&cause)),
-        };
-        if output.exit_status != Some(0) {
-            let mut presented_output = output.clone();
-            presented_output.stdout = present(&output.stdout);
-            presented_output.stderr = present(&output.stderr);
-            return Err(failure(process_failure_cause(&presented_output)));
-        }
-        if preview {
-            return Ok(());
-        }
-        // bd exited 0: its transaction may have committed, so from here on a
-        // failure must not claim that nothing was written.
-        self.record_created(&output.stdout)
-            .map_err(|cause| self.unconfirmed(command, &present(&cause)))
-    }
-
-    /// Consume an exit-0 apply response, returning the cause it is unusable.
-    fn record_created(&mut self, stdout: &str) -> Result<(), String> {
-        let value: Value = serde_json::from_str(stdout).map_err(|error| error.to_string())?;
-        let assigned: BTreeMap<PlanKey, BeadId> = serde_json::from_value(
-            value
-                .get("ids")
-                .cloned()
-                .ok_or("bd create --graph response is missing ids")?,
-        )
-        .map_err(|error| error.to_string())?;
-        if assigned.len() != self.keys.len() || self.keys.keys().any(|k| !assigned.contains_key(k))
-        {
-            return Err("bd create --graph response ids do not match the planned steps".into());
-        }
-        for (key, step) in &self.keys {
-            let id = assigned
-                .get(key)
-                .cloned()
-                .ok_or("bd create --graph response is missing a planned key")?;
-            if let Some(step) = step {
-                if self
-                    .graph
-                    .ids
-                    .get(step)
-                    .is_some_and(|expected| *expected != id)
-                {
-                    return Err(
-                        "bd create --graph assigned an id different from the planned id".into(),
-                    );
-                }
-                self.graph.ids.insert(step.clone(), id);
-            } else {
-                self.graph.parent = Some(id);
-            }
-        }
-        self.mark_created().map_err(str::to_owned)
-    }
-
-    fn mark_created(&mut self) -> Result<(), &'static str> {
-        for node in &mut self.graph.nodes {
-            if node.action == BeadNodeAction::Create {
-                node.action = BeadNodeAction::Created;
-                node.id = node
-                    .step
-                    .as_ref()
-                    .and_then(|s| self.graph.ids.get(s))
-                    .cloned()
-                    .or_else(|| self.graph.parent.clone());
-            }
-        }
-        let endpoints: Vec<_> = self
-            .endpoints
-            .iter()
-            .map(|(from, to)| {
-                let from = from
-                    .resolve(&self.graph)
-                    .ok_or("planned edge source did not resolve")?;
-                let to = to
-                    .resolve(&self.graph)
-                    .ok_or("planned edge destination did not resolve")?;
-                Ok((from, to))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        for (edge, (from, to)) in self.graph.edges.iter_mut().zip(endpoints) {
-            edge.from = from;
-            edge.to = to;
-            if edge.action == BeadEdgeAction::Add {
-                edge.action = BeadEdgeAction::Added;
-            }
-        }
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod presentation_tests {
     use super::*;
     use std::io;
+
+    #[test]
+    fn dirty_probe_preserves_spawn_argument_and_output_limit_error_types() {
+        struct Failure(u8);
+        impl ProcessRunner for Failure {
+            fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+                assert_eq!(
+                    spec.args,
+                    [
+                        "sql",
+                        "--readonly",
+                        "SELECT table_name, staged, status FROM dolt_status",
+                        "--json"
+                    ]
+                );
+                Err(match self.0 {
+                    0 => io::Error::new(io::ErrorKind::NotFound, "missing bd"),
+                    1 => io::Error::new(io::ErrorKind::InvalidInput, "invalid argument"),
+                    _ => crate::runner::process_output_limit_error(),
+                })
+            }
+        }
+        let normalized = NormalizedRequest {
+            working_directory: "workspace".into(),
+            template: "workspace/plan.j2".into(),
+            rendered_formula: "workspace/plan.toml".into(),
+            advanced: true,
+        };
+        for (kind, code) in [
+            (0, "BEADS_BD_UNAVAILABLE"),
+            (1, "BEADS_PROCESS_ARGUMENT_INVALID"),
+            (2, "BEADS_PROCESS_OUTPUT_LIMIT"),
+        ] {
+            let failure = Failure(kind);
+            let mut runtime = Runtime {
+                runner: &failure,
+                normalized: &normalized,
+                bd: "bd".into(),
+                stage: BeadStage::Repour,
+                stages: Vec::new(),
+                policy: Some(crate::UncommittedPolicy::Refuse),
+                compare_only: false,
+                applied_changes: Vec::new(),
+            };
+            let error = check_dirty(&mut runtime).unwrap_err();
+            assert_eq!(error.code(), code);
+        }
+    }
 
     #[cfg(unix)]
     #[test]
@@ -876,6 +960,9 @@ mod presentation_tests {
             bd: "fake-bd".into(),
             stage: BeadStage::Attach,
             stages: Vec::new(),
+            policy: None,
+            compare_only: false,
+            applied_changes: Vec::new(),
         };
         let output = runtime
             .invoke_presenting(
@@ -923,6 +1010,9 @@ mod presentation_tests {
             bd: "fake-bd".into(),
             stage: BeadStage::Attach,
             stages: Vec::new(),
+            policy: None,
+            compare_only: false,
+            applied_changes: Vec::new(),
         };
         let error = runtime
             .invoke_presenting(

@@ -2,6 +2,7 @@
 
 mod presentation;
 
+pub use crate::revision::GraphConflictReason;
 pub use presentation::{escape_human_text, shell_quote};
 
 use std::path::PathBuf;
@@ -55,7 +56,9 @@ impl std::fmt::Display for GraphIdField {
 
 pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
     match field {
-        GraphIdField::Bead => "bead ids are non-empty without whitespace",
+        GraphIdField::Bead => {
+            "bead ids are non-empty and contain no whitespace or control characters"
+        }
         GraphIdField::Ref => "ref is [A-Za-z0-9_-]{1,32}",
         GraphIdField::Step => "step is [A-Za-z0-9_]{1,64}; hyphens are forbidden",
         GraphIdField::Digest => "digest is sha256: plus exactly 64 lowercase hex digits",
@@ -72,7 +75,9 @@ pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
 }
 
 pub(crate) fn graph_apply_recovery(command: &[String]) -> &'static str {
-    if command.iter().any(|arg| arg == "--dry-run") {
+    if command.is_empty() {
+        "correct the graph plan and retry; no graph write was attempted"
+    } else if command.iter().any(|arg| arg == "--dry-run") {
         "fix bd and retry; no graph write was attempted"
     } else {
         "fix bd and rerun the same command; earlier writes may have been applied"
@@ -82,8 +87,8 @@ pub(crate) fn graph_apply_recovery(command: &[String]) -> &'static str {
 /// Stable errors returned before or during Beads composition.
 ///
 /// Serializes as `code` and `message`, with additive `details` and `recovery`
-/// fields for graph failures and request-file read failures. Other errors
-/// preserve their original two-field shape.
+/// fields for graph failures and request-file read failures. Errors without
+/// structured context serialize those additive fields as null.
 ///
 /// Adapters must not match every variant: the enum is `#[non_exhaustive]`,
 /// so new conditions are additive. Use [`BeadComposeError::code`],
@@ -403,6 +408,33 @@ pub enum BeadComposeError {
         /// Relation rejection reason.
         reason: GraphRelationInvalidReason,
     },
+    /// The existing graph differs from the requested pour.
+    #[error("graph plan changed ({reason}): {}; run sc-compose bead repour to apply these changes", crate::revision::change_summary(.changes))]
+    GraphPlanChanged {
+        /// Conflict reason.
+        reason: GraphConflictReason,
+        /// Observed differences.
+        changes: Vec<crate::revision::GraphChange>,
+    },
+    /// The database contains uncommitted changes.
+    #[error("database has uncommitted changes; run bd dolt commit or use --allow-uncommitted")]
+    GraphDirty,
+    /// The database cleanliness could not be determined.
+    #[error(
+        "database cleanliness is unknown: {cause}; run bd dolt commit or use --allow-uncommitted"
+    )]
+    GraphDirtyUnknown {
+        /// Stable code of the failed probe or response parsing error.
+        cause_code: String,
+        /// Why the bd probe failed.
+        cause: String,
+    },
+    /// Revision stopped after one or more operations.
+    #[error("graph apply partially completed: {details}; reconcile and rerun repour")]
+    GraphApplyPartial {
+        /// Confirmed and remaining work.
+        details: Box<crate::revision::GraphApplyPartial>,
+    },
     /// `Conflict` condition from ADR-0023.
     #[error("graph bead `{id}` conflicts: {reason}; inspect its ownership or use a new ref")]
     GraphConflict {
@@ -448,9 +480,9 @@ pub enum BeadComposeError {
         "graph apply failed ({status:?}): {cause}; {command:?}; {}", graph_apply_recovery(.command)
     )]
     GraphApplyFailed {
-        /// Attempted bd argv.
+        /// Attempted bd argv, or empty for local plan preflight.
         command: Vec<String>,
-        /// Exit status, or None when killed by a signal.
+        /// Exit status, or None for local preflight or a signal.
         status: Option<i32>,
         /// Short diagnostic for the process, parse, or response-shape failure.
         cause: String,
@@ -657,6 +689,11 @@ impl BeadComposeError {
             | Self::FormulaRegistryAmbiguous { .. } => Some(BeadStage::ResolveActiveRegistry),
             Self::PreviewPourFailed { .. } => Some(BeadStage::PreviewPour),
             Self::PourFailed { .. } => Some(BeadStage::Pour),
+            Self::GraphPlanChanged { .. }
+            | Self::GraphPlanPathInvalid { .. }
+            | Self::GraphDirty
+            | Self::GraphDirtyUnknown { .. }
+            | Self::GraphApplyPartial { .. } => Some(BeadStage::Repour),
             // Graph-stage failures are reported in receipts, whose stage
             // receipts carry the stage; as a bare error they have none.
             Self::GraphParentNotFound { .. }
@@ -681,7 +718,6 @@ impl BeadComposeError {
             | Self::FormulaExtensionUnsupported { .. }
             | Self::TemplatePathInvalid { .. }
             | Self::OutputPathInvalid { .. }
-            | Self::GraphPlanPathInvalid { .. }
             | Self::TemplateOutsideWorkingDirectory { .. }
             | Self::OutputOutsideWorkingDirectory { .. }
             | Self::OutputPathSymlink { .. }
@@ -737,6 +773,10 @@ impl BeadComposeError {
             | Self::GraphScopeMismatch { .. }
             | Self::GraphFormulaUnsupported { .. }
             | Self::GraphRelationInvalid { .. }
+            | Self::GraphPlanChanged { .. }
+            | Self::GraphDirty
+            | Self::GraphDirtyUnknown { .. }
+            | Self::GraphApplyPartial { .. }
             | Self::GraphConflict { .. }
             | Self::GraphEdgeConflict { .. }
             | Self::GraphEdgeMissing { .. }
@@ -790,7 +830,10 @@ impl BeadComposeError {
             Self::GraphScopeMismatch { .. } => Self::GRAPH_SCOPE_MISMATCH_CODE,
             Self::GraphFormulaUnsupported { .. } => Self::GRAPH_FORMULA_UNSUPPORTED_CODE,
             Self::GraphRelationInvalid { .. } => Self::GRAPH_RELATION_INVALID_CODE,
-            Self::GraphConflict { .. } => Self::GRAPH_CONFLICT_CODE,
+            Self::GraphPlanChanged { .. } | Self::GraphConflict { .. } => Self::GRAPH_CONFLICT_CODE,
+            Self::GraphDirty => "BEADS_GRAPH_DIRTY",
+            Self::GraphDirtyUnknown { .. } => "BEADS_GRAPH_DIRTY_UNKNOWN",
+            Self::GraphApplyPartial { .. } => "BEADS_GRAPH_APPLY_PARTIAL",
             Self::GraphEdgeConflict { .. } => Self::GRAPH_EDGE_CONFLICT_CODE,
             Self::GraphEdgeMissing { .. } => Self::GRAPH_EDGE_MISSING_CODE,
             Self::GraphReadFailed { .. } => Self::GRAPH_READ_FAILED_CODE,
@@ -809,29 +852,6 @@ pub enum BeadErrorClass {
     Request,
     /// A stage failed while executing a valid request (CLI exit 2).
     Execution,
-}
-
-/// Closed wire vocabulary for `GraphConflictReason` (ADR-0023).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-#[serde(rename_all = "snake_case")]
-pub enum GraphConflictReason {
-    /// The `not_owned` refusal reason.
-    NotOwned,
-    /// The `provenance_differs` refusal reason.
-    ProvenanceDiffers,
-    /// A v1 node lacks verifiable creation history for migration.
-    MigrationProofMissing,
-}
-
-impl std::fmt::Display for GraphConflictReason {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Self::NotOwned => "not_owned",
-            Self::ProvenanceDiffers => "provenance_differs",
-            Self::MigrationProofMissing => "migration_proof_missing",
-        })
-    }
 }
 
 /// Closed wire vocabulary for `GraphRelationInvalidReason` (ADR-0023).

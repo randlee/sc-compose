@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # (label, cargo test arguments before `--`)
@@ -28,6 +29,17 @@ SUITES = (
 RESULT = re.compile(
     r"test result: (?:ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored"
 )
+PROCESS_TIMEOUT_SECONDS = 600
+
+
+def timeout_diagnostic(error: subprocess.TimeoutExpired) -> None:
+    """Report captured output when the failure-only process deadline expires."""
+    print(f"real-bd process timed out: {error.cmd!r}", file=sys.stderr)
+    for label, output in (("stdout", error.stdout), ("stderr", error.stderr)):
+        if output:
+            if isinstance(output, bytes):
+                output = output.decode("utf-8", errors="replace")
+            print(f"{label}: {output}", file=sys.stderr)
 
 
 def parse_counts(output: str) -> tuple[int, int, int]:
@@ -60,38 +72,91 @@ def resolve_bd(environ: dict[str, str]) -> Path | str:
     return path
 
 
+def isolated_environment(environ: dict[str, str], home: Path) -> dict[str, str]:
+    """Keep every qualification child away from the operator's bd home."""
+    result = environ.copy()
+    original_home = Path(environ.get("HOME", str(Path.home())))
+    result.setdefault("CARGO_HOME", str(original_home / ".cargo"))
+    result.setdefault("RUSTUP_HOME", str(original_home / ".rustup"))
+    result.update({"HOME": str(home), "USERPROFILE": str(home), "XDG_CONFIG_HOME": str(home / ".config")})
+    # The fixtures select a distinct BEADS_DIR per workspace. An ambient value
+    # must not override that selection or leak into child processes.
+    result.pop("BEADS_DIR", None)
+    return result
+
+
+def database_mode(environ: dict[str, str]) -> str:
+    return "server" if "SC_COMPOSE_TEST_DOLT_PORT" in environ else "embedded"
+
+
 def main() -> int:
+    mode = sys.argv[1:]
+    if mode not in ([], ["--database-mode"]):
+        print("usage: test_real_bd.py [--database-mode]", file=sys.stderr)
+        return 2
     bd = resolve_bd(dict(os.environ))
     if isinstance(bd, str):
         print(f"real-bd qualification NOT RUN: {bd}", file=sys.stderr)
         return 2
-    version = subprocess.run(
-        [str(bd), "version"], capture_output=True, text=True, check=False
-    ).stdout.strip()
-    provenance = {
-        "bd_path": str(bd),
-        "bd_sha256": hashlib.sha256(bd.read_bytes()).hexdigest(),
-        "bd_version": version,
-    }
-    print(json.dumps(provenance))
+    with tempfile.TemporaryDirectory(prefix="sc-compose-bd-home-") as directory:
+        env = isolated_environment(dict(os.environ), Path(directory))
+        version_env = dict(env, BEADS_DIR=str(Path(directory) / ".beads"))
+        try:
+            version_result = subprocess.run(
+                [str(bd), "version"], capture_output=True, text=True, check=False, env=version_env,
+                timeout=PROCESS_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired as error:
+            timeout_diagnostic(error)
+            return 1
+        version = version_result.stdout.strip()
+        if version_result.returncode != 0 or not version:
+            print("real-bd qualification FAILED: bd version probe failed or returned empty output", file=sys.stderr)
+            return 1
+        provenance = {
+            "bd_path": str(bd),
+            "bd_sha256": hashlib.sha256(bd.read_bytes()).hexdigest(),
+            "bd_version": version,
+            "database_mode": database_mode(env),
+        }
+        print(json.dumps(provenance))
+        return run_suites(env, provenance, database_mode=bool(mode))
+
+
+def run_suites(env: dict[str, str], provenance: dict[str, str], database_mode: bool = False) -> int:
     status = 0
-    for label, args in SUITES:
-        proc = subprocess.run(
-            ["cargo", "test", "-j2", *args, "--", "--ignored", "--test-threads=1"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+    suites = (("database-mode", ["-p", "sc-composer-beads", "--test", "graph_bd", "repour_clean_dirty_database_mode"]),) if database_mode else SUITES
+    for label, args in suites:
+        try:
+            proc = subprocess.run(
+                ["cargo", "test", "-j2", *args, "--", "--ignored", "--test-threads=1", "--nocapture", *([] if database_mode else ["--skip", "repour_clean_dirty_database_mode"])],
+                capture_output=True,
+                text=True,
+                check=False,
+                env=env,
+                timeout=PROCESS_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired as error:
+            timeout_diagnostic(error)
+            status = 1
+            continue
         sys.stdout.write(proc.stdout)
         sys.stderr.write(proc.stderr)
         counts = parse_counts(proc.stdout)
         reason = verdict(proc.returncode, counts)
+        unsupported = bool(re.search(r"(?m)^SC_COMPOSE_MODE_UNSUPPORTED: BEADS_GRAPH_DIRTY_UNKNOWN(?:\s|$)", proc.stdout))
         print(
             json.dumps(
-                {"suite": label, "passed": counts[0], "failed": counts[1],
-                 "exit": proc.returncode, "ok": reason is None}
+                {**provenance, "suite": label, "passed": counts[0], "failed": counts[1],
+                 "exit": proc.returncode, "ok": reason is None and not unsupported,
+                 "qualification": "failed" if reason else ("not_qualified" if unsupported else "qualified")}
             )
         )
+        if unsupported and reason is None:
+            summary = os.environ.get("GITHUB_STEP_SUMMARY")
+            if summary:
+                with open(summary, "a", encoding="utf-8") as stream:
+                    stream.write(f"bd {provenance['bd_version']}: {provenance['database_mode']} not_qualified (unsupported)\n")
         if reason:
             print(f"real-bd suite {label} FAILED: {reason}", file=sys.stderr)
             status = 1

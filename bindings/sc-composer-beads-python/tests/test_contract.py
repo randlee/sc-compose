@@ -7,6 +7,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,119 @@ import sc_composer_beads as beads
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"
 GRAPH_FIXTURE_ROOT = FIXTURE_ROOT / "graph"
+CLI_BUILD_HANG_GUARD_SECONDS = 30 * 60
+BD_INIT_HANG_GUARD_SECONDS = 5 * 60
+
+
+def _init_bd(executable: Path, directory: Path) -> None:
+    """Bound a hung setup without asserting normal execution speed."""
+    try:
+        subprocess.run(
+            [executable, "init"], cwd=directory, check=True, capture_output=True,
+            timeout=BD_INIT_HANG_GUARD_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        pytest.fail(
+            f"bd init hit the {BD_INIT_HANG_GUARD_SECONDS}s failure-only hang guard; "
+            f"stdout={exc.stdout!r}; stderr={exc.stderr!r}"
+        )
+
+
+def test_bd_init_timeout_reports_captured_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def stalled_init(command, **options):
+        assert options["timeout"] == BD_INIT_HANG_GUARD_SECONDS
+        raise subprocess.TimeoutExpired(command, options["timeout"], output=b"waiting", stderr=b"locked")
+
+    monkeypatch.setattr(subprocess, "run", stalled_init)
+    with pytest.raises(pytest.fail.Exception) as failure:
+        _init_bd(Path("bd"), tmp_path)
+    assert "failure-only hang guard" in str(failure.value)
+    assert "waiting" in str(failure.value) and "locked" in str(failure.value)
+
+
+def _resolve_sc_compose_cli() -> Path:
+    """Resolve a supplied binary, or build once before the parity test runs."""
+    supplied = os.environ.get("SC_COMPOSE_TEST_CLI")
+    if supplied:
+        executable = Path(supplied).resolve()
+        if not executable.is_file():
+            pytest.fail(f"SC_COMPOSE_TEST_CLI is not a prebuilt executable: {executable}")
+        return executable
+    # Cold builds have no speed assertion. This generous deadline only bounds
+    # a hung setup (for example a held Cargo lock or a stalled registry).
+    try:
+        built = subprocess.run(
+            ["cargo", "build", "-j", "2", "-p", "sc-compose", "--bin", "sc-compose", "--message-format=json"],
+            cwd=REPOSITORY_ROOT, check=True, capture_output=True, text=True,
+            timeout=CLI_BUILD_HANG_GUARD_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        pytest.fail(
+            f"CLI setup cargo build hit the {CLI_BUILD_HANG_GUARD_SECONDS}s failure-only hang guard: {exc}. "
+            "Inspect Cargo target locks and registry/network access, or supply SC_COMPOSE_TEST_CLI "
+            f"from a separate build step. stdout={exc.stdout!r}; stderr={exc.stderr!r}"
+        )
+    artifacts = [json.loads(line) for line in built.stdout.splitlines() if line.startswith("{")]
+    executables = [Path(item["executable"]) for item in artifacts
+                   if item.get("reason") == "compiler-artifact" and item.get("executable")
+                   and item["target"]["name"] == "sc-compose"]
+    assert len(executables) == 1, f"expected one CLI build artifact, got {executables}"
+    return executables[0]
+
+
+@pytest.fixture(scope="session")
+def sc_compose_cli() -> Path:
+    return _resolve_sc_compose_cli()
+
+
+def test_cli_setup_timeout_reports_the_cause_without_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SC_COMPOSE_TEST_CLI", raising=False)
+    calls = []
+
+    def stalled_build(command, **options):
+        calls.append(command)
+        assert options["timeout"] >= 600, "setup needs a generous hang guard"
+        raise subprocess.TimeoutExpired(
+            command, options["timeout"], output="waiting for target lock", stderr="registry request pending"
+        )
+
+    monkeypatch.setattr(subprocess, "run", stalled_build)
+    with pytest.raises(pytest.fail.Exception) as failure:
+        _resolve_sc_compose_cli()
+    message = str(failure.value)
+    assert "failure-only hang guard" in message
+    assert "waiting for target lock" in message and "registry request pending" in message
+    assert "SC_COMPOSE_TEST_CLI" in message
+    assert len(calls) == 1, "a stalled build must fail without retrying"
+
+
+def test_cli_setup_supplied_binary_does_not_start_cargo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    executable = tmp_path / "prebuilt-cli"
+    executable.touch()
+    monkeypatch.setenv("SC_COMPOSE_TEST_CLI", str(executable))
+
+    def unexpected_build(*_args, **_options):
+        pytest.fail("a supplied prebuilt CLI must bypass Cargo entirely")
+
+    monkeypatch.setattr(subprocess, "run", unexpected_build)
+    assert _resolve_sc_compose_cli() == executable.resolve()
+
+
+def _write_revision_bd(root: Path, *, scenario: str = "policy") -> tuple[Path, Path, Path]:
+    """Run the same closed revision fixture as the Rust CLI tests, on every OS."""
+    runner = REPOSITORY_ROOT / "crates/test-support/fake_revision_bd.py"
+    config = root / "revision-bd.json"
+    trace = root / "trace"
+    config.write_text(json.dumps({"trace": str(trace), "scenario": scenario}), encoding="utf-8")
+    executable = root / ("fake-revision-bd.cmd" if os.name == "nt" else "fake-revision-bd")
+    if os.name == "nt":
+        executable.write_text(
+            f'@echo off\r\n"{sys.executable}" "{runner}" --config "{config}" %*\r\nexit /b %errorlevel%\r\n',
+            encoding="utf-8", newline="",
+        )
+    else:
+        executable.symlink_to(runner)
+    return executable, config, trace
 
 
 def _write_fake_bd(root: Path) -> tuple[Path, Path]:
@@ -323,7 +437,7 @@ def test_validate_and_preview_preserve_stage_receipts(tmp_path: Path) -> None:
     assert trace.read_text(encoding="utf-8").splitlines() == ["cook", "cook", "where", "mol"]
 
 
-def test_python_and_cli_preview_receipts_have_the_same_stages(tmp_path: Path) -> None:
+def test_python_and_cli_preview_receipts_have_the_same_stages(tmp_path: Path, sc_compose_cli: Path) -> None:
     executable, _trace = _write_fake_bd(tmp_path)
     request = _request(tmp_path, executable, operation="preview_pour")
     request_path = tmp_path / "request.json"
@@ -346,25 +460,24 @@ def test_python_and_cli_preview_receipts_have_the_same_stages(tmp_path: Path) ->
     )
 
     python_receipt = beads.preview_pour(request)
-    completed = subprocess.run(
-        [
-            "cargo",
-            "run",
-            "--quiet",
-            "-p",
-            "sc-compose",
-            "--",
-            "bead",
-            "preview-pour",
-            "--request",
-            str(request_path),
-            "--json",
-        ],
-        cwd=REPOSITORY_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        completed = subprocess.run(
+            [
+                str(sc_compose_cli),
+                "bead",
+                "preview-pour",
+                "--request",
+                str(request_path),
+                "--json",
+            ],
+            cwd=REPOSITORY_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired as exc:
+        pytest.fail(f"prebuilt CLI did not finish; stdout={exc.stdout!r}; stderr={exc.stderr!r}")
     cli_receipt = json.loads(completed.stdout)["payload"]
     assert cli_receipt["operation"] == python_receipt.operation
     assert [stage["stage"] for stage in cli_receipt["stages"]] == [
@@ -520,8 +633,8 @@ def test_attach_request_rejects_invalid_parent_and_ref(
     assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
     assert raised.value.stage == "validate"
     if parent != "proj-100":
-        assert raised.value.details == {"field": "bead", "value": parent, "rule": "bead ids are non-empty without whitespace"}
-        assert "bead ids are non-empty without whitespace" in str(raised.value)
+        assert raised.value.details == {"field": "bead", "value": parent, "rule": "bead ids are non-empty and contain no whitespace or control characters"}
+        assert "bead ids are non-empty and contain no whitespace or control characters" in str(raised.value)
     else:
         assert raised.value.details == {"field": "ref", "value": reference, "rule": "ref is [A-Za-z0-9_-]{1,32}"}
 
@@ -580,7 +693,7 @@ def test_installed_wheel_runs_the_pinned_beads_fixture(tmp_path: Path, monkeypat
     """Exercise the installed wheel with the same canonical fixture as R.1/R.2."""
     executable = Path(os.environ["BD_EXECUTABLE"])
     monkeypatch.setenv("BEADS_NO_DAEMON", "1")
-    subprocess.run([executable, "init"], cwd=tmp_path, check=True, capture_output=True)
+    _init_bd(executable, tmp_path)
 
     receipt = beads.preview_pour(_request(tmp_path, executable, operation="preview_pour"))
 
@@ -734,3 +847,119 @@ def test_repour_wire_values_and_additive_actions(tmp_path: Path) -> None:
     result = beads.BeadComposeReceipt.from_json(json.dumps(fixture)).to_json()
     assert result["graph"]["nodes"][0]["action"] == "updated"
     assert result["graph"]["nodes"][1]["action"] == "retained"
+
+
+def test_revision_preview_preserves_policy_error_and_changes(tmp_path: Path) -> None:
+    executable, config, trace = _write_revision_bd(tmp_path)
+    template = tmp_path / "sample.formula.toml.j2"
+    template.write_text('formula = "sample"\n', encoding="utf-8")
+    request = beads.BeadComposeRequest(
+        tmp_path, template, tmp_path / "sample.formula.toml", {},
+        formula_name="sample", bd_executable=executable, parent="proj-1",
+        pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+    )
+    with pytest.raises(beads.BeadComposeError) as conflict:
+        beads.preview_pour(request)
+    assert conflict.value.code == beads.BEADS_GRAPH_CONFLICT
+    assert conflict.value.details["reason"] == "plan_changed"
+    assert "repour" in conflict.value.recovery
+    with pytest.raises(beads.BeadComposeError) as refused:
+        beads.repour(request, dry_run=True)
+    assert refused.value.code == beads.BEADS_GRAPH_DIRTY_UNKNOWN
+    assert refused.value.details["reason"] == "unknown"
+    assert "--allow-uncommitted" in refused.value.recovery
+    receipt = beads.preview_repour(request, allow_uncommitted=True)
+    assert receipt.operation == "preview_repour"
+    assert {"change": "add_node", "step": "build"} in receipt.graph["changes"]
+    field = {"change": "field_change", "bead": "proj-1", "status": "open", "field": "title", "before": "old", "after": "sample"}
+    assert field in receipt.graph["changes"]
+    assert receipt.to_json()["graph"]["changes"] == receipt.graph["changes"]
+    with pytest.raises(beads.BeadComposeError) as partial:
+        beads.repour(request, allow_uncommitted=True)
+    assert partial.value.code == beads.BEADS_GRAPH_APPLY_PARTIAL
+    assert {"change": "add_node", "step": "build"} in partial.value.details["applied"]
+    assert field in partial.value.details["pending"]
+    detached = partial.value.details
+    detached["applied"].clear()
+    assert partial.value.details["applied"]
+    assert "pending" in partial.value.details
+    assert "rerun" in partial.value.recovery
+    # Known-dirty apply refuses without writing; an explicit override reaches apply.
+    trace.unlink()
+    settings = json.loads(config.read_text(encoding="utf-8"))
+    settings["sql"] = "dirty"
+    config.write_text(json.dumps(settings), encoding="utf-8")
+    with pytest.raises(beads.BeadComposeError) as dirty:
+        beads.repour(request)
+    assert dirty.value.code == beads.BEADS_GRAPH_DIRTY
+    assert "bd dolt commit" in dirty.value.recovery and "--allow-uncommitted" in dirty.value.recovery
+    assert not any(line.startswith(("create ", "update ", "dep add ", "dep remove ")) for line in trace.read_text().splitlines())
+    with pytest.raises(beads.BeadComposeError) as overridden:
+        beads.repour(request, allow_uncommitted=True)
+    assert overridden.value.code == beads.BEADS_GRAPH_APPLY_PARTIAL
+    assert any(line.startswith("create ") for line in trace.read_text().splitlines())
+    # Validation failure occurs before any bead or dependency write.
+    trace.unlink()
+    settings["invalid"] = True
+    config.write_text(json.dumps(settings), encoding="utf-8")
+    invalid = beads.repour(request, allow_uncommitted=True)
+    assert invalid.outcome.kind == "failed" and invalid.outcome.code == "BEADS_COOK_FAILED"
+    assert invalid.graph is None
+    assert not any(line.startswith(("create ", "update ", "dep add ", "dep remove ")) for line in trace.read_text().splitlines())
+
+
+def test_revision_receipt_preserves_fields_and_external_edges() -> None:
+    receipt = json.loads((GRAPH_FIXTURE_ROOT / "receipt-graph-pour.json").read_text(encoding="utf-8"))
+    changes = [
+        {"change": "field_change", "bead": "proj-1", "status": "closed", "field": "title", "before": "Old", "after": "New"},
+        {"change": "retain_external_edge", "from": "outside-1", "to": "proj-1", "kind": "blocks"},
+        {"change": "retain_external_edge", "from": "proj-1", "to": "outside-2", "kind": "blocks"},
+    ]
+    receipt["graph"]["changes"] = changes
+    decoded = beads.BeadComposeReceipt.from_json(json.dumps(receipt))
+    assert decoded.graph["changes"] == changes
+    assert decoded.to_json()["graph"]["changes"] == changes
+    assert decoded.schema == beads.BEADS_SCHEMA_V1
+
+
+def test_revision_blocked_graph_path_has_a_typed_diagnostic(tmp_path: Path) -> None:
+    template = tmp_path / "sample.formula.toml.j2"
+    template.write_text('formula = "sample"\n', encoding="utf-8")
+    (tmp_path / "sample.formula.toml.graph.json").mkdir()
+    request = beads.BeadComposeRequest(
+        tmp_path, template, tmp_path / "sample.formula.toml", {},
+        formula_name="sample", bd_executable=tmp_path / "must-not-run",
+        parent="proj-1", pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+    )
+    with pytest.raises(beads.BeadComposeError) as refused:
+        beads.preview_repour(request)
+    assert refused.value.code == "BEADS_OUTPUT_PATH_INVALID"
+    assert refused.value.details["field"] == "graph_plan"
+
+
+def test_revision_execution_reports_exact_graph_changes(tmp_path: Path) -> None:
+    executable, _config, _trace = _write_revision_bd(tmp_path, scenario="graph")
+    template = tmp_path / "sample.formula.toml.j2"
+    template.write_text('formula = "sample"\n', encoding="utf-8")
+    request = beads.BeadComposeRequest(
+        tmp_path, template, tmp_path / "sample.formula.toml", {},
+        formula_name="sample", bd_executable=executable, parent="proj-1",
+        pour_authorization=beads.PourAuthorization.CREATE_PERSISTENT_BEADS,
+    )
+    changes = beads.preview_repour(request, allow_uncommitted=True).graph["changes"]
+    assert {"change": "add_node", "step": "build"} in changes
+    assert {"change": "add_node", "step": "verify"} in changes
+    assert {"change": "add_edge", "from": "step:verify", "to": "step:build", "kind": "blocks"} in changes
+    assert {"change": "remove_internal_edge", "from": "proj-3", "to": "proj-1", "kind": "blocks"} in changes
+    assert {"change": "retain_external_edge", "from": "outside-1", "to": "proj-3", "kind": "blocks"} in changes
+    assert {"change": "retain_external_edge", "from": "proj-3", "to": "outside-2", "kind": "blocks"} in changes
+    assert {"change": "mark_removed_node", "bead": "proj-3", "status": "closed", "remove_command": "bd delete -- 'proj-3'"} in changes
+
+
+def test_pour_and_repour_expose_the_documented_revision_controls() -> None:
+    pour_parameters = inspect.signature(beads.pour).parameters
+    repour_parameters = inspect.signature(beads.repour).parameters
+    assert "root" in pour_parameters and "dry_run" in pour_parameters
+    assert "allow_uncommitted" not in pour_parameters
+    assert "root" in repour_parameters and "dry_run" in repour_parameters
+    assert "allow_uncommitted" in repour_parameters

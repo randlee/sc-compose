@@ -176,9 +176,10 @@ sc-compose bead attach         --request req.json --json  # create under an exis
   `sc-compose/beads/v1` JSON request (template, output path, variables,
   `parent`/`ref` for attach) and returns a receipt listing every bead and edge
   as `created` or `existing`.
-- **Safe to re-run.** `attach` never edits existing beads; a repeat run reports
-  the same ids as `existing`, and a missing edge comes back as a ready-to-run
-  `bd dep add` command. All beads and edges are created in one
+- **Safe to re-run.** Use `repour` to apply changed plan-owned fields to an
+  existing graph while preserving bead ids and runtime state. A repeat
+  `attach` reports the same ids as `existing`, and a missing edge comes back as
+  a ready-to-run `bd dep add` command. All beads and edges are created in one
   `bd create --graph` transaction.
 - **No registry needed.** A rendered formula anywhere in the workspace is
   poured as a graph; formulas in the Beads `formulas/` registry still pour by

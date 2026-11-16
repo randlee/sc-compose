@@ -10,6 +10,9 @@ from ._native import (
     BeadStage,
     BeadStageOutcome,
     BeadStageReceipt,
+    BEADS_GRAPH_DIRTY,
+    BEADS_GRAPH_DIRTY_UNKNOWN,
+    BEADS_GRAPH_APPLY_PARTIAL,
     BEADS_GRAPH_APPLY_FAILED,
     BEADS_GRAPH_APPLY_UNCONFIRMED,
     BEADS_GRAPH_CONFLICT,
@@ -28,12 +31,14 @@ from ._native import (
     preview_attach,
     repour,
     preview_pour,
+    preview_repour,
     render,
     validate,
 )
 
 __all__ = [
     "BEADS_SCHEMA_V1",
+    "BEADS_GRAPH_DIRTY", "BEADS_GRAPH_DIRTY_UNKNOWN", "BEADS_GRAPH_APPLY_PARTIAL",
     "BEADS_GRAPH_APPLY_FAILED", "BEADS_GRAPH_APPLY_UNCONFIRMED", "BEADS_GRAPH_CONFLICT", "BEADS_GRAPH_EDGE_CONFLICT", "BEADS_GRAPH_EDGE_MISSING", "BEADS_GRAPH_FORMULA_UNSUPPORTED", "BEADS_GRAPH_ID_INVALID", "BEADS_GRAPH_PARENT_NOT_FOUND", "BEADS_GRAPH_READ_FAILED", "BEADS_GRAPH_RELATION_INVALID", "BEADS_GRAPH_SCOPE_MISMATCH",
     "BeadComposeError",
     "BeadComposeReceipt",
@@ -47,7 +52,7 @@ __all__ = [
     "execute",
     "pour",
     "attach", "preview_attach", "repour",
-    "preview_pour",
+    "preview_pour", "preview_repour",
     "render",
     "validate",
 ]

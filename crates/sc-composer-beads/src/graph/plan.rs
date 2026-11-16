@@ -18,6 +18,12 @@ pub(super) trait GraphReader {
         &mut self,
         id: &BeadId,
     ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError>;
+    fn dependents(
+        &mut self,
+        _id: &BeadId,
+    ) -> Result<Vec<(BeadId, GraphDependencyType)>, BeadComposeError> {
+        Ok(Vec::new())
+    }
     /// The stored rows of the direct children of `root`, keyed by bead id.
     fn children(&mut self, root: &BeadId) -> Result<BTreeMap<BeadId, Value>, BeadComposeError>;
 }
@@ -36,6 +42,7 @@ pub(super) struct PendingCreate {
     pub(super) endpoints: Vec<(PlannedEndpoint, PlannedEndpoint)>,
     /// Missing edges between two existing beads; `bd create --graph` cannot add them.
     pub(super) dep_adds: Vec<(BeadId, BeadId, GraphDependencyType)>,
+    pub(super) dep_removes: Vec<(BeadId, BeadId, GraphDependencyType)>,
     /// Field updates of existing beads (repour only).
     pub(super) updates: Vec<NodeUpdate>,
 }
@@ -170,7 +177,7 @@ pub(super) fn plan(
     } else {
         check_ownership(v, advanced, &ids, &found)?
     };
-    let mut pending = create_nodes(v, advanced, &ids, &missing, rooted)?;
+    let mut pending = create_nodes(v, advanced, &ids, &missing, rooted);
     let edges = plan_edges(
         v,
         (&ids, &missing),
@@ -184,9 +191,13 @@ pub(super) fn plan(
         payload.insert("edges".into(), json!(edges));
     }
     if let Some(existing) = existing {
-        mark_repour(v, &existing, &mut pending)?;
+        mark_repour(v, &existing, &mut pending);
     }
-    if pending.keys.is_empty() && pending.dep_adds.is_empty() && pending.updates.is_empty() {
+    if pending.keys.is_empty()
+        && pending.dep_adds.is_empty()
+        && pending.dep_removes.is_empty()
+        && pending.updates.is_empty()
+    {
         Ok(GraphPlan::Noop(pending.graph))
     } else {
         Ok(GraphPlan::Create(pending))
@@ -238,12 +249,12 @@ fn check_relation_endpoints(
 }
 
 /// Record a repour's field updates, retained nodes and backup on the plan.
-fn mark_repour(
-    v: &ValidatedGraph,
-    existing: &Existing,
-    pending: &mut PendingCreate,
-) -> Result<(), BeadComposeError> {
-    pending.updates = repour::node_updates(v, existing)?;
+fn mark_repour(v: &ValidatedGraph, existing: &Existing, pending: &mut PendingCreate) {
+    pending.updates = repour::node_updates(v, existing);
+    pending
+        .graph
+        .changes
+        .extend(repour::field_changes(v, existing));
     for update in &pending.updates {
         if let Some(node) = pending
             .graph
@@ -255,13 +266,32 @@ fn mark_repour(
         }
     }
     for (step, id) in &existing.retained {
+        let row = &existing.rows[id];
+        let status = repour::row_status(row);
+        pending
+            .graph
+            .changes
+            .push(crate::GraphChange::MarkRemovedNode {
+                bead: id.clone(),
+                status,
+                remove_command: format!("bd delete -- {}", crate::error::shell_quote(id.as_str())),
+            });
+        if !row
+            .get("labels")
+            .and_then(Value::as_array)
+            .is_some_and(|labels| labels.iter().any(|label| label == "repour:removed"))
+        {
+            pending.updates.push(NodeUpdate {
+                id: id.clone(),
+                calls: vec![vec!["--add-label=repour:removed".into()]],
+            });
+        }
         pending.graph.nodes.push(BeadGraphNode {
             step: Some(step.clone()),
             id: Some(id.clone()),
             action: BeadNodeAction::Retained,
         });
     }
-    Ok(())
 }
 
 fn check_ownership(
@@ -282,7 +312,7 @@ fn check_ownership(
                 Some(raw) if advanced => {
                     match serde_json::from_value::<ProvenanceV2>(raw.clone()) {
                         Ok(actual) => {
-                            let expected = v.provenance_v2(Some(step))?;
+                            let expected = v.provenance_v2(Some(step));
                             if actual.v == 2
                                 && actual.mode == expected.mode
                                 && actual.formula == expected.formula
@@ -326,7 +356,7 @@ fn create_nodes(
     ids: &BTreeMap<StepId, BeadId>,
     missing: &BTreeSet<StepId>,
     attach: bool,
-) -> Result<PendingCreate, BeadComposeError> {
+) -> PendingCreate {
     let mut graph = BeadGraph {
         mode: v.mode,
         parent: anchor(v).cloned(),
@@ -337,6 +367,7 @@ fn create_nodes(
         ids: ids.clone(),
         nodes: Vec::new(),
         edges: Vec::new(),
+        changes: Vec::new(),
     };
     let mut nodes = Vec::new();
     let mut keys = BTreeMap::new();
@@ -349,7 +380,7 @@ fn create_nodes(
     } else if !attach {
         let root_key = PlanKey::root();
         let provenance = if advanced {
-            json!(v.provenance_v2(None)?)
+            json!(v.provenance_v2(None))
         } else {
             json!(v.provenance(None))
         };
@@ -373,19 +404,25 @@ fn create_nodes(
             },
         });
         if create {
-            let (key, fields) = create_step(v, advanced, step, ids.get(&step.id), attach)?;
+            if v.repour {
+                graph.changes.push(crate::GraphChange::AddNode {
+                    step: step.id.clone(),
+                });
+            }
+            let (key, fields) = create_step(v, advanced, step, ids.get(&step.id), attach);
             nodes.push(fields);
             keys.insert(key, Some(step.id.clone()));
         }
     }
-    Ok(PendingCreate {
+    PendingCreate {
         graph,
         payload: json!({"nodes": nodes}),
         endpoints: Vec::new(),
         dep_adds: Vec::new(),
+        dep_removes: Vec::new(),
         updates: Vec::new(),
         keys,
-    })
+    }
 }
 
 /// The bead new nodes hang under: the attach parent or the repour root.
@@ -399,7 +436,7 @@ fn create_step(
     step: &Step,
     id: Option<&BeadId>,
     attach: bool,
-) -> Result<(PlanKey, Value), BeadComposeError> {
+) -> (PlanKey, Value) {
     let mut fields = step.fields.clone();
     let key = PlanKey::step(&step.id, attach);
     fields.insert("key".into(), json!(key.as_str()));
@@ -415,7 +452,7 @@ fn create_step(
         .entry("metadata")
         .or_insert_with(|| Value::Object(Map::default()));
     let provenance = if advanced {
-        json!(v.provenance_v2(Some(step))?)
+        json!(v.provenance_v2(Some(step)))
     } else {
         json!(v.provenance(Some(step.id.clone())))
     };
@@ -429,7 +466,7 @@ fn create_step(
             *metadata = Value::Object(object);
         }
     }
-    Ok((key, Value::Object(fields)))
+    (key, Value::Object(fields))
 }
 
 fn plan_edges(
@@ -441,7 +478,7 @@ fn plan_edges(
     reader: &mut impl GraphReader,
     pending: &mut PendingCreate,
 ) -> Result<Vec<Value>, BeadComposeError> {
-    let (planned_edges, existing_edges) = read_edges(v, ids, missing, attach, reader)?;
+    let (planned_edges, existing_edges) = read_edges(v, ids, missing, attach, repoured, reader)?;
     let mut absent = Vec::new();
     let mut edges = Vec::new();
     let mut declared = BTreeSet::new();
@@ -454,6 +491,13 @@ fn plan_edges(
         let to = endpoint(&to, ids, missing, attach);
         let existing = check_edge(&from, &to, &kind, &existing_edges, &mut absent)?;
         note_edge(&from, &to, &kind, existing, pending, &mut declared);
+        if !existing && repoured.is_some() {
+            pending.graph.changes.push(crate::GraphChange::AddEdge {
+                from: from.display().clone(),
+                to: to.display().clone(),
+                kind: kind.clone(),
+            });
+        }
         pending.graph.edges.push(BeadGraphEdge {
             from: from.display().clone(),
             to: to.display().clone(),
@@ -478,15 +522,51 @@ fn plan_edges(
         &mut absent,
     )?;
     if let Some(existing) = repoured {
-        pending
-            .graph
-            .edges
-            .extend(repour::retained_edges(&existing_edges, &declared, existing));
+        note_revision_edges(existing, &existing_edges, &declared, pending);
     }
+    validate_post_delta_cycles(pending, &existing_edges)?;
     if advanced {
         Ok(edges)
     } else {
         finish_edges(absent, edges)
+    }
+}
+
+fn note_revision_edges(
+    existing: &Existing,
+    existing_edges: &ExistingEdges,
+    declared: &BTreeSet<(BeadId, BeadId)>,
+    pending: &mut PendingCreate,
+) {
+    let owned: BTreeSet<_> = existing.rows.keys().cloned().collect();
+    for ((from, to), kind) in existing_edges {
+        if *kind == GraphDependencyType::ParentChild {
+            continue;
+        }
+        let inside_from = owned.contains(from);
+        let inside_to = owned.contains(to);
+        if inside_from && inside_to && !declared.contains(&(from.clone(), to.clone())) {
+            pending
+                .dep_removes
+                .push((from.clone(), to.clone(), kind.clone()));
+            pending
+                .graph
+                .changes
+                .push(crate::GraphChange::RemoveInternalEdge {
+                    from: from.clone(),
+                    to: to.clone(),
+                    kind: kind.clone(),
+                });
+        } else if inside_from != inside_to {
+            pending
+                .graph
+                .changes
+                .push(crate::GraphChange::RetainExternalEdge {
+                    from: from.clone(),
+                    to: to.clone(),
+                    kind: kind.clone(),
+                });
+        }
     }
 }
 
@@ -605,11 +685,103 @@ fn planned_edge_json(from: Endpoint, to: Endpoint, kind: &GraphDependencyType) -
 type PlannedEdges = Vec<(BeadEndpoint, BeadEndpoint, GraphDependencyType)>;
 type ExistingEdges = BTreeMap<(BeadId, BeadId), GraphDependencyType>;
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum CycleNode {
+    Bead(BeadId),
+    Step(StepId),
+    Root,
+}
+
+impl From<&GraphEndpoint> for CycleNode {
+    fn from(endpoint: &GraphEndpoint) -> Self {
+        match endpoint {
+            GraphEndpoint::Bead(id) => Self::Bead(id.clone()),
+            GraphEndpoint::Step(id) => Self::Step(id.clone()),
+            GraphEndpoint::Root => Self::Root,
+        }
+    }
+}
+
+/// Validate the final plan, not an intermediate union that would falsely reject
+/// an edge reversal. Nonblocking relations follow bd's cycle semantics.
+fn validate_post_delta_cycles(
+    pending: &PendingCreate,
+    existing: &ExistingEdges,
+) -> Result<(), BeadComposeError> {
+    let blocking = |kind: &GraphDependencyType| {
+        matches!(
+            kind,
+            GraphDependencyType::Known(
+                BeadDependencyType::Blocks | BeadDependencyType::ConditionalBlocks
+            )
+        )
+    };
+    let removed: BTreeSet<_> = pending
+        .dep_removes
+        .iter()
+        .map(|(from, to, _)| (from.clone(), to.clone()))
+        .collect();
+    let mut edges: BTreeMap<CycleNode, BTreeSet<CycleNode>> = BTreeMap::new();
+    for ((from, to), kind) in existing {
+        if blocking(kind) && !removed.contains(&(from.clone(), to.clone())) {
+            edges
+                .entry(CycleNode::Bead(from.clone()))
+                .or_default()
+                .insert(CycleNode::Bead(to.clone()));
+        }
+    }
+    for edge in &pending.graph.edges {
+        if blocking(&edge.kind) {
+            edges
+                .entry(CycleNode::from(&edge.from))
+                .or_default()
+                .insert(CycleNode::from(&edge.to));
+        }
+    }
+    if has_cycle(&edges) {
+        return Err(BeadComposeError::GraphApplyFailed {
+            command: Vec::new(),
+            status: None,
+            cause: "graph contains a blocking dependency cycle (local plan preflight)".into(),
+        });
+    }
+    Ok(())
+}
+
+fn has_cycle(edges: &BTreeMap<CycleNode, BTreeSet<CycleNode>>) -> bool {
+    let mut incoming = BTreeMap::new();
+    for (from, targets) in edges {
+        incoming.entry(from.clone()).or_insert(0usize);
+        for to in targets {
+            *incoming.entry(to.clone()).or_insert(0) += 1;
+        }
+    }
+    let mut ready: BTreeSet<_> = incoming
+        .iter()
+        .filter(|(_, count)| **count == 0)
+        .map(|(node, _)| node.clone())
+        .collect();
+    let mut visited = 0;
+    while let Some(node) = ready.pop_first() {
+        visited += 1;
+        for to in edges.get(&node).into_iter().flatten() {
+            if let Some(count) = incoming.get_mut(to) {
+                *count -= 1;
+                if *count == 0 {
+                    ready.insert(to.clone());
+                }
+            }
+        }
+    }
+    visited != incoming.len()
+}
+
 fn read_edges(
     v: &ValidatedGraph,
     ids: &BTreeMap<StepId, BeadId>,
     missing: &BTreeSet<StepId>,
     attach: bool,
+    existing: Option<&Existing>,
     reader: &mut impl GraphReader,
 ) -> Result<(PlannedEdges, ExistingEdges), BeadComposeError> {
     let mut planned_edges = Vec::new();
@@ -642,9 +814,17 @@ fn read_edges(
             sources.insert(id.clone());
         }
     }
+    if let Some(existing) = existing {
+        sources.extend(existing.rows.keys().cloned());
+    }
     for id in sources {
         for (to, kind) in reader.dependencies(&id)? {
             existing_edges.insert((id.clone(), to), kind);
+        }
+        if existing.is_some() {
+            for (from, kind) in reader.dependents(&id)? {
+                existing_edges.insert((from, id.clone()), kind);
+            }
         }
     }
     Ok((planned_edges, existing_edges))
@@ -684,6 +864,39 @@ fn check_edge(
 mod tests {
     use super::*;
 
+    #[test]
+    fn unowned_node_conflict_has_execution_error_class() {
+        let step = StepId::new("build").unwrap();
+        let id = BeadId::new("proj-1.rel-build").unwrap();
+        let digest = crate::Sha256Digest::new(format!("sha256:{}", "a".repeat(64))).unwrap();
+        let graph = ValidatedGraph {
+            mode: BeadGraphMode::Attach,
+            parent: Some(BeadId::new("proj-1").unwrap()),
+            root: None,
+            repour: true,
+            reference: Some(crate::GraphRef::new("rel").unwrap()),
+            formula: crate::FormulaName::new("example").unwrap(),
+            description: String::new(),
+            revision: digest.clone(),
+            inputs: digest,
+            steps: vec![Step {
+                id: step.clone(),
+                fields: Map::new(),
+                needs: vec![],
+            }],
+            relations: vec![],
+        };
+        let error = check_ownership(
+            &graph,
+            true,
+            &BTreeMap::from([(step, id.clone())]),
+            &BTreeMap::from([(id, json!({"metadata": {}}))]),
+        )
+        .unwrap_err();
+        assert_eq!(error.code(), "BEADS_GRAPH_CONFLICT");
+        assert_eq!(error.class(), crate::BeadErrorClass::Execution);
+    }
+
     fn graph() -> BeadGraph {
         let step = StepId::new("build").unwrap();
         BeadGraph {
@@ -696,6 +909,7 @@ mod tests {
             ids: BTreeMap::from([(step, BeadId::new("proj-1.build").unwrap())]),
             nodes: Vec::new(),
             edges: Vec::new(),
+            changes: Vec::new(),
         }
     }
 

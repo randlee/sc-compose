@@ -34,6 +34,7 @@ pub struct BeadExecutionOptions {
 /// Requested Beads composition operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum BeadOperation {
     /// Render a template without invoking Beads.
     Render,
@@ -51,9 +52,15 @@ pub enum BeadOperation {
     ///
     /// The request's `parent` names the pour root; `ref` must be absent.
     Repour,
+    /// Preview the changes of a graph revision without writing beads.
+    PreviewRepour,
 }
 
 impl BeadOperation {
+    pub(crate) const fn is_repour(self) -> bool {
+        matches!(self, Self::Repour | Self::PreviewRepour)
+    }
+
     /// Return the operation's stable serde wire name.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
@@ -65,6 +72,7 @@ impl BeadOperation {
             Self::PreviewAttach => "preview_attach",
             Self::Attach => "attach",
             Self::Repour => "repour",
+            Self::PreviewRepour => "preview_repour",
         }
     }
 }
@@ -272,6 +280,7 @@ pub struct BeadComposeReceipt {
 /// One discrete execution stage.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum BeadStage {
     /// Template rendering.
     Render,
@@ -357,6 +366,7 @@ pub struct BeadStageReceipt {
 /// Final operation outcome.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum BeadOutcome {
     /// All requested stages succeeded.
     Succeeded,
@@ -661,6 +671,7 @@ pub struct BeadRelation {
 
 /// The planned or applied graph and its resolved bead identities.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct BeadGraph {
     /// Construction mode.
     pub mode: BeadGraphMode,
@@ -682,6 +693,28 @@ pub struct BeadGraph {
     pub nodes: Vec<BeadGraphNode>,
     /// Edges in plan order.
     pub edges: Vec<BeadGraphEdge>,
+    /// Detailed changes planned or applied during graph revision.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub changes: Vec<crate::revision::GraphChange>,
+}
+
+impl BeadGraph {
+    /// Start an empty graph receipt for a formula revision.
+    #[must_use]
+    pub fn new(mode: BeadGraphMode, formula: FormulaName, revision: Sha256Digest) -> Self {
+        Self {
+            mode,
+            formula,
+            revision,
+            parent: None,
+            ref_: None,
+            plan_path: None,
+            ids: BTreeMap::new(),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            changes: Vec::new(),
+        }
+    }
 }
 
 /// One planned or applied graph node.
