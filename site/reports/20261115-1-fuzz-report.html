@@ -539,6 +539,18 @@
     </tbody></table>
   </section>
 
+  <section>
+    <h2>Validation</h2>
+    <p>Python and lint checks ran at revision <code>02459467f0123e9d12cecd3cbdbc2d3dc5ffab66</code>; report validation checked this updated report. Expected error text in the Python log comes from controlled test cases.</p>
+    <ul>
+      <li><code>python3 -m unittest discover -s scripts/tests</code> — exit code 0; <a href="20261115-1-fuzz-report/validation/python-unittest.log">log</a>.</li>
+      <li><code>python3 -m unittest discover -s site/reports/20261115-1-fuzz-report/forty-guard-sources</code> — exit code 0; <a href="20261115-1-fuzz-report/validation/guard-unittest.log">log</a>.</li>
+      <li><code>just lint</code> — exit code 0; <a href="20261115-1-fuzz-report/validation/just-lint.log">log</a>.</li>
+      <li><code>html-validate site/reports/20261115-1-fuzz-report.html</code> — exit code 0; <a href="20261115-1-fuzz-report/validation/html-validate.log">log</a>.</li>
+      <li><code>xmllint --noout site/reports/20261115-1-fuzz-report/*.xhtml</code> — exit code 0; <a href="20261115-1-fuzz-report/validation/xmllint.log">log</a>.</li>
+    </ul>
+  </section>
+
   <footer>
     <p><a href="20261115-1-fuzz-report/retitle-evidence.zip">Retitle evidence</a> · <a href="20261115-1-fuzz-report/forty-node-evidence.zip">40-node evidence</a> · <a href="20261115-1-fuzz-report/replacement-campaign-evidence.zip">90-case evidence</a> · <a href="20261115-1-fuzz-report/20261115-1-fuzz-report.json">JSON evidence</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-deep-revision-probe.xhtml">deep-revision-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-larger-revision-probe.xhtml">larger-revision-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-refusal-probe.xhtml">refusal-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-partial-apply-probe.xhtml">partial-apply-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-rename-probe.xhtml">rename-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-structural.xhtml">replacement-structural panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-refusal.xhtml">replacement-refusal panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-partial.xhtml">replacement-partial panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-forty-node-gap.xhtml">forty-node-gap panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-retitle-churn.xhtml">retitle-churn panel</a></p>
   </footer>

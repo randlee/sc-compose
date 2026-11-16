@@ -507,5 +507,36 @@
     "replay_checks": 4,
     "trace": "retitle-evidence.zip!retitle-42.log",
     "post_run_servers": "816 /opt/homebrew/bin/dolt sql-server --config /Users/randlee/.beads/shared-server/dolt/config.yaml"
+  },
+  "validation": {
+    "tested_revision": "02459467f0123e9d12cecd3cbdbc2d3dc5ffab66",
+    "note": "Python and lint tests ran against this revision; report-validation commands checked the updated report. Controlled tests include expected simulated failure output.",
+    "commands": [
+      {
+        "command": "python3 -m unittest discover -s scripts/tests",
+        "exit_code": 0,
+        "log": "validation/python-unittest.log"
+      },
+      {
+        "command": "python3 -m unittest discover -s site/reports/20261115-1-fuzz-report/forty-guard-sources",
+        "exit_code": 0,
+        "log": "validation/guard-unittest.log"
+      },
+      {
+        "command": "just lint",
+        "exit_code": 0,
+        "log": "validation/just-lint.log"
+      },
+      {
+        "command": "html-validate site/reports/20261115-1-fuzz-report.html",
+        "exit_code": 0,
+        "log": "validation/html-validate.log"
+      },
+      {
+        "command": "xmllint --noout site/reports/20261115-1-fuzz-report/*.xhtml",
+        "exit_code": 0,
+        "log": "validation/xmllint.log"
+      }
+    ]
   }
 }
