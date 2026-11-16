@@ -48,6 +48,9 @@ python3 -m unittest discover -s scripts/tests -p test_integration_repour.py -v
 
 ## Optional per-run bd staging on atmbench
 
+Only the **atmbench alternative** is delivered. Colima is out of scope and is
+not implemented by this suite or its target runner.
+
 Here, **"install" means per-run atmbench-owned temporary bd staging**. It
 persists nothing after the run and performs no persistent account installation.
 
