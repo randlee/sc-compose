@@ -46,9 +46,10 @@ cargo install sc-compose
 want `examples list` and `examples <name>`.
 
 For a versioned source install, use
-`cargo install sc-compose --version '=X.Y.Z' --locked`. Cargo uses the
-published lockfile when available; without `--locked`, Cargo can resolve newer
-compatible dependencies. A source build still requires a compatible toolchain
+`cargo install sc-compose --version '=X.Y.Z' --locked`. With `--locked`,
+Cargo uses the `Cargo.lock` shipped in the published crate when available;
+without `--locked`, Cargo ignores that file and can resolve newer compatible
+dependencies. A source build still requires a compatible toolchain
 and available dependencies. See the [Cargo install documentation](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile).
 
 The workspace crates (`sc-sha`, `sc-composer`, `sc-composer-beads`, and

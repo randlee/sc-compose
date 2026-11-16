@@ -269,6 +269,7 @@ class PrereleaseTag(unittest.TestCase):
         cargo = (self.fx.work / "Cargo.toml").read_text(encoding="utf-8")
         self.assertEqual(cargo.count('"1.8.1"'), 2)
         self.assertIn('sc-sha = { path = "crates/sc-sha", version = "=1.8.1" }', cargo)
+        self.assertIn('sc-composer = { path = "crates/sc-composer", version = "1.8.1" }', cargo)
         self.assertNotIn("1.8.0", cargo)
         self.assertIn('serde = { version = "1" }', cargo)
         for path in PYPROJECTS:
