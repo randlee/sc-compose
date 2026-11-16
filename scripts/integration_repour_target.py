@@ -31,6 +31,14 @@ def install_bd(source: Path | None, destination: Path) -> dict:
     return {'installed': True, 'source': str(source), 'sha256': hashlib.sha256(binary.read_bytes()).hexdigest()}
 
 
+def worker_environment(root: Path, installation: dict) -> dict[str, str]:
+    env = dict(os.environ)
+    env['PATH'] = os.pathsep.join((str(root / 'bin'), '/opt/homebrew/bin', '/usr/bin', '/bin'))
+    env['SC_COMPOSE_TEST_TARGET'] = 'atmbench'
+    env['SC_COMPOSE_TEST_INSTALLATION'] = json.dumps(installation)
+    return env
+
+
 def worker(mode: str, source: Path | None) -> dict:
     if sys.platform != 'darwin':
         raise AssertionError('atmbench target requires this macOS host')
@@ -51,9 +59,7 @@ def worker(mode: str, source: Path | None) -> dict:
                 shutil.copy2(path, root / 'site/reports' / path.name)
         shutil.copy2(ROOT / 'target/debug/sc-compose', root / 'target/debug/sc-compose')
         installation = install_bd(source, root / 'bin')
-        env = dict(os.environ)
-        env['PATH'] = os.pathsep.join((str(root / 'bin'), '/opt/homebrew/bin', '/usr/bin', '/bin'))
-        env['SC_COMPOSE_TEST_TARGET'] = 'atmbench'
+        env = worker_environment(root, installation)
         result = subprocess.run([sys.executable, str(root / 'scripts/integration_repour.py'), '--mode', mode, '--fuzz'],
                                 cwd=root, env=env, text=True, capture_output=True, timeout=1800, check=False)
         reports = {path.name: path.read_text(encoding='utf-8') for path in (root / 'site/reports').glob('*-repour-fuzz.xhtml')}

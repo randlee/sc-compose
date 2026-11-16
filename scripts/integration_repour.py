@@ -190,7 +190,32 @@ def xml_escape(value: str, *, quote: bool = False) -> str:
     return html.escape(valid, quote=quote)
 
 
-def write_report(version: str, digest: str, dolt_version: str, results: list[tuple[str, str, str]], *, profile: str = "integration", mode: str = "server", target: str = "local") -> Path:
+def installation_markup(installation: dict | None = None) -> str:
+    if installation is None:
+        installation = json.loads(os.environ.get("SC_COMPOSE_TEST_INSTALLATION", "{}"))
+    installed = installation.get("installed") is True
+    executable = shutil.which("bd")
+    source = installation.get("source") or (str(Path(executable).resolve()) if executable else "not recorded")
+    outcome = "installed (per-run temporary staging)" if installed else "not installed (existing executable)"
+    return f'<p data-installed="{str(installed).lower()}" data-source="{xml_escape(source, quote=True)}">Installation: {outcome}<br/>Source: {xml_escape(source)}</p>'
+
+
+def report_sections(previous: Path) -> dict[str, str]:
+    sections: dict[str, str] = {}
+    if previous.exists():
+        for section in ET.parse(previous).getroot().iter("{http://www.w3.org/1999/xhtml}section"):
+            original = section.get("data-key")
+            if original:
+                key = f"local|{original}" if len(original.split("|")) == 3 else original
+                section.set("data-key", key)
+                # Prefer a recorded target-prefixed panel if both forms exist,
+                # regardless of their order in the historical file.
+                if key not in sections or original == key:
+                    sections[key] = ET.tostring(section, encoding="unicode")
+    return sections
+
+
+def write_report(version: str, digest: str, dolt_version: str, results: list[tuple[str, str, str]], *, profile: str = "integration", mode: str = "server", target: str = "local", installation: dict | None = None) -> Path:
     REPORTS.mkdir(parents=True, exist_ok=True)
     name = f"{RUN_DATE:%Y%m%d}-repour-{profile}.xhtml"
     report = REPORTS / name
@@ -199,12 +224,9 @@ def write_report(version: str, digest: str, dolt_version: str, results: list[tup
     esc = xml_escape
     rows = "\n".join(f"<tr><td>{esc(name)}</td><td>{esc(status)}</td><td><pre>{esc(detail)}</pre></td></tr>" for name, status, detail in results)
     key = f"{target}|{platform.system()}-{platform.machine()}|{version}|{mode}"
-    sections: dict[str, str] = {}
-    if previous.exists():
-        for section in ET.parse(previous).getroot().iter("{http://www.w3.org/1999/xhtml}section"):
-            if section.get("data-key"):
-                sections[section.attrib["data-key"]] = ET.tostring(section, encoding="unicode")
+    sections = report_sections(previous)
     sections[key] = f'''<section data-key="{esc(key, quote=True)}"><h2>{esc(platform.system())} {esc(platform.machine())} — {esc(target)} {esc(mode)} mode</h2><p>bd: {esc(version)}<br/>SHA-256: {esc(digest)}<br/>Dolt: {esc(dolt_version)}</p>
+{installation_markup(installation)}
 <table><thead><tr><th>Scenario</th><th>Result</th><th>Evidence / failure</th></tr></thead><tbody>{rows}</tbody></table></section>'''
     panels = "\n".join(sections.values())
     report.write_text(f'''<?xml version="1.0" encoding="UTF-8"?>

@@ -19,6 +19,38 @@ sys.path.pop(0)
 
 
 class TargetTests(unittest.TestCase):
+    def test_installation_outcome_and_source_are_retained_as_escaped_panel_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reports = Path(tmp)
+            (reports / 'index.html').write_text('<html><body>\n    <ul>\n    </ul>\n</body></html>')
+            source = '/tmp/bd <release> & "fork"'
+            with patch.object(suite, 'REPORTS', reports), patch.object(suite, 'RUN_DATE', datetime.date(2001, 1, 2)):
+                suite.write_report('stock', 'stockhash', 'dolt', [], profile='fuzz', mode='embedded', target='atmbench', installation={'installed': True, 'source': source})
+                report = suite.write_report('fork', 'forkhash', 'dolt', [], profile='fuzz', target='atmbench', installation={'installed': False, 'source': 'existing bd'})
+            paragraphs = [p for p in ET.parse(report).getroot().iter('{http://www.w3.org/1999/xhtml}p') if 'data-installed' in p.attrib]
+            self.assertEqual([(p.attrib['data-installed'], p.attrib['data-source']) for p in paragraphs], [('true', source), ('false', 'existing bd')])
+            self.assertIn('per-run temporary staging', ''.join(paragraphs[0].itertext()))
+            self.assertIn('not installed', ''.join(paragraphs[1].itertext()))
+
+    def test_legacy_key_migration_prefers_explicit_panel_and_local_rerun_replaces_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reports = Path(tmp)
+            (reports / 'index.html').write_text('<html><body>\n    <ul>\n    </ul>\n</body></html>')
+            old_key = f'{suite.platform.system()}-{suite.platform.machine()}|bd test|server'
+            with patch.object(suite, 'REPORTS', reports), patch.object(suite, 'RUN_DATE', datetime.date(2001, 1, 2)):
+                report = reports / '20010102-repour-fuzz.xhtml'
+                report.write_text(f'<html xmlns="http://www.w3.org/1999/xhtml"><body><section data-key="local|{old_key}"><p>explicit</p></section><section data-key="{old_key}"><p>legacy</p></section></body></html>')
+                suite.write_report('other', 'hash', 'dolt', [], profile='fuzz', target='atmbench', installation={'installed': False, 'source': 'existing bd'})
+                sections = list(ET.parse(report).getroot().iter('{http://www.w3.org/1999/xhtml}section'))
+                self.assertEqual(len(sections), 2)
+                self.assertIn('explicit', ''.join(sections[0].itertext()))
+                self.assertNotIn('legacy', ''.join(sections[0].itertext()))
+                suite.write_report('bd test', 'newhash', 'dolt', [('rerun', 'PASS', '')], profile='fuzz', installation={'installed': False, 'source': 'existing bd'})
+            sections = list(ET.parse(report).getroot().iter('{http://www.w3.org/1999/xhtml}section'))
+            self.assertEqual(len(sections), 2)
+            self.assertEqual(sum(s.attrib['data-key'] == f'local|{old_key}' for s in sections), 1)
+            self.assertIn('rerun', ''.join(sections[0].itertext()))
+
     def test_embedded_unknown_contract_rejects_unrelated_read_failures(self):
         error = {'code': 'BEADS_GRAPH_DIRTY_UNKNOWN', 'details': {
             'cause_code': 'BEADS_GRAPH_READ_FAILED', 'cause': "Error: 'bd sql' is not yet supported in embedded mode"}}
@@ -46,6 +78,10 @@ class TargetTests(unittest.TestCase):
             self.assertEqual(result['sha256'], hashlib.sha256(source.read_bytes()).hexdigest())
             self.assertEqual((root / 'bin/bd').read_bytes(), source.read_bytes())
             self.assertTrue(os.access(root / 'bin/bd', os.X_OK))
+            with patch.dict(os.environ, target.worker_environment(root, result), clear=True):
+                paragraph = ET.fromstring(suite.installation_markup())
+            self.assertEqual(paragraph.attrib['data-installed'], 'true')
+            self.assertEqual(paragraph.attrib['data-source'], str(source.resolve()))
 
     def test_modes_never_share_server_configuration(self):
         embedded = suite.initialization_args('embedded', None)

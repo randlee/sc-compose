@@ -88,6 +88,9 @@ without server flags and starts no external Dolt server. Server mode retains
 the w-5 owned-server setup. `~/.beads` and port 3308 are excluded in both
 modes. Reports preserve separate panels for target, platform, exact bd version
 and mode. Run the two commands sequentially, without parallel fan-out.
+Each panel also records whether bd was staged for that run and its source.
+The retained pre-install local panel labels its uncaptured original source
+path as "not recorded"; new runs record the resolved executable source.
 
 Stock bd v1.3.4 does not implement `bd sql` in embedded mode. That panel tests
 the exact `BEADS_GRAPH_DIRTY_UNKNOWN` refusal, unchanged stored state, and
