@@ -15,3 +15,5 @@ Baseline: `integrate/phase-w` at `e01540f4` (2026-11-16). This is an inventory o
 ## Sprint w-5 scope
 
 Exercise the gaps above at the smallest suitable boundary: deterministic CLI failure through a controlled executable, real-bd graph persistence and preview checks, and clean/dirty database behavior in each supported mode. Reuse the existing qualification harness; a bd version that cannot support a mode must be recorded explicitly as unsupported rather than silently treated as a passing test. Do not introduce a separate Dolt CLI dependency. Protect the operator's environment with disposable home, workspace and database; no local real-bd tests, load generation, stress, fuzz, repeat-N runs or timing-based assertions. Keep standard CI simple; provision a dedicated disposable server only in the separate integration environment when server mode is being qualified.
+
+Each real-bd qualification must retain the actual tested `bd version`, executable SHA-256, database mode and outcome in CI output. A failed or empty version probe fails qualification; a configured or expected version alone is not evidence of the executable tested.
