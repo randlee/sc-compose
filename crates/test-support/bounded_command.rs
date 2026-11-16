@@ -35,6 +35,11 @@ fn capture_pipe(mut pipe: impl Read, bytes: &Mutex<Vec<u8>>) -> std::io::Result<
 }
 
 /// A ready result wins; the deadline is solely a failure guard.
+///
+/// The caller's polling cadence changes only how soon a completed child is
+/// noticed and how much idle CPU is used. The completion result always comes
+/// from `poll`; the deadline only selects the failure path. Tests control all
+/// three callbacks, so no expected outcome depends on elapsed time.
 pub fn wait_for_completion<T>(
     mut poll: impl FnMut() -> std::io::Result<Option<T>>,
     mut expired: impl FnMut() -> bool,
@@ -72,6 +77,9 @@ pub fn try_run_command(command: &mut Command) -> io::Result<Output> {
     let stderr_reader = std::thread::spawn(move || capture_pipe(stderr, &err));
     let started = Instant::now();
     let mut exited = None;
+    // Keep child ownership here so the deadline path can kill it. The 10ms
+    // pause is only a backoff; completion is decided by `try_wait` and reader
+    // completion, never by the timer or polling interval.
     let status = wait_for_completion(
         || {
             if exited.is_none() {
