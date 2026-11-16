@@ -284,14 +284,14 @@ fn exec_of_a_script_held_open_for_writing_fails_with_etxtbsy() {
 #[cfg(unix)]
 fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
     let wrapper = root.join("bd-no-daemon");
-    fs::create_dir_all(root.join(".home/.config")).expect("isolated bd home");
+    fs::create_dir_all(root.join(".home").join(".config")).expect("isolated bd home");
     fake_exec::install(
         &wrapper,
         &format!(
             "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexport HOME={}\nexport USERPROFILE={}\nexport XDG_CONFIG_HOME={}\nexport BEADS_DIR={}\nif [ -f \"$PWD/.beads/redirect\" ]; then export BEADS_DIR=\"$PWD/.beads\"; fi\nexec {} \"$@\"\n",
             shell_quote(&root.join(".home")),
             shell_quote(&root.join(".home")),
-            shell_quote(&root.join(".home/.config")),
+            shell_quote(&root.join(".home").join(".config")),
             shell_quote(&root.join(".beads")),
             shell_quote(bd)
         ),
@@ -302,12 +302,12 @@ fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
 #[cfg(windows)]
 fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
     let wrapper = root.join("bd-no-daemon.cmd");
-    fs::create_dir_all(root.join(".home/.config")).expect("isolated bd home");
+    fs::create_dir_all(root.join(".home").join(".config")).expect("isolated bd home");
     fs::write(
         &wrapper,
         format!(
             "@echo off\r\nsetlocal\r\nset \"BEADS_NO_DAEMON=1\"\r\nset \"HOME={}\"\r\nset \"USERPROFILE={}\"\r\nset \"XDG_CONFIG_HOME={}\"\r\nset \"BEADS_DIR={}\"\r\nif exist \"%CD%\\.beads\\redirect\" set \"BEADS_DIR=%CD%\\.beads\"\r\n\"{}\" %*\r\nexit /b %ERRORLEVEL%\r\n",
-            root.join(".home").display(), root.join(".home").display(), root.join(".home/.config").display(), root.join(".beads").display(), bd.display()
+            root.join(".home").display(), root.join(".home").display(), root.join(".home").join(".config").display(), root.join(".beads").display(), bd.display()
         ),
     )
     .expect("write no-daemon Beads wrapper");
@@ -566,7 +566,7 @@ fn private_command_configuration_and_spawn_errors_are_preserved() {
     for (key, expected) in [
         ("HOME", root.join(".home")),
         ("USERPROFILE", root.join(".home")),
-        ("XDG_CONFIG_HOME", root.join(".home/.config")),
+        ("XDG_CONFIG_HOME", root.join(".home").join(".config")),
         ("BEADS_DIR", root.join(".beads")),
     ] {
         assert_eq!(
@@ -644,7 +644,7 @@ fn isolated_bd_wrapper_sets_a_private_home_and_beads_dir() {
     let expected = format!(
         "{}\n{}\n{}\n{}\n",
         root.join(".home").display(),
-        root.join(".home/.config").display(),
+        root.join(".home").join(".config").display(),
         root.join(".home").display(),
         root.join(".beads").display()
     );
@@ -663,7 +663,7 @@ fn isolated_bd_wrapper_sets_a_private_home_and_beads_dir() {
         format!(
             "{}\n{}\n{}\n{}\n",
             root.join(".home").display(),
-            root.join(".home/.config").display(),
+            root.join(".home").join(".config").display(),
             root.join(".home").display(),
             fs::canonicalize(redirected.join(".beads"))
                 .unwrap()
