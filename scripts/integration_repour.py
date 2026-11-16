@@ -157,11 +157,11 @@ def stop_server(server: subprocess.Popen[bytes]) -> None:
         server.wait(timeout=15)
 
 
-def cleanup_root(root: Path, baseline: set[str]) -> None:
+def cleanup_root(root: Path, servers: list[subprocess.Popen[bytes]]) -> None:
     owned = processes_referencing(root, root, dict(os.environ))
-    remaining = server_processes()
-    if owned or remaining - baseline:
-        raise AssertionError(f"refusing cleanup with live processes: {owned}; Dolt servers before={baseline}, after={remaining}; retained {root}")
+    owned.extend(f"owned Dolt server pid {server.pid}" for server in servers if server.poll() is None)
+    if owned:
+        raise AssertionError(f"refusing cleanup with live processes: {owned}; retained {root}")
     shutil.rmtree(root)
 
 
@@ -228,7 +228,7 @@ def main(*, fuzz_seeds: tuple[int, ...] = (), mode: str = "server") -> int:
     results: list[tuple[str, str, str]] = []
     version = digest = dolt_version = "unavailable"
     server: subprocess.Popen[bytes] | None = None
-    baseline: set[str] = set()
+    owned_servers: list[subprocess.Popen[bytes]] = []
     scenario_name = "setup"
     expected_scenarios = (*(database_scenario(mode) if name == "clean apply, dirty refusal and explicit override" else name for name in SCENARIOS), *(f"fuzz seed {seed}" for seed in fuzz_seeds))
     try:
@@ -239,13 +239,13 @@ def main(*, fuzz_seeds: tuple[int, ...] = (), mode: str = "server") -> int:
         binary = ROOT / "target" / "debug" / ("sc-compose.exe" if os.name == "nt" else "sc-compose")
         if not binary.is_file():
             raise AssertionError(f"build sc-compose first: {binary}")
-        baseline = server_processes()
-        other_servers = {line for line in baseline if "shared-server" not in line}
+        existing_servers = server_processes()
+        other_servers = {line for line in existing_servers if "shared-server" not in line}
         if other_servers:
             raise AssertionError(f"refusing integration while another Dolt server is running: {other_servers}")
         with ExitStack() as stack:
             root = Path(tempfile.mkdtemp(prefix="sc-repour-integration-")).resolve()
-            stack.callback(cleanup_root, root, baseline)
+            stack.callback(cleanup_root, root, owned_servers)
             home, workspace, data = root / "home", root / "work", root / "data"
             for directory in (home, workspace, data):
                 directory.mkdir()
@@ -265,6 +265,7 @@ def main(*, fuzz_seeds: tuple[int, ...] = (), mode: str = "server") -> int:
                 env["SC_COMPOSE_TEST_DOLT_PORT"] = str(port)
                 server_log = stack.enter_context((root / "server.log").open("wb"))
                 server = subprocess.Popen([dolt, "sql-server", "--host", "127.0.0.1", "--port", str(port)], cwd=data, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                owned_servers.append(server)
                 assert server.stdout is not None
                 events: queue.Queue = queue.Queue()
                 reader = threading.Thread(target=read_server_output, args=(server.stdout, server_log, port, events), daemon=True)
@@ -495,8 +496,6 @@ def main(*, fuzz_seeds: tuple[int, ...] = (), mode: str = "server") -> int:
                 server = None
             owned = processes_referencing(root, workspace, env)
             assert not owned, f"processes still reference temporary workspace: {owned}"
-        remaining = server_processes()
-        assert not remaining - baseline, f"unexpected Dolt server processes: before={baseline}, after={remaining}"
         results.append(("teardown", "PASS", ""))
     except Exception:
         results.append((scenario_name, "FAIL", traceback.format_exc()))
@@ -505,12 +504,6 @@ def main(*, fuzz_seeds: tuple[int, ...] = (), mode: str = "server") -> int:
     finally:
         if server is not None:
             stop_server(server)
-            try:
-                remaining = server_processes()
-                if remaining - baseline:
-                    results.append(("teardown", "FAIL", f"unexpected Dolt server processes: {remaining}") )
-            except Exception as error:
-                results.append(("teardown", "FAIL", str(error)))
         report = write_report(version, digest, dolt_version, results, profile="fuzz" if fuzz_seeds else "integration", mode=mode, target=os.environ.get("SC_COMPOSE_TEST_TARGET", "local"))
         print(f"integration report: {report}")
         for name, status, detail in results:

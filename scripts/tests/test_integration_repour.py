@@ -90,20 +90,34 @@ class IntegrationRunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "owned"
             root.mkdir()
-            with patch.object(MODULE, "processes_referencing", return_value=["123 running"]), \
-                 patch.object(MODULE, "server_processes", return_value=set()):
+            with patch.object(MODULE, "processes_referencing", return_value=["123 owned child"]):
                 with self.assertRaisesRegex(AssertionError, "refusing cleanup"):
-                    MODULE.cleanup_root(root, set())
+                    MODULE.cleanup_root(root, [])
             self.assertTrue(root.exists())
 
-    def test_cleanup_removes_root_only_after_process_checks_pass(self) -> None:
+    def test_foreign_server_started_during_run_does_not_block_cleanup(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "owned"
             root.mkdir()
+            server = MagicMock()
+            server.poll.return_value = 0
             with patch.object(MODULE, "processes_referencing", return_value=[]), \
-                 patch.object(MODULE, "server_processes", return_value={"shared"}):
-                MODULE.cleanup_root(root, {"shared"})
+                 patch.object(MODULE, "server_processes", return_value={"shared", "new foreign"}) as host_servers:
+                MODULE.cleanup_root(root, [server])
+            host_servers.assert_not_called()
             self.assertFalse(root.exists())
+
+    def test_cleanup_refuses_to_remove_root_with_owned_server_still_running(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "owned"
+            root.mkdir()
+            server = MagicMock()
+            server.pid = 123
+            server.poll.return_value = None
+            with patch.object(MODULE, "processes_referencing", return_value=[]):
+                with self.assertRaisesRegex(AssertionError, "owned Dolt server pid 123"):
+                    MODULE.cleanup_root(root, [server])
+            self.assertTrue(root.exists())
 
     def test_server_is_killed_and_reaped_after_failure_deadline(self) -> None:
         server = MagicMock()
