@@ -146,7 +146,11 @@ fn revision_error_context(error: &BeadComposeError) -> Option<(Value, &'static s
         )),
         BeadComposeError::GraphApplyPartial { details } => Some((
             json!(details),
-            "Reconcile the uncertain operation and rerun repour.",
+            if details.outcome_uncertain {
+                "Reconcile the uncertain operation and rerun repour."
+            } else {
+                "Fix bd and rerun repour to complete the remaining changes."
+            },
         )),
         _ => None,
     }

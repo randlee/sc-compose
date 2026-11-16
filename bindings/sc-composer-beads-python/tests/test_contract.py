@@ -19,6 +19,33 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"
 GRAPH_FIXTURE_ROOT = FIXTURE_ROOT / "graph"
 CLI_BUILD_HANG_GUARD_SECONDS = 30 * 60
+BD_INIT_HANG_GUARD_SECONDS = 5 * 60
+
+
+def _init_bd(executable: Path, directory: Path) -> None:
+    """Bound a hung setup without asserting normal execution speed."""
+    try:
+        subprocess.run(
+            [executable, "init"], cwd=directory, check=True, capture_output=True,
+            timeout=BD_INIT_HANG_GUARD_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        pytest.fail(
+            f"bd init hit the {BD_INIT_HANG_GUARD_SECONDS}s failure-only hang guard; "
+            f"stdout={exc.stdout!r}; stderr={exc.stderr!r}"
+        )
+
+
+def test_bd_init_timeout_reports_captured_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def stalled_init(command, **options):
+        assert options["timeout"] == BD_INIT_HANG_GUARD_SECONDS
+        raise subprocess.TimeoutExpired(command, options["timeout"], output=b"waiting", stderr=b"locked")
+
+    monkeypatch.setattr(subprocess, "run", stalled_init)
+    with pytest.raises(pytest.fail.Exception) as failure:
+        _init_bd(Path("bd"), tmp_path)
+    assert "failure-only hang guard" in str(failure.value)
+    assert "waiting" in str(failure.value) and "locked" in str(failure.value)
 
 
 def _resolve_sc_compose_cli() -> Path:
@@ -606,8 +633,8 @@ def test_attach_request_rejects_invalid_parent_and_ref(
     assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
     assert raised.value.stage == "validate"
     if parent != "proj-100":
-        assert raised.value.details == {"field": "bead", "value": parent, "rule": "bead ids are non-empty without whitespace"}
-        assert "bead ids are non-empty without whitespace" in str(raised.value)
+        assert raised.value.details == {"field": "bead", "value": parent, "rule": "bead ids are non-empty and contain no whitespace or control characters"}
+        assert "bead ids are non-empty and contain no whitespace or control characters" in str(raised.value)
     else:
         assert raised.value.details == {"field": "ref", "value": reference, "rule": "ref is [A-Za-z0-9_-]{1,32}"}
 
@@ -666,7 +693,7 @@ def test_installed_wheel_runs_the_pinned_beads_fixture(tmp_path: Path, monkeypat
     """Exercise the installed wheel with the same canonical fixture as R.1/R.2."""
     executable = Path(os.environ["BD_EXECUTABLE"])
     monkeypatch.setenv("BEADS_NO_DAEMON", "1")
-    subprocess.run([executable, "init"], cwd=tmp_path, check=True, capture_output=True)
+    _init_bd(executable, tmp_path)
 
     receipt = beads.preview_pour(_request(tmp_path, executable, operation="preview_pour"))
 

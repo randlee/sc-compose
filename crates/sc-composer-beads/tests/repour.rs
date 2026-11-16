@@ -932,12 +932,10 @@ fn attach_repour_refuses_foreign_and_unowned_planned_ids_before_any_write() {
         reason.contains("not owned") || reason.contains("not_owned"),
         "{reason}"
     );
-    let conflict = BeadComposeError::GraphConflict {
-        id: BeadId::new("proj-1.rel-build").unwrap(),
-        reason: GraphConflictReason::NotOwned,
-    };
-    assert_eq!(conflict.code(), "BEADS_GRAPH_CONFLICT");
-    assert_eq!(conflict.class(), BeadErrorClass::Execution);
+    assert!(matches!(
+        &receipt.stages.last().unwrap().outcome,
+        BeadStageOutcome::Failed { code } if code == "BEADS_GRAPH_CONFLICT"
+    ));
 
     // Foreign: provenance of another attachment.
     let mut foreign = saved;
@@ -1017,7 +1015,7 @@ fn a_partial_failure_reports_applied_and_pending_work_with_a_rerun_hint() {
     let evidence = &receipt.stages.last().unwrap().stderr_excerpt;
     assert!(evidence.contains("1 new nodes"), "{evidence}");
     assert!(
-        evidence.contains("3 changes confirmed applied"),
+        evidence.contains("3 changes applied before failure"),
         "{evidence}"
     );
     assert!(evidence.contains("2 pending"), "{evidence}");
@@ -1199,6 +1197,30 @@ fn explicit_pour_target_rejects_changed_plan_and_recommends_repour() {
         assert!(!message.contains("FieldChange {"), "{message}");
         assert_eq!(before, bd.snapshot());
     }
+}
+
+#[test]
+fn cyclic_existing_repour_refuses_before_any_field_or_edge_write() {
+    let (mut w, bd, root) = poured(&plan_v1());
+    bd.cook(&json!([
+        {"id":"build","title":"Must not change","needs":["verify"]},
+        {"id":"verify","title":"Must not change","needs":["build"]}
+    ]));
+    bd.fail_nth_mutation(None);
+    let before = bd.snapshot();
+    let receipt = w.repour(&bd, &root);
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Failed {
+            code: "BEADS_GRAPH_APPLY_FAILED".into()
+        },
+        "{receipt:#?}"
+    );
+    assert_eq!(bd.snapshot(), before);
+    assert_eq!(bd.mutation_count(), 0);
+    let cause = &receipt.stages.last().unwrap().stderr_excerpt;
+    assert!(cause.contains("cycle"), "{cause}");
+    assert!(cause.contains("no graph write was attempted"), "{cause}");
 }
 
 #[test]

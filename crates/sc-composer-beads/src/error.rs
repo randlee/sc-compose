@@ -56,7 +56,9 @@ impl std::fmt::Display for GraphIdField {
 
 pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
     match field {
-        GraphIdField::Bead => "bead ids are non-empty without whitespace",
+        GraphIdField::Bead => {
+            "bead ids are non-empty and contain no whitespace or control characters"
+        }
         GraphIdField::Ref => "ref is [A-Za-z0-9_-]{1,32}",
         GraphIdField::Step => "step is [A-Za-z0-9_]{1,64}; hyphens are forbidden",
         GraphIdField::Digest => "digest is sha256: plus exactly 64 lowercase hex digits",
@@ -73,7 +75,9 @@ pub(crate) fn graph_id_rule(field: GraphIdField) -> &'static str {
 }
 
 pub(crate) fn graph_apply_recovery(command: &[String]) -> &'static str {
-    if command.iter().any(|arg| arg == "--dry-run") {
+    if command.is_empty() {
+        "correct the graph plan and retry; no graph write was attempted"
+    } else if command.iter().any(|arg| arg == "--dry-run") {
         "fix bd and retry; no graph write was attempted"
     } else {
         "fix bd and rerun the same command; earlier writes may have been applied"
@@ -476,9 +480,9 @@ pub enum BeadComposeError {
         "graph apply failed ({status:?}): {cause}; {command:?}; {}", graph_apply_recovery(.command)
     )]
     GraphApplyFailed {
-        /// Attempted bd argv.
+        /// Attempted bd argv, or empty for local plan preflight.
         command: Vec<String>,
-        /// Exit status, or None when killed by a signal.
+        /// Exit status, or None for local preflight or a signal.
         status: Option<i32>,
         /// Short diagnostic for the process, parse, or response-shape failure.
         cause: String,

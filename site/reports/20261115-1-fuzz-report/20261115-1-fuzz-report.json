@@ -491,7 +491,7 @@
         "sha256": "ca34e018f0e1692d5d34cc78f89a175539af4ca19832f4a8a5b1ef2f27f1a046"
       }
     },
-    "guard_test_validation": "Five tests reported passed by the campaign operator; no original test-output log retained."
+    "guard_test_validation": "not recorded (the original test-output log was not retained)."
   },
   "retitle_churn": {
     "worker": {
