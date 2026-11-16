@@ -82,6 +82,7 @@ class TargetTests(unittest.TestCase):
             self.assertIn('stockhash', text)
             self.assertIn('forkhash', text)
             self.assertIn('localhash', text)
+            self.assertIn(suite.INSTALL_MEANING, text)
 
 
 if __name__ == '__main__':

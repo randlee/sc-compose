@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the same bounded suite on atmbench, optionally installing an explicit bd binary."""
+"""Run the same bounded suite on atmbench, optionally staging a temporary bd binary."""
 from __future__ import annotations
 
 import argparse

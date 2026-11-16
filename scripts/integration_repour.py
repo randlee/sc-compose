@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "site" / "reports"
 # Keep one report date per process, including runs or controlled checks spanning midnight.
 RUN_DATE = datetime.date.today()
+INSTALL_MEANING = "Install means per-run atmbench-owned temporary bd staging. It persists nothing after the run; no persistent account installation is performed."
 TIMEOUT = 120
 SCENARIOS = (
     "pour", "changed pour refuses with changes", "set runtime state",
@@ -190,7 +191,7 @@ def write_report(version: str, digest: str, dolt_version: str, results: list[tup
     report.write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta charset="utf-8"/><title>Repour {profile}</title></head><body>
-<h1>Repour {profile}</h1>{panels}</body></html>\n''', encoding="utf-8")
+<h1>Repour {profile}</h1><p>{esc(INSTALL_MEANING)}</p>{panels}</body></html>\n''', encoding="utf-8")
     index = REPORTS / "index.html"
     text = index.read_text(encoding="utf-8")
     entry = f'<li><a href="{name}">{name} — local repour {profile}</a></li>'

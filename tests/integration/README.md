@@ -46,7 +46,10 @@ python3 -m unittest discover -s tests/integration -v
 python3 -m unittest discover -s scripts/tests -p test_integration_repour.py -v
 ```
 
-## Optional installation on atmbench
+## Optional per-run bd staging on atmbench
+
+Here, **"install" means per-run atmbench-owned temporary bd staging**. It
+persists nothing after the run and performs no persistent account installation.
 
 The default `just integration` command uses installed executables and never
 installs anything. To qualify another build on the local `atmbench` account,
