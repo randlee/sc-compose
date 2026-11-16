@@ -491,7 +491,8 @@
         "sha256": "ca34e018f0e1692d5d34cc78f89a175539af4ca19832f4a8a5b1ef2f27f1a046"
       }
     },
-    "guard_test_validation": "not recorded (the original test-output log was not retained)."
+    "guard_test_validation": "not recorded (the original test-output log was not retained).",
+    "tested_revision": "4485e85417b480a1f488f480dc12521e5739153c"
   },
   "retitle_churn": {
     "worker": {

@@ -453,7 +453,7 @@ Refused or failed receipts (exit `2`):
 | `BEADS_GRAPH_DIRTY` | the bd database has uncommitted Dolt changes | review and run `bd dolt commit`, or explicitly accept the risk with `--allow-uncommitted` |
 | `BEADS_GRAPH_DIRTY_UNKNOWN` | bd could not establish the database dirty state | inspect the exact cause; use `bd dolt commit` where supported or explicitly use `--allow-uncommitted` |
 | `BEADS_GRAPH_APPLY_PARTIAL` | sequential repour failed after planning changes | inspect applied and pending work and the failure cause, then rerun the same plan and target |
-| `BEADS_GRAPH_APPLY_FAILED` | a graph write (`bd create --graph`, `bd update` or `bd dep add`) failed; earlier writes may have been applied | fix the cause shown in the stage output and re-run; the run converges |
+| `BEADS_GRAPH_APPLY_FAILED` | a graph write (`bd create --graph`, `bd update` or `bd dep add`) failed; earlier writes may have been applied. A local-plan cycle preflight also uses this code with an empty command before writes; nothing was written | fix the cause shown in the stage output and re-run; the run converges |
 | `BEADS_GRAPH_APPLY_UNCONFIRMED` | `bd create --graph` exited 0 but its response could not be read or did not match the plan; beads may have been created | before pouring again, run `bd show` on the ids the message lists (or `bd list` for a by-path pour) and reconcile; a retry can create a second molecule |
 
 Earlier codes are unchanged, for example `BEADS_RENDER_FAILED`,
