@@ -240,6 +240,8 @@ class PrereleaseTests(unittest.TestCase):
         self.assertIn('matrix="$(python3 .github/scripts/release_artifacts.py release-target-matrix --manifest "$RELEASE_ARTIFACT_MANIFEST")"', workflow)
         self.assertNotIn('--manifest \\"$RELEASE_ARTIFACT_MANIFEST\\"', workflow)
         self.assertIn('for bundled_path in binary.get("bundled_paths", []):', workflow)
+        self.assertIn('stage_examples_smoke.py "$STAGE_DIR" "${{ matrix.target }}" "$RELEASE_ARTIFACT_MANIFEST"', workflow)
+        self.assertLess(workflow.index("stage_examples_smoke.py"), workflow.index("- name: Upload artifact"))
         self.assertIn("path: ${{ env.ARCHIVE }}", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("    permissions:\n      contents: write", workflow)
