@@ -31,15 +31,23 @@ def install_bd(source: Path | None, destination: Path) -> dict:
     return {'installed': True, 'source': str(source), 'sha256': hashlib.sha256(binary.read_bytes()).hexdigest()}
 
 
-def worker_environment(root: Path, installation: dict) -> dict[str, str]:
+def required_tool(name: str) -> str:
+    executable = shutil.which(name)
+    if executable is None:
+        raise AssertionError(f'required executable not found on PATH: {name}')
+    # Preserve lookup aliases (bd may point to a binary named beads).
+    return os.path.abspath(executable)
+
+
+def worker_environment(root: Path, installation: dict, tool_dirs: tuple[str, ...] = ()) -> dict[str, str]:
     env = dict(os.environ)
-    env['PATH'] = os.pathsep.join((str(root / 'bin'), '/opt/homebrew/bin', '/usr/bin', '/bin'))
+    env['PATH'] = os.pathsep.join(dict.fromkeys((str(root / 'bin'), *tool_dirs, *os.get_exec_path())))
     env['SC_COMPOSE_TEST_TARGET'] = 'atmbench'
     env['SC_COMPOSE_TEST_INSTALLATION'] = json.dumps(installation)
     return env
 
 
-def worker(mode: str, source: Path | None) -> dict:
+def worker(mode: str, source: Path | None, tool_dirs: tuple[str, ...] = ()) -> dict:
     if sys.platform != 'darwin':
         raise AssertionError('atmbench target requires this macOS host')
     import pwd
@@ -59,7 +67,7 @@ def worker(mode: str, source: Path | None) -> dict:
                 shutil.copy2(path, root / 'site/reports' / path.name)
         shutil.copy2(ROOT / 'target/debug/sc-compose', root / 'target/debug/sc-compose')
         installation = install_bd(source, root / 'bin')
-        env = worker_environment(root, installation)
+        env = worker_environment(root, installation, tool_dirs)
         result = subprocess.run([sys.executable, str(root / 'scripts/integration_repour.py'), '--mode', mode, '--fuzz'],
                                 cwd=root, env=env, text=True, capture_output=True, timeout=1800, check=False)
         reports = {path.name: path.read_text(encoding='utf-8') for path in (root / 'site/reports').glob('*-repour-fuzz.xhtml')}
@@ -78,11 +86,18 @@ def main() -> int:
     parser.add_argument('--mode', choices=('embedded', 'server'), default='server')
     parser.add_argument('--install-bd-from', type=Path, help='Explicitly install this release/fork executable in a temporary atmbench-owned bin; never changes the account installation')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--tool-dir', action='append', default=[], help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.worker:
-        print(json.dumps(worker(args.mode, args.install_bd_from)))
+        print(json.dumps(worker(args.mode, args.install_bd_from, tuple(args.tool_dir))))
         return 0
-    command = ['/opt/homebrew/bin/python3', str(Path(__file__).resolve()), '--worker', '--mode', args.mode]
+    python = required_tool('python3')
+    tools = [python, required_tool('dolt')]
+    if args.install_bd_from is None:
+        tools.append(required_tool('bd'))
+    command = [python, str(Path(__file__).resolve()), '--worker', '--mode', args.mode]
+    for directory in dict.fromkeys(str(Path(tool).parent) for tool in tools):
+        command.extend(['--tool-dir', directory])
     if args.install_bd_from is not None:
         command.extend(['--install-bd-from', str(args.install_bd_from.resolve(strict=True))])
     result = subprocess.run(['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5', 'atmbench@localhost', shlex.join(command)],

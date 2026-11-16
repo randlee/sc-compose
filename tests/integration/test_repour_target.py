@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shlex
 import sys
 import tempfile
 import unittest
@@ -19,6 +20,23 @@ sys.path.pop(0)
 
 
 class TargetTests(unittest.TestCase):
+    def test_tool_lookup_preserves_alias_and_reports_missing_executable(self):
+        alias = os.path.abspath('/portable command/bd')
+        with patch.object(target.shutil, 'which', return_value=alias), patch.object(Path, 'resolve', return_value=Path('/canonical/beads')):
+            self.assertEqual(target.required_tool('bd'), alias)
+        with patch.object(target.shutil, 'which', return_value=None):
+            with self.assertRaisesRegex(AssertionError, 'required executable not found on PATH: bd'):
+                target.required_tool('bd')
+
+    def test_worker_path_prefers_staged_and_discovered_tools_and_retains_metadata(self):
+        record = {'installed': True, 'source': 'selected bd'}
+        directories = ('/portable/python', '/portable/beads', '/portable/dolt')
+        with patch.dict(os.environ, {'PATH': '/inherited/bin'}, clear=True):
+            env = target.worker_environment(Path('/stage'), record, directories)
+        self.assertEqual(env['PATH'].split(os.pathsep), [str(Path('/stage/bin')), *directories, '/inherited/bin'])
+        self.assertEqual(json.loads(env['SC_COMPOSE_TEST_INSTALLATION']), record)
+        self.assertEqual(env['SC_COMPOSE_TEST_TARGET'], 'atmbench')
+
     def test_installation_outcome_and_source_are_retained_as_escaped_panel_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             reports = Path(tmp)
@@ -96,11 +114,15 @@ class TargetTests(unittest.TestCase):
     def test_default_target_invocation_never_requests_install(self):
         payload = {'exit_code': 0, 'installation': {'installed': False}, 'reports': {}}
         completed = subprocess.CompletedProcess([], 0, json.dumps(payload), '')
-        with patch.object(sys, 'argv', ['target']), patch.object(target.subprocess, 'run', return_value=completed) as run:
+        tools = {name: os.path.abspath(f'/portable {name}/bin/{name}') for name in ('python3', 'bd', 'dolt')}
+        with patch.object(sys, 'argv', ['target']), patch.object(target.shutil, 'which', side_effect=tools.get), patch.object(target.subprocess, 'run', return_value=completed) as run:
             self.assertEqual(target.main(), 0)
         command = run.call_args.args[0]
         self.assertEqual(command[-2], 'atmbench@localhost')
         self.assertNotIn('--install-bd-from', command[-1])
+        remote = shlex.split(command[-1])
+        self.assertEqual(remote[0], tools['python3'])
+        self.assertEqual({remote[index + 1] for index, arg in enumerate(remote) if arg == '--tool-dir'}, {str(Path(path).parent) for path in tools.values()})
 
     def test_report_preserves_target_build_and_mode_panels(self):
         with tempfile.TemporaryDirectory() as tmp:

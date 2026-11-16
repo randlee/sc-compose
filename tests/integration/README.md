@@ -72,6 +72,10 @@ just integration-atmbench --mode server --install-bd-from /path/to/fork/bd
 just integration-atmbench --mode embedded --install-bd-from /path/to/upstream/bd
 ```
 
+The launcher discovers Python, bd and Dolt on your configured `PATH` and
+passes their lookup directories to the worker. The worker retains its inherited
+`PATH`, with per-run bd staging first when the option is used.
+
 `--install-bd-from` copies that executable into an atmbench-owned temporary
 `bin/bd`, ahead of the target's PATH. It does not replace the account's normal
 installation. Without the option, the target command uses the existing bd
