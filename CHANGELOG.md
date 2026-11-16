@@ -43,6 +43,8 @@ All notable changes to this project will be documented in this file.
   required variables or sample var-files, and unknown packs suggest close
   names or matching template formats (#1044).
 
+- Document release binaries as the preferred pinned install and clarify
+  the limits of source installs with Cargo (#1041).
 - Rust Beads revision APIs now use non-exhaustive enums and receipt/options
   structs. Use `GraphRevisionOptions::new`, `GraphApplyPartial::new` and
   `BeadGraph::new` instead of struct literals, and include wildcard match arms

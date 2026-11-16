@@ -250,6 +250,11 @@ handoff requirements.
 | Rust lib | Cargo.toml | `sc-composer = "1.8.0"` |
 | Rust lib (Beads) | Cargo.toml | `sc-composer-beads = "1.8.0"` |
 
+For a pinned version in CI or production, install the GitHub Release binary
+and verify its checksum. Cargo installs build from source and depend on the
+availability of the selected dependencies and a compatible toolchain. See
+[docs/install.md](docs/install.md).
+
 Homebrew, Scoop, and GitHub Release archives include the bundled examples.
 Winget's portable ZIP installation has not been qualified for example
 discovery; if the examples are missing, set `SC_COMPOSE_DATA_DIR` to a

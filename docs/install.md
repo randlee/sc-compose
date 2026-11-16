@@ -25,6 +25,15 @@ winget install randlee.sc-compose
 
 Bundled examples are included in the package.
 
+### Pinned versions (CI and production)
+
+For a pinned version, install the **GitHub Release binary**. It is the supported
+install contract for a tagged version: each release publishes per-platform
+archives (`sc-compose_<version>_<target>.tar.gz` or `.zip`) plus
+`checksums.txt`, and those assets stay valid after later releases. Verify the
+download against `checksums.txt`. Release binaries for `1.7.0` keep working
+when `1.8.0` ships, so consumers on different pins do not affect each other.
+
 ### Any Platform — crates.io
 
 ```bash
@@ -34,6 +43,14 @@ cargo install sc-compose
 `cargo install` ships the binary only. Bundled examples are NOT included. Set
 `SC_COMPOSE_DATA_DIR` to point at a manual copy of the examples root if you
 want `examples list` and `examples <name>`.
+
+`cargo install sc-compose --version '=X.Y.Z' --locked` is **best-effort**, not
+an immutable install. It recompiles that version's source against the current
+crates.io index, so a later compatible `sc-composer` release can make an old pin
+fail to build even though the `sc-compose` crate version never changed. Example:
+`sc-compose` 1.7.0 may stop compiling after `sc-composer` 1.8.0 (which moved
+from `serde_yaml` to `yaml_serde`) is published. Use the release binary for
+pins, or bump to a current release.
 
 Or build without installing:
 
