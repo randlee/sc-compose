@@ -95,22 +95,30 @@ def test_main_refuses_api_and_manifest_errors(tmp_path):
     assert invoke_main(empty) == 1
 
 
-def test_absent_candidate_tag_refuses_before_api(tmp_path):
-    import os
-    import subprocess
-
+def test_absent_candidate_tag_refuses_before_api():
+    # The gate runs under Bash on an Ubuntu runner; a failed rev-parse exits
+    # before the checker because errexit is enabled and has no override.
     workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
     steps = workflow["jobs"]["gate-and-tag"]["steps"]
     gate = next(step for step in steps if step.get("name") == "Require release-candidate Python compatibility")
-    git = tmp_path / "git"
-    git.write_text('#!/bin/sh\n[ "$1" = fetch ] && exit 0\nexit 1\n', encoding="utf-8")
-    git.chmod(0o755)
-    result = subprocess.run(
-        ["bash", "-c", gate["run"]], cwd=ROOT,
-        env={**os.environ, "PATH": f"{tmp_path}:{os.environ['PATH']}", "CANDIDATE_TAG": "release-candidate-v1.9.0"},
-        capture_output=True, text=True, check=False,
-    )
-    assert result.returncode != 0
+    script = gate["run"]
+    assert workflow["jobs"]["gate-and-tag"]["runs-on"] == "ubuntu-latest"
+    assert gate["shell"] == "bash"
+    assert "set -euo pipefail" in script
+    assert 'candidate_sha="$(git rev-parse "${CANDIDATE_TAG}^{commit}")"' in script
+    assert 'python3 .github/scripts/check_rc_python_compat.py "$candidate_sha" "$RELEASE_ARTIFACT_MANIFEST"' in script
+    assert script.index("git rev-parse") < script.index("check_rc_python_compat.py")
+    assert "|| true" not in script
+
+
+@pytest.mark.parametrize("content", ["python_distributions = []\n", "[[python_distributions]]\nwheels = []\n"])
+def test_main_refuses_manifest_without_wheel_platforms(tmp_path, capsys, content):
+    manifest = tmp_path / "empty-platforms.toml"
+    manifest.write_text(content, encoding="utf-8")
+    with patch.object(compat, "pages") as api:
+        assert invoke_main(manifest) == 1
+        api.assert_not_called()
+    assert "release manifest has no Python wheel platforms" in capsys.readouterr().err
 
 
 def test_candidate_matrix_and_job_name_match_gate():

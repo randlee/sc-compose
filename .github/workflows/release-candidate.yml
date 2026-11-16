@@ -1,3 +1,4 @@
+# Intentionally differs from the publish kit for this repository’s RC Python check.
 name: Release Candidate
 
 on:
