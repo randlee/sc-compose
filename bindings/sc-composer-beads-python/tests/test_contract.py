@@ -606,8 +606,8 @@ def test_attach_request_rejects_invalid_parent_and_ref(
     assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
     assert raised.value.stage == "validate"
     if parent != "proj-100":
-        assert raised.value.details == {"field": "bead", "value": parent, "rule": "bead ids are non-empty without whitespace"}
-        assert "bead ids are non-empty without whitespace" in str(raised.value)
+        assert raised.value.details == {"field": "bead", "value": parent, "rule": "bead ids are non-empty and contain no whitespace or control characters"}
+        assert "bead ids are non-empty and contain no whitespace or control characters" in str(raised.value)
     else:
         assert raised.value.details == {"field": "ref", "value": reference, "rule": "ref is [A-Za-z0-9_-]{1,32}"}
 
