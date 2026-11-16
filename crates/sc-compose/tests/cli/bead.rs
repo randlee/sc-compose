@@ -1847,13 +1847,14 @@ fn revision_cli_reports_partial_revision() {
         "BEADS_GRAPH_APPLY_PARTIAL"
     );
     let details = &body["payload"]["error"]["details"];
-    assert!(
-        details["applied"]
-            .as_array()
-            .unwrap()
-            .contains(&json!({"change":"add_node", "step":"build"}))
+    assert_eq!(
+        details["applied"],
+        json!([{"change":"add_node", "step":"build"}])
     );
-    assert!(details["pending"].as_array().unwrap().contains(&json!({"change":"field_change", "bead":"proj-1", "status":"open", "field":"title", "before":"old", "after":"sample"})));
+    assert_eq!(
+        details["pending"],
+        json!([{"change":"field_change", "bead":"proj-1", "status":"open", "field":"title", "before":"old", "after":"sample"}])
+    );
 }
 
 #[test]

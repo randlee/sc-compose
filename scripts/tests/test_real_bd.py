@@ -6,6 +6,8 @@ import os
 import stat
 import tempfile
 import unittest
+from unittest.mock import patch
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +22,33 @@ OK_OUT = (
 
 
 class RealBdQualification(unittest.TestCase):
+    def assert_bad_version(self, status: int, output: str) -> None:
+        with patch.object(MODULE, "resolve_bd", return_value=Path("/fake/bd")), \
+             patch.object(MODULE.subprocess, "run", return_value=subprocess.CompletedProcess([], status, output, "")), \
+             patch.object(MODULE, "run_suites") as suites:
+            self.assertEqual(MODULE.main(), 1)
+            suites.assert_not_called()
+
+    def test_failed_version_probe_fails_before_suites(self) -> None:
+        self.assert_bad_version(1, "bd 1.2")
+
+    def test_empty_version_probe_fails_before_suites(self) -> None:
+        self.assert_bad_version(0, "  ")
+
+    def test_each_suite_result_records_version_hash_and_mode(self) -> None:
+        from contextlib import redirect_stdout
+        from io import StringIO
+
+        provenance = {"bd_version": "bd 1.3", "bd_sha256": "abc", "database_mode": "server"}
+        output = StringIO()
+        with patch.object(MODULE, "SUITES", (("graph", []),)), \
+             patch.object(MODULE.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, OK_OUT, "")), \
+             redirect_stdout(output):
+            self.assertEqual(MODULE.run_suites({}, provenance), 0)
+        self.assertIn('"bd_version": "bd 1.3"', output.getvalue())
+        self.assertIn('"bd_sha256": "abc"', output.getvalue())
+        self.assertIn('"database_mode": "server"', output.getvalue())
+
     def test_counts_sum_across_result_lines(self) -> None:
         self.assertEqual(MODULE.parse_counts(OK_OUT), (15, 0, 1))
 

@@ -82,19 +82,24 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="sc-compose-bd-home-") as directory:
         env = isolated_environment(dict(os.environ), Path(directory))
         version_env = dict(env, BEADS_DIR=str(Path(directory) / ".beads"))
-        version = subprocess.run(
+        version_result = subprocess.run(
             [str(bd), "version"], capture_output=True, text=True, check=False, env=version_env
-        ).stdout.strip()
+        )
+        version = version_result.stdout.strip()
+        if version_result.returncode != 0 or not version:
+            print("real-bd qualification FAILED: bd version probe failed or returned empty output", file=sys.stderr)
+            return 1
         provenance = {
             "bd_path": str(bd),
             "bd_sha256": hashlib.sha256(bd.read_bytes()).hexdigest(),
             "bd_version": version,
+            "database_mode": "server" if env.get("SC_COMPOSE_TEST_DOLT_PORT") else "embedded",
         }
         print(json.dumps(provenance))
-        return run_suites(env)
+        return run_suites(env, provenance)
 
 
-def run_suites(env: dict[str, str]) -> int:
+def run_suites(env: dict[str, str], provenance: dict[str, str]) -> int:
     status = 0
     for label, args in SUITES:
         proc = subprocess.run(
@@ -110,7 +115,7 @@ def run_suites(env: dict[str, str]) -> int:
         reason = verdict(proc.returncode, counts)
         print(
             json.dumps(
-                {"suite": label, "passed": counts[0], "failed": counts[1],
+                {**provenance, "suite": label, "passed": counts[0], "failed": counts[1],
                  "exit": proc.returncode, "ok": reason is None}
             )
         )

@@ -1355,3 +1355,85 @@ fn repour_unknown_database_refuses_until_explicit_override() {
         assert_eq!(result.outcome, BeadOutcome::Succeeded, "{result:#?}");
     });
 }
+
+#[test]
+#[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
+fn repour_flattens_and_reverses_edges_with_external_edges_intact() {
+    use sc_composer_beads::{
+        ExistingGraphTarget, GraphChange, GraphRevisionOptions, StepId, UncommittedPolicy,
+        execute_graph_revision,
+    };
+    with_workspace(|w| {
+        let graph = w
+            .success(&w.request(BeadOperation::Pour, None))
+            .graph
+            .unwrap();
+        let root = graph.parent.unwrap();
+        let build = graph.ids[&StepId::new("build").unwrap()].to_string();
+        let verify = graph.ids[&StepId::new("verify").unwrap()].to_string();
+        let publish = graph.ids[&StepId::new("publish").unwrap()].to_string();
+        let outside_gate = w.parent().to_string();
+        let outside_task = w.parent().to_string();
+        w.command(&["dep", "add", &outside_gate, &build]);
+        w.command(&["dep", "add", &publish, &outside_task]);
+        w.set_plan("formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build\"\nneeds = [\"verify\"]\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\nneeds = [\"verify\"]\n");
+        let options = GraphRevisionOptions::new(
+            ExistingGraphTarget::PourRoot(root.clone()),
+            UncommittedPolicy::Allow,
+        );
+        let mut request = w.repour_request(&root);
+        request.operation = BeadOperation::PreviewRepour;
+        let before = w.snapshot();
+        let preview = execute_graph_revision(&request, &options)
+            .unwrap()
+            .graph
+            .unwrap();
+        assert_eq!(w.snapshot(), before);
+        assert_eq!(
+            preview
+                .changes
+                .iter()
+                .filter(|c| matches!(c, GraphChange::RemoveInternalEdge { .. }))
+                .count(),
+            1
+        );
+        assert_eq!(
+            preview
+                .changes
+                .iter()
+                .filter(|c| matches!(c, GraphChange::RetainExternalEdge { .. }))
+                .count(),
+            2
+        );
+        request.operation = BeadOperation::Repour;
+        let applied = execute_graph_revision(&request, &options)
+            .unwrap()
+            .graph
+            .unwrap();
+        assert_eq!(preview.changes, applied.changes);
+        assert!(!w.dependency_exists(&verify, &build));
+        assert!(w.dependency_exists(&publish, &verify));
+        assert!(w.dependency_exists(&build, &verify));
+        assert!(w.dependency_exists(&outside_gate, &build));
+        assert!(w.dependency_exists(&publish, &outside_task));
+        w.set_plan("formula = \"release\"\nversion = 1\ntype = \"workflow\"\n[[steps]]\nid = \"build\"\ntitle = \"Build\"\n[[steps]]\nid = \"verify\"\ntitle = \"Verify\"\n[[steps]]\nid = \"publish\"\ntitle = \"Publish\"\n");
+        request.operation = BeadOperation::PreviewRepour;
+        let before = w.snapshot();
+        let preview = execute_graph_revision(&request, &options)
+            .unwrap()
+            .graph
+            .unwrap();
+        assert_eq!(before, w.snapshot());
+        request.operation = BeadOperation::Repour;
+        let applied = execute_graph_revision(&request, &options)
+            .unwrap()
+            .graph
+            .unwrap();
+        assert_eq!(preview.changes, applied.changes);
+        assert!(!w.dependency_exists(&build, &verify));
+        assert!(!w.dependency_exists(&publish, &verify));
+        assert!(!w.dependency_exists(&verify, &build));
+        assert!(w.dependency_exists(&outside_gate, &build));
+        assert!(w.dependency_exists(&publish, &outside_task));
+    });
+}
