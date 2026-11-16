@@ -252,7 +252,9 @@ handoff requirements.
 
 For a pinned version in CI or production, install the GitHub Release binary
 and verify its checksum. Cargo installs build from source and depend on the
-availability of the selected dependencies and a compatible toolchain. See
+availability of the selected dependencies and a compatible toolchain. The
+workspace crates are released together and are not designed to be mixed across
+versions. See
 [docs/install.md](docs/install.md).
 
 Homebrew, Scoop, and GitHub Release archives include the bundled examples.

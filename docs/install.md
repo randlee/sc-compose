@@ -49,8 +49,10 @@ an immutable install. It recompiles that version's source against the current
 crates.io index, so a later compatible `sc-composer` release can make an old pin
 fail to build even though the `sc-compose` crate version never changed. Example:
 `sc-compose` 1.7.0 may stop compiling after `sc-composer` 1.8.0 (which moved
-from `serde_yaml` to `yaml_serde`) is published. Use the release binary for
-pins, or bump to a current release.
+from `serde_yaml` to `yaml_serde`) is published. The workspace crates (`sc-compose`, `sc-composer`, `sc-composer-beads`) are
+released together at the same version and are not designed to be mixed across
+versions, so there is no compatibility matrix: use matching versions. Use the
+release binary for pins, or bump to a current release.
 
 Or build without installing:
 
