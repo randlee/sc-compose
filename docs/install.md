@@ -23,7 +23,8 @@ and discovered automatically.
 winget install randlee.sc-compose
 ```
 
-Bundled examples are included in the package.
+Winget example discovery has not been qualified. If examples are missing,
+set `SC_COMPOSE_DATA_DIR` to a directory containing `examples/`.
 
 ### Pinned versions (CI and production)
 
@@ -44,15 +45,16 @@ cargo install sc-compose
 `SC_COMPOSE_DATA_DIR` to point at a manual copy of the examples root if you
 want `examples list` and `examples <name>`.
 
-`cargo install sc-compose --version '=X.Y.Z' --locked` is **best-effort**, not
-an immutable install. It recompiles that version's source against the current
-crates.io index, so a later compatible `sc-composer` release can make an old pin
-fail to build even though the `sc-compose` crate version never changed. Example:
-`sc-compose` 1.7.0 may stop compiling after `sc-composer` 1.8.0 (which moved
-from `serde_yaml` to `yaml_serde`) is published. The workspace crates (`sc-compose`, `sc-composer`, `sc-composer-beads`) are
-released together at the same version and are not designed to be mixed across
-versions, so there is no compatibility matrix: use matching versions. Use the
-release binary for pins, or bump to a current release.
+For a versioned source install, use
+`cargo install sc-compose --version '=X.Y.Z' --locked`. Cargo uses the
+published lockfile when available; without `--locked`, Cargo can resolve newer
+compatible dependencies. A source build still requires a compatible toolchain
+and available dependencies. See the [Cargo install documentation](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile).
+
+The workspace crates (`sc-sha`, `sc-composer`, `sc-composer-beads`, and
+`sc-compose`) are released together at the same version and are not designed
+to be mixed across versions. Starting with 1.9.0, their workspace dependency
+requirements pin sibling crates to that exact version.
 
 Or build without installing:
 
@@ -80,7 +82,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-sc-composer = "1.4.1"
+sc-composer = "1.9.0"
 ```
 
 The crate re-exports `compose`, `compose_with_observer`,
