@@ -47,7 +47,7 @@ edition = "2024"
 
 [workspace.dependencies]
 serde = {{ version = "1" }}
-sc-sha = {{ path = "crates/sc-sha", version = "{v}" }}
+sc-sha = {{ path = "crates/sc-sha", version = "={v}" }}
 sc-composer = {{ path = "crates/sc-composer", version = "{v}" }}
 """
 LOCK = """\
@@ -267,7 +267,8 @@ class PrereleaseTag(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("created and pushed prerelease/v1.8.1 from ", out)
         cargo = (self.fx.work / "Cargo.toml").read_text(encoding="utf-8")
-        self.assertEqual(cargo.count('"1.8.1"'), 3)
+        self.assertEqual(cargo.count('"1.8.1"'), 2)
+        self.assertIn('sc-sha = { path = "crates/sc-sha", version = "=1.8.1" }', cargo)
         self.assertNotIn("1.8.0", cargo)
         self.assertIn('serde = { version = "1" }', cargo)
         for path in PYPROJECTS:

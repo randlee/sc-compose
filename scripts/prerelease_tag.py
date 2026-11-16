@@ -152,13 +152,13 @@ def apply_patch_bump(root: Path, old: str, new: str) -> list[Path]:
     pins = [
         name
         for name, spec in workspace.get("workspace", {}).get("dependencies", {}).items()
-        if isinstance(spec, dict) and "path" in spec and spec.get("version") == old
+        if isinstance(spec, dict) and "path" in spec and spec.get("version") in (old, f"={old}")
     ]
     for name in pins:
         replace_exactly(
             root / WORKSPACE_TOML,
-            rf'^({re.escape(name)} = \{{ path = "[^"]+", version = "){old_re}(" \}})$',
-            rf"\g<1>{new}\g<2>",
+            rf'^({re.escape(name)} = \{{ path = "[^"]+", version = ")(=?){old_re}(" \}})$',
+            rf"\g<1>\g<2>{new}\g<3>",
             1,
         )
     for pyproject in PYPROJECTS:
