@@ -1,0 +1,13 @@
+python3 scripts/sc_lint_python.py .sc-lint/bootstrap.py lint --config sc-lint.toml "" 
+Looking in links: https://github.com/randlee/sc-lint/releases/expanded_assets/v0.8.9
+Collecting sc-lint==0.8.9 (from -r /Users/randlee/github/sc-compose-worktrees/fix/w-6-fuzz-report-final/scripts/sc_lint_constraints.txt (line 1))
+  Using cached sc_lint-0.8.9-cp39-abi3-macosx_11_0_arm64.whl (4.6 MB)
+Collecting codespell==2.4.3 (from -r /Users/randlee/github/sc-compose-worktrees/fix/w-6-fuzz-report-final/scripts/sc_lint_constraints.txt (line 8))
+  Using cached codespell-2.4.3-py3-none-any.whl (340 kB)
+Collecting packaging==26.3 (from -r /Users/randlee/github/sc-compose-worktrees/fix/w-6-fuzz-report-final/scripts/sc_lint_constraints.txt (line 9))
+  Using cached packaging-26.3-py3-none-any.whl (129 kB)
+Installing collected packages: packaging, codespell, sc-lint
+
+Successfully installed codespell-2.4.3 packaging-26.3 sc-lint-0.8.9
+compatibility.check: ok
+lint.ci.consumer: pass (13 steps)

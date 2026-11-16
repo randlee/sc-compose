@@ -1,0 +1,1064 @@
+{"probe": "deep_revision_chain", "seed": 24036, "plans": [{"formula": "fuzz_24036", "steps": [{"id": "alpha", "title": "alpha seed 24036 revision 0", "description": "seed=24036; revision=0; node=alpha", "priority": 1, "needs": []}, {"id": "beta", "title": "beta seed 24036 revision 0", "description": "seed=24036; revision=0; node=beta", "priority": 2, "needs": ["alpha"]}, {"id": "gamma", "title": "gamma seed 24036 revision 0", "description": "seed=24036; revision=0; node=gamma", "priority": 3, "needs": ["beta"]}, {"id": "delta", "title": "delta seed 24036 revision 0", "description": "seed=24036; revision=0; node=delta", "priority": 4, "needs": ["gamma"]}, {"id": "epsilon", "title": "epsilon seed 24036 revision 0", "description": "seed=24036; revision=0; node=epsilon", "priority": 0, "needs": ["delta"]}, {"id": "zeta", "title": "zeta seed 24036 revision 0", "description": "seed=24036; revision=0; node=zeta", "priority": 1, "needs": ["epsilon"]}, {"id": "eta", "title": "eta seed 24036 revision 0", "description": "seed=24036; revision=0; node=eta", "priority": 2, "needs": ["zeta"]}, {"id": "theta", "title": "theta seed 24036 revision 0", "description": "seed=24036; revision=0; node=theta", "priority": 3, "needs": ["eta"]}]}, {"formula": "fuzz_24036", "steps": [{"id": "alpha", "title": "alpha seed 24036 revision 1", "description": "seed=24036; revision=1; node=alpha", "priority": 2, "needs": []}, {"id": "beta", "title": "beta seed 24036 revision 1", "description": "seed=24036; revision=1; node=beta", "priority": 3, "needs": ["alpha"]}, {"id": "gamma", "title": "gamma seed 24036 revision 1", "description": "seed=24036; revision=1; node=gamma", "priority": 4, "needs": ["beta"]}, {"id": "epsilon", "title": "epsilon seed 24036 revision 1", "description": "seed=24036; revision=1; node=epsilon", "priority": 0, "needs": ["gamma"]}, {"id": "zeta", "title": "zeta seed 24036 revision 1", "description": "seed=24036; revision=1; node=zeta", "priority": 1, "needs": ["epsilon"]}, {"id": "eta", "title": "eta seed 24036 revision 1", "description": "seed=24036; revision=1; node=eta", "priority": 2, "needs": ["zeta"]}, {"id": "theta", "title": "theta seed 24036 revision 1", "description": "seed=24036; revision=1; node=theta", "priority": 3, "needs": ["eta"]}]}, {"formula": "fuzz_24036", "steps": [{"id": "alpha", "title": "alpha seed 24036 revision 2", "description": "seed=24036; revision=2; node=alpha", "priority": 3, "needs": []}, {"id": "beta", "title": "beta seed 24036 revision 2", "description": "seed=24036; revision=2; node=beta", "priority": 4, "needs": ["alpha"]}, {"id": "gamma", "title": "gamma seed 24036 revision 2", "description": "seed=24036; revision=2; node=gamma", "priority": 0, "needs": ["alpha"]}, {"id": "delta", "title": "delta seed 24036 revision 2", "description": "seed=24036; revision=2; node=delta", "priority": 1, "needs": ["beta"]}, {"id": "epsilon", "title": "epsilon seed 24036 revision 2", "description": "seed=24036; revision=2; node=epsilon", "priority": 2, "needs": ["gamma"]}, {"id": "zeta", "title": "zeta seed 24036 revision 2", "description": "seed=24036; revision=2; node=zeta", "priority": 3, "needs": ["delta"]}, {"id": "eta", "title": "eta seed 24036 revision 2", "description": "seed=24036; revision=2; node=eta", "priority": 4, "needs": ["epsilon"]}, {"id": "theta", "title": "theta seed 24036 revision 2", "description": "seed=24036; revision=2; node=theta", "priority": 0, "needs": ["zeta"]}]}, {"formula": "fuzz_24036", "steps": [{"id": "alpha", "title": "alpha seed 24036 revision 3", "description": "seed=24036; revision=3; node=alpha", "priority": 4, "needs": []}, {"id": "beta", "title": "beta seed 24036 revision 3", "description": "seed=24036; revision=3; node=beta", "priority": 0, "needs": ["alpha"]}, {"id": "gamma", "title": "gamma seed 24036 revision 3", "description": "seed=24036; revision=3; node=gamma", "priority": 1, "needs": ["beta"]}, {"id": "delta", "title": "delta seed 24036 revision 3", "description": "seed=24036; revision=3; node=delta", "priority": 2, "needs": ["gamma"]}, {"id": "epsilon", "title": "epsilon seed 24036 revision 3", "description": "seed=24036; revision=3; node=epsilon", "priority": 3, "needs": ["delta"]}, {"id": "zeta", "title": "zeta seed 24036 revision 3", "description": "seed=24036; revision=3; node=zeta", "priority": 4, "needs": ["epsilon"]}, {"id": "eta", "title": "eta seed 24036 revision 3", "description": "seed=24036; revision=3; node=eta", "priority": 0, "needs": ["zeta"]}, {"id": "theta", "title": "theta seed 24036 revision 3", "description": "seed=24036; revision=3; node=theta", "priority": 1, "needs": ["eta"]}]}]}
+{
+  "seed": 24036,
+  "plans": [
+    {
+      "formula": "fuzz_24036",
+      "steps": [
+        {
+          "id": "alpha",
+          "title": "alpha seed 24036 revision 0",
+          "description": "seed=24036; revision=0; node=alpha",
+          "priority": 1,
+          "needs": []
+        },
+        {
+          "id": "beta",
+          "title": "beta seed 24036 revision 0",
+          "description": "seed=24036; revision=0; node=beta",
+          "priority": 2,
+          "needs": [
+            "alpha"
+          ]
+        },
+        {
+          "id": "gamma",
+          "title": "gamma seed 24036 revision 0",
+          "description": "seed=24036; revision=0; node=gamma",
+          "priority": 3,
+          "needs": [
+            "beta"
+          ]
+        },
+        {
+          "id": "delta",
+          "title": "delta seed 24036 revision 0",
+          "description": "seed=24036; revision=0; node=delta",
+          "priority": 4,
+          "needs": [
+            "gamma"
+          ]
+        },
+        {
+          "id": "epsilon",
+          "title": "epsilon seed 24036 revision 0",
+          "description": "seed=24036; revision=0; node=epsilon",
+          "priority": 0,
+          "needs": [
+            "delta"
+          ]
+        },
+        {
+          "id": "zeta",
+          "title": "zeta seed 24036 revision 0",
+          "description": "seed=24036; revision=0; node=zeta",
+          "priority": 1,
+          "needs": [
+            "epsilon"
+          ]
+        },
+        {
+          "id": "eta",
+          "title": "eta seed 24036 revision 0",
+          "description": "seed=24036; revision=0; node=eta",
+          "priority": 2,
+          "needs": [
+            "zeta"
+          ]
+        },
+        {
+          "id": "theta",
+          "title": "theta seed 24036 revision 0",
+          "description": "seed=24036; revision=0; node=theta",
+          "priority": 3,
+          "needs": [
+            "eta"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24036",
+      "steps": [
+        {
+          "id": "alpha",
+          "title": "alpha seed 24036 revision 1",
+          "description": "seed=24036; revision=1; node=alpha",
+          "priority": 2,
+          "needs": []
+        },
+        {
+          "id": "beta",
+          "title": "beta seed 24036 revision 1",
+          "description": "seed=24036; revision=1; node=beta",
+          "priority": 3,
+          "needs": [
+            "alpha"
+          ]
+        },
+        {
+          "id": "gamma",
+          "title": "gamma seed 24036 revision 1",
+          "description": "seed=24036; revision=1; node=gamma",
+          "priority": 4,
+          "needs": [
+            "beta"
+          ]
+        },
+        {
+          "id": "epsilon",
+          "title": "epsilon seed 24036 revision 1",
+          "description": "seed=24036; revision=1; node=epsilon",
+          "priority": 0,
+          "needs": [
+            "gamma"
+          ]
+        },
+        {
+          "id": "zeta",
+          "title": "zeta seed 24036 revision 1",
+          "description": "seed=24036; revision=1; node=zeta",
+          "priority": 1,
+          "needs": [
+            "epsilon"
+          ]
+        },
+        {
+          "id": "eta",
+          "title": "eta seed 24036 revision 1",
+          "description": "seed=24036; revision=1; node=eta",
+          "priority": 2,
+          "needs": [
+            "zeta"
+          ]
+        },
+        {
+          "id": "theta",
+          "title": "theta seed 24036 revision 1",
+          "description": "seed=24036; revision=1; node=theta",
+          "priority": 3,
+          "needs": [
+            "eta"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24036",
+      "steps": [
+        {
+          "id": "alpha",
+          "title": "alpha seed 24036 revision 2",
+          "description": "seed=24036; revision=2; node=alpha",
+          "priority": 3,
+          "needs": []
+        },
+        {
+          "id": "beta",
+          "title": "beta seed 24036 revision 2",
+          "description": "seed=24036; revision=2; node=beta",
+          "priority": 4,
+          "needs": [
+            "alpha"
+          ]
+        },
+        {
+          "id": "gamma",
+          "title": "gamma seed 24036 revision 2",
+          "description": "seed=24036; revision=2; node=gamma",
+          "priority": 0,
+          "needs": [
+            "alpha"
+          ]
+        },
+        {
+          "id": "delta",
+          "title": "delta seed 24036 revision 2",
+          "description": "seed=24036; revision=2; node=delta",
+          "priority": 1,
+          "needs": [
+            "beta"
+          ]
+        },
+        {
+          "id": "epsilon",
+          "title": "epsilon seed 24036 revision 2",
+          "description": "seed=24036; revision=2; node=epsilon",
+          "priority": 2,
+          "needs": [
+            "gamma"
+          ]
+        },
+        {
+          "id": "zeta",
+          "title": "zeta seed 24036 revision 2",
+          "description": "seed=24036; revision=2; node=zeta",
+          "priority": 3,
+          "needs": [
+            "delta"
+          ]
+        },
+        {
+          "id": "eta",
+          "title": "eta seed 24036 revision 2",
+          "description": "seed=24036; revision=2; node=eta",
+          "priority": 4,
+          "needs": [
+            "epsilon"
+          ]
+        },
+        {
+          "id": "theta",
+          "title": "theta seed 24036 revision 2",
+          "description": "seed=24036; revision=2; node=theta",
+          "priority": 0,
+          "needs": [
+            "zeta"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "fuzz_24036",
+      "steps": [
+        {
+          "id": "alpha",
+          "title": "alpha seed 24036 revision 3",
+          "description": "seed=24036; revision=3; node=alpha",
+          "priority": 4,
+          "needs": []
+        },
+        {
+          "id": "beta",
+          "title": "beta seed 24036 revision 3",
+          "description": "seed=24036; revision=3; node=beta",
+          "priority": 0,
+          "needs": [
+            "alpha"
+          ]
+        },
+        {
+          "id": "gamma",
+          "title": "gamma seed 24036 revision 3",
+          "description": "seed=24036; revision=3; node=gamma",
+          "priority": 1,
+          "needs": [
+            "beta"
+          ]
+        },
+        {
+          "id": "delta",
+          "title": "delta seed 24036 revision 3",
+          "description": "seed=24036; revision=3; node=delta",
+          "priority": 2,
+          "needs": [
+            "gamma"
+          ]
+        },
+        {
+          "id": "epsilon",
+          "title": "epsilon seed 24036 revision 3",
+          "description": "seed=24036; revision=3; node=epsilon",
+          "priority": 3,
+          "needs": [
+            "delta"
+          ]
+        },
+        {
+          "id": "zeta",
+          "title": "zeta seed 24036 revision 3",
+          "description": "seed=24036; revision=3; node=zeta",
+          "priority": 4,
+          "needs": [
+            "epsilon"
+          ]
+        },
+        {
+          "id": "eta",
+          "title": "eta seed 24036 revision 3",
+          "description": "seed=24036; revision=3; node=eta",
+          "priority": 0,
+          "needs": [
+            "zeta"
+          ]
+        },
+        {
+          "id": "theta",
+          "title": "theta seed 24036 revision 3",
+          "description": "seed=24036; revision=3; node=theta",
+          "priority": 1,
+          "needs": [
+            "eta"
+          ]
+        }
+      ]
+    }
+  ],
+  "trace": [
+    {
+      "revision": 1,
+      "changes": [
+        {
+          "change": "add_edge",
+          "from": "it-yas",
+          "kind": "blocks",
+          "to": "it-81q"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-6p9",
+          "kind": "blocks",
+          "to": "it-81q"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-o6a",
+          "kind": "blocks",
+          "to": "it-81q"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-yas",
+          "kind": "blocks",
+          "to": "it-o6a"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-zfj",
+          "kind": "blocks",
+          "to": "it-82g"
+        },
+        {
+          "after": "alpha seed 24036 revision 1",
+          "bead": "it-zfj",
+          "before": "alpha seed 24036 revision 0",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=1; node=alpha",
+          "bead": "it-zfj",
+          "before": "seed=24036; revision=0; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 2,
+          "bead": "it-zfj",
+          "before": 1,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "beta seed 24036 revision 1",
+          "bead": "it-j9h",
+          "before": "beta seed 24036 revision 0",
+          "change": "field_change",
+          "field": "title",
+          "status": "closed"
+        },
+        {
+          "after": "seed=24036; revision=1; node=beta",
+          "bead": "it-j9h",
+          "before": "seed=24036; revision=0; node=beta",
+          "change": "field_change",
+          "field": "description",
+          "status": "closed"
+        },
+        {
+          "after": 3,
+          "bead": "it-j9h",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "closed"
+        },
+        {
+          "after": "gamma seed 24036 revision 1",
+          "bead": "it-81q",
+          "before": "gamma seed 24036 revision 0",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=1; node=gamma",
+          "bead": "it-81q",
+          "before": "seed=24036; revision=0; node=gamma",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 4,
+          "bead": "it-81q",
+          "before": 3,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "epsilon seed 24036 revision 1",
+          "bead": "it-yas",
+          "before": "epsilon seed 24036 revision 0",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=1; node=epsilon",
+          "bead": "it-yas",
+          "before": "seed=24036; revision=0; node=epsilon",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": "zeta seed 24036 revision 1",
+          "bead": "it-kgz",
+          "before": "zeta seed 24036 revision 0",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=1; node=zeta",
+          "bead": "it-kgz",
+          "before": "seed=24036; revision=0; node=zeta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": "eta seed 24036 revision 1",
+          "bead": "it-shv",
+          "before": "eta seed 24036 revision 0",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=1; node=eta",
+          "bead": "it-shv",
+          "before": "seed=24036; revision=0; node=eta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": "theta seed 24036 revision 1",
+          "bead": "it-3ei",
+          "before": "theta seed 24036 revision 0",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=1; node=theta",
+          "bead": "it-3ei",
+          "before": "seed=24036; revision=0; node=theta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "bead": "it-o6a",
+          "change": "mark_removed_node",
+          "remove_command": "bd delete -- 'it-o6a'",
+          "status": "in_progress"
+        }
+      ],
+      "ids": {
+        "alpha": "it-zfj",
+        "beta": "it-j9h",
+        "epsilon": "it-yas",
+        "eta": "it-shv",
+        "gamma": "it-81q",
+        "theta": "it-3ei",
+        "zeta": "it-kgz"
+      }
+    },
+    {
+      "revision": 2,
+      "changes": [
+        {
+          "change": "add_edge",
+          "from": "it-81q",
+          "kind": "blocks",
+          "to": "it-zfj"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-o6a",
+          "kind": "blocks",
+          "to": "it-j9h"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-kgz",
+          "kind": "blocks",
+          "to": "it-o6a"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-shv",
+          "kind": "blocks",
+          "to": "it-yas"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-3ei",
+          "kind": "blocks",
+          "to": "it-kgz"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-3ei",
+          "kind": "blocks",
+          "to": "it-shv"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-6p9",
+          "kind": "blocks",
+          "to": "it-81q"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-81q",
+          "kind": "blocks",
+          "to": "it-j9h"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-kgz",
+          "kind": "blocks",
+          "to": "it-yas"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-shv",
+          "kind": "blocks",
+          "to": "it-kgz"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-zfj",
+          "kind": "blocks",
+          "to": "it-82g"
+        },
+        {
+          "after": "alpha seed 24036 revision 2",
+          "bead": "it-zfj",
+          "before": "alpha seed 24036 revision 1",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=2; node=alpha",
+          "bead": "it-zfj",
+          "before": "seed=24036; revision=1; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 3,
+          "bead": "it-zfj",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "beta seed 24036 revision 2",
+          "bead": "it-j9h",
+          "before": "beta seed 24036 revision 1",
+          "change": "field_change",
+          "field": "title",
+          "status": "closed"
+        },
+        {
+          "after": "seed=24036; revision=2; node=beta",
+          "bead": "it-j9h",
+          "before": "seed=24036; revision=1; node=beta",
+          "change": "field_change",
+          "field": "description",
+          "status": "closed"
+        },
+        {
+          "after": 4,
+          "bead": "it-j9h",
+          "before": 3,
+          "change": "field_change",
+          "field": "priority",
+          "status": "closed"
+        },
+        {
+          "after": "gamma seed 24036 revision 2",
+          "bead": "it-81q",
+          "before": "gamma seed 24036 revision 1",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=2; node=gamma",
+          "bead": "it-81q",
+          "before": "seed=24036; revision=1; node=gamma",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 0,
+          "bead": "it-81q",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "delta seed 24036 revision 2",
+          "bead": "it-o6a",
+          "before": "delta seed 24036 revision 0",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=2; node=delta",
+          "bead": "it-o6a",
+          "before": "seed=24036; revision=0; node=delta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 1,
+          "bead": "it-o6a",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": [
+            "user:fuzz"
+          ],
+          "bead": "it-o6a",
+          "before": [
+            "repour:removed",
+            "user:fuzz"
+          ],
+          "change": "field_change",
+          "field": "labels",
+          "status": "in_progress"
+        },
+        {
+          "after": "epsilon seed 24036 revision 2",
+          "bead": "it-yas",
+          "before": "epsilon seed 24036 revision 1",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=2; node=epsilon",
+          "bead": "it-yas",
+          "before": "seed=24036; revision=1; node=epsilon",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 2,
+          "bead": "it-yas",
+          "before": 0,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "zeta seed 24036 revision 2",
+          "bead": "it-kgz",
+          "before": "zeta seed 24036 revision 1",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=2; node=zeta",
+          "bead": "it-kgz",
+          "before": "seed=24036; revision=1; node=zeta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 3,
+          "bead": "it-kgz",
+          "before": 1,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "eta seed 24036 revision 2",
+          "bead": "it-shv",
+          "before": "eta seed 24036 revision 1",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=2; node=eta",
+          "bead": "it-shv",
+          "before": "seed=24036; revision=1; node=eta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 4,
+          "bead": "it-shv",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "theta seed 24036 revision 2",
+          "bead": "it-3ei",
+          "before": "theta seed 24036 revision 1",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=2; node=theta",
+          "bead": "it-3ei",
+          "before": "seed=24036; revision=1; node=theta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 0,
+          "bead": "it-3ei",
+          "before": 3,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        }
+      ],
+      "ids": {
+        "alpha": "it-zfj",
+        "beta": "it-j9h",
+        "delta": "it-o6a",
+        "epsilon": "it-yas",
+        "eta": "it-shv",
+        "gamma": "it-81q",
+        "theta": "it-3ei",
+        "zeta": "it-kgz"
+      }
+    },
+    {
+      "revision": 3,
+      "changes": [
+        {
+          "change": "add_edge",
+          "from": "it-81q",
+          "kind": "blocks",
+          "to": "it-j9h"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-o6a",
+          "kind": "blocks",
+          "to": "it-81q"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-yas",
+          "kind": "blocks",
+          "to": "it-o6a"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-kgz",
+          "kind": "blocks",
+          "to": "it-yas"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-shv",
+          "kind": "blocks",
+          "to": "it-kgz"
+        },
+        {
+          "change": "add_edge",
+          "from": "it-3ei",
+          "kind": "blocks",
+          "to": "it-shv"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-3ei",
+          "kind": "blocks",
+          "to": "it-kgz"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-6p9",
+          "kind": "blocks",
+          "to": "it-81q"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-81q",
+          "kind": "blocks",
+          "to": "it-zfj"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-kgz",
+          "kind": "blocks",
+          "to": "it-o6a"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-o6a",
+          "kind": "blocks",
+          "to": "it-j9h"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-shv",
+          "kind": "blocks",
+          "to": "it-yas"
+        },
+        {
+          "change": "remove_internal_edge",
+          "from": "it-yas",
+          "kind": "blocks",
+          "to": "it-81q"
+        },
+        {
+          "change": "retain_external_edge",
+          "from": "it-zfj",
+          "kind": "blocks",
+          "to": "it-82g"
+        },
+        {
+          "after": "alpha seed 24036 revision 3",
+          "bead": "it-zfj",
+          "before": "alpha seed 24036 revision 2",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=3; node=alpha",
+          "bead": "it-zfj",
+          "before": "seed=24036; revision=2; node=alpha",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 4,
+          "bead": "it-zfj",
+          "before": 3,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "beta seed 24036 revision 3",
+          "bead": "it-j9h",
+          "before": "beta seed 24036 revision 2",
+          "change": "field_change",
+          "field": "title",
+          "status": "closed"
+        },
+        {
+          "after": "seed=24036; revision=3; node=beta",
+          "bead": "it-j9h",
+          "before": "seed=24036; revision=2; node=beta",
+          "change": "field_change",
+          "field": "description",
+          "status": "closed"
+        },
+        {
+          "after": 0,
+          "bead": "it-j9h",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "closed"
+        },
+        {
+          "after": "gamma seed 24036 revision 3",
+          "bead": "it-81q",
+          "before": "gamma seed 24036 revision 2",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=3; node=gamma",
+          "bead": "it-81q",
+          "before": "seed=24036; revision=2; node=gamma",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 1,
+          "bead": "it-81q",
+          "before": 0,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "delta seed 24036 revision 3",
+          "bead": "it-o6a",
+          "before": "delta seed 24036 revision 2",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=3; node=delta",
+          "bead": "it-o6a",
+          "before": "seed=24036; revision=2; node=delta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 2,
+          "bead": "it-o6a",
+          "before": 1,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "epsilon seed 24036 revision 3",
+          "bead": "it-yas",
+          "before": "epsilon seed 24036 revision 2",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=3; node=epsilon",
+          "bead": "it-yas",
+          "before": "seed=24036; revision=2; node=epsilon",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 3,
+          "bead": "it-yas",
+          "before": 2,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "zeta seed 24036 revision 3",
+          "bead": "it-kgz",
+          "before": "zeta seed 24036 revision 2",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=3; node=zeta",
+          "bead": "it-kgz",
+          "before": "seed=24036; revision=2; node=zeta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 4,
+          "bead": "it-kgz",
+          "before": 3,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "eta seed 24036 revision 3",
+          "bead": "it-shv",
+          "before": "eta seed 24036 revision 2",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=3; node=eta",
+          "bead": "it-shv",
+          "before": "seed=24036; revision=2; node=eta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 0,
+          "bead": "it-shv",
+          "before": 4,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        },
+        {
+          "after": "theta seed 24036 revision 3",
+          "bead": "it-3ei",
+          "before": "theta seed 24036 revision 2",
+          "change": "field_change",
+          "field": "title",
+          "status": "in_progress"
+        },
+        {
+          "after": "seed=24036; revision=3; node=theta",
+          "bead": "it-3ei",
+          "before": "seed=24036; revision=2; node=theta",
+          "change": "field_change",
+          "field": "description",
+          "status": "in_progress"
+        },
+        {
+          "after": 1,
+          "bead": "it-3ei",
+          "before": 0,
+          "change": "field_change",
+          "field": "priority",
+          "status": "in_progress"
+        }
+      ],
+      "ids": {
+        "alpha": "it-zfj",
+        "beta": "it-j9h",
+        "delta": "it-o6a",
+        "epsilon": "it-yas",
+        "eta": "it-shv",
+        "gamma": "it-81q",
+        "theta": "it-3ei",
+        "zeta": "it-kgz"
+      }
+    }
+  ]
+}
+PASS: one graph, four plans, three revisions; seed 24036
+servers_after= ['816 /opt/homebrew/bin/dolt sql-server --config /Users/randlee/.beads/shared-server/dolt/config.yaml']
