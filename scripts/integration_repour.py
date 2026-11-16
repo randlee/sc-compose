@@ -168,9 +168,9 @@ def xml_escape(value: str, *, quote: bool = False) -> str:
     return html.escape(valid, quote=quote)
 
 
-def write_report(version: str, digest: str, dolt_version: str, results: list[tuple[str, str, str]]) -> Path:
+def write_report(version: str, digest: str, dolt_version: str, results: list[tuple[str, str, str]], *, profile: str = "integration") -> Path:
     REPORTS.mkdir(parents=True, exist_ok=True)
-    name = f"{datetime.date.today():%Y%m%d}-repour-integration.xhtml"
+    name = f"{datetime.date.today():%Y%m%d}-repour-{profile}.xhtml"
     report = REPORTS / name
     legacy_name = name.removesuffix(".xhtml") + ".html"
     previous = report if report.exists() else REPORTS / legacy_name
@@ -183,16 +183,16 @@ def write_report(version: str, digest: str, dolt_version: str, results: list[tup
             if section.get("data-key"):
                 sections[section.attrib["data-key"]] = ET.tostring(section, encoding="unicode")
     sections[key] = f'''<section data-key="{esc(key, quote=True)}"><h2>{esc(platform.system())} {esc(platform.machine())} — local server mode</h2><p>bd: {esc(version)}<br/>SHA-256: {esc(digest)}<br/>Dolt: {esc(dolt_version)}</p>
-<table><thead><tr><th>Scenario</th><th>Result</th><th>Failure</th></tr></thead><tbody>{rows}</tbody></table></section>'''
+<table><thead><tr><th>Scenario</th><th>Result</th><th>Evidence / failure</th></tr></thead><tbody>{rows}</tbody></table></section>'''
     panels = "\n".join(sections.values())
     report.write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta charset="utf-8"/><title>Repour integration</title></head><body>
-<h1>Repour integration</h1>{panels}</body></html>\n''', encoding="utf-8")
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta charset="utf-8"/><title>Repour {profile}</title></head><body>
+<h1>Repour {profile}</h1>{panels}</body></html>\n''', encoding="utf-8")
     index = REPORTS / "index.html"
     text = index.read_text(encoding="utf-8")
-    entry = f'<li><a href="{name}">{name} — local repour integration</a></li>'
-    legacy_entry = f'<li><a href="{legacy_name}">{legacy_name} — local repour integration</a></li>'
+    entry = f'<li><a href="{name}">{name} — local repour {profile}</a></li>'
+    legacy_entry = f'<li><a href="{legacy_name}">{legacy_name} — local repour {profile}</a></li>'
     text = text.replace(legacy_entry, entry)
     (REPORTS / legacy_name).unlink(missing_ok=True)
     if entry not in text:
@@ -201,12 +201,13 @@ def write_report(version: str, digest: str, dolt_version: str, results: list[tup
     return report
 
 
-def main() -> int:
+def main(*, fuzz_seeds: tuple[int, ...] = ()) -> int:
     results: list[tuple[str, str, str]] = []
     version = digest = dolt_version = "unavailable"
     server: subprocess.Popen[bytes] | None = None
     baseline: set[str] = set()
     scenario_name = "setup"
+    expected_scenarios = (*SCENARIOS, *(f"fuzz seed {seed}" for seed in fuzz_seeds))
     try:
         bd_name, dolt_name = shutil.which("bd"), shutil.which("dolt")
         if not bd_name or not dolt_name:
@@ -253,8 +254,8 @@ def main() -> int:
             def scenario(name: str, action):
                 nonlocal scenario_name
                 scenario_name = name
-                action()
-                results.append((name, "PASS", ""))
+                detail = action()
+                results.append((name, "PASS", detail or ""))
             def cli(operation: str, path: Path, *args: str, expected: int = 0) -> dict:
                 result = run([str(binary), "bead", operation, str(path), *args, "--json"], cwd=workspace, env=env, expected=expected)
                 return json.loads(result.stdout)
@@ -446,6 +447,11 @@ def main() -> int:
                 assert show(ids["build"])["status"] == "in_progress"
                 snapshot()
             scenario("sequential evolving revisions preserve identities", sequential_revisions)
+            if fuzz_seeds:
+                from integration_repour_fuzz import run_seed
+                results.append(("fuzz executable", "PASS", f"sc-compose SHA-256: {hashlib.sha256(binary.read_bytes()).hexdigest()}"))
+                for seed in fuzz_seeds:
+                    scenario(f"fuzz seed {seed}", lambda seed=seed: run_seed(seed, workspace, cli, bd_run, show, snapshot))
             scenario_name = "teardown"
             stop_server(server)
             server = None
@@ -457,7 +463,7 @@ def main() -> int:
     except Exception:
         results.append((scenario_name, "FAIL", traceback.format_exc()))
         completed = {name for name, _, _ in results}
-        results.extend((name, "NOT RUN", "A prior scenario failed") for name in SCENARIOS if name not in completed)
+        results.extend((name, "NOT RUN", "A prior scenario failed") for name in expected_scenarios if name not in completed)
     finally:
         if server is not None:
             stop_server(server)
@@ -467,7 +473,7 @@ def main() -> int:
                     results.append(("teardown", "FAIL", f"unexpected Dolt server processes: {remaining}") )
             except Exception as error:
                 results.append(("teardown", "FAIL", str(error)))
-        report = write_report(version, digest, dolt_version, results)
+        report = write_report(version, digest, dolt_version, results, profile="fuzz" if fuzz_seeds else "integration")
         print(f"integration report: {report}")
         for name, status, detail in results:
             print(f"{status}: {name}" + (f": {detail}" if detail else ""))
@@ -475,4 +481,11 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--fuzz", action="store_true", help="After integration passes, run two fixed small seeded cases in the same database")
+    parser.add_argument("--fuzz-seed", type=int, action="append", help="Replay a seed (at most two, requires --fuzz)")
+    args = parser.parse_args()
+    if args.fuzz_seed and (not args.fuzz or len(args.fuzz_seed) > 2):
+        parser.error("--fuzz-seed requires --fuzz and accepts at most two seeds")
+    raise SystemExit(main(fuzz_seeds=tuple(args.fuzz_seed or (24034, 24035)) if args.fuzz else ()))
