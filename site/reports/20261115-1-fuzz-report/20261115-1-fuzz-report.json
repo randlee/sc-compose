@@ -139,7 +139,7 @@
     "harness_defects": 1,
     "harness_defect": "Earlier seed 25001 exposed an order-sensitive dependency snapshot; this is a flaky test-harness oracle, not a confirmed product defect. Fixed in scripts/integration_repour.py with unit coverage.",
     "initial_run": "Initial shared-server run stopped on a formula-name harness setup error; a replacement server and database were started for the 90-case run. The initial error log was not retained.",
-    "coverage_limits": "Requested 200 nodes / 100 revisions; campaign was capped at 30 nodes / 40 revisions and replacement run reached 20 nodes / 6 revisions. Only the second mutation was fault-injected. No rename onto a previously removed identity, embedded-mode, crash, or concurrent probes.",
+    "coverage_limits": "Lead-approved scale budget: 30 seeds × 40 nodes × 10 revisions. Replacement achieved 90 cases across structural, refusal and partial families, with a maximum structural case of 20 nodes and 6 revisions; the later gap round achieved five 40-node, 10-revision seeds. Only the second mutation was fault-injected. Embedded-mode, crash and concurrency probes were not performed.",
     "evidence_note": "Per-case inputs and command stdout/stderr captured in the zip; unrelated process-list records removed from orchestration and earlier structural logs. Final scripts changed during the run and cannot exactly reproduce every earlier case; earlier source versions unavailable. Host-specific paths and a historical deadline require adaptation.",
     "evidence_archive": "replacement-campaign-evidence.zip",
     "workers": [
@@ -193,7 +193,14 @@
         "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
         "controller": "v2/run.py",
         "controller_sha256": "1be3b0698a69d2fecd30e2275b4aae303fd738e9ac78d86f2ab728929fff8afc",
-        "log": "sc-forty-campaign-v2/forty-0.log"
+        "log": "sc-forty-campaign-v2/forty-0.log",
+        "original_id": "it-3eq",
+        "replacement_id": "it-kt0",
+        "revision_1": "original marked removed",
+        "revision_2": "original restored using same ID",
+        "revision_3": "original removed and replacement created",
+        "revision_4": "replacement removed and original restored using same ID",
+        "trace": "forty-node-evidence.zip!sc-forty-campaign-v2/forty-0.log"
       },
       {
         "seed": 1,
@@ -205,7 +212,14 @@
         "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
         "controller": "v2/run.py",
         "controller_sha256": "1be3b0698a69d2fecd30e2275b4aae303fd738e9ac78d86f2ab728929fff8afc",
-        "log": "sc-forty-campaign-v2/forty-1.log"
+        "log": "sc-forty-campaign-v2/forty-1.log",
+        "original_id": "it-puv",
+        "replacement_id": "it-ods",
+        "revision_1": "original marked removed",
+        "revision_2": "original restored using same ID",
+        "revision_3": "original removed and replacement created",
+        "revision_4": "replacement removed and original restored using same ID",
+        "trace": "forty-node-evidence.zip!sc-forty-campaign-v2/forty-1.log"
       },
       {
         "seed": 2,
@@ -217,7 +231,14 @@
         "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
         "controller": "v3/run.py",
         "controller_sha256": "c508f2b959ad50c91f51ccb698cdb797c0e124c121d387bcdea50dffb05cfc84",
-        "log": "sc-forty-campaign-v3/forty-2.log"
+        "log": "sc-forty-campaign-v3/forty-2.log",
+        "original_id": "it-srv",
+        "replacement_id": "it-jf0",
+        "revision_1": "original marked removed",
+        "revision_2": "original restored using same ID",
+        "revision_3": "original removed and replacement created",
+        "revision_4": "replacement removed and original restored using same ID",
+        "trace": "forty-node-evidence.zip!sc-forty-campaign-v3/forty-2.log"
       },
       {
         "seed": 3,
@@ -229,7 +250,14 @@
         "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
         "controller": "v3/run.py",
         "controller_sha256": "c508f2b959ad50c91f51ccb698cdb797c0e124c121d387bcdea50dffb05cfc84",
-        "log": "sc-forty-campaign-v3/forty-3.log"
+        "log": "sc-forty-campaign-v3/forty-3.log",
+        "original_id": "it-sis",
+        "replacement_id": "it-lpw",
+        "revision_1": "original marked removed",
+        "revision_2": "original restored using same ID",
+        "revision_3": "original removed and replacement created",
+        "revision_4": "replacement removed and original restored using same ID",
+        "trace": "forty-node-evidence.zip!sc-forty-campaign-v3/forty-3.log"
       },
       {
         "seed": 4,
@@ -241,7 +269,14 @@
         "guard_sha256": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
         "controller": "v3/run.py",
         "controller_sha256": "c508f2b959ad50c91f51ccb698cdb797c0e124c121d387bcdea50dffb05cfc84",
-        "log": "sc-forty-campaign-v3/forty-4.log"
+        "log": "sc-forty-campaign-v3/forty-4.log",
+        "original_id": "it-nsd",
+        "replacement_id": "it-1pi",
+        "revision_1": "original marked removed",
+        "revision_2": "original restored using same ID",
+        "revision_3": "original removed and replacement created",
+        "revision_4": "replacement removed and original restored using same ID",
+        "trace": "forty-node-evidence.zip!sc-forty-campaign-v3/forty-4.log"
       }
     ],
     "case_count": 5,
@@ -266,10 +301,39 @@
       "passed": 5,
       "seed": "0–4",
       "description": "40 nodes, 38-deep chain, ten revisions per seed",
-      "assertions": "50/50 revisions preview no-write, preview/apply equality and replay unchanged; remove, restore, replace and restore original identity assertions on revisions 1–4 per seed.",
+      "assertions": "50/50 revisions preview no-write, preview/apply equality and replay unchanged; 5/5 rename-onto-removed original ID through revisions 1–4.",
       "evidence_archive": "forty-node-evidence.zip",
       "finding_ids": [],
       "error": null
+    },
+    "post_run_servers": {
+      "v2": "816 /opt/homebrew/bin/dolt sql-server --config /Users/randlee/.beads/shared-server/dolt/config.yaml",
+      "v3": "816 /opt/homebrew/bin/dolt sql-server --config /Users/randlee/.beads/shared-server/dolt/config.yaml",
+      "current_pgrep": "816 /opt/homebrew/bin/dolt sql-server --config /Users/randlee/.beads/shared-server/dolt/config.yaml",
+      "command": "pgrep -fl 'dolt sql-server'"
     }
+  },
+  "retitle_churn": {
+    "worker": {
+      "correlation_id": "retitle-churn",
+      "status": "success",
+      "cases_run": 1,
+      "passed": 1,
+      "seed": 42,
+      "description": "Four sequential retitles on the same node",
+      "assertions": "4/4 previews no-write and equal apply; stable ID and runtime status/notes/label preserved; replay no-op. Inputs: Unicode, quotes, newline, Unicode.",
+      "evidence_archive": "retitle-evidence.zip",
+      "finding_ids": [],
+      "error": null
+    },
+    "hashes": {
+      "case.py": "9309dfd4bf927b682ff88f41a6497ab96fa36b46ef470e7b2fc4b4fe627f6d81",
+      "guard.py": "4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707",
+      "run.py": "4814729a61f6349bd621777fda18a1ff97bdbd21c4afd237d915019b500d4c01"
+    },
+    "revisions": 4,
+    "replay_checks": 4,
+    "trace": "retitle-evidence.zip!retitle-42.log",
+    "post_run_servers": "816 /opt/homebrew/bin/dolt sql-server --config /Users/randlee/.beads/shared-server/dolt/config.yaml"
   }
 }

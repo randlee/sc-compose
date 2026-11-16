@@ -61,7 +61,7 @@
 <body>
   <header>
     <h1>Phase W: bounded adversarial repour campaign</h1>
-    <p class="subtitle">Replacement campaign, final gap round and earlier probes</p>
+    <p class="subtitle">Serial cases, scale budget and exact identity evidence</p>
     <p class="generated-at">Generated: 2026-11-15 America/Los_Angeles</p>
     <div class="top-status"><span class="status status-pass">PASS</span></div>
   </header>
@@ -70,10 +70,16 @@
     <div class="section-head">
       <h2>Summary</h2>
     </div>
-    <p>Replacement campaign: 90/90 cases; final gap round: 5/5 cases with 50/50 revision checks; earlier probes: 7/7 cases. No confirmed product findings. A flaky snapshot-order harness defect was fixed.</p><p>The unguarded 40-node setup attempted shared port 3308 and was denied; five setup attempts failed and are excluded from passing counts. The lead checked that no shared beads were added. A corrected guard passed five reported unit tests. v2 seed 2 timed out at the old deadline and was rerun under the v3 controller; its incomplete trace is retained.</p><p>Partial failure injection covers the second mutation only. Earlier structural seed 25001 was incomplete because of the snapshot-order oracle. The initial 90-case setup stopped on a formula-name error and was replaced with a new server and database.</p>
+    <p>Lead-approved scale budget: 30 seeds × 40 nodes × 10 revisions. Achieved: 90 cases across structural, refusal and partial families; five additional 40-node/10-revision seeds (38-node chain); one retitle case across four revisions; and seven earlier cases. No confirmed product findings. One flaky snapshot-order harness defect was fixed.</p><p>The unguarded 40-node setup attempted shared port 3308 and was denied; five setup attempts failed and are excluded from passing counts. The lead checked no shared beads were added. A corrected guard passed five reported unit tests. v2 seed 2 timed out and was rerun under v3. Partial failure injection covers the second mutation only.</p><p>Each 40-node seed uses revisions 1–4 to remove the original ID, restore it, remove it and create a replacement, then remove the replacement and restore the original previously removed ID. The following table names exact IDs and trace files.</p><table><thead><tr><th scope="col">Seed</th><th scope="col">Original ID restored</th><th scope="col">Replacement ID</th><th scope="col">Trace within forty-node-evidence.zip</th></tr></thead><tbody><tr><td>0</td><td>it-3eq</td><td>it-kt0</td><td>sc-forty-campaign-v2/forty-0.log</td></tr><tr><td>1</td><td>it-puv</td><td>it-ods</td><td>sc-forty-campaign-v2/forty-1.log</td></tr><tr><td>2</td><td>it-srv</td><td>it-jf0</td><td>sc-forty-campaign-v3/forty-2.log</td></tr><tr><td>3</td><td>it-sis</td><td>it-lpw</td><td>sc-forty-campaign-v3/forty-3.log</td></tr><tr><td>4</td><td>it-nsd</td><td>it-1pi</td><td>sc-forty-campaign-v3/forty-4.log</td></tr></tbody></table>
     <table class="session-summary">
       <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
       <tbody>
+        <tr>
+          <th scope="row">Four sequential retitles on the same node</th>
+          <td>1</td>
+          <td>1/1</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
         <tr>
           <th scope="row">40 nodes, 38-deep chain, ten revisions per seed</th>
           <td>5</td>
@@ -137,12 +143,54 @@
   <header class="agent-header fuzz-agent-header">
     <div>
       <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>retitle-churn</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker retitle-churn</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;retitle-churn&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 1, &quot;passed&quot;: 1, &quot;seed&quot;: 42, &quot;description&quot;: &quot;Four sequential retitles on the same node&quot;, &quot;assertions&quot;: &quot;4/4 previews no-write and equal apply; stable ID and runtime status/notes/label preserved; replay no-op. Inputs: Unicode, quotes, newline, Unicode.&quot;, &quot;evidence_archive&quot;: &quot;retitle-evidence.zip&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="4/4 previews no-write and equal apply; stable ID and runtime status/notes/label preserved; replay no-op. Inputs: Unicode, quotes, newline, Unicode. See JSON sidecar and evidence ZIP.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Four sequential retitles on the same node</th>
+        <td>1</td>
+        <td>1/1</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">42</th><td><code>4/4 previews no-write and equal apply; stable ID and runtime status/notes/label preserved; replay no-op. Inputs: Unicode, quotes, newline, Unicode.</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
       <h2>forty-node-gap</h2>
       <p class="agent-meta">Session 20261115-1-fuzz-report · Worker forty-node-gap</p>
     </div>
     <div class="agent-actions" role="group" aria-label="Copy worker data">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;forty-node-gap&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 5, &quot;passed&quot;: 5, &quot;seed&quot;: &quot;0–4&quot;, &quot;description&quot;: &quot;40 nodes, 38-deep chain, ten revisions per seed&quot;, &quot;assertions&quot;: &quot;50/50 revisions preview no-write, preview/apply equality and replay unchanged; remove, restore, replace and restore original identity assertions on revisions 1–4 per seed.&quot;, &quot;evidence_archive&quot;: &quot;forty-node-evidence.zip&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
-      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Full per-case inputs and outputs, failed attempts, frozen scripts and controller logs in forty-node-evidence.zip.">⎘</button>
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;forty-node-gap&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 5, &quot;passed&quot;: 5, &quot;seed&quot;: &quot;0–4&quot;, &quot;description&quot;: &quot;40 nodes, 38-deep chain, ten revisions per seed&quot;, &quot;assertions&quot;: &quot;50/50 revisions preview no-write, preview/apply equality and replay unchanged; 5/5 rename-onto-removed original ID through revisions 1–4.&quot;, &quot;evidence_archive&quot;: &quot;forty-node-evidence.zip&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="50/50 revisions preview no-write, preview/apply equality and replay unchanged; 5/5 rename-onto-removed original ID through revisions 1–4. See JSON sidecar and evidence ZIP.">⎘</button>
     </div>
   </header>
 
@@ -169,7 +217,11 @@
     <table>
       <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
       <tbody>
-        <tr><th scope="row">seeds 0–4</th><td><code>50/50 revisions preview no-write, preview/apply equality and replay unchanged; remove, restore, replace and restore original identity assertions on revisions 1–4 per seed.</code></td><td>PASS</td></tr>
+        <tr><th scope="row">0</th><td><code>r1 remove it-3eq; r2 restore it-3eq; r3 create it-kt0; r4 remove replacement and restore previously removed it-3eq; trace forty-node-evidence.zip!sc-forty-campaign-v2/forty-0.log</code></td><td>PASS</td></tr>
+        <tr><th scope="row">1</th><td><code>r1 remove it-puv; r2 restore it-puv; r3 create it-ods; r4 remove replacement and restore previously removed it-puv; trace forty-node-evidence.zip!sc-forty-campaign-v2/forty-1.log</code></td><td>PASS</td></tr>
+        <tr><th scope="row">2</th><td><code>r1 remove it-srv; r2 restore it-srv; r3 create it-jf0; r4 remove replacement and restore previously removed it-srv; trace forty-node-evidence.zip!sc-forty-campaign-v3/forty-2.log</code></td><td>PASS</td></tr>
+        <tr><th scope="row">3</th><td><code>r1 remove it-sis; r2 restore it-sis; r3 create it-lpw; r4 remove replacement and restore previously removed it-sis; trace forty-node-evidence.zip!sc-forty-campaign-v3/forty-3.log</code></td><td>PASS</td></tr>
+        <tr><th scope="row">4</th><td><code>r1 remove it-nsd; r2 restore it-nsd; r3 create it-1pi; r4 remove replacement and restore previously removed it-nsd; trace forty-node-evidence.zip!sc-forty-campaign-v3/forty-4.log</code></td><td>PASS</td></tr>
       </tbody>
     </table>
   </section>
@@ -516,20 +568,19 @@
   <section class="section metadata">
     <h2>Metadata</h2>
     <table class="metadata-table"><tbody>
-      <tr><th scope="row">Original campaign sc-compose commit</th><td>200f1945c9bd9c052d24e13c17bfee48e0495eef</td></tr>
       <tr><th scope="row">bd CLI</th><td>1.3.4 dev fork; SHA-256 ce9fc82fe6b4b002fea817cc7a92febbfa73fa60a7066fc0b980a8dd57c975cd</td></tr>
       <tr><th scope="row">Dolt</th><td>2.3.1</td></tr>
-      <tr><th scope="row">Coverage</th><td>40 nodes maximum; 38-node chain; 10 revisions per seed in final gap round. Earlier 90-case run reached 20 nodes and 6 revisions.</td></tr>
+      <tr><th scope="row">Scale ruling</th><td>30 seeds × 40 nodes × 10 revisions; achieved five such seeds, plus 90 other cases.</td></tr>
+      <tr><th scope="row">Historical v2 and v3 servers after</th><td>816 /opt/homebrew/bin/dolt sql-server --config /Users/randlee/.beads/shared-server/dolt/config.yaml</td></tr>
+      <tr><th scope="row">Current pgrep -fl dolt sql-server</th><td>816 /opt/homebrew/bin/dolt sql-server --config /Users/randlee/.beads/shared-server/dolt/config.yaml</td></tr>
+      <tr><th scope="row">40-node generator hash</th><td>663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963</td></tr>
+      <tr><th scope="row">Retitle generator hash</th><td>9309dfd4bf927b682ff88f41a6497ab96fa36b46ef470e7b2fc4b4fe627f6d81</td></tr>
       <tr><th scope="row">Evidence limits</th><td>Per-case inputs and command stdout/stderr captured in the zip; unrelated process-list records removed from orchestration and earlier structural logs. Final scripts changed during the run and cannot exactly reproduce every earlier case; earlier source versions unavailable. Host-specific paths and a historical deadline require adaptation. Two controllers, sequential isolated servers and databases; absolute paths and deadline require adaptation for replay. Evidence omits server output and process-list records.</td></tr>
-      <tr><th scope="row">40-node run worktree head</th><td>4485e85417b480a1f488f480dc12521e5739153c; binary SHA-256 990b69db342a557a9e057a24c22044adf4b8c9c7b17fe64638ab0d6e4cf5a63a measured during run, not proven unchanged across cases</td></tr>
-      <tr><th scope="row">Generator SHA-256</th><td>663ca13d864faf61c609fe38206b2dc5c86f055b200d95a5f7e9e7e212aca963</td></tr>
-      <tr><th scope="row">Guard SHA-256</th><td>4a1740b1812710107145113ecab4a35984db782f7c28f6b1f16b9a41206a0707</td></tr>
-      <tr><th scope="row">Controller hashes</th><td>v2: 1be3b0698a69d2fecd30e2275b4aae303fd738e9ac78d86f2ab728929fff8afc; v3: c508f2b959ad50c91f51ccb698cdb797c0e124c121d387bcdea50dffb05cfc84</td></tr>
     </tbody></table>
   </section>
 
   <footer>
-    <p><a href="20261115-1-fuzz-report/forty-node-evidence.zip">40-node full case evidence</a> · <a href="20261115-1-fuzz-report/replacement-campaign-evidence.zip">90-case evidence</a> · <a href="20261115-1-fuzz-report/20261115-1-fuzz-report.json">JSON evidence</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-forty-node-gap.xhtml">forty-node-gap panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-structural.xhtml">replacement-structural panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-refusal.xhtml">replacement-refusal panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-partial.xhtml">replacement-partial panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-deep-revision-probe.xhtml">deep-revision-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-larger-revision-probe.xhtml">larger-revision-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-refusal-probe.xhtml">refusal-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-partial-apply-probe.xhtml">partial-apply-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-rename-probe.xhtml">rename-probe panel</a></p>
+    <p><a href="20261115-1-fuzz-report/retitle-evidence.zip">Retitle evidence</a> · <a href="20261115-1-fuzz-report/forty-node-evidence.zip">40-node evidence</a> · <a href="20261115-1-fuzz-report/replacement-campaign-evidence.zip">90-case evidence</a> · <a href="20261115-1-fuzz-report/20261115-1-fuzz-report.json">JSON evidence</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-retitle-churn.xhtml">retitle-churn panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-forty-node-gap.xhtml">forty-node-gap panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-structural.xhtml">replacement-structural panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-refusal.xhtml">replacement-refusal panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-replacement-partial.xhtml">replacement-partial panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-deep-revision-probe.xhtml">deep-revision-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-larger-revision-probe.xhtml">larger-revision-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-refusal-probe.xhtml">refusal-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-partial-apply-probe.xhtml">partial-apply-probe panel</a></p><p><a href="20261115-1-fuzz-report/20261115-1-fuzz-report-rename-probe.xhtml">rename-probe panel</a></p>
   </footer>
 
   <script>
