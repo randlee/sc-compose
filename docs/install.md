@@ -23,7 +23,17 @@ and discovered automatically.
 winget install randlee.sc-compose
 ```
 
-Bundled examples are included in the package.
+Winget example discovery has not been qualified. If examples are missing,
+set `SC_COMPOSE_DATA_DIR` to a directory containing `examples/`.
+
+### Pinned versions (CI and production)
+
+For a pinned version, install the **GitHub Release binary**. It is the supported
+install contract for a tagged version: each release publishes per-platform
+archives (`sc-compose_<version>_<target>.tar.gz` or `.zip`) plus
+`checksums.txt`, and those assets stay valid after later releases. Verify the
+download against `checksums.txt`. Release binaries for `1.7.0` keep working
+when `1.8.0` ships, so consumers on different pins do not affect each other.
 
 ### Any Platform — crates.io
 
@@ -34,6 +44,18 @@ cargo install sc-compose
 `cargo install` ships the binary only. Bundled examples are NOT included. Set
 `SC_COMPOSE_DATA_DIR` to point at a manual copy of the examples root if you
 want `examples list` and `examples <name>`.
+
+For a versioned source install, use
+`cargo install sc-compose --version '=X.Y.Z' --locked`. With `--locked`,
+Cargo uses the `Cargo.lock` shipped in the published crate when available;
+without `--locked`, Cargo ignores that file and can resolve newer compatible
+dependencies. A source build still requires a compatible toolchain
+and available dependencies. See the [Cargo install documentation](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile).
+
+The workspace crates (`sc-sha`, `sc-composer`, `sc-composer-beads`, and
+`sc-compose`) are released together at the same version and are not designed
+to be mixed across versions. Starting with 1.9.0, their workspace dependency
+requirements pin sibling crates to that exact version.
 
 Or build without installing:
 
@@ -61,7 +83,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-sc-composer = "1.4.1"
+sc-composer = "1.9.0"
 ```
 
 The crate re-exports `compose`, `compose_with_observer`,

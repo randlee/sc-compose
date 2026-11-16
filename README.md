@@ -247,8 +247,15 @@ handoff requirements.
 | Any (Python) | PyPI | `pip install sc-compose` |
 | Any (Python) | PyPI | `pip install sc-composer-beads` (Beads composition) |
 | Any (source) | cargo | `cargo build --release -p sc-compose` |
-| Rust lib | Cargo.toml | `sc-composer = "1.8.0"` |
-| Rust lib (Beads) | Cargo.toml | `sc-composer-beads = "1.8.0"` |
+| Rust lib | Cargo.toml | `sc-composer = "1.9.0"` |
+| Rust lib (Beads) | Cargo.toml | `sc-composer-beads = "1.9.0"` |
+
+For a pinned version in CI or production, install the GitHub Release binary
+and verify its checksum. Cargo installs build from source and depend on the
+availability of the selected dependencies and a compatible toolchain. The
+workspace crates are released together and are not designed to be mixed across
+versions. See
+[docs/install.md](docs/install.md).
 
 Homebrew, Scoop, and GitHub Release archives include the bundled examples.
 Winget's portable ZIP installation has not been qualified for example
