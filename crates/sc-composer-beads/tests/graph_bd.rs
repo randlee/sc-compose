@@ -1328,6 +1328,8 @@ fn repour_preserves_closed_state_and_reports_removed_nodes_and_edges() {
 #[test]
 #[ignore = "real bd: run with scripts/test_real_bd.py (needs BD_EXECUTABLE)"]
 fn repour_unknown_database_refuses_until_explicit_override() {
+    // bd 1.3.1 embedded mode has no `bd sql`. After that probe fails, the
+    // database state is unknown: repour reports DIRTY_UNKNOWN until overridden.
     with_workspace(|w| {
         let graph = w
             .success(&w.request(BeadOperation::Pour, None))

@@ -110,16 +110,6 @@ pub enum GraphField {
 }
 
 impl GraphField {
-    pub(crate) const ALL: [Self; 7] = [
-        Self::Title,
-        Self::Description,
-        Self::Design,
-        Self::AcceptanceCriteria,
-        Self::Priority,
-        Self::Labels,
-        Self::Metadata,
-    ];
-
     /// Return the stable serialized field name.
     #[must_use]
     pub const fn as_str(self) -> &'static str {

@@ -308,6 +308,8 @@ fn check_revision_preflight(
 }
 
 /// Probe the entire database via bd; unsupported or malformed output is unknown.
+/// bd 1.3.1 embedded mode has no `bd sql`, so its database state is unknown
+/// after the probe fails and repour reports `DIRTY_UNKNOWN`.
 fn check_dirty(runtime: &mut Runtime<'_>) -> Result<(), BeadComposeError> {
     if runtime.policy == Some(crate::revision::UncommittedPolicy::Allow) {
         return Ok(());
@@ -617,8 +619,21 @@ impl Runtime<'_> {
     }
 
     fn record_error(&mut self, error: &BeadComposeError) {
-        if self.stages.last().is_none_or(|s| s.stage != self.stage) {
-            self.stages.push(process_receipt(
+        let record = |stage: &mut crate::BeadStageReceipt| {
+            stage.outcome = BeadStageOutcome::Failed {
+                code: error.code().into(),
+            };
+            if !stage.stderr_excerpt.is_empty() {
+                stage.stderr_excerpt.push('\n');
+            }
+            stage.stderr_excerpt.push_str(&error.to_string());
+        };
+        if let Some(stage) = self.stages.last_mut()
+            && stage.stage == self.stage
+        {
+            record(stage);
+        } else {
+            let mut stage = process_receipt(
                 self.stage,
                 &CommandSpec {
                     executable: self.bd.clone(),
@@ -632,21 +647,11 @@ impl Runtime<'_> {
                     elapsed: Duration::ZERO,
                 },
                 BeadStageOutcome::Succeeded,
-            ));
-            self.stages
-                .last_mut()
-                .expect("just added stage")
-                .argv
-                .clear();
+            );
+            stage.argv.clear();
+            record(&mut stage);
+            self.stages.push(stage);
         }
-        let stage = self.stages.last_mut().expect("error stage exists");
-        stage.outcome = BeadStageOutcome::Failed {
-            code: error.code().into(),
-        };
-        if !stage.stderr_excerpt.is_empty() {
-            stage.stderr_excerpt.push('\n');
-        }
-        stage.stderr_excerpt.push_str(&error.to_string());
     }
 }
 
