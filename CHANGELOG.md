@@ -48,6 +48,13 @@ All notable changes to this project will be documented in this file.
 - Workspace crate dependencies (`sc-sha`, `sc-composer`, `sc-composer-beads`)
   now require the exact matching version, preventing resolution to a newer
   sibling release (#1041).
+  The prerelease tag tool preserves these exact `=` requirements when it
+  bumps workspace versions (#1041).
+
+- Release candidates build and smoke-test the three Python packages on the six
+  wheel platforms with CPython 3.9 and 3.11–3.15; Windows ARM64 starts at
+  3.11. Publishing requires a passing check for the candidate commit
+  (#1134, #819).
 - Rust Beads revision APIs now use non-exhaustive enums and receipt/options
   structs. Use `GraphRevisionOptions::new`, `GraphApplyPartial::new` and
   `BeadGraph::new` instead of struct literals, and include wildcard match arms
@@ -59,6 +66,9 @@ All notable changes to this project will be documented in this file.
   included without a major version bump because the Beads API has no users.
 
 ### Fixed
+
+- Repour rejects a blocking dependency cycle in the resulting graph before
+  applying changes.
 
 - Homebrew installs the bundled examples under `pkgshare/examples`, where
   pack discovery looks, so `sc-compose examples list` finds them after
