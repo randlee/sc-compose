@@ -18,22 +18,13 @@ def pages(endpoint: str) -> list[dict]:
 
 
 def check(candidate: str, manifest: Path, repository: str) -> bool:
+    from rc_python_compatibility import check as check_declared, configuration
     data = tomllib.loads(manifest.read_text(encoding="utf-8"))
-    platforms = {os_name for package in data["python_distributions"] for os_name in package["wheels"]}
-    expected = {f"python-compat ({os_name}, {candidate})" for os_name in platforms}
-    if not expected:
+    if not any(row.get("wheels") for row in data.get("python_distributions", [])):
         raise ValueError("release manifest has no Python wheel platforms")
-    endpoint = f"repos/{repository}/actions/workflows/release-candidate.yml/runs?event=workflow_dispatch&status=success&per_page=100"
-    for page in pages(endpoint):
-        for run in page["workflow_runs"]:
-            if run["conclusion"] != "success":
-                continue
-            jobs = [job for p in pages(f"repos/{repository}/actions/runs/{run['id']}/jobs?per_page=100") for job in p["jobs"]]
-            successful = {job["name"] for job in jobs if job["conclusion"] == "success"}
-            if expected <= successful:
-                print(f"python compatibility passed for {candidate}: run {run['id']}")
-                return True
-    return False
+    if configuration(data) is None:
+        raise ValueError("release manifest has no RC Python compatibility declaration")
+    return check_declared(data, candidate, repository, query=pages)
 
 
 def main() -> int:

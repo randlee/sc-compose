@@ -1,0 +1,25 @@
+schema_version = 1
+[project]
+archive_prefix = "example-tool"
+[[release_targets]]
+target = "aarch64-apple-darwin"
+os = "macos-15"
+archive = "tar.gz"
+[[release_binaries]]
+name = "example-tool"
+[[crates]]
+package = "example-core"
+publish = true
+[[python_distributions]]
+name = "example-python"
+sdist = true
+wheels = [{id="mac-arm", os="macos-15", target="aarch64-apple-darwin", platform="macosx_11_0_arm64", deployment_target="11.0"}]
+[channels.pypi]
+[channels.homebrew]
+tap_repository = "example/tap"
+formulas = [{path="Formula/tool.rb"}]
+[channels.scoop]
+bucket_repository = "example/bucket"
+manifest_path = "tool.json"
+[channels.winget]
+identifier = "Example.Tool"

@@ -17,11 +17,11 @@ sys.path.insert(0, str(ROOT / ".github" / "scripts"))
 import check_install_matrix as matrix  # noqa: E402
 import release_python  # noqa: E402
 
-# One runner per FR-25.1 coordinate (OS x architecture), as the manifest's legacy runner labels.
+# One runner per FR-25.1 coordinate (OS x architecture), as the manifest's explicitly selected runners.
 CONTRACT_RUNNERS = {
     ("linux", "x64"): "ubuntu-latest",
     ("linux", "arm64"): "ubuntu-24.04-arm",
-    ("macos", "arm64"): "macos-latest",
+    ("macos", "arm64"): "macos-15",
     ("macos", "x64"): "macos-15-intel",
     ("windows", "x64"): "windows-latest",
     ("windows", "arm64"): "windows-11-arm",
@@ -39,9 +39,10 @@ class WheelContractTest(unittest.TestCase):
         dists = {d["name"]: d for d in manifest["python_distributions"]}
         self.assertEqual(set(dists), FAMILIES)
         for name, dist in dists.items():
-            self.assertEqual(sorted(dist["wheels"]), sorted(CONTRACT_RUNNERS.values()), name)
-            self.assertEqual(len(dist["wheels"]), len(set(dist["wheels"])), name)
-            self.assertEqual(len(release_python.wheel_targets(dist)), 6, name)
+            wheels = release_python.wheel_targets(dist, continuity=True)
+            self.assertEqual(sorted(row["os"] for row in wheels), sorted(CONTRACT_RUNNERS.values()), name)
+            self.assertEqual(len(wheels), len({row["id"] for row in wheels}), name)
+            self.assertEqual(len(wheels), 6, name)
 
     def test_install_input_and_template_inputs_agree_with_the_manifest(self):
         manifest = tomllib.loads((ROOT / "release" / "publish-artifacts.toml").read_text(encoding="utf-8"))
