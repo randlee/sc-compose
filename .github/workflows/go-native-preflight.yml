@@ -16,6 +16,11 @@ on:
         required: false
         type: string
         default: ""
+      go_only:
+        description: "Run only the Go native matrix after candidate identity validation"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -26,6 +31,7 @@ env:
 jobs:
   # ANC-023: full Go native build/install integration runs only by manual preflight.
   go-native-plan:
+    needs: matrix-plan
     name: Go native target plan
     runs-on: ubuntu-latest
     outputs:
@@ -129,6 +135,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   matrix-rust:
+    if: ${{ !inputs.go_only }}
     name: Rust CLI archive (${{ matrix.target }})
     needs: matrix-plan
     strategy:
@@ -265,6 +272,7 @@ jobs:
   # The six OS/architecture coordinates are fixed by FR-25.1, so the wheel matrix is
   # declared here rather than derived from the legacy runner-string wheel lists.
   matrix-wheels:
+    if: ${{ !inputs.go_only }}
     name: ${{ matrix.dist.name }} wheel (${{ matrix.coordinate.id }})
     needs: matrix-plan
     strategy:
@@ -342,6 +350,7 @@ jobs:
           if-no-files-found: error
 
   matrix-collect:
+    if: ${{ !inputs.go_only }}
     name: Collect the candidate release files
     needs: [matrix-plan, matrix-rust, matrix-wheels, go-native-matrix]
     runs-on: ubuntu-latest

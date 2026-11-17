@@ -162,7 +162,6 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
         self.assertTrue(upload[0]["with"]["path"].endswith("${{ matrix.artifact_prefix }}-${{ matrix.target }}.zip"))
 
     def test_release_requires_the_reused_go_matrix_and_each_target(self):
-        import copy
         import re
 
         release = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
@@ -175,15 +174,12 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
         self.assertIn("needs.build-go-bundles.result == 'success'", jobs["build-npm"]["if"])
         self.assertIn("build-npm", jobs["release"]["needs"])
         self.assertIn("needs.build-npm.result == 'success'", jobs["release"]["if"])
-        broken = copy.deepcopy(release)
-        del broken["jobs"]["build-go-bundles"]
-        self.assertNotIn("build-go-bundles", broken["jobs"])
         steps = jobs["release"]["steps"]
         probe = next(step for step in steps if step.get("id") == "expected_assets")
         require = next(step for step in steps if step.get("name") == "Collect archives")
         upload = next(i for i, step in enumerate(steps) if step.get("name") == "Create GitHub Release")
         self.assertLess(steps.index(require), upload)
-        self.assertEqual(require["env"]["REQUIRE_GO_BUNDLES"], "true")
+        self.assertIn("release/go-native-module.toml", require["run"])
         contract = tomllib.loads((ROOT / "bindings/sc-sha-go/native/targets.toml").read_text())
         targets = {entry["rust_target"] for entry in contract["targets"]}
         self.assertEqual(len(targets), 6)
@@ -231,10 +227,10 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
         import tempfile
 
         workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
-        steps = workflow["jobs"]["gate-and-tag"]["steps"]
-        step = next(step for step in steps if step.get("id") == "release-ref")
-        self.assertEqual(step["env"]["SC_GO_MODULE_TAG_PREFIX"], "bindings/sc-sha-go")
-        self.assertGreater(step["run"].index("module_tag="), step["run"].index('git push origin "$tag"'))
+        steps = workflow["jobs"]["release"]["steps"]
+        step = next(step for step in steps if step.get("name") == "Ensure Go module tag points to the release commit")
+        self.assertLess(steps.index(step), next(i for i, item in enumerate(steps) if item.get("name") == "Create GitHub Release"))
+        self.assertIn("build-go-bundles", workflow["jobs"]["build-npm"]["needs"])
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             remote = root / "origin.git"
@@ -251,13 +247,11 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
             first = git("rev-parse", "HEAD")
             git("commit", "--allow-empty", "-qm", "release")
             release = git("rev-parse", "HEAD")
-            git("tag", "release-candidate-v1.9.0")
-            git("push", "-q", "origin", "HEAD:refs/heads/main", "refs/tags/release-candidate-v1.9.0")
-            env = {**os.environ, "SC_GO_MODULE_TAG_PREFIX": "bindings/sc-sha-go", "GITHUB_OUTPUT": str(root / "output")}
-            script = (step["run"]
-                .replace("'${{ steps.meta.outputs.release_tag }}'", "'v1.9.0'")
-                .replace("'${{ steps.meta.outputs.release_target }}'", "'production'")
-                .replace("'${{ steps.release_gate.outputs.release_sha }}'", repr(release)))
+            # Exercise the case where the main release tag already exists.
+            git("tag", "v1.9.0")
+            git("push", "-q", "origin", "HEAD:refs/heads/main", "refs/tags/v1.9.0")
+            env = {**os.environ, "RELEASE_TAG": "v1.9.0"}
+            script = step["run"]
             def execute():
                 return subprocess.run(["bash", "-c", script], cwd=repo, env=env, capture_output=True, text=True, check=False)
             created = execute()
@@ -270,6 +264,42 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
             self.assertNotEqual(conflict.returncode, 0)
             self.assertIn("expected", conflict.stderr)
             self.assertEqual(git("rev-parse", "bindings/sc-sha-go/v1.9.0^{commit}"), first)
+
+    def test_go_only_mode_skips_unrelated_cells_but_checks_identity(self):
+        option = self.workflow[True]["workflow_call"]["inputs"]["go_only"]
+        self.assertEqual(option["type"], "boolean")
+        self.assertFalse(option["default"])
+        for name in ("matrix-rust", "matrix-wheels", "matrix-collect"):
+            self.assertEqual(self.jobs[name]["if"], "${{ !inputs.go_only }}")
+        self.assertEqual(self.jobs["go-native-plan"]["needs"], "matrix-plan")
+        self.assertNotIn("if", self.jobs["go-native-matrix"])
+        release = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
+        jobs = release["jobs"]
+        self.assertTrue(jobs["build-go-bundles"]["with"]["go_only"])
+        self.assertIn("build-go-bundles", jobs["publish"]["needs"])
+        self.assertIn("needs.build-go-bundles.result == 'success'", jobs["publish"]["if"])
+        # Production PyPI is a separate workflow requiring a published release,
+        # and that release requires the Go producer through build-npm.
+        pypi = yaml.safe_load((ROOT / ".github/workflows/pypi-publish.yml").read_text())
+        self.assertEqual(pypi["jobs"]["publish"]["needs"], "verify-release")
+        self.assertTrue(any(step.get("uses") == "./.github/actions/verify-published-release" for step in pypi["jobs"]["verify-release"]["steps"]))
+
+    def test_go_proxy_announcement_is_after_tag_and_fails_visibly(self):
+        import os
+        import subprocess
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
+        steps = workflow["jobs"]["release"]["steps"]
+        tag = next(i for i, step in enumerate(steps) if step.get("name") == "Ensure Go module tag points to the release commit")
+        announce = next(i for i, step in enumerate(steps) if step.get("name") == "Announce the Go module version to the proxy")
+        self.assertLess(tag, announce)
+        step = steps[announce]
+        self.assertNotIn("continue-on-error", step)
+        self.assertIn('GOPROXY=proxy.golang.org go list -m "github.com/${GITHUB_REPOSITORY}/bindings/sc-sha-go@${RELEASE_TAG}"', step["run"])
+        script = 'go() { echo "proxy unavailable" >&2; return 31; }\n' + step["run"]
+        result = subprocess.run(["bash", "-c", script], env={**os.environ, "RELEASE_TAG": "v1.9.0", "GITHUB_REPOSITORY": "randlee/sc-compose"}, capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 31)
+        self.assertIn("proxy unavailable", result.stderr)
 
     def test_gnullvm_toolchain_is_pinned_by_digest_in_the_go_job_only(self):
         step = next(s for s in self.jobs["go-native-matrix"]["steps"] if "LLVM-MinGW" in s.get("name", ""))

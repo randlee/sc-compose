@@ -150,8 +150,6 @@ jobs:
       - name: Ensure tag is correct or create it
         id: release-ref
         shell: bash
-        env:
-          SC_GO_MODULE_TAG_PREFIX: bindings/sc-sha-go
         run: |
           set -euo pipefail
           git fetch origin --prune --tags
@@ -161,7 +159,6 @@ jobs:
           git rev-parse --verify "${main_sha}^{commit}" >/dev/null
           candidate_tag="release-candidate-${tag}"
           if [[ "$target" == "production" ]]; then
-            release_sha="$main_sha"
             if git ls-remote --exit-code --refs origin "refs/tags/${tag}" >/dev/null; then
               remote_tag_sha="$(git rev-parse "refs/tags/${tag}^{commit}")"
               if ! git merge-base --is-ancestor "$remote_tag_sha" origin/main; then
@@ -172,22 +169,10 @@ jobs:
                 echo "Tag ${tag} exists at ${remote_tag_sha} but does not descend from ${candidate_tag}" >&2
                 exit 1
               fi
-              release_sha="$remote_tag_sha"
               echo "Tag ${tag} already exists at verified ancestor ${remote_tag_sha}; reusing immutable tag while building from origin/main (${main_sha})"
             else
               git tag "$tag" "$main_sha"
               git push origin "$tag"
-            fi
-            if [[ -n "${SC_GO_MODULE_TAG_PREFIX:-}" ]]; then
-              module_tag="${SC_GO_MODULE_TAG_PREFIX}/${tag}"
-              remote_module_tag="$(git ls-remote --refs origin "refs/tags/${module_tag}")"
-              if [[ -n "$remote_module_tag" ]]; then
-                module_sha="$(git rev-parse "${module_tag}^{commit}")"
-                [[ "$module_sha" == "$release_sha" ]] || { echo "Go module tag ${module_tag} points to ${module_sha}, expected ${release_sha}" >&2; exit 1; }
-              else
-                git tag "$module_tag" "$release_sha"
-                git push origin "refs/tags/${module_tag}"
-              fi
             fi
           else
             echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"
@@ -304,8 +289,8 @@ jobs:
           path: ${{ env.ARCHIVE }}
 
   publish:
-    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' && needs.release-plan.outputs.has_crates == 'true' && needs.gate-and-tag.outputs.crates_already_published != 'true' }}
-    needs: [gate-and-tag, release-plan]
+    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' && needs.release-plan.outputs.has_crates == 'true' && needs.gate-and-tag.outputs.crates_already_published != 'true' && needs.build-go-bundles.result == 'success' }}
+    needs: [gate-and-tag, release-plan, build-go-bundles]
     runs-on: ubuntu-latest
     environment: crates-io
     steps:
@@ -596,6 +581,7 @@ jobs:
     with:
       version: ${{ needs.gate-and-tag.outputs.release_version }}
       candidate_sha: ${{ needs.gate-and-tag.outputs['build_ref'] }}
+      go_only: true
 
   release:
     # Runs whenever every needed job succeeded or was legitimately skipped
@@ -628,14 +614,12 @@ jobs:
       - id: expected_assets
         name: Read expected release asset patterns from manifest
         shell: bash
-        env:
-          REQUIRE_GO_BUNDLES: 'true'
         run: |
           set -euo pipefail
           {
             echo 'patterns<<EOF'
             python3 .github/scripts/release_artifacts.py release-asset-patterns --manifest "${RELEASE_ARTIFACT_MANIFEST}"
-            if [[ "${REQUIRE_GO_BUNDLES:-false}" == 'true' ]]; then
+            if [[ -f release/go-native-module.toml ]]; then
             echo '^sc-sha-go-x86_64-unknown-linux-gnu\.zip$'
             echo '^sc-sha-go-aarch64-unknown-linux-gnu\.zip$'
             echo '^sc-sha-go-x86_64-apple-darwin\.zip$'
@@ -693,8 +677,6 @@ jobs:
       - name: Collect archives
         if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}
         shell: bash
-        env:
-          REQUIRE_GO_BUNDLES: 'true'
         run: |
           set -euo pipefail
           # The preceding setup step supplies runner-temp staging paths in
@@ -705,7 +687,7 @@ jobs:
           # SDK-only builds may have no uploaded artifacts (and no download directory).
           mkdir -p "$RELEASE_DOWNLOAD_DIR" "$RELEASE_ASSET_DIR"
           find "$RELEASE_DOWNLOAD_DIR" -type f ! -path "$RELEASE_DOWNLOAD_DIR/matrix-cell-*/*" ! -path "$RELEASE_DOWNLOAD_DIR/release-files/*" \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.tgz' -o -name '*.whl' \) -exec mv -f {} "$RELEASE_ASSET_DIR/" \;
-          if [[ "${REQUIRE_GO_BUNDLES:-false}" == 'true' ]]; then
+          if [[ -f release/go-native-module.toml ]]; then
             export RELEASE_DOWNLOAD_DIR RELEASE_ASSET_DIR
             python3 - <<'PYCODE'
           import os
@@ -748,6 +730,32 @@ jobs:
           else
             printf '# No packaged release assets.\n' > checksums.txt
           fi
+
+      - name: Ensure Go module tag points to the release commit
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.gate-and-tag.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+          git fetch origin --tags
+          module_tag="bindings/sc-sha-go/${RELEASE_TAG}"
+          release_sha="$(git rev-parse "${RELEASE_TAG}^{commit}")"
+          remote_tag="$(git ls-remote --refs origin "refs/tags/${module_tag}")"
+          if [[ -n "$remote_tag" ]]; then
+            module_sha="$(git rev-parse "${module_tag}^{commit}")"
+            [[ "$module_sha" == "$release_sha" ]] || { echo "Go module tag ${module_tag} points to ${module_sha}, expected ${release_sha}" >&2; exit 1; }
+          else
+            git tag "$module_tag" "$release_sha"
+            git push origin "refs/tags/${module_tag}"
+          fi
+
+      - name: Announce the Go module version to the proxy
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.gate-and-tag.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+          GOPROXY=proxy.golang.org go list -m "github.com/${GITHUB_REPOSITORY}/bindings/sc-sha-go@${RELEASE_TAG}"
 
       - name: Create GitHub Release
         if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}

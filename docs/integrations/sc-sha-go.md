@@ -118,6 +118,19 @@ oracle for both calls. Do not duplicate hash logic in Go or edit generated Go
 files by hand. Regenerate with the pinned toolchain and run the drift check
 when the UniFFI definition changes.
 
+## Maintainer release notes
+
+After the six bundles pass, the release workflow pushes the Go submodule tag
+and asks the Go proxy to index it:
+
+```sh
+GOPROXY=proxy.golang.org go list -m github.com/randlee/sc-compose/bindings/sc-sha-go@v1.9.0
+```
+
+Use the release version in that command. Never move a published version tag;
+Go authenticates modules against the first published contents. See
+[Publishing a module](https://go.dev/doc/modules/publishing).
+
 ## Handoff status
 
 sc-dolt and atm-core are consumers, not implementation dependencies of this
