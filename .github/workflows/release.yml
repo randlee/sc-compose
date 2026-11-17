@@ -1,3 +1,4 @@
+# Intentionally differs from the publish kit for this repository’s RC Python check.
 name: Release
 
 on:
@@ -27,6 +28,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: write
 
 env:
@@ -121,6 +123,17 @@ jobs:
           python3 .github/scripts/release_artifacts.py verify-version-lockstep \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
+
+      - name: Require release-candidate Python compatibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_TAG: release-candidate-${{ steps.meta.outputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin --tags
+          candidate_sha="$(git rev-parse "${CANDIDATE_TAG}^{commit}")"
+          python3 .github/scripts/check_rc_python_compat.py "$candidate_sha" "$RELEASE_ARTIFACT_MANIFEST"
 
       - name: Run release gate
         id: release_gate
