@@ -92,7 +92,10 @@ installer target.
 
 Use the contract-declared GitHub token liveness check before dispatching the
 manifest-declared workflow. The manifest owns the bucket, manifest path,
-template, and installer target.
+template, and installer target. It also names what goes on `PATH`: either
+`binary`, one path inside the archive, or `binaries`, a list of
+`[[release_binaries]]` names like the Homebrew field, which renders one shim
+per binary. Set exactly one.
 
 ## npm — `npm-publisher`
 

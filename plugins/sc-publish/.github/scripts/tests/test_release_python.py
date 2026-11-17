@@ -163,3 +163,64 @@ def test_explicit_rustup_selection_ignores_repository_component_requests(tmp_pat
         result = subprocess.run(command, cwd=tmp_path, env=env, text=True, capture_output=True, timeout=30)
         assert result.returncode == 0, result.stderr
     assert policy.read_bytes() == before
+
+
+WIN_ARM64 = {"id": "windows-arm64", "os": "windows-11-arm", "target": "aarch64-pc-windows-msvc", "platform": "win_arm64"}
+
+
+def test_explicit_windows_arm64_accepted():
+    target, = wheel_targets({"wheels": [WIN_ARM64]})
+    assert (target["os"], target["target"], target["platform"]) == ("windows-11-arm", "aarch64-pc-windows-msvc", "win_arm64")
+
+
+@pytest.mark.parametrize("wheel", [
+    {**WIN_ARM64, "os": "ubuntu-latest"},
+    {**WIN_ARM64, "platform": "win_amd64"},
+    {**TARGETS[4], "platform": "win_arm64"},
+    {**WIN_ARM64, "target": "i686-pc-windows-msvc"},
+])
+def test_windows_arm64_mismatches_rejected(wheel):
+    with pytest.raises(ValueError):
+        wheel_targets({"wheels": [wheel]})
+
+
+def test_six_wheel_manifest_with_windows_arm64_verifies():
+    distribution = {"name": "example", "sdist": False, "wheels": TARGETS + [WIN_ARM64]}
+    assert len(wheel_targets(distribution)) == 6
+    paths = [Path(f'example-1.2.3-cp310-abi3-{item["platform"]}.whl') for item in TARGETS + [WIN_ARM64]]
+    verify_platforms(distribution, paths)
+    with pytest.raises(ValueError, match="missing"):
+        verify_platforms(distribution, paths[:-1])
+
+
+def test_existing_forms_unchanged_by_windows_arm64_support():
+    distribution = {"wheels": ["windows-latest", TARGETS[0], TARGETS[4]]}
+    assert wheel_targets(distribution)[0] == {"target": "", "platform": "", "manylinux": "off", "deployment_target": "", "id": "windows-latest", "os": "windows-latest"}
+    assert [item["platform"] for item in wheel_targets(distribution)] == ["", "manylinux_2_28_x86_64", "win_amd64"]
+    with pytest.raises(ValueError, match="unsupported explicit wheel target"):
+        wheel_targets({"wheels": [{**TARGETS[4], "target": "aarch64-pc-windows-gnullvm"}]})
+
+
+@pytest.mark.parametrize("policy,platform", [("2_34", "manylinux_2_34_x86_64"),
+    ("2_39", "manylinux_2_39_x86_64"), ("2_17", "manylinux_2_17_x86_64.manylinux2014_x86_64")])
+def test_explicit_declared_linux_policies_preserve_exact_asset_platform(policy, platform):
+    row = {**TARGETS[0], "manylinux": policy, "platform": platform}
+    distribution = {"wheels": [row]}
+    assert wheel_targets(distribution, continuity=True)[0]["platform"] == platform
+    verify_platforms(distribution, [Path("example-1.2.3-cp39-abi3-" + platform + ".whl")], continuity=True)
+    with pytest.raises(ValueError):
+        verify_platforms(distribution, [Path("example-1.2.3-cp39-abi3-manylinux_2_28_x86_64.whl")], continuity=True)
+
+
+def test_compound_wheel_platform_cannot_silently_replace_a_single_declared_tag():
+    with pytest.raises(ValueError):
+        verify_platforms({"wheels": [TARGETS[0]]},
+                        [Path("example-1.2.3-cp39-abi3-manylinux_2_28_x86_64.linux_x86_64.whl")], continuity=True)
+
+
+
+def test_nonadopter_preserves_old_linux_policy_and_compound_subset_matching():
+    distribution = {"wheels": [TARGETS[0]]}
+    verify_platforms(distribution, [Path("example-1.2.3-cp39-abi3-manylinux_2_28_x86_64.linux_x86_64.whl")])
+    with pytest.raises(ValueError, match="manylinux=2_28"):
+        wheel_targets({"wheels": [{**TARGETS[0], "manylinux": "2_34", "platform": "manylinux_2_34_x86_64"}]})

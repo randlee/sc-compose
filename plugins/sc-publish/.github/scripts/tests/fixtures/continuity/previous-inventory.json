@@ -1,0 +1,16 @@
+{
+  "tag": "v1.2.3",
+  "assets": [
+    "checksums.txt",
+    "example-tool_1.2.3_aarch64-apple-darwin.tar.gz",
+    "example_python-1.2.3-cp39-abi3-macosx_11_0_arm64.whl",
+    "example-python-1.2.3.tar.gz"
+  ],
+  "publications": [
+    "crate:example-core",
+    "pypi:example-python",
+    "homebrew:example/tap/Formula/tool.rb",
+    "scoop:example/bucket/tool.json",
+    "winget:Example.Tool"
+  ]
+}
