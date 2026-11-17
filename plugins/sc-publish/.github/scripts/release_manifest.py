@@ -67,6 +67,9 @@ def load_manifest(path: Path, *, with_channel_contracts: bool = False) -> dict:
         "npm_packages": data.get("npm_packages", []),
         "channels": data.get("channels", {}),
     }
+    if "archive_verification" in data:
+        from archive_verification import configuration
+        manifest["archive_verification"] = configuration(data)
     if "rc_python_compatibility" in data:
         from rc_python_compatibility import configuration
         configuration(data)

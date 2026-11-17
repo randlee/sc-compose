@@ -280,7 +280,8 @@
     "scoop": {"workflow": "scoop-publish.yml", "dispatch_inputs": {}, "bucket_repository": "randlee/scoop-bucket", "manifest_path": "sc-compose.json", "manifest_template": "release/scoop/manifest.json.j2", "installer_target": "x86_64-pc-windows-msvc", "binary": "bin/sc-compose.exe", "renderer_target": "x86_64-unknown-linux-gnu"},
     "winget": {"workflow": "winget-publish.yml", "dispatch_inputs": {}, "identifier": "randlee.sc-compose", "installer_target": "x86_64-pc-windows-msvc"}
   },
-  "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "e8928f32d539f958565396f7d7989ea5c98149fb"},
+  "archive_verification": ["python3", ".github/scripts/stage_examples_smoke.py", "{stage_dir}", "{target}", "{manifest}"],
+  "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "39b3436c62c61a10eff6e5b1a053efdde799543a"},
   "rc_python_compatibility": {
     "versions": [
       "3.9",

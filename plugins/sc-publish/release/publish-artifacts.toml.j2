@@ -4,6 +4,8 @@ version: 0.1.0
 description: Render a complete repository-specific release-artifact manifest.
 format: toml
 required_variables:
+  - has_archive_verification
+  - archive_verification
   - has_rc_python_compatibility
   - rc_python_compatibility
   - has_go_modules
@@ -74,7 +76,7 @@ required_variables:
   - has_channel_winget
   - has_channel_scoop
 ---
-schema_version = {{ schema_version }}
+schema_version = {{ schema_version }}{{ "\narchive_verification = " ~ archive_verification if has_archive_verification else "" }}
 {% if has_rc_python_compatibility %}
 rc_python_compatibility = {{ rc_python_compatibility }}
 {% endif %}
