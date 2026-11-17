@@ -150,6 +150,13 @@ jobs:
                   destination = stage / bundled_path["destination"]
                   destination.parent.mkdir(parents=True, exist_ok=True)
                   shutil.copytree(source, destination, dirs_exist_ok=True)
+          import sys
+          subprocess.run(
+              [sys.executable, ".github/scripts/archive_verification.py",
+               "--manifest", os.environ["RELEASE_ARTIFACT_MANIFEST"],
+               "--stage-dir", str(stage), "--target", target_name],
+              check=True,
+          )
           archive = Path(f"{stage}.{target['archive']}")
           if target["archive"] == "tar.gz":
               with tarfile.open(archive, "w:gz") as output:

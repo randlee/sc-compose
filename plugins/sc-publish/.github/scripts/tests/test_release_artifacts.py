@@ -287,6 +287,10 @@ def run_release_archive_packager(
         "}))\n",
         encoding="utf-8",
     )
+    (scripts_dir / "archive_verification.py").write_bytes((scripts_root() / "archive_verification.py").read_bytes())
+    fixture_manifest = tmp_path / "release" / "manifest.toml"
+    fixture_manifest.parent.mkdir()
+    fixture_manifest.write_text("schema_version = 1\n", encoding="utf-8")
     release_dir = tmp_path / "target" / target_name / "release"
     release_dir.mkdir(parents=True)
     (release_dir / expected_filename).write_text("fixture", encoding="utf-8")
@@ -310,6 +314,7 @@ def run_release_archive_packager(
         check=False,
         timeout=TEST_COMMAND_TIMEOUT_SECONDS,
     )
+    assert result.returncode == 0, result.stderr
     assert output.read_text(encoding="utf-8").startswith("ARCHIVE=fixture_1.5.0_")
     return result
 
@@ -974,6 +979,23 @@ def test_release_archive_packager_executes_windows_suffix_logic(
         ]
 
 
+@pytest.mark.parametrize(("target_name", "expected_filename"), [
+    ("x86_64-pc-windows-gnu", "fixture.exe"),
+    ("x86_64-pc-windows-msvc", "fixture.exe"),
+    ("x86_64-unknown-linux-gnu", "fixture"),
+])
+def test_suffix_fixture_supports_installed_archive_verifier(tmp_path, monkeypatch, target_name, expected_filename):
+    monkeypatch.syspath_prepend(str(scripts_root()))
+    from archive_verification import extend_workflow
+    original = release_workflow_text()
+    opted = extend_workflow(original, {"archive_verification": ["unused-consumer-verifier", "{stage_dir}"]})
+    monkeypatch.setattr(sys.modules[__name__], "release_workflow_text", lambda: opted)
+    result = run_release_archive_packager(tmp_path, target_name=target_name, expected_filename=expected_filename)
+    assert result.returncode == 0, result.stderr
+    with zipfile.ZipFile(tmp_path / f"fixture_1.5.0_{target_name}.zip") as archive:
+        assert archive.namelist() == [f"fixture_1.5.0_{target_name}/bin/{expected_filename}"]
+
+
 def test_github_release_leg_is_detect_and_skip(tmp_path: Path) -> None:
     text = release_workflow_text()
 
@@ -1044,6 +1066,7 @@ def test_no_single_repo_concerns_leak_into_kit_workflows_actions_or_scripts() ->
         "bootstrap_sc_compose.py",
         "publication_continuity.py",
         "go_release.py",
+        "archive_verification.py",
         "rc_python_compatibility.py",
         "publication_inventory.py",
         "setup_sc_lint_source.py",

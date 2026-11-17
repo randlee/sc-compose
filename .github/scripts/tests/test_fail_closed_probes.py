@@ -331,6 +331,7 @@ def test_winget_probe_fails_closed_on_pr_search_failures(tmp_path: Path) -> None
 
 # --- Komac pin and winget submission steps (winget-publish.yml) --------------
 
+import gzip
 import hashlib
 import io
 import shutil
@@ -368,13 +369,22 @@ def run_bash(script: str, bin_dir: Path, env: dict[str, str]) -> subprocess.Comp
 
 def fake_komac_tarball() -> bytes:
     buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+    with tarfile.open(fileobj=buf, mode="w") as tar:
         body = b"#!/bin/sh\necho komac-stub\n"
         info = tarfile.TarInfo("komac")
         info.size = len(body)
         info.mode = 0o755
         tar.addfile(info, io.BytesIO(body))
-    return buf.getvalue()
+    return gzip.compress(buf.getvalue(), mtime=0)
+
+
+def test_fake_komac_tarball_is_independent_of_wall_clock(monkeypatch) -> None:
+    monkeypatch.setattr(gzip.time, "time", lambda: 1000)
+    first = fake_komac_tarball()
+    monkeypatch.setattr(gzip.time, "time", lambda: 2000)
+    second = fake_komac_tarball()
+    assert first == second
+    assert int.from_bytes(first[4:8], "little") == 0
 
 
 def run_komac_install(tmp_path: Path, *, sha256: str):

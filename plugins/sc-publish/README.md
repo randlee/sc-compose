@@ -349,3 +349,6 @@ native qualification, immutable submodule tags and proxy verification.
 
 See [RC Python compatibility](docs/rc-python-compatibility.md) for an optional
 once-per-candidate interpreter matrix and its required publication evidence.
+
+See [staged archive verification](docs/archive-verification.md) for optional
+consumer checks on each staged release and prerelease CLI archive.
