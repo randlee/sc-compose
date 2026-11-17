@@ -2,13 +2,17 @@
 """Manifest-declared, once-per-candidate Python compatibility hooks and evidence."""
 from __future__ import annotations
 
+import sys
+
+if sys.version_info < (3, 11):
+    raise SystemExit("RC Python compatibility helper requires Python 3.11 or newer; use the captured build-Python interpreter.")
+
 import argparse
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
-import sys
 import tomllib
 
 
@@ -31,6 +35,8 @@ def configuration(manifest):
         raise CompatibilityError("compatibility versions must be unique Python X.Y strings")
     if not isinstance(config["build_python"], str) or not re.fullmatch(r"[0-9]+\.[0-9]+", config["build_python"]):
         raise CompatibilityError("build_python must be a Python X.Y string")
+    if tuple(map(int, config["build_python"].split("."))) < (3, 11):
+        raise CompatibilityError("build_python requires Python 3.11 or newer")
     for name in ("setup", "build", "smoke"):
         if name in config and (not isinstance(config[name], list) or not config[name] or
                                any(not isinstance(arg, str) or not arg or "\0" in arg for arg in config[name])):
@@ -82,23 +88,24 @@ def workflow_job(manifest):
              "    runs-on: ${{ matrix.runner }}", "    strategy:", "      fail-fast: false",
              f"      matrix: {rows}", "    steps:", "      - uses: actions/checkout@v5", "        with:",
              "          ref: ${{ needs.establish-provenance.outputs.release_candidate_sha }}",
-             "      - uses: actions/setup-python@v6", "        with:",
+             "      - id: build_python", "        uses: actions/setup-python@v6", "        with:",
              "          python-version: " + json.dumps(config["build_python"])]
+    helper = '"${{ steps.build_python.outputs.python-path }}" .github/scripts/rc_python_compatibility.py'
     if "rust_toolchain" in config:
         lines += ["      - uses: dtolnay/rust-toolchain@master", "        with:",
                   "          toolchain: " + json.dumps(config["rust_toolchain"])]
     if "setup" in config:
         lines += ["      - name: Set up declared compatibility build tools",
-                  "        run: python .github/scripts/rc_python_compatibility.py setup"]
+                  "        shell: bash", "        run: " + json.dumps(helper + " setup")]
     lines += ["      - name: Build candidate wheels once",
-              "        run: python .github/scripts/rc_python_compatibility.py build"]
+              "        shell: bash", "        run: " + json.dumps(helper + " build")]
     for version in config["versions"]:
         condition = "${{ contains(fromJSON(matrix.versions), '" + version + "') }}"
         lines += ["      - name: Set up Python " + version, "        if: " + condition,
                   "        uses: actions/setup-python@v6", "        with:",
                   "          python-version: " + json.dumps(version),
                   "      - name: Smoke-test wheels on Python " + version, "        if: " + condition,
-                  "        run: python .github/scripts/rc_python_compatibility.py smoke"]
+                  "        shell: bash", "        run: " + json.dumps(helper + " smoke")]
     return "\n".join(lines) + "\n"
 
 

@@ -33,7 +33,7 @@ def test_matrix_uses_both_wheel_forms_and_excludes_only_declared_interpreters():
 
 
 @pytest.mark.parametrize("field,value", [("versions", []), ("versions", ["3.9", "3.9"]),
-    ("versions", ["3.9; unsafe"]), ("build_python", ""), ("build", "shell command"),
+    ("versions", ["3.9; unsafe"]), ("build_python", ""), ("build_python", "3.9"), ("build_python", "3.10"), ("build", "shell command"),
     ("smoke", []), ("exclusions", {"unknown": ["3.9"]}),
     ("exclusions", {"windows-11-arm": ["3.9", "3.11", "3.15"]}),
     ("runner_overrides", {"ubuntu-latest": "unsafe runner"}), ("unexpected", True),
@@ -157,3 +157,53 @@ def test_two_real_installs_have_identical_bytes(tmp_path, monkeypatch):
     assert INSTALL.main() == 0
     after = {path.relative_to(consumer): path.read_bytes() for path in consumer.rglob("*") if path.is_file()}
     assert after == before
+
+
+
+def test_all_helpers_use_captured_build_python_even_after_smoke_sdk_switches():
+    job = yaml.safe_load(rc.workflow_job(manifest()))["python-compat"]
+    steps = job["steps"]
+    build_sdk = next(step for step in steps if step.get("id") == "build_python")
+    assert build_sdk["uses"] == "actions/setup-python@v6"
+    assert build_sdk["with"]["python-version"] == "3.11"
+    helpers = [step for step in steps if "rc_python_compatibility.py" in step.get("run", "")]
+    assert {step["run"].rsplit(" ", 1)[-1] for step in helpers} == {"setup", "build", "smoke"}
+    for step in helpers:
+        assert step["shell"] == "bash"
+        assert step["run"].startswith('"${{ steps.build_python.outputs.python-path }}" ')
+
+
+def test_unsupported_runtime_refuses_before_tomllib_import(tmp_path):
+    script = Path(__file__).parents[1] / "rc_python_compatibility.py"
+    launcher = """import builtins,sys
+source=open(sys.argv[1]).read()
+sys.version_info=(3,9,0)
+original=builtins.__import__
+def import_checked(name,*args,**kwargs):
+    if name=='tomllib': raise AssertionError('tomllib imported before version refusal')
+    return original(name,*args,**kwargs)
+builtins.__import__=import_checked
+exec(compile(source,sys.argv[1],'exec'),{'__name__':'__main__'})
+"""
+    result = subprocess.run([sys.executable, "-c", launcher, str(script)], capture_output=True, text=True, timeout=10)
+    assert result.returncode != 0
+    assert "requires Python 3.11 or newer" in result.stderr
+    assert "tomllib imported" not in result.stderr
+
+
+def test_helper_preserves_selected_smoke_python_on_path(tmp_path):
+    script = Path(__file__).parents[1] / "rc_python_compatibility.py"
+    selected = tmp_path / "selected-sdk"
+    subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(selected)], check=True, timeout=30)
+    binaries = selected / ("Scripts" if os.name == "nt" else "bin")
+    smoke = tmp_path / "smoke.py"
+    smoke.write_text("import sys; print(sys.executable)\n")
+    config = tmp_path / "manifest.toml"
+    values = manifest()
+    values["rc_python_compatibility"]["smoke"] = ["python", str(smoke)]
+    config.write_text("python_distributions=" + INSTALL._toml_literal(values["python_distributions"]) + "\n" +
+                      "rc_python_compatibility=" + INSTALL._toml_literal(values["rc_python_compatibility"]) + "\n")
+    result = subprocess.run([sys.executable, str(script), "smoke", "--manifest", str(config)],
+                            env=dict(os.environ, PATH=str(binaries)), capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    assert Path(result.stdout.strip()).parent == binaries
