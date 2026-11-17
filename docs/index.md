@@ -194,7 +194,7 @@ sc-compose examples pytest-fixture \
   <h2>Status</h2>
 
   <table>
-    <tr><td>Version</td><td><strong>1.9.0</strong> (unreleased; latest release 1.8.0)</td></tr>
+    <tr><td>Version</td><td><strong>1.9.0</strong> (latest release)</td></tr>
     <tr><td>MSRV</td><td>Rust 1.94.1</td></tr>
     <tr><td>Edition</td><td>2024</td></tr>
     <tr><td>Platforms</td><td>macOS, Linux, Windows</td></tr>
