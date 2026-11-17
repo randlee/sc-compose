@@ -28,7 +28,9 @@ exclusion cannot remove every interpreter from a platform. The runner override
 changes the execution host while preserving the declared platform identity.
 
 `build` and `smoke` are required consumer-owned argv arrays; `setup` is optional.
-Hooks run without a shell from the candidate checkout, using the active Python
+The kit helper always runs through the captured `build_python` interpreter
+(Python 3.11 or newer), even after an older smoke interpreter is selected.
+Hooks run without a shell from the candidate checkout, using the active smoke
 interpreter's PATH, with a 900-second timeout. An optional `rust_toolchain`
 selects a native Rust compiler for consumers whose wheel builders need it.
 Consumers remain responsible for testing their real public API in the smoke

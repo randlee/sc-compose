@@ -77,16 +77,19 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ needs.establish-provenance.outputs.release_candidate_sha }}
-      - uses: actions/setup-python@v6
+      - id: build_python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.94.1"
       - name: Set up declared compatibility build tools
-        run: python .github/scripts/rc_python_compatibility.py setup
+        shell: bash
+        run: "\"${{ steps.build_python.outputs.python-path }}\" .github/scripts/rc_python_compatibility.py setup"
       - name: Build candidate wheels once
-        run: python .github/scripts/rc_python_compatibility.py build
+        shell: bash
+        run: "\"${{ steps.build_python.outputs.python-path }}\" .github/scripts/rc_python_compatibility.py build"
       - name: Set up Python 3.9
         if: ${{ contains(fromJSON(matrix.versions), '3.9') }}
         uses: actions/setup-python@v6
@@ -94,7 +97,8 @@ jobs:
           python-version: "3.9"
       - name: Smoke-test wheels on Python 3.9
         if: ${{ contains(fromJSON(matrix.versions), '3.9') }}
-        run: python .github/scripts/rc_python_compatibility.py smoke
+        shell: bash
+        run: "\"${{ steps.build_python.outputs.python-path }}\" .github/scripts/rc_python_compatibility.py smoke"
       - name: Set up Python 3.11
         if: ${{ contains(fromJSON(matrix.versions), '3.11') }}
         uses: actions/setup-python@v6
@@ -102,7 +106,8 @@ jobs:
           python-version: "3.11"
       - name: Smoke-test wheels on Python 3.11
         if: ${{ contains(fromJSON(matrix.versions), '3.11') }}
-        run: python .github/scripts/rc_python_compatibility.py smoke
+        shell: bash
+        run: "\"${{ steps.build_python.outputs.python-path }}\" .github/scripts/rc_python_compatibility.py smoke"
       - name: Set up Python 3.12
         if: ${{ contains(fromJSON(matrix.versions), '3.12') }}
         uses: actions/setup-python@v6
@@ -110,7 +115,8 @@ jobs:
           python-version: "3.12"
       - name: Smoke-test wheels on Python 3.12
         if: ${{ contains(fromJSON(matrix.versions), '3.12') }}
-        run: python .github/scripts/rc_python_compatibility.py smoke
+        shell: bash
+        run: "\"${{ steps.build_python.outputs.python-path }}\" .github/scripts/rc_python_compatibility.py smoke"
       - name: Set up Python 3.13
         if: ${{ contains(fromJSON(matrix.versions), '3.13') }}
         uses: actions/setup-python@v6
@@ -118,7 +124,8 @@ jobs:
           python-version: "3.13"
       - name: Smoke-test wheels on Python 3.13
         if: ${{ contains(fromJSON(matrix.versions), '3.13') }}
-        run: python .github/scripts/rc_python_compatibility.py smoke
+        shell: bash
+        run: "\"${{ steps.build_python.outputs.python-path }}\" .github/scripts/rc_python_compatibility.py smoke"
       - name: Set up Python 3.14
         if: ${{ contains(fromJSON(matrix.versions), '3.14') }}
         uses: actions/setup-python@v6
@@ -126,7 +133,8 @@ jobs:
           python-version: "3.14"
       - name: Smoke-test wheels on Python 3.14
         if: ${{ contains(fromJSON(matrix.versions), '3.14') }}
-        run: python .github/scripts/rc_python_compatibility.py smoke
+        shell: bash
+        run: "\"${{ steps.build_python.outputs.python-path }}\" .github/scripts/rc_python_compatibility.py smoke"
       - name: Set up Python 3.15
         if: ${{ contains(fromJSON(matrix.versions), '3.15') }}
         uses: actions/setup-python@v6
@@ -134,4 +142,5 @@ jobs:
           python-version: "3.15"
       - name: Smoke-test wheels on Python 3.15
         if: ${{ contains(fromJSON(matrix.versions), '3.15') }}
-        run: python .github/scripts/rc_python_compatibility.py smoke
+        shell: bash
+        run: "\"${{ steps.build_python.outputs.python-path }}\" .github/scripts/rc_python_compatibility.py smoke"
