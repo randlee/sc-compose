@@ -60,10 +60,13 @@ def prepare(target):
             run(["choco", "install", "llvm", "-y", "--no-progress"])
         append_env("GITHUB_PATH", str(tools))
     elif row["goos"] == "darwin":
-        probe = subprocess.run(["brew", "--prefix", "llvm"], check=False, text=True, capture_output=True)
+        probe = subprocess.run(["brew", "list", "--versions", "llvm"], check=False, text=True, capture_output=True)
         if probe.returncode:
             run(["brew", "install", "llvm"])
-        append_env("GITHUB_PATH", str(Path(run(["brew", "--prefix", "llvm"])) / "bin"))
+        tools = Path(run(["brew", "--prefix", "llvm"])) / "bin"
+        if not (tools / "llvm-objcopy").is_file():
+            raise ValueError("installed LLVM is missing llvm-objcopy")
+        append_env("GITHUB_PATH", str(tools))
     elif not shutil.which("llvm-objcopy"):
         run(["sudo", "apt-get", "update"])
         run(["sudo", "apt-get", "install", "-y", "llvm"])
