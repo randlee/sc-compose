@@ -78,6 +78,7 @@ def prepare(root: Path) -> Path:
     triple = target.rust_target
     run(["cargo", "build", "-p", "sc-sha-go", "--target", triple], root)
     library = Path(metadata["target_directory"]) / triple / "debug" / target.library
+    run([sys.executable, str(source / "clean_archive.py"), str(library), triple], root)
     # Stage outside the binding source: the peer validates the archive name and
     # complete module layout before we install its archive at the loader path.
     with tempfile.TemporaryDirectory(prefix="sc-sha-go-native-") as directory:

@@ -401,6 +401,9 @@ class SourcePreparationTests(unittest.TestCase):
                             ],
                         )
                         return ""
+                    if argv[:2] == [sys.executable, str(source / "clean_archive.py")]:
+                        self.assertEqual(argv[2:], [str(target_dir / target["rust_target"] / "debug" / target["library"]), target["rust_target"]])
+                        return ""
                     self.assertEqual(
                         argv[:3],
                         [
@@ -441,7 +444,7 @@ class SourcePreparationTests(unittest.TestCase):
                     source / "native" / target["rust_target"] / target["library"],
                 )
                 self.assertEqual(destination.read_bytes(), b"validated stage bytes")
-                self.assertEqual(len(calls), 4)
+                self.assertEqual(len(calls), 5)
 
     def test_failed_build_does_not_install_an_archive(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

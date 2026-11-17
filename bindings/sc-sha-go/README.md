@@ -28,6 +28,11 @@ just generate-sc-sha-rust check
 Use `just generate-sc-sha-rust` to regenerate it after changing the UDL. CI
 checks for drift. Do not edit the generated Rust file by hand.
 
+The native preparation step needs `llvm-readobj` on all platforms,
+`llvm-objcopy` on Linux and macOS, and `llvm-ar` on Windows. It removes embedded LTO metadata
+and only the unsupported Windows symbol-exclusion directives before staging,
+so Go's CGo linker-input checks can validate the archive.
+
 Then regenerate the Go bindings and test with normal CGo safety checks:
 
 ```sh
