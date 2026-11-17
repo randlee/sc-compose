@@ -248,7 +248,9 @@ jobs:
           cache: false
 
       - name: Run controlled Go release-layout fixtures
-        run: python3 bindings/sc-sha-go/tests/test_release_layout.py
+        run: |
+          python3 bindings/sc-sha-go/tests/test_release_layout.py
+          python3 bindings/sc-sha-go/tests/test_clean_archive.py
 
       - name: Run real-bd qualification (ignored tests; fails if bd is absent)
         run: python3 scripts/test_real_bd.py
