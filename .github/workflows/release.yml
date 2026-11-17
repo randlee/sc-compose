@@ -28,13 +28,15 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 env:
   RELEASE_ARTIFACT_MANIFEST: release/publish-artifacts.toml
 
 jobs:
   gate-and-tag:
+    permissions:
+      contents: write
+      actions: read
     runs-on: ubuntu-latest
     outputs:
       release_tag: ${{ steps.meta.outputs.release_tag }}

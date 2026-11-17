@@ -1,4 +1,4 @@
 # Exact upstream kit revision installed into this repository (immutable).
 [sc-publish]
 repository = "https://github.com/randlee/sc-publish"
-revision = "9287ed6ca8cfee78c6417f1d1ad80f19eadd1846"
+revision = "a62c3940f5d417c7efc67c5dd125b930829c6aa3"

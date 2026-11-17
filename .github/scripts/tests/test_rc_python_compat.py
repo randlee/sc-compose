@@ -51,7 +51,8 @@ def test_missing_or_failed_run_and_api_failure_fail_closed():
 
 def test_publish_gate_runs_before_tag_and_grants_read_permission():
     workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
-    assert workflow["permissions"]["actions"] == "read"
+    assert "actions" not in workflow["permissions"]
+    assert workflow["jobs"]["gate-and-tag"]["permissions"]["actions"] == "read"
     steps = workflow["jobs"]["gate-and-tag"]["steps"]
     gate = next(i for i, step in enumerate(steps) if step.get("name") == "Require declared release-candidate Python compatibility")
     tag = next(i for i, step in enumerate(steps) if step.get("id") == "release-ref")

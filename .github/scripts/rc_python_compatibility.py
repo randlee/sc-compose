@@ -122,9 +122,10 @@ def extend_workflow(text, relative, manifest):
         return text + workflow_job(manifest)
     if relative == ".github/workflows/release.yml":
         marker = "      - name: Verify npm source at resolved release commit\n"
-        if text.count(marker) != 1 or text.count("  contents: write\n") != 1:
+        job_marker = "  gate-and-tag:\n    runs-on:"
+        if text.count(marker) != 1 or text.count(job_marker) != 1:
             raise CompatibilityError("cannot locate the release compatibility extension point")
-        return text.replace("  contents: write\n", "  contents: write\n  actions: read\n", 1).replace(marker, GATE_STEP + marker, 1)
+        return text.replace(job_marker, "  gate-and-tag:\n    permissions:\n      contents: write\n      actions: read\n    runs-on:", 1).replace(marker, GATE_STEP + marker, 1)
     return text
 
 

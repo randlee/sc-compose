@@ -280,7 +280,7 @@
     "scoop": {"workflow": "scoop-publish.yml", "dispatch_inputs": {}, "bucket_repository": "randlee/scoop-bucket", "manifest_path": "sc-compose.json", "manifest_template": "release/scoop/manifest.json.j2", "installer_target": "x86_64-pc-windows-msvc", "binary": "bin/sc-compose.exe", "renderer_target": "x86_64-unknown-linux-gnu"},
     "winget": {"workflow": "winget-publish.yml", "dispatch_inputs": {}, "identifier": "randlee.sc-compose", "installer_target": "x86_64-pc-windows-msvc"}
   },
-  "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "9287ed6ca8cfee78c6417f1d1ad80f19eadd1846"},
+  "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "a62c3940f5d417c7efc67c5dd125b930829c6aa3"},
   "rc_python_compatibility": {
     "versions": [
       "3.9",

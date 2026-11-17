@@ -36,10 +36,15 @@ def test_matrix_uses_both_wheel_forms_and_excludes_only_declared_interpreters():
     ("versions", ["3.9; unsafe"]), ("build_python", ""), ("build", "shell command"),
     ("smoke", []), ("exclusions", {"unknown": ["3.9"]}),
     ("exclusions", {"windows-11-arm": ["3.9", "3.11", "3.15"]}),
-    ("runner_overrides", {"ubuntu-latest": "unsafe runner"}), ("unexpected", True)])
+    ("runner_overrides", {"ubuntu-latest": "unsafe runner"}), ("unexpected", True),
+    ("python_distributions", []), ("python_distributions", [{"wheels": []}])])
 def test_invalid_or_vacuous_declarations_fail(field, value):
-    values = manifest(); values["rc_python_compatibility"][field] = value
+    values = manifest()
+    if field == "python_distributions": values[field] = value
+    else: values["rc_python_compatibility"][field] = value
     with pytest.raises(rc.CompatibilityError): rc.configuration(values)
+    with pytest.raises(rc.CompatibilityError):
+        rc.check(values, CANDIDATE, "team/repo", query=lambda _: pytest.fail("invalid policy must not access API"))
 
 
 def test_one_build_per_candidate_platform_and_each_declared_smoke_uses_selected_sdk():
@@ -101,6 +106,8 @@ def test_missing_candidate_declaration_cannot_produce_passing_compatibility_jobs
 
 
 def test_installer_renders_declaration_and_extends_only_selected_workflows(tmp_path):
+    if not (INSTALL.PACKAGE_ROOT / ".sc-publish-source-root").is_file():
+        pytest.skip("installed consumers do not re-run the package source installer")
     values = InstallValuesTests.valid_values()
     values["rc_python_compatibility"] = copy.deepcopy(manifest()["rc_python_compatibility"])
     # This fixture's declared wheel platform is ubuntu-latest only.
@@ -115,7 +122,8 @@ def test_installer_renders_declaration_and_extends_only_selected_workflows(tmp_p
     copies = [(workflows / name, Path(".github/workflows") / name) for name in ["release.yml", "release-candidate.yml"]]
     sources = INSTALL.install_sources(copies, loaded, tmp_path)
     release = yaml.safe_load(sources[0][0].read_text())
-    assert release["permissions"]["actions"] == "read"
+    assert "actions" not in release["permissions"]
+    assert release["jobs"]["gate-and-tag"]["permissions"] == {"contents": "write", "actions": "read"}
     steps = release["jobs"]["gate-and-tag"]["steps"]
     admission = next(i for i, step in enumerate(steps) if "rc_python_compatibility.py check" in step.get("run", ""))
     tag = next(i for i, step in enumerate(steps) if step.get("id") == "release-ref")
@@ -131,3 +139,21 @@ def test_nonadopter_installer_keeps_all_copy_sources_and_never_imports_extension
     values = INSTALL.load_install_values(path)
     copies = [(Path("source"), Path(".github/workflows/release.yml"))]
     assert INSTALL.install_sources(copies, values, tmp_path) == copies
+
+
+
+def test_two_real_installs_have_identical_bytes(tmp_path, monkeypatch):
+    if not (INSTALL.PACKAGE_ROOT / ".sc-publish-source-root").is_file():
+        pytest.skip("installed consumers do not re-run the package source installer")
+    values = InstallValuesTests.valid_values()
+    values["rc_python_compatibility"] = copy.deepcopy(manifest()["rc_python_compatibility"])
+    values["rc_python_compatibility"]["exclusions"] = {}
+    config = tmp_path / "install.json"; config.write_text(json.dumps(values))
+    consumer = tmp_path / "consumer"; consumer.mkdir()
+    monkeypatch.setattr(sys, "argv", [str(INSTALL.PACKAGE_ROOT / "install.py"), "--input", str(config), str(consumer)])
+    assert INSTALL.main() == 0
+    before = {path.relative_to(consumer): path.read_bytes() for path in consumer.rglob("*") if path.is_file()}
+    assert b"python-compat:" in before[Path(".github/workflows/release-candidate.yml")]
+    assert INSTALL.main() == 0
+    after = {path.relative_to(consumer): path.read_bytes() for path in consumer.rglob("*") if path.is_file()}
+    assert after == before

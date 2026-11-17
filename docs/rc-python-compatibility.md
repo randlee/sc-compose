@@ -2,7 +2,8 @@
 
 Declare `rc_python_compatibility` in the consumer install JSON and rerun the
 installer. It adds a compatibility job to the existing Release Candidate
-workflow and a required evidence check before publication in Release. Without
+workflow and a required evidence check before publication in Release. Only
+the Release gate job receives Actions read permission for that evidence lookup. Without
 this declaration, both workflow files and their permissions remain unchanged.
 No additional workflow, evidence artifact, ledger or secret is introduced.
 
