@@ -56,7 +56,7 @@ def clean_windows_archive(data: bytes) -> tuple[bytes, list[str]]:
             if end - start < 20:
                 raise ValueError("truncated archive object")
             machine, count = struct.unpack_from("<HH", result, start)
-            if machine == 0xAA64:
+            if machine in (0xAA64, 0x8664):
                 symbol_count = struct.unpack_from("<I", result, start + 12)[0]
                 if count == 0:
                     if symbol_count:
@@ -93,8 +93,21 @@ def clean_windows_archive(data: bytes) -> tuple[bytes, list[str]]:
     return bytes(result), empty
 
 
+def verify_archive(path: Path) -> None:
+    """Fail closed if any object still carries forbidden linker metadata."""
+    result = subprocess.run(
+        ["llvm-readobj", "--sections", "--coff-directives", str(path)],
+        check=True, stdout=subprocess.PIPE, text=True,
+    )
+    for line in result.stdout.splitlines():
+        if (re.match(r"\s*Name: (?:\.llvmbc|\.llvmcmd|\.llvm\.lto|\.gnu\.(?:debug)?lto_)", line)
+                or re.match(r"\s*Segment: __LLVM(?:\s|$)", line)
+                or ("Directive(s):" in line and EXCLUDED.search(line.encode()))):
+            raise ValueError(f"unsupported metadata remains in archive: {line.strip()}")
+
+
 def clean_archive(path: Path, target: str) -> None:
-    if target == "aarch64-pc-windows-gnullvm":
+    if target in ("aarch64-pc-windows-gnullvm", "x86_64-pc-windows-gnu"):
         data, empty = clean_windows_archive(path.read_bytes())
         with tempfile.TemporaryDirectory(prefix="sc-sha-go-clean-") as directory:
             output = Path(directory) / "archive.a"
@@ -108,6 +121,9 @@ def clean_archive(path: Path, target: str) -> None:
             output = Path(directory) / "archive.a"
             subprocess.run(["llvm-objcopy", *(f"--remove-section={section}" for section in sections), str(path), str(output)], check=True)
             path.write_bytes(output.read_bytes())
+    else:
+        raise ValueError(f"unsupported native archive target: {target}")
+    verify_archive(path)
 
 
 def main() -> None:
