@@ -100,15 +100,57 @@ jobs:
           fi
           echo "already_published=${already_published}" >> "$GITHUB_OUTPUT"
 
+      # The releaser action this leg used to call installed Komac with an
+      # unpinned cargo-binstall, so the Komac version (and the manifests it
+      # writes) could change without a kit change. Komac 2.17+ also carries
+      # NestedInstallerFiles[].RelativeFilePath forward from the previous
+      # version without re-resolving it; kit archives keep the version in
+      # their top folder, so the carried-forward path points at a folder that
+      # does not exist in the new zip and winget-pkgs validation fails.
+      # Komac 2.16.0 re-resolves the path from the new installer, so it is
+      # pinned here by URL and sha256. Move the pin only after a newer Komac
+      # is shown to resolve nested paths against the new archive.
+      - name: Install Komac 2.16.0 (pinned, sha256-verified)
+        if: ${{ steps.winget_probe.outputs.already_published != 'true' }}
+        shell: bash
+        env:
+          KOMAC_URL: https://github.com/russellbanks/Komac/releases/download/v2.16.0/komac-2.16.0-x86_64-unknown-linux-gnu.tar.gz
+          KOMAC_SHA256: 7d2707fa6210f2789a3702de49fbd150b736dbf426ee0b9bc8e098736f9fd82d
+          KOMAC_DIR: ${{ runner.temp }}/komac
+        run: |
+          set -euo pipefail
+          mkdir -p "${KOMAC_DIR}"
+          curl -fsSL -o "${KOMAC_DIR}/komac.tar.gz" "${KOMAC_URL}"
+          echo "${KOMAC_SHA256}  ${KOMAC_DIR}/komac.tar.gz" | sha256sum -c -
+          tar -xzf "${KOMAC_DIR}/komac.tar.gz" -C "${KOMAC_DIR}" komac
+          chmod +x "${KOMAC_DIR}/komac"
+          echo "${KOMAC_DIR}" >> "$GITHUB_PATH"
+
       - name: Publish to Winget
         if: ${{ steps.winget_probe.outputs.already_published != 'true' }}
-        # Pinned to the v2 release commit so this leg's behavior cannot change
-        # without a kit change (mutable tags are not a retry-safety contract).
-        uses: vedantmgoyal2009/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
-        with:
-          identifier: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.identifier }}
-          release-tag: ${{ inputs.tag }}
-          installers-regex: ${{ fromJSON(needs.verify-release.outputs.channel_config).asset_patterns[0] }}
+        shell: bash
+        env:
           # Must authorize a fork of microsoft/winget-pkgs; the repository
           # GITHUB_TOKEN is intentionally not used for this external channel.
-          token: ${{ secrets.WINGET_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          KOMAC_FORK_OWNER: ${{ github.repository_owner }}
+          IDENTIFIER: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.identifier }}
+          ASSET_PATTERN: ${{ fromJSON(needs.verify-release.outputs.channel_config).asset_patterns[0] }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          release_json="$(gh api "repos/${RELEASE_REPOSITORY}/releases/tags/${RELEASE_TAG}")"
+          urls=()
+          while IFS= read -r url; do
+            [[ -n "${url}" ]] && urls+=("${url}")
+          done < <(jq -r --arg re "${ASSET_PATTERN}" \
+            '.assets[] | select(.name | test($re)) | .browser_download_url' <<<"${release_json}")
+          if [[ "${#urls[@]}" -eq 0 ]]; then
+            echo "::error::No release asset of ${RELEASE_TAG} matches ${ASSET_PATTERN}" >&2
+            exit 1
+          fi
+          komac update "${IDENTIFIER}" --version "${version}" --submit --urls "${urls[@]}"
+          komac cleanup --only-merged

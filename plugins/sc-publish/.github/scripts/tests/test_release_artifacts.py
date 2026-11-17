@@ -16,6 +16,7 @@ from pathlib import Path
 from threading import Thread
 
 import pytest
+from test_fail_closed_probes import extract_run_block
 
 
 # Local fixture commands should finish quickly; bound hangs on every platform.
@@ -507,14 +508,9 @@ def run_release_gate_readiness(
 
 def release_tag_step_shell() -> str:
     """Extract the executed shell body that creates or safely reuses a release tag."""
-    workflow = release_workflow_text()
-    step = workflow.split("      - name: Ensure tag is correct or create it\n", 1)[1].split(
-        "\n  build:\n", 1
-    )[0]
-    body = step.split("        run: |\n", 1)[1]
-    lines = body.splitlines()
-    assert all(not line or line.startswith("          ") for line in lines)
-    return "\n".join(line[10:] if line else "" for line in lines)
+    import yaml
+    steps = yaml.safe_load(release_workflow_text())["jobs"]["gate-and-tag"]["steps"]
+    return next(step["run"] for step in steps if step.get("id") == "release-ref")
 
 
 def run_release_tag_step(
@@ -695,6 +691,7 @@ def run_release_preflight_channel_results_shell(
         **os.environ,
         "OWNERSHIP": "success",
         "IMMUTABLE_RELEASES": "success",
+        "PUBLICATION_CONTINUITY": "success",
         "RELEASE_METADATA": "success",
         "RELEASE_TAG": "v1.5.0",
         "REPOSITORY_SECRETS": "success",
@@ -929,7 +926,7 @@ def test_crates_leg_is_separate_and_independently_retryable() -> None:
     crates_text = crates_publish_workflow_text()
 
     # The GitHub Release leg must not depend on crates.io publication.
-    assert "needs: [gate-and-tag, build, build-python-wheels, build-python-sdists, build-npm]" in release_text
+    assert "needs: [gate-and-tag, build, build-python-wheels, build-python-sdists, build-npm, go-verified]" in release_text
     assert "needs: [gate-and-tag, build, publish," not in release_text
 
     assert "workflow_dispatch:" in crates_text
@@ -1045,6 +1042,10 @@ def test_no_single_repo_concerns_leak_into_kit_workflows_actions_or_scripts() ->
     )
     kit_scripts = (
         "bootstrap_sc_compose.py",
+        "publication_continuity.py",
+        "go_release.py",
+        "rc_python_compatibility.py",
+        "publication_inventory.py",
         "setup_sc_lint_source.py",
         "release_artifacts.py",
         "release_manifest.py",
@@ -1200,12 +1201,12 @@ def test_winget_leg_probes_before_submitting_and_pins_the_releaser() -> None:
     assert "grep -Eqi 'HTTP 404|Not Found'" in text
     assert "is indeterminate (not a confirmed 404); failing closed" in text
     assert "incomplete_results" in text
-    # The third-party releaser must be pinned to an immutable commit SHA.
-    assert (
-        "uses: vedantmgoyal2009/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2"
-        in text
-    )
-    assert "winget-releaser@v2\n" not in text
+    # Komac is pinned by URL and sha256 (2.17+ reuses stale nested paths); the
+    # unpinned winget-releaser action must not come back.
+    assert "uses: vedantmgoyal2009/winget-releaser" not in text
+    assert "cargo binstall" not in text
+    assert "komac-2.16.0-x86_64-unknown-linux-gnu.tar.gz" in text
+    assert "7d2707fa6210f2789a3702de49fbd150b736dbf426ee0b9bc8e098736f9fd82d" in text
 
 
 def test_crates_already_published_detection_uses_exact_version_lookup() -> None:
@@ -1549,6 +1550,105 @@ def test_validate_manifest_requires_manifest_driven_scoop_channel_inputs(tmp_pat
 
     assert result.returncode != 0
     assert "[channels.scoop] missing required keys: manifest_template" in result.stderr
+
+
+def _validate_scoop_binary_setting(tmp_path: Path, setting: str) -> subprocess.CompletedProcess[str]:
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'binary = "bin/fixture"\n', setting, 1
+        ),
+        encoding="utf-8",
+    )
+    return subprocess.run(
+        [
+            sys.executable,
+            str(scripts_root() / "release_artifacts.py"),
+            "validate-manifest",
+            "--manifest",
+            str(manifest),
+            "--workspace-toml",
+            str(workspace),
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
+    )
+
+
+def test_validate_manifest_accepts_scoop_binaries_list(tmp_path: Path) -> None:
+    result = _validate_scoop_binary_setting(tmp_path, 'binaries = ["fixture"]\n')
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize(
+    ("setting", "message"),
+    [
+        ('binary = "bin/fixture"\nbinaries = ["fixture"]\n', "exactly one of binary or binaries"),
+        ("", "exactly one of binary or binaries"),
+        ("binaries = []\n", "non-empty list of unique strings"),
+        ('binaries = ["fixture", "fixture"]\n', "non-empty list of unique strings"),
+        ('binaries = ["undeclared"]\n', "undeclared release binary(s): undeclared"),
+    ],
+)
+def test_validate_manifest_rejects_invalid_scoop_binaries(
+    tmp_path: Path, setting: str, message: str
+) -> None:
+    result = _validate_scoop_binary_setting(tmp_path, setting)
+    assert result.returncode != 0
+    assert message in result.stderr
+
+
+def _scoop_render_variables(tmp_path: Path, channel: dict[str, object]) -> dict[str, object]:
+    """Run the workflow's variable step with curl stubbed; return its render variables."""
+    script = extract_run_block(
+        scoop_publish_workflow_text(), "name: Prepare checked-render variables"
+    )
+    stub_bin = tmp_path / "stub-bin"
+    stub_bin.mkdir()
+    curl = stub_bin / "curl"
+    curl.write_text(
+        '#!/usr/bin/env bash\nwhile [ "$1" != "-o" ]; do shift; done\nprintf archive > "$2"\n',
+        encoding="utf-8",
+    )
+    curl.chmod(0o755)
+    config = {
+        "project": {
+            "archive_prefix": "example",
+            "description": "d",
+            "homepage": "https://example.invalid",
+            "license": "MIT",
+        },
+        "channel": {"installer_target": "windows", **channel},
+        "release_targets": {"windows": {"target": "x86_64-pc-windows-msvc", "archive": "zip"}},
+    }
+    subprocess.run(
+        ["bash", "-c", script],
+        cwd=tmp_path,
+        env={
+            "PATH": f"{stub_bin}{os.pathsep}{os.environ['PATH']}",
+            "CHANNEL_CONFIG": json.dumps(config),
+            "RELEASE_REPOSITORY": "example/example",
+            "RELEASE_TAG": "v1.2.3",
+            "RELEASE_VERSION": "1.2.3",
+            "RUNNER_TEMP": str(tmp_path),
+        },
+        check=True,
+        timeout=TEST_COMMAND_TIMEOUT_SECONDS,
+    )
+    return json.loads((tmp_path / "scoop-vars.json").read_text(encoding="utf-8"))
+
+
+def test_scoop_workflow_renders_one_shim_per_listed_binary(tmp_path: Path) -> None:
+    variables = _scoop_render_variables(tmp_path, {"binaries": ["example", "example-helper"]})
+    assert variables["binary"] == ["bin/example.exe", "bin/example-helper.exe"]
+
+
+def test_scoop_workflow_keeps_single_binary_string_without_opt_in(tmp_path: Path) -> None:
+    variables = _scoop_render_variables(tmp_path, {"binary": "custom/path/example.exe"})
+    assert variables["binary"] == "custom/path/example.exe"
 
 
 def test_validate_manifest_rejects_unknown_renderer_target(tmp_path: Path) -> None:
@@ -2582,7 +2682,12 @@ def test_root_release_workflow_threads_retry_provenance_and_builds_from_main() -
     assert 'git tag "$tag" "$main_sha"' in workflow
     assert "build_ref: ${{ steps.release-ref.outputs.build_ref }}" in workflow
     assert workflow.count('echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"') == 1
-    assert workflow.count("needs.gate-and-tag.outputs.build_ref") == 10
+    import yaml
+    jobs = yaml.safe_load(workflow)["jobs"]
+    for name in ("build", "publish", "release-plan", "build-python-wheels", "build-python-sdists",
+                 "build-npm", "publish-testpypi", "release", "go-plan", "build-go-modules", "go-verified"):
+        checkout = next(step for step in jobs[name]["steps"] if step.get("uses", "").startswith("actions/checkout@"))
+        assert checkout["with"]["ref"] == "${{ needs.gate-and-tag.outputs.build_ref }}", name
     assert "gate-and-tag.outputs.release_ref" not in workflow
     assert "ref: ${{ needs.gate-and-tag.outputs.release_tag }}" not in workflow
     assert "ref: ${{ needs.gate-and-tag.outputs.release_ref }}" not in workflow
@@ -2794,7 +2899,7 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
             "binary_paths": ["bin/sc-compose", "bin/sc-compose-daemon"],
             "bundled_paths": [
                 {
-                    "destination_components": ["pkgshare", "examples"],
+                    "destination_components": ["pkgshare"],
                     "source_glob": "share/sc-compose/examples/*",
                 },
                 {
@@ -2807,19 +2912,9 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
     assert_homebrew_formula_install_executes(formula)
     assert 'bin.install "bin/sc-compose"' in formula
     assert 'bin.install "bin/sc-compose-daemon"' in formula
-    assert '(pkgshare/"examples").install Dir["share/sc-compose/examples/*"]' in formula
+    assert '(pkgshare).install Dir["share/sc-compose/examples/*"]' in formula
     assert '(pkgshare/"examples"/"nested").install Dir["share/sc-compose/nested/*"]' in formula
     assert 'shell_output("#{bin}/" + "sc-compose-daemon"' in formula
-    if renderer_binary() == "sc-compose":
-        binary = next(item for item in release_manifest()["release_binaries"] if item["name"] == "sc-compose")
-        bundle = next(item for item in binary["bundled_paths"] if item["source"] == "examples")
-        assert bundle["destination"] == "share/sc-compose/examples"
-        assert bundle["homebrew_destination_components"] == ["pkgshare", "examples"]
-        assert bundle["stage_smoke_args"] == ["examples", "list"]
-        assert bundle["stage_smoke_line"] == "hello"
-        formula_config = next(item for item in release_manifest()["channels"]["homebrew"]["formulas"] if item["class"] == "ScCompose")
-        assert formula_config["test_command"] == "examples list"
-        assert formula_config["test_output"] == "hello"
 
     scoop = render_release_template(
         tmp_path,
@@ -2838,34 +2933,26 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
     manifest = json.loads(scoop)
     assert manifest["description"] == 'Quoted "description"'
     assert manifest["architecture"]["64bit"]["bin"] == "bin/sc-compose.exe"
+    assert '"bin": "bin/sc-compose.exe"' in scoop
 
-
-def test_scoop_archive_preserves_examples_next_to_binary(tmp_path: Path) -> None:
-    scoop = render_release_template(tmp_path, "release/scoop/manifest.json.j2", {
-        "version": "1.4.2", "description": "example", "homepage": "https://example.invalid",
-        "license": "MIT", "windows_url": "https://example.invalid/windows.zip",
-        "windows_sha256": "d" * 64, "extract_dir": "sc-compose_1.4.2_x86_64-pc-windows-msvc",
-        "binary": "bin/sc-compose.exe",
-    })
-    manifest = json.loads(scoop)
-    if renderer_binary() != "sc-compose":
-        pytest.skip("consumer is not sc-compose")
-    binary = next(item for item in release_manifest()["release_binaries"] if item["name"] == "sc-compose")
-    bundle = next(item for item in binary["bundled_paths"] if item["source"] == "examples")
-    config = manifest["architecture"]["64bit"]
-    archive = tmp_path / "release.zip"
-    with zipfile.ZipFile(archive, "w") as output:
-        output.writestr(f'{config["extract_dir"]}/{config["bin"]}', b"fixture executable")
-        output.writestr(
-            f'{config["extract_dir"]}/{bundle["destination"]}/hello.md.j2',
-            (repo_root() / bundle["source"] / "hello.md.j2").read_bytes(),
-        )
-    extracted = tmp_path / "extracted"
-    with zipfile.ZipFile(archive) as output:
-        output.extractall(extracted)
-    executable = extracted / config["extract_dir"] / config["bin"]
-    examples = executable.parent.parent / "share" / "sc-compose" / "examples"
-    assert (examples / "hello.md.j2").read_bytes() == (repo_root() / "examples/hello.md.j2").read_bytes()
+    multiple = render_release_template(
+        tmp_path,
+        "release/scoop/manifest.json.j2",
+        {
+            "version": "1.4.2",
+            "description": "d",
+            "homepage": "https://github.com/randlee/sc-compose",
+            "license": "MIT",
+            "windows_url": "https://example.invalid/windows.zip",
+            "windows_sha256": "d" * 64,
+            "extract_dir": "sc-compose_1.4.2_x86_64-pc-windows-msvc",
+            "binary": ["bin/sc-compose.exe", "bin/sc-compose-daemon.exe"],
+        },
+    )
+    assert json.loads(multiple)["architecture"]["64bit"]["bin"] == [
+        "bin/sc-compose.exe",
+        "bin/sc-compose-daemon.exe",
+    ]
 
 
 def test_homebrew_formula_tracks_and_binaries_are_documented() -> None:

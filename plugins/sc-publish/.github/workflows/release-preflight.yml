@@ -56,6 +56,14 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
         run: python3 .github/scripts/release_immutability.py --tag "$RELEASE_VERSION"
 
+      - id: publication_continuity
+        name: Verify declared publication continuity (read-only)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 .github/scripts/publication_continuity.py --manifest "$RELEASE_ARTIFACT_MANIFEST" --version "$RELEASE_VERSION"
+
       - id: secret_plan
         name: Read non-disclosing credential plan from release manifest
         continue-on-error: true
@@ -412,6 +420,7 @@ jobs:
         shell: bash
         env:
           IMMUTABLE_RELEASES: ${{ steps.immutable_releases.outcome }}
+          PUBLICATION_CONTINUITY: ${{ steps.publication_continuity.outcome }}
           OWNERSHIP: ${{ steps.ownership.outcome }}
           RELEASE_METADATA: ${{ steps.meta.outcome }}
           RELEASE_TAG: ${{ steps.meta.outputs.release_tag }}
@@ -433,6 +442,7 @@ jobs:
           jq -e 'type == "object"' <<<"${credential_liveness_channels_json}" >/dev/null \
             || { echo 'CREDENTIAL_LIVENESS_CHANNELS must be a JSON object.' >&2; exit 1; }
           outcomes="$(jq -nc \
+            --arg publication_continuity "${PUBLICATION_CONTINUITY}" \
             --arg immutable_releases "${IMMUTABLE_RELEASES}" \
             --arg ownership "${OWNERSHIP}" \
             --arg release_metadata "${RELEASE_METADATA}" \
@@ -443,7 +453,7 @@ jobs:
             --argjson credential_liveness_channels "${credential_liveness_channels_json}" \
             --arg registry_state "${REGISTRY_STATE}" \
             --arg github_release_permissions "${GITHUB_RELEASE_PERMISSIONS}" \
-            '{immutable_releases: $immutable_releases, ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, repository_secret_channels: $repository_secret_channels, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, credential_liveness_channels: $credential_liveness_channels, registry_state: $registry_state, github_release_permissions: $github_release_permissions}')"
+            '{publication_continuity: $publication_continuity, immutable_releases: $immutable_releases, ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, repository_secret_channels: $repository_secret_channels, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, credential_liveness_channels: $credential_liveness_channels, registry_state: $registry_state, github_release_permissions: $github_release_permissions}')"
           results="$(python3 .github/scripts/release_artifacts.py channel-preflight-results \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --outcomes "${outcomes}" \
@@ -460,6 +470,7 @@ jobs:
         shell: bash
         env:
           IMMUTABLE_RELEASES: ${{ steps.immutable_releases.outcome }}
+          PUBLICATION_CONTINUITY: ${{ steps.publication_continuity.outcome }}
           OWNERSHIP: ${{ steps.ownership.outcome }}
           SECRET_PLAN: ${{ steps.secret_plan.outcome }}
           BUILD_PLAN: ${{ steps.build_plan.outcome }}
@@ -493,6 +504,7 @@ jobs:
               *) failed+=("${name}") ;;
             esac
           }
+          record publication-continuity "${PUBLICATION_CONTINUITY}"
           record immutable-releases "${IMMUTABLE_RELEASES}"
           record ownership "${OWNERSHIP}"
           record secret-plan "${SECRET_PLAN}"
@@ -522,3 +534,78 @@ jobs:
           if [[ "${#failed[@]}" -gt 0 || "${#blocked[@]}" -gt 0 ]]; then
             exit 1
           fi
+
+  go-plan:
+    needs: preflight
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.plan.outputs.enabled }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan="$(python3 .github/scripts/go_release.py plan)"
+          echo "enabled=$(jq -r '.enabled' <<<"$plan")" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(jq -c '.matrix' <<<"$plan")" >> "$GITHUB_OUTPUT"
+
+  build-go-modules:
+    needs: [go-plan]
+    if: ${{ needs.go-plan.outputs.enabled == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.go-plan.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ${{ matrix.source }}/go.mod
+          cache: false
+      - uses: dtolnay/rust-toolchain@master
+        if: ${{ matrix.rust_toolchain != '' }}
+        with:
+          toolchain: ${{ matrix.rust_toolchain }}
+          targets: ${{ matrix.target }}
+      - name: Prepare declared native Go toolchain
+        shell: bash
+        env:
+          GO_ARTIFACT: ${{ matrix.artifact }}
+          GO_VERSION: ${{ inputs.version }}
+        run: python3 .github/scripts/go_release.py prepare --artifact "$GO_ARTIFACT" --version "$GO_VERSION"
+      - name: Build and qualify staged and unpacked Go modules
+        shell: bash
+        env:
+          GO_ARTIFACT: ${{ matrix.artifact }}
+          GO_VERSION: ${{ inputs.version }}
+          CGO_ENABLED: '1'
+        run: python3 .github/scripts/go_release.py build --artifact "$GO_ARTIFACT" --version "$GO_VERSION"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: go-bundle-${{ matrix.artifact }}
+          path: go-bundles/${{ matrix.artifact }}.zip
+          if-no-files-found: error
+
+  go-verified:
+    needs: [go-plan, build-go-modules]
+    if: ${{ !failure() && !cancelled() && needs.go-plan.result == 'success' && (needs.go-plan.outputs.enabled != 'true' || needs.build-go-modules.result == 'success') }}
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ needs.go-plan.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@v7
+        if: ${{ needs.go-plan.outputs.enabled == 'true' }}
+        with:
+          pattern: go-bundle-*
+          path: go-bundles
+      - name: Verify exact declared native Go bundle set
+        run: python3 .github/scripts/go_release.py verify

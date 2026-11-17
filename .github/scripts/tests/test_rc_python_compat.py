@@ -14,7 +14,7 @@ compat = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(compat)
 MANIFEST = ROOT / "release/publish-artifacts.toml"
 CANDIDATE = "a" * 40
-PLATFORMS = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]
+PLATFORMS = ["ubuntu-latest", "ubuntu-24.04-arm", "macos-15", "macos-15-intel", "windows-latest", "windows-11-arm"]
 
 
 def evidence(candidate=CANDIDATE):
@@ -51,13 +51,15 @@ def test_missing_or_failed_run_and_api_failure_fail_closed():
 
 def test_publish_gate_runs_before_tag_and_grants_read_permission():
     workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
-    assert workflow["permissions"]["actions"] == "read"
+    assert "actions" not in workflow["permissions"]
+    assert workflow["jobs"]["gate-and-tag"]["permissions"]["actions"] == "read"
     steps = workflow["jobs"]["gate-and-tag"]["steps"]
-    gate = next(i for i, step in enumerate(steps) if step.get("name") == "Require release-candidate Python compatibility")
+    gate = next(i for i, step in enumerate(steps) if step.get("name") == "Require declared release-candidate Python compatibility")
     tag = next(i for i, step in enumerate(steps) if step.get("id") == "release-ref")
     assert gate < tag
-    assert '"${CANDIDATE_TAG}^{commit}"' in steps[gate]["run"]
-    assert 'check_rc_python_compat.py "$candidate_sha"' in steps[gate]["run"]
+    assert "rc_python_compatibility.py check" in steps[gate]["run"]
+    assert '--candidate "$CANDIDATE_TAG"' in steps[gate]["run"]
+    assert '--source-ref "$RELEASE_SHA"' in steps[gate]["run"]
     assert steps[gate]["env"]["GH_TOKEN"] == "${{ github.token }}"
 
 
@@ -95,20 +97,22 @@ def test_main_refuses_api_and_manifest_errors(tmp_path):
     assert invoke_main(empty) == 1
 
 
-def test_absent_candidate_tag_refuses_before_api():
-    # The gate runs under Bash on an Ubuntu runner; a failed rev-parse exits
-    # before the checker because errexit is enabled and has no override.
-    workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
-    steps = workflow["jobs"]["gate-and-tag"]["steps"]
-    gate = next(step for step in steps if step.get("name") == "Require release-candidate Python compatibility")
-    script = gate["run"]
-    assert workflow["jobs"]["gate-and-tag"]["runs-on"] == "ubuntu-latest"
-    assert gate["shell"] == "bash"
-    assert "set -euo pipefail" in script
-    assert 'candidate_sha="$(git rev-parse "${CANDIDATE_TAG}^{commit}")"' in script
-    assert 'python3 .github/scripts/check_rc_python_compat.py "$candidate_sha" "$RELEASE_ARTIFACT_MANIFEST"' in script
-    assert script.index("git rev-parse") < script.index("check_rc_python_compat.py")
-    assert "|| true" not in script
+def test_absent_candidate_tag_refuses_before_api(tmp_path):
+    import os
+    import subprocess
+    import sys
+    subprocess.run(["git", "init", str(tmp_path)], check=True, capture_output=True)
+    tools = tmp_path / "bin"; tools.mkdir()
+    marker = tmp_path / "api-was-called"
+    gh = tools / "gh"
+    gh.write_text("#!" + sys.executable + "\nfrom pathlib import Path\nPath(" + repr(str(marker)) + ").touch()\n")
+    gh.chmod(0o755)
+    result = subprocess.run([sys.executable, str(ROOT / ".github/scripts/rc_python_compatibility.py"),
+                             "check", "--manifest", str(MANIFEST), "--candidate", "absent-candidate-tag"],
+                            cwd=tmp_path, env=dict(os.environ, PATH=str(tools) + os.pathsep + os.environ["PATH"]),
+                            capture_output=True, text=True, timeout=10)
+    assert result.returncode == 1
+    assert not marker.exists()
 
 
 @pytest.mark.parametrize("content", ["python_distributions = []\n", "[[python_distributions]]\nwheels = []\n"])
@@ -126,10 +130,17 @@ def test_candidate_matrix_and_job_name_match_gate():
 
     workflow = yaml.safe_load((ROOT / ".github/workflows/release-candidate.yml").read_text())
     job = workflow["jobs"]["python-compat"]
-    assert job["runs-on"] == "${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}"
+    assert job["runs-on"] == "${{ matrix.runner }}"
     manifest = tomllib.loads(MANIFEST.read_text(encoding="utf-8"))
-    platforms = {platform for package in manifest["python_distributions"] for platform in package["wheels"]}
-    assert set(job["strategy"]["matrix"]["os"]) == platforms
+    platforms = {platform["os"] if isinstance(platform, dict) else platform
+                 for package in manifest["python_distributions"] for platform in package["wheels"]}
+    rows = {row["os"]: row for row in job["strategy"]["matrix"]["include"]}
+    assert set(rows) == platforms == set(PLATFORMS)
+    import json
+    versions = ["3.9", "3.11", "3.12", "3.13", "3.14", "3.15"]
+    assert json.loads(rows["ubuntu-latest"]["versions"]) == versions
+    assert rows["ubuntu-latest"]["runner"] == "ubuntu-24.04"
+    assert json.loads(rows["windows-11-arm"]["versions"]) == versions[1:]
     template = job["name"].replace("${{ matrix.os }}", PLATFORMS[0]).replace(
         "${{ needs.establish-provenance.outputs.release_candidate_sha }}", CANDIDATE
     )

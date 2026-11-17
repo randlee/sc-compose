@@ -96,6 +96,8 @@ CHANNEL_TEMPLATE_SENTINELS: dict[str, dict[str, Any]] = {
         "manifest_template": "",
         "installer_target": "",
         "binary": "",
+        "binaries": [],
+        "has_binaries": False,
         "renderer_target": "",
     },
 }
@@ -169,6 +171,20 @@ def load_install_values(path: Path) -> dict[str, object]:
     if values.get("schema_version") != 1:
         raise argparse.ArgumentTypeError("schema_version must be 1")
 
+    if "publication_continuity" in values:
+        from publication_continuity import configuration as continuity_configuration
+        try:
+            continuity_configuration(values)
+        except ValueError as error:
+            raise argparse.ArgumentTypeError(str(error)) from error
+
+    if "go_modules" in values:
+        from go_release import configuration as go_configuration
+        try:
+            go_configuration(values)
+        except ValueError as error:
+            raise argparse.ArgumentTypeError(str(error)) from error
+
     project = _require_mapping(values.get("project"), "project")
     for field in ("name", "archive_prefix", "description", "homepage", "license"):
         _require_string(project.get(field), f"project.{field}")
@@ -240,11 +256,6 @@ def load_install_values(path: Path) -> dict[str, object]:
                 bundled.get("homebrew_destination_components"),
                 "bundled_paths.homebrew_destination_components",
             )
-            if "stage_smoke_args" in bundled or "stage_smoke_line" in bundled:
-                args = _require_string_array(bundled.get("stage_smoke_args"), "bundled_paths.stage_smoke_args")
-                if not args:
-                    raise argparse.ArgumentTypeError("bundled_paths.stage_smoke_args must not be empty")
-                _require_string(bundled.get("stage_smoke_line"), "bundled_paths.stage_smoke_line")
 
     if "prerelease" in values:
         prerelease = _require_mapping(values["prerelease"], "prerelease")
@@ -277,7 +288,7 @@ def load_install_values(path: Path) -> dict[str, object]:
     for position, distribution in enumerate(distributions, start=1):
         _require_boolean(distribution.get("sdist"), f"python_distributions[{position}].sdist")
         try:
-            wheel_targets(distribution)
+            wheel_targets(distribution, continuity="publication_continuity" in values)
         except (ValueError, KeyError) as error:
             raise argparse.ArgumentTypeError(f"python_distributions[{position}]: {error}") from error
         cargo_manifest = distribution.get("cargo_manifest")
@@ -352,13 +363,17 @@ def load_install_values(path: Path) -> dict[str, object]:
                 "path",
                 "template",
                 "class",
-                "test_binary",
                 "test_command",
                 "test_output",
                 "release_track",
             ):
                 _require_string(formula_value.get(field), f"channels.homebrew.formulas[{formula_position}].{field}")
-            _require_string_array(formula_value.get("binaries"), f"channels.homebrew.formulas[{formula_position}].binaries")
+            binaries = _require_string_array(formula_value.get("binaries"), f"channels.homebrew.formulas[{formula_position}].binaries")
+            # test_binary defaults to the first binary, so it is required only with no binaries.
+            if "test_binary" in formula_value or not binaries:
+                _require_string(
+                    formula_value.get("test_binary"), f"channels.homebrew.formulas[{formula_position}].test_binary"
+                )
         assets = _require_entries(homebrew.get("assets"), "channels.homebrew.assets", ("key", "target"))
         asset_keys = [asset["key"] for asset in assets]
         if len(asset_keys) != len(set(asset_keys)):
@@ -375,7 +390,6 @@ def load_install_values(path: Path) -> dict[str, object]:
             "manifest_path",
             "manifest_template",
             "installer_target",
-            "binary",
             "renderer_target",
         ),
     }.items():
@@ -384,6 +398,25 @@ def load_install_values(path: Path) -> dict[str, object]:
         channel = _require_mapping(channels[name], f"channels.{name}")
         for field in fields:
             _require_string(channel.get(field), f"channels.{name}.{field}")
+    if "scoop" in channels:
+        scoop = _require_mapping(channels["scoop"], "channels.scoop")
+        if ("binary" in scoop) == ("binaries" in scoop):
+            raise argparse.ArgumentTypeError(
+                "channels.scoop must define exactly one of binary or binaries"
+            )
+        if "binary" in scoop:
+            _require_string(scoop["binary"], "channels.scoop.binary")
+        else:
+            scoop_binaries = _require_string_array(scoop["binaries"], "channels.scoop.binaries")
+            if not scoop_binaries or len(set(scoop_binaries)) != len(scoop_binaries):
+                raise argparse.ArgumentTypeError(
+                    "channels.scoop.binaries must be a non-empty list without duplicates"
+                )
+            undeclared = sorted(set(scoop_binaries) - {binary["name"] for binary in release_binaries})
+            if undeclared:
+                raise argparse.ArgumentTypeError(
+                    f"channels.scoop.binaries references undeclared release binary(s): {', '.join(undeclared)}"
+                )
 
     if "homebrew" in channels or "scoop" in channels:
         _require_string(project.get("renderer_archive_path"), "project.renderer_archive_path")
@@ -433,6 +466,12 @@ def load_install_values(path: Path) -> dict[str, object]:
                 _require_string(docli["sc_docli_version"], "docli.sc_docli_version")
 
     values["preflight_workflows"] = _load_preflight_workflows(values.get("preflight_workflows", []))
+    if "rc_python_compatibility" in values:
+        from rc_python_compatibility import configuration
+        try:
+            configuration(values)
+        except ValueError as error:
+            raise argparse.ArgumentTypeError(str(error)) from error
     return values
 
 
@@ -520,13 +559,19 @@ def install_sources(
 ) -> list[tuple[Path, Path]]:
     """Return copy sources, extending release-preflight.yml only when workflows are declared."""
     jobs = preflight_workflow_jobs(_require_array(values.get("preflight_workflows", []), "preflight_workflows"))
-    if not jobs:
+    rc = "rc_python_compatibility" in values
+    if not jobs and not rc:
         return copies
     sources = []
     for source, relative in copies:
-        if relative == PREFLIGHT_WORKFLOW:
+        if jobs and relative == PREFLIGHT_WORKFLOW:
             extended = directory / PREFLIGHT_WORKFLOW.name
             extended.write_bytes(source.read_bytes() + jobs.encode("utf-8"))
+            source = extended
+        if rc and str(relative) in {".github/workflows/release.yml", ".github/workflows/release-candidate.yml"}:
+            from rc_python_compatibility import extend_workflow
+            extended = directory / relative.name
+            extended.write_text(extend_workflow(source.read_text(), relative.as_posix(), values), encoding="utf-8")
             source = extended
         sources.append((source, relative))
     return sources
@@ -573,21 +618,25 @@ def template_values(values: dict[str, object]) -> dict[str, object]:
         if name not in channels:
             converted_channels[name] = _toml_scalars(
                 dict(CHANNEL_TEMPLATE_SENTINELS[name]),
-                ("dispatch_inputs", "credential_rehearsal_inputs"),
+                ("dispatch_inputs", "credential_rehearsal_inputs", "binaries"),
             )
             continue
         channel = _require_mapping(channels[name], f"channels.{name}")
         converted = _toml_scalars(
             channel,
-            ("dispatch_inputs", "credential_rehearsal_inputs"),
+            ("dispatch_inputs", "credential_rehearsal_inputs", "binaries"),
         )
+        if name == "scoop":
+            converted["has_binaries"] = "binaries" in channel
+            converted.setdefault("binaries", "[]")
+            converted.setdefault("binary", '""')
         if name == "homebrew":
-            converted["formulas"] = [
-                _toml_scalars(
-                    _require_mapping(formula, "channels.homebrew.formulas entry"), ("binaries",)
-                )
-                for formula in _require_array(channel["formulas"], "channels.homebrew.formulas")
-            ]
+            converted["formulas"] = []
+            for formula in _require_array(channel["formulas"], "channels.homebrew.formulas"):
+                formula_mapping = _require_mapping(formula, "channels.homebrew.formulas entry")
+                if "test_binary" not in formula_mapping:
+                    formula_mapping = {**formula_mapping, "test_binary": formula_mapping["binaries"][0]}
+                converted["formulas"].append(_toml_scalars(formula_mapping, ("binaries",)))
             converted["assets"] = [
                 _toml_scalars(_require_mapping(asset, "channels.homebrew.assets entry"))
                 for asset in _require_array(channel["assets"], "channels.homebrew.assets")
@@ -675,6 +724,12 @@ def template_values(values: dict[str, object]) -> dict[str, object]:
         "has_rust_toolchain": "rust_toolchain" in project,
         "has_sc_lint_source_revision": "sc_lint_source_revision" in project,
         "has_prerelease": "prerelease" in values,
+        "has_rc_python_compatibility": "rc_python_compatibility" in values,
+        "rc_python_compatibility": _toml_literal(values.get("rc_python_compatibility", {})),
+        "has_go_modules": bool(values.get("go_modules")),
+        "go_modules": _toml_literal(values.get("go_modules", [])),
+        "has_continuity": "publication_continuity" in values,
+        "publication_continuity": _toml_literal(values.get("publication_continuity", {})),
         "has_docli": has_docli,
         "docli": template_docli,
         "preflight_checks": preflight_checks,

@@ -1,5 +1,9 @@
 # sc-publish Publish Kit
 
+Optional [publication continuity](docs/publication-continuity.md) checks block
+preflight and release when a previously published item would disappear without
+a reviewed, user-approved deprecation in the manifest.
+
 sc-publish is a vendorable release/publish kit: standardized publisher agents
 plus standardized per-channel GitHub workflows, all driven by one
 repository-specific release manifest. Every kit file is installed
@@ -218,9 +222,12 @@ Explicit Linux wheels reuse maturin's Zig support with the selected manylinux
 compatibility. macOS objects require `deployment_target` (for example `10.13`
 with `x86_64-apple-darwin` / `macosx_10_13_x86_64`, or `11.0` with
 `aarch64-apple-darwin` / `macosx_11_0_arm64`). Windows uses
-`x86_64-pc-windows-msvc` / `win_amd64`. Explicit platform objects require maturin;
-setuptools keeps the existing runner strings. Build output and collected release
-assets must match every declared platform exactly once.
+`x86_64-pc-windows-msvc` / `win_amd64` or `aarch64-pc-windows-msvc` /
+`win_arm64`. A legacy runner string such as `"windows-11-arm"` mixed with
+explicit wheels still declares no platform, so use the explicit form. Explicit
+platform objects require maturin; setuptools keeps the existing runner strings.
+Build output and collected release assets must match every declared platform
+exactly once.
 
 Crates with their own `[workspace]` may appear in `crates` using an explicit
 `cargo_toml`; their version must equal the release workspace version. Both
@@ -336,3 +343,9 @@ Rollout checklist, per consumer (not performed by this change):
   Require a successful immutability check, not merely an admin's earlier result.
 - Review the consumer PR before adoption. Publication is a separate authorization;
   verify final `immutable:true` before authorizing post-release channels.
+
+See [native Go module artifacts](docs/go-modules.md) for optional module bundles,
+native qualification, immutable submodule tags and proxy verification.
+
+See [RC Python compatibility](docs/rc-python-compatibility.md) for an optional
+once-per-candidate interpreter matrix and its required publication evidence.

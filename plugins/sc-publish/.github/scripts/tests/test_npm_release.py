@@ -246,7 +246,7 @@ def test_workflow_credential_and_artifact_contract():
 
 def test_node24_runtime_floors():
     import re
-    floors = {"checkout": 5, "setup-python": 6, "setup-node": 6, "cache": 5, "upload-artifact": 6, "download-artifact": 7}
+    floors = {"setup-go": 6, "checkout": 5, "setup-python": 6, "setup-node": 6, "cache": 5, "upload-artifact": 6, "download-artifact": 7}
     # Consumers retain independent workflows/actions outside the vendored kit.
     # The source inventory guard in test_release_artifacts keeps these shared
     # inventories complete without imposing kit policy on caller-owned CI.
