@@ -70,7 +70,8 @@ jobs:
   python-compat:
     needs: establish-provenance
     name: python-compat (${{ matrix.os }}, ${{ needs.establish-provenance.outputs.release_candidate_sha }})
-    runs-on: ${{ matrix.os }}
+    # Ubuntu 26.04 does not provide Python 3.9; keep this matrix cell on 24.04.
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     strategy:
       fail-fast: false
       matrix:

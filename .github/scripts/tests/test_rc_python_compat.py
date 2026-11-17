@@ -126,6 +126,7 @@ def test_candidate_matrix_and_job_name_match_gate():
 
     workflow = yaml.safe_load((ROOT / ".github/workflows/release-candidate.yml").read_text())
     job = workflow["jobs"]["python-compat"]
+    assert job["runs-on"] == "${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}"
     manifest = tomllib.loads(MANIFEST.read_text(encoding="utf-8"))
     platforms = {platform for package in manifest["python_distributions"] for platform in package["wheels"]}
     assert set(job["strategy"]["matrix"]["os"]) == platforms
