@@ -226,7 +226,7 @@ jobs:
         if: ${{ matrix.platform != '' }}
         env:
           WHEEL_PLATFORM: ${{ matrix.platform }}
-        run: python3 .github/scripts/release_python.py --asset-dir dist --platform "$WHEEL_PLATFORM"
+        run: python3 .github/scripts/release_python.py --asset-dir dist --platform "$WHEEL_PLATFORM" --manifest "$RELEASE_ARTIFACT_MANIFEST"
       - uses: actions/upload-artifact@v4
         with:
           name: python-wheel-${{ matrix.artifact }}-${{ matrix.id || matrix.os }}

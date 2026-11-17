@@ -84,13 +84,82 @@ pub(crate) enum BeadSubcommand {
     #[command(about = "Render and validate a Beads formula request")]
     Validate(BeadRequestArgs),
     #[command(about = "Render, validate, and preview a Beads formula pour")]
-    PreviewPour(BeadRequestArgs),
+    PreviewPour(BeadPourArgs),
     #[command(about = "Render, validate, and preview Beads graph attachment")]
     PreviewAttach(BeadRequestArgs),
-    #[command(about = "Render, validate, and persist an authorized Beads formula pour")]
-    Pour(BeadRequestArgs),
+    #[command(
+        about = "Render, validate, and persist an authorized Beads formula pour",
+        long_about = "Render, validate, and persist an authorized Beads formula pour. For revision guidance, run sc-compose help repour and sc-compose help repour-strategy."
+    )]
+    Pour(BeadPourArgs),
     #[command(about = "Render, validate, and persist authorized Beads graph attachment")]
     Attach(BeadRequestArgs),
+    #[command(
+        about = "Converge the beads of an earlier pour onto its updated plan",
+        long_about = "Converge an earlier graph onto its updated plan. For details, run sc-compose help repour and sc-compose help repour-strategy."
+    )]
+    Repour(BeadRevisionArgs),
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum ParsedBeadRoot {
+    Valid(sc_composer_beads::BeadId),
+    Invalid(String),
+}
+
+impl ParsedBeadRoot {
+    pub(crate) fn get(
+        &self,
+    ) -> Result<&sc_composer_beads::BeadId, sc_composer_beads::BeadComposeError> {
+        match self {
+            Self::Valid(id) => Ok(id),
+            Self::Invalid(value) => Err(sc_composer_beads::BeadComposeError::GraphIdInvalid {
+                field: sc_composer_beads::GraphIdField::Bead,
+                value: value.clone(),
+            }),
+        }
+    }
+}
+
+#[allow(
+    clippy::unnecessary_wraps,
+    reason = "clap value parsers require a Result; invalid ids retain the typed diagnostic"
+)]
+fn parse_bead_root(value: &str) -> Result<ParsedBeadRoot, std::convert::Infallible> {
+    Ok(match sc_composer_beads::BeadId::new(value) {
+        Ok(id) => ParsedBeadRoot::Valid(id),
+        Err(_) => ParsedBeadRoot::Invalid(value.to_owned()),
+    })
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct BeadPourArgs {
+    #[command(flatten)]
+    pub(crate) request: BeadRequestArgs,
+    #[arg(long, value_name = "BEAD_ID", value_parser = parse_bead_root, help = "Existing pour root to compare")]
+    pub(crate) root: Option<ParsedBeadRoot>,
+    #[arg(long, help = "Preview graph changes without writing beads")]
+    pub(crate) dry_run: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct BeadRevisionArgs {
+    #[command(flatten)]
+    pub(crate) request: BeadRequestArgs,
+    #[arg(
+        long,
+        value_name = "BEAD_ID",
+        value_parser = parse_bead_root,
+        help = "Existing pour root to compare or revise"
+    )]
+    pub(crate) root: Option<ParsedBeadRoot>,
+    #[arg(long, help = "Preview graph changes without writing beads")]
+    pub(crate) dry_run: bool,
+    #[arg(
+        long,
+        help = "Allow repour when database changes are uncommitted or unknown"
+    )]
+    pub(crate) allow_uncommitted: bool,
 }
 
 #[derive(Debug, Clone, Args)]

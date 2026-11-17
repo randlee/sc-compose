@@ -38,5 +38,5 @@ def test_invalid_relation_bead_preserves_native_typed_error(tmp_path, invalid, e
         )
     assert raised.value.code == "BEADS_GRAPH_ID_INVALID"
     assert raised.value.stage == "validate"
-    assert raised.value.details == {"field": "bead", "value": invalid, "rule": "bead ids are non-empty without whitespace"}
-    assert "bead ids are non-empty without whitespace" in str(raised.value)
+    assert raised.value.details == {"field": "bead", "value": invalid, "rule": "bead ids are non-empty and contain no whitespace or control characters"}
+    assert "bead ids are non-empty and contain no whitespace or control characters" in str(raised.value)

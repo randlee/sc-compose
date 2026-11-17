@@ -18,6 +18,8 @@ mod pour;
 /// Fixed-delimiter formula rendering.
 pub mod render;
 mod request;
+/// Graph revision policy, targets and change descriptions.
+pub mod revision;
 /// Injectable direct-process runner abstraction.
 pub mod runner;
 mod snapshot;
@@ -43,6 +45,13 @@ pub use execute::{
     execute_bead_request, execute_bead_request_with_diagnostics, execute_bead_request_with_options,
     execute_bead_request_with_options_and_diagnostics,
     execute_bead_request_with_options_and_runner, execute_bead_request_with_runner,
+    execute_graph_revision, execute_graph_revision_with_options,
+    execute_graph_revision_with_options_and_runner, execute_graph_revision_with_runner,
+};
+#[doc(inline)]
+pub use revision::{
+    ExistingGraphTarget, GraphApplyPartial, GraphChange, GraphField, GraphRevisionOptions,
+    UncommittedPolicy, revision_options_for_request,
 };
 #[doc(inline)]
 pub use runner::{CommandSpec, ProcessOutput, ProcessRunner, StdProcessRunner};

@@ -40,7 +40,7 @@ a separate renderer or a delegation of variables to bd.
 
 FR-24.34 requires this workflow to create declared edges automatically as
 part of the supported graph operation, with stored-edge readback. Existing
-FR-23/ADR-0023 authorization, validation, atomicity and retry semantics apply;
+FR-23/ADR-0023 authorization, validation and convergent retry semantics apply;
 no subsequent manual dependency commands or implicit scheduling edges are
 part of successful completion.
 
@@ -146,12 +146,8 @@ var, mixed request/direct inputs and missing required input all create none.
 
 The owner selected additive edges between existing beads, including new
 relations after formula changes, plus optional beads/edges controlled by
-Jinja. FR-24.34–35 and the ADR-0023 Phase V amendment govern provenance v2,
-state preservation, conditional selection and one atomic apply. V1 must
-verify/pin the bd transaction capability before V3's affected apply work;
-that is an implementation dependency, not an unresolved product decision.
-An unsupported capability is recorded on `comp-v-1-bd-ownership` for phase-end
-discussion and blocks only the affected apply acceptance, as ADR-0023 states.
+Jinja. FR-24.34–35 and the ADR-0023 Phase W amendment govern state preservation,
+conditional selection and convergent single-writer re-pour.
 
 The FUZZ-171 cases and the 229-template corpus are unavailable historical
 evidence. They are never counted as recovered, rerun or passing, and their

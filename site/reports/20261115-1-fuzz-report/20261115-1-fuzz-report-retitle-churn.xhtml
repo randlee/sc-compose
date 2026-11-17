@@ -1,0 +1,42 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>retitle-churn</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker retitle-churn</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;retitle-churn&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 1, &quot;passed&quot;: 1, &quot;seed&quot;: 42, &quot;description&quot;: &quot;Four sequential retitles on the same node&quot;, &quot;assertions&quot;: &quot;4/4 previews no-write and equal apply; stable ID and runtime status/notes/label preserved; replay no-op. Inputs: Unicode, quotes, newline, Unicode.&quot;, &quot;evidence_archive&quot;: &quot;retitle-evidence.zip&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="4/4 previews no-write and equal apply; stable ID and runtime status/notes/label preserved; replay no-op. Inputs: Unicode, quotes, newline, Unicode. See JSON sidecar and evidence ZIP.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Four sequential retitles on the same node</th>
+        <td>1</td>
+        <td>1/1</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">42</th><td><code>4/4 previews no-write and equal apply; stable ID and runtime status/notes/label preserved; replay no-op. Inputs: Unicode, quotes, newline, Unicode.</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

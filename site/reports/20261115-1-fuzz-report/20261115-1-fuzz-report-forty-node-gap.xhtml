@@ -1,0 +1,46 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>forty-node-gap</h2>
+      <p class="agent-meta">Session 20261115-1-fuzz-report · Worker forty-node-gap</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;: &quot;forty-node-gap&quot;, &quot;status&quot;: &quot;success&quot;, &quot;cases_run&quot;: 5, &quot;passed&quot;: 5, &quot;seed&quot;: &quot;0–4&quot;, &quot;description&quot;: &quot;40 nodes, 38-deep chain, ten revisions per seed&quot;, &quot;assertions&quot;: &quot;50/50 revisions preview no-write, preview/apply equality and replay unchanged; 5/5 rename-onto-removed original ID through revisions 1–4.&quot;, &quot;evidence_archive&quot;: &quot;forty-node-evidence.zip&quot;, &quot;finding_ids&quot;: [], &quot;error&quot;: null}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="50/50 revisions preview no-write, preview/apply equality and replay unchanged; 5/5 rename-onto-removed original ID through revisions 1–4. See JSON sidecar and evidence ZIP.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">40 nodes, 38-deep chain, ten revisions per seed</th>
+        <td>5</td>
+        <td>5/5</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">0</th><td><code>r1 remove it-3eq; r2 restore it-3eq; r3 create it-kt0; r4 remove replacement and restore previously removed it-3eq; trace forty-node-evidence.zip!sc-forty-campaign-v2/forty-0.log</code></td><td>PASS</td></tr>
+        <tr><th scope="row">1</th><td><code>r1 remove it-puv; r2 restore it-puv; r3 create it-ods; r4 remove replacement and restore previously removed it-puv; trace forty-node-evidence.zip!sc-forty-campaign-v2/forty-1.log</code></td><td>PASS</td></tr>
+        <tr><th scope="row">2</th><td><code>r1 remove it-srv; r2 restore it-srv; r3 create it-jf0; r4 remove replacement and restore previously removed it-srv; trace forty-node-evidence.zip!sc-forty-campaign-v3/forty-2.log</code></td><td>PASS</td></tr>
+        <tr><th scope="row">3</th><td><code>r1 remove it-sis; r2 restore it-sis; r3 create it-lpw; r4 remove replacement and restore previously removed it-sis; trace forty-node-evidence.zip!sc-forty-campaign-v3/forty-3.log</code></td><td>PASS</td></tr>
+        <tr><th scope="row">4</th><td><code>r1 remove it-nsd; r2 restore it-nsd; r3 create it-1pi; r4 remove replacement and restore previously removed it-nsd; trace forty-node-evidence.zip!sc-forty-campaign-v3/forty-4.log</code></td><td>PASS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

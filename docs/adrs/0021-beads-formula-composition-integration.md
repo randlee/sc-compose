@@ -37,6 +37,7 @@ Add `crates/sc-composer-beads`. It depends on `sc-composer` for rendering and
 uses a direct subprocess invocation of the configured `bd` executable. It
 does not link to Beads, parse Beads formula syntax, read or write Beads
 databases itself, or depend on the CLI or any foreign-language adapter.
+Dolt dirty state is read only through `bd sql` via the injected runner.
 
 ```text
 sc-compose bead CLI ─┐

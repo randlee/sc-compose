@@ -1,73 +1,40 @@
-# Step 6 — Focused Plan QA (`quality-mgr`)
+# Step 6 — Ceremony Review (`ceremony-qa`)
+
+Too much critical review can add ceremony, so `ceremony-qa` reviews the plan
+after the final critical review and its Step 5 correction pass.
 
 ## Execute
 
-**1. Render the message**
+**1. Dispatch the reviewer**
 
-```bash
-sc-compose render \
-  --root .claude/skills/codex-orchestration \
-  --file qa-template.xml.j2 \
-  --var-file /tmp/plan-hardening-qa-vars.json \
-  --output /tmp/step-6-message.xml
-```
+Import the step bead (SKILL.md "Beads", `step` 6, `route_to` `ceremony-qa`). Dispatch `ceremony-qa` as your mode reference directs (SKILL.md "Modes").
+Pass a fenced JSON input that includes:
+- `review_mode`: `doc_review`
+- `worktree_path`
+- `review_targets`: the plan file `docs/plans/phase-<phase>.jsonl`
+- `carry_forward_findings`: `[]`
 
-The vars file or rendered task must include the QA assignment fields required
-by `qa-template.xml.j2`, and it must use `step-5` fenced JSON to populate the
-QA scope. Use `review_type: "plan_gate"`.
+**2. Check the response**
 
-Expected `/tmp/plan-hardening-qa-vars.json` shape:
+Read the `ceremony-qa` response and confirm it returns fenced JSON findings.
+The expected output shape is specified inside `.claude/agents/ceremony-qa.md`.
+Do not proceed to Step 7 until that fenced JSON is present and well formed.
+If the response is incomplete or malformed, send a correction request to
+`ceremony-qa` immediately.
+Save the extracted fenced JSON to `/tmp/step-6.json`.
 
-```json
-{
-  "task_id": "phase-x-plan-qa",
-  "sprint": "phase-X",
-  "sprint_doc": "docs/phase-X/plan-phase-X.md",
-  "review_type": "plan_gate",
-  "description": "Focused plan QA for phase-X after consistency hardening",
-  "pr_number": "",
-  "branch": "feature/branch-name",
-  "worktree_path": "/absolute/path/to/worktree",
-  "commits": "HEAD",
-  "deliverables": [
-    "Plan and sprint docs are hardened and ready for implementation dispatch"
-  ],
-  "references": [
-    "docs/project-plan.md"
-  ],
-  "changed_scope": [
-    "docs/phase-X/plan-phase-X.md",
-    "docs/phase-X/sprint-X1.md",
-    "docs/phase-X/sprint-X2.md"
-  ],
-  "touched_ssot_sections": [
-    "docs/project-plan.md"
-  ]
-}
-```
+**3. Route by status**
 
-Populate `sprint_doc` and `changed_scope` by listing the phase plan and every
-sprint doc in the current plan state. Use `step-5` fenced JSON only to confirm
-that the expected files were modified or created. Do not invent QA scope from
-memory.
+- `PASS` -> proceed to Step 7
+- `FAIL` -> update `/tmp/plan-hardening-vars.json` so
+  `reviewer_findings_json` contains the Step 6 fenced JSON, then re-run Step 5
+  once; after that correction pass, proceed to Step 7
 
-**2. Send to `quality-mgr`**
-
-Use the SendMessage tool to send the rendered XML content from
-`/tmp/step-6-message.xml` to the named teammate `quality-mgr`.
-Do not use `atm send` for this step.
-
-**3. Handoff**
-
-After the QA task is sent, follow the codex-orchestration plan review flow.
-Do not route QA findings back through local `/plan-hardening` steps. From this
-point forward, the QA system owns reviewer execution, reporting, fix routing,
-and recheck loops.
+Record the round in beads after every Step 6 response (SKILL.md "Beads"):
+file one finding bead per finding (`reviewer` `ceremony-qa`), then close the Step 6
+step bead with the status, counts, `reviewed_commit` and `findings_hash`.
 
 ## Hard stops
 
-- `/tmp/plan-hardening-qa-vars.json` is missing required QA assignment fields:
-  do not advance; correct the QA vars file immediately
-- `step-5` fenced JSON from the Step 5 response is missing or malformed: do
-  not advance; send a correction request immediately and identify the missing
-  or malformed fields explicitly
+- reviewer output is missing or malformed: do not advance; send a correction
+  request immediately and identify the missing or malformed fields explicitly

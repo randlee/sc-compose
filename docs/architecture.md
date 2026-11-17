@@ -181,7 +181,8 @@ stage ordering, authorization checks, and direct executable invocation. It
 depends on `sc-composer`, workspace serde/error support, and the approved
 `process-wrap` platform-containment dependency. Beads formula parsing,
 validation, runtime-variable semantics, and persistent state remain owned by
-the `bd` executable.
+the `bd` executable. Dolt dirty state is read only through `bd sql` via the
+injected runner; the crate invokes no separate Dolt executable.
 
 It must not depend on `sc-compose`, a Python or Go adapter, Beads source or a
 Beads database library, ATM/runtime code, or any CLI argument type. The CLI
@@ -208,8 +209,17 @@ The graph engine:
    rendered formula and applies it with a single `bd create --graph`
    transaction (`--dry-run` for previews); a no-op writes nothing.
 
-It issues no other mutating `bd` command and never passes `--var` for graph
-operations: structure and values come from the sc-compose template.
+The original graph creation path issues no other mutating `bd` command.
+Advanced re-pour uses the resumable sequential updates specified by ADR-0023
+and FR-24.34. Graph operations never pass `--var`: structure and values come
+from the sc-compose template.
+
+#### Graph revisions
+
+`sc-composer-beads` owns the graph-revision seam and its structured change and
+partial-apply results. The CLI and Python adapters pass revision requests and
+receipts through without taking over graph planning or write policy. See
+[ADR-0023](adrs/0023-beads-attach-and-by-path-pour.md) for the repour contract.
 
 For bounded subprocess output, the library contains the child process tree on
 supported platforms: Unix uses a dedicated process group and Windows uses a
@@ -1301,14 +1311,39 @@ source of truth.
 }
 ```
 
-`examples list --json` and `templates list --json`
+`examples list --json` (bare `examples` with no pack name lists the same
+packs and exits 0)
+
+```json
+{
+  "packs": [
+    {
+      "name": "changelog-categories",
+      "path": "/path/to/share/sc-compose/examples/changelog-categories.md.j2",
+      "required_variables": ["categories", "date", "version"],
+      "sample_vars": "/path/to/share/sc-compose/examples/changelog-categories.sample-vars.json"
+    }
+  ]
+}
+```
+
+`required_variables` lists the inputs the pack's frontmatter declares as
+required, or is `null` when the pack declares no variable schema or its
+frontmatter does not parse (the pack is still listed);
+`sample_vars` is the adjacent `<name>.sample-vars.json` path, usable
+with `--var-file`, or `null` when the pack ships none. An unknown pack name
+fails with `ERR_CONFIG_PACK_NOT_FOUND`, and the message suggests the nearest
+discovered pack name when one is close (for example
+``example pack `hellp` was not found; did you mean `hello`?``).
+
+`templates list --json`
 
 ```json
 {
   "packs": [
     {
       "name": "hello",
-      "path": "/path/to/share/sc-compose/examples/hello.md.j2"
+      "path": "/path/to/templates/hello"
     }
   ]
 }

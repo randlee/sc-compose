@@ -25,7 +25,7 @@
     {"artifact": "sc-compose", "package": "sc-compose", "cargo_toml": "crates/sc-compose/Cargo.toml", "required": true, "publish": true, "publish_order": 4, "preflight_check": "locked", "wait_after_publish_seconds": 0, "verify_install": true}
   ],
   "release_binaries": [
-    {"name": "sc-compose", "bundled_paths": [{"source": "examples", "destination": "share/sc-compose/examples", "homebrew_destination_components": ["pkgshare"]}]}
+    {"name": "sc-compose", "bundled_paths": [{"source": "examples", "destination": "share/sc-compose/examples", "homebrew_destination_components": ["pkgshare", "examples"], "stage_smoke_args": ["examples", "list"], "stage_smoke_line": "hello"}]}
   ],
   "prerelease": {
     "tag_prefix": "prerelease/v",
@@ -47,21 +47,277 @@
     {"artifact": "sc-composer-beads-python", "package": "sc-composer-beads", "manifest": "bindings/sc-composer-beads-python/pyproject.toml", "module": "sc_composer_beads", "publish": "pypi"}
   ],
   "python_distributions": [
-    {"name": "sc-sha", "source": "bindings/sc-sha-python", "cargo_manifest": "bindings/sc-sha-python/Cargo.toml", "module_path": "bindings/sc-sha-python/python/sc_sha", "sdist": true, "wheels": ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]},
-    {"name": "sc-compose", "source": "bindings/python", "cargo_manifest": "bindings/python/Cargo.toml", "module_path": "bindings/python/python/sc_compose", "sdist": true, "wheels": ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]},
-    {"name": "sc-composer-beads", "source": "bindings/sc-composer-beads-python", "cargo_manifest": "bindings/sc-composer-beads-python/Cargo.toml", "module_path": "bindings/sc-composer-beads-python/python/sc_composer_beads", "sdist": true, "wheels": ["ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest", "windows-11-arm"]}
+    {
+      "name": "sc-sha",
+      "source": "bindings/sc-sha-python",
+      "cargo_manifest": "bindings/sc-sha-python/Cargo.toml",
+      "module_path": "bindings/sc-sha-python/python/sc_sha",
+      "sdist": true,
+      "wheels": [
+        {
+          "id": "linux-amd64",
+          "os": "ubuntu-latest",
+          "target": "x86_64-unknown-linux-gnu",
+          "platform": "manylinux_2_34_x86_64",
+          "manylinux": "2_34"
+        },
+        {
+          "id": "linux-arm64",
+          "os": "ubuntu-24.04-arm",
+          "target": "aarch64-unknown-linux-gnu",
+          "platform": "manylinux_2_17_aarch64.manylinux2014_aarch64",
+          "manylinux": "2_17"
+        },
+        {
+          "id": "macos-amd64",
+          "os": "macos-15-intel",
+          "target": "x86_64-apple-darwin",
+          "platform": "macosx_10_12_x86_64",
+          "deployment_target": "10.12"
+        },
+        {
+          "id": "macos-arm64",
+          "os": "macos-15",
+          "target": "aarch64-apple-darwin",
+          "platform": "macosx_11_0_arm64",
+          "deployment_target": "11.0"
+        },
+        {
+          "id": "windows-amd64",
+          "os": "windows-latest",
+          "target": "x86_64-pc-windows-msvc",
+          "platform": "win_amd64"
+        },
+        {
+          "id": "windows-arm64",
+          "os": "windows-11-arm",
+          "target": "aarch64-pc-windows-msvc",
+          "platform": "win_arm64"
+        }
+      ]
+    },
+    {
+      "name": "sc-compose",
+      "source": "bindings/python",
+      "cargo_manifest": "bindings/python/Cargo.toml",
+      "module_path": "bindings/python/python/sc_compose",
+      "sdist": true,
+      "wheels": [
+        {
+          "id": "linux-amd64",
+          "os": "ubuntu-latest",
+          "target": "x86_64-unknown-linux-gnu",
+          "platform": "manylinux_2_34_x86_64",
+          "manylinux": "2_34"
+        },
+        {
+          "id": "linux-arm64",
+          "os": "ubuntu-24.04-arm",
+          "target": "aarch64-unknown-linux-gnu",
+          "platform": "manylinux_2_17_aarch64.manylinux2014_aarch64",
+          "manylinux": "2_17"
+        },
+        {
+          "id": "macos-amd64",
+          "os": "macos-15-intel",
+          "target": "x86_64-apple-darwin",
+          "platform": "macosx_10_12_x86_64",
+          "deployment_target": "10.12"
+        },
+        {
+          "id": "macos-arm64",
+          "os": "macos-15",
+          "target": "aarch64-apple-darwin",
+          "platform": "macosx_11_0_arm64",
+          "deployment_target": "11.0"
+        },
+        {
+          "id": "windows-amd64",
+          "os": "windows-latest",
+          "target": "x86_64-pc-windows-msvc",
+          "platform": "win_amd64"
+        },
+        {
+          "id": "windows-arm64",
+          "os": "windows-11-arm",
+          "target": "aarch64-pc-windows-msvc",
+          "platform": "win_arm64"
+        }
+      ]
+    },
+    {
+      "name": "sc-composer-beads",
+      "source": "bindings/sc-composer-beads-python",
+      "cargo_manifest": "bindings/sc-composer-beads-python/Cargo.toml",
+      "module_path": "bindings/sc-composer-beads-python/python/sc_composer_beads",
+      "sdist": true,
+      "wheels": [
+        {
+          "id": "linux-amd64",
+          "os": "ubuntu-latest",
+          "target": "x86_64-unknown-linux-gnu",
+          "platform": "manylinux_2_39_x86_64",
+          "manylinux": "2_39"
+        },
+        {
+          "id": "linux-arm64",
+          "os": "ubuntu-24.04-arm",
+          "target": "aarch64-unknown-linux-gnu",
+          "platform": "manylinux_2_17_aarch64.manylinux2014_aarch64",
+          "manylinux": "2_17"
+        },
+        {
+          "id": "macos-amd64",
+          "os": "macos-15-intel",
+          "target": "x86_64-apple-darwin",
+          "platform": "macosx_10_12_x86_64",
+          "deployment_target": "10.12"
+        },
+        {
+          "id": "macos-arm64",
+          "os": "macos-15",
+          "target": "aarch64-apple-darwin",
+          "platform": "macosx_11_0_arm64",
+          "deployment_target": "11.0"
+        },
+        {
+          "id": "windows-amd64",
+          "os": "windows-latest",
+          "target": "x86_64-pc-windows-msvc",
+          "platform": "win_amd64"
+        },
+        {
+          "id": "windows-arm64",
+          "os": "windows-11-arm",
+          "target": "aarch64-pc-windows-msvc",
+          "platform": "win_arm64"
+        }
+      ]
+    }
+  ],
+  "publication_continuity": {},
+  "go_modules": [
+    {
+      "module": "github.com/randlee/sc-compose/bindings/sc-sha-go",
+      "source": "bindings/sc-sha-go",
+      "artifact_prefix": "sc-sha-go",
+      "rust_toolchain": "1.94.1",
+      "targets": [
+        {
+          "target": "x86_64-unknown-linux-gnu",
+          "os": "ubuntu-latest",
+          "goos": "linux",
+          "goarch": "amd64"
+        },
+        {
+          "target": "aarch64-apple-darwin",
+          "os": "macos-15",
+          "goos": "darwin",
+          "goarch": "arm64"
+        },
+        {
+          "target": "x86_64-pc-windows-gnu",
+          "os": "windows-latest",
+          "goos": "windows",
+          "goarch": "amd64"
+        },
+        {
+          "target": "aarch64-unknown-linux-gnu",
+          "os": "ubuntu-24.04-arm",
+          "goos": "linux",
+          "goarch": "arm64"
+        },
+        {
+          "target": "x86_64-apple-darwin",
+          "os": "macos-15-intel",
+          "goos": "darwin",
+          "goarch": "amd64"
+        },
+        {
+          "target": "aarch64-pc-windows-gnullvm",
+          "os": "windows-11-arm",
+          "goos": "windows",
+          "goarch": "arm64"
+        }
+      ],
+      "prepare": [
+        "python3",
+        "release/go-native-build.py",
+        "prepare",
+        "{target}"
+      ],
+      "build": [
+        "python3",
+        "release/go-native-build.py",
+        "build",
+        "{target}"
+      ],
+      "stage": [
+        "python3",
+        ".github/scripts/go_native_module.py",
+        "stage",
+        "--config",
+        "release/go-native-module.toml",
+        "--target",
+        "{target}",
+        "--native-library",
+        "target/{target}/release/libsc_sha_go.a",
+        "--output",
+        "{stage}",
+        "--version",
+        "{version}"
+      ],
+      "consumer_test": "bindings/sc-sha-go/tests/consumer-module"
+    }
   ],
   "channels": {
     "pypi": {"workflow": "pypi-publish.yml", "dispatch_inputs": {"target": "production"}, "credential_rehearsal_inputs": {"target": "testpypi"}, "test_repository": "testpypi", "production_repository": "pypi"},
     "homebrew": {
       "workflow": "homebrew-publish.yml", "dispatch_inputs": {}, "tap_repository": "randlee/homebrew-tap", "renderer_target": "x86_64-unknown-linux-gnu",
-      "formulas": [{"path": "Formula/sc-compose.rb", "template": "release/homebrew/formula.rb.j2", "class": "ScCompose", "binaries": ["sc-compose"], "test_binary": "sc-compose", "test_command": "--help", "test_output": "Standalone template composition CLI", "release_track": "stable"}],
+      "formulas": [{"path": "Formula/sc-compose.rb", "template": "release/homebrew/formula.rb.j2", "class": "ScCompose", "binaries": ["sc-compose"], "test_binary": "sc-compose", "test_command": "examples list", "test_output": "hello", "release_track": "stable"}],
       "assets": [{"key": "macos_arm", "target": "aarch64-apple-darwin"}, {"key": "macos_intel", "target": "x86_64-apple-darwin"}, {"key": "linux", "target": "x86_64-unknown-linux-gnu"}]
     },
     "scoop": {"workflow": "scoop-publish.yml", "dispatch_inputs": {}, "bucket_repository": "randlee/scoop-bucket", "manifest_path": "sc-compose.json", "manifest_template": "release/scoop/manifest.json.j2", "installer_target": "x86_64-pc-windows-msvc", "binary": "bin/sc-compose.exe", "renderer_target": "x86_64-unknown-linux-gnu"},
     "winget": {"workflow": "winget-publish.yml", "dispatch_inputs": {}, "identifier": "randlee.sc-compose", "installer_target": "x86_64-pc-windows-msvc"}
   },
-  "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "9bcf20ad8d0ef18da8f639d8fde6472291638acf"},
+  "sc_publish_pin": {"repository": "https://github.com/randlee/sc-publish", "revision": "e8928f32d539f958565396f7d7989ea5c98149fb"},
+  "rc_python_compatibility": {
+    "versions": [
+      "3.9",
+      "3.11",
+      "3.12",
+      "3.13",
+      "3.14",
+      "3.15"
+    ],
+    "build_python": "3.11",
+    "rust_toolchain": "1.94.1",
+    "setup": [
+      "python",
+      "-m",
+      "pip",
+      "install",
+      "maturin==1.9.4"
+    ],
+    "build": [
+      "python",
+      "scripts/rc_python_compat.py",
+      "build"
+    ],
+    "smoke": [
+      "python",
+      "scripts/rc_python_compat.py",
+      "smoke"
+    ],
+    "runner_overrides": {
+      "ubuntu-latest": "ubuntu-24.04"
+    },
+    "exclusions": {
+      "windows-11-arm": [
+        "3.9"
+      ]
+    }
+  },
   "preflight_workflows": [
     {"id": "install-matrix", "description": "Full five-family x six-coordinate install matrix on real target runners", "uses": "./.github/workflows/go-native-preflight.yml"}
   ],

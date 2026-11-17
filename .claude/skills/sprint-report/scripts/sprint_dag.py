@@ -183,6 +183,13 @@ def build_graph(index: object, beads: object) -> Graph:
         gates = [key for key, bead in beads.items()
                  if 'stage:dev-sanity' in (bead.get('labels') or [])
                  and dev in prerequisites(bead)]
+        if pairs[dev] in gates:
+            # Closed re-sanity iterations are history; only another open gate is ambiguous.
+            others = [key for key in gates if key != pairs[dev] and beads[key].get('status') != 'closed']
+            if others:
+                raise RuntimeError(f'{dev}: expected one live sanity gate, found {pairs[dev]} and open '
+                                   + ', '.join(sorted(others)))
+            continue
         if len(gates) != 1:
             raise RuntimeError(f'{dev}: expected one live sanity gate, found {len(gates)}')
         if pairs[dev] != gates[0]:
@@ -524,7 +531,7 @@ def generate(repo: Path, index: object, counts: dict[str, int | None], phase: st
              plan_html: Path | None = None, beads: Sequence[BeadRecord] | None = None) -> int:
     index = normalized_index(index)
     if not (RENDERER / 'node_modules/@viz-js/viz').exists():
-        raise RuntimeError(f'DAG renderer dependencies missing; run npm ci --prefix {RENDERER}')
+        raise RuntimeError(f'DAG renderer dependencies missing; run (cd {RENDERER} && npm ci --ignore-scripts)')
     phase = str(phase).removeprefix('phase-')
     output = output or repo / 'scratchpad' / f'phase-{phase}-dag' / f'phase-{phase}-dag'
     output = output if output.is_absolute() else repo / output

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta charset="utf-8"/><title>Repour integration</title></head><body>
+<h1>Repour integration</h1><p>Install means per-run atmbench-owned temporary bd staging. It persists nothing after the run; no persistent account installation is performed.</p><p>sc-compose revision: not recorded; sc-compose CLI SHA-256: not recorded.</p><section data-key="local|Darwin-arm64|bd version 1.3.4 (dev: ded3c08fa2fd)|server"><h2>Darwin arm64 — local server mode</h2><p>bd: bd version 1.3.4 (dev: ded3c08fa2fd)<br/>SHA-256: ce9fc82fe6b4b002fea817cc7a92febbfa73fa60a7066fc0b980a8dd57c975cd<br/>Dolt: dolt version 2.3.1</p>
+<p data-installed="false" data-source="/opt/homebrew/Cellar/beads/1.2.2/bin/beads">Installation: not installed (existing executable)<br/>PATH-resolved executable location (not build lineage): /opt/homebrew/Cellar/beads/1.2.2/bin/beads</p>
+<table><thead><tr><th>Scenario</th><th>Result</th><th>Evidence / failure</th></tr></thead><tbody><tr><td>pour</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>changed pour refuses with changes</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>set runtime state</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>preview, apply, retained runtime and remove/add</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>repeated repour changes no stored state</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>restore removed node</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>external edges retained in both directions</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>conditional add and remove with renamed step</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>dangling reference refuses before writes</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>graph cycle refuses pour and repour before writes</td><td>PASS</td><td><pre>pour: BEADS_GRAPH_APPLY_FAILED; repour: BEADS_GRAPH_APPLY_FAILED; complete bd snapshots unchanged</pre></td></tr>
+<tr><td>clean apply, dirty refusal and explicit override</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>attach and repour via request using bd rendering</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>partial apply reports exact progress and resumes</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>sequential evolving revisions preserve identities</td><td>PASS</td><td><pre></pre></td></tr>
+<tr><td>teardown</td><td>PASS</td><td><pre></pre></td></tr></tbody></table></section></body></html>

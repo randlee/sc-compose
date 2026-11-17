@@ -7,9 +7,9 @@ phase t planning). Extends
 [ADR-0021](0021-beads-formula-composition-integration.md); nothing in ADR-0021
 is withdrawn.
 
-The Phase V advanced-mode amendment at the end supersedes the legacy
-bead-input, missing-edge, provenance and write restrictions only for advanced
-rendering. The original rules remain the bd-owned compatibility contract.
+The Phase V advanced-mode amendment and Phase W re-pour amendment supersede
+the legacy restrictions for advanced rendering. The original rules remain
+the bd-owned compatibility contract.
 
 ## Context
 
@@ -81,11 +81,12 @@ forked Beads.
    conditionals and includes.
 5. **Identity and safe repetition (attach).** Ids are `<parent>.<ref>-<step>`.
    Every created bead carries provenance metadata. A bead whose provenance
-   matches is left untouched; anything else refuses the whole request before
-   any write. sc-compose never edits, closes, reopens or deletes a bead.
-6. **Atomic apply.** Everything a request creates is written by one `bd create
-   --graph` transaction, so a request leaves either all of its missing beads
-   and edges or none of them.
+   matches is left untouched on an exact replay. For advanced re-pour, the
+   Phase W amendment governs plan-field updates and invalid ownership; runtime
+   state is preserved and beads are not closed, reopened or deleted.
+6. **Apply.** The original creation path uses one `bd create --graph`
+   transaction. Advanced re-pour follows the convergent Phase W amendment;
+   it may apply multiple updates and completes an interruption on rerun.
 7. **Edges.** `needs` / `depends_on` become `blocks`; `relations[]` adds edges
    of any well-known bd dependency type except `parent-child` (reserved for the
    hierarchy) between steps and existing beads.
@@ -160,14 +161,14 @@ create --graph --dry-run`. Nothing is written to bd.
 Running UC-2 again finds three beads whose provenance matches; all nodes and
 edges are `existing`, no bd write is issued, and the receipt succeeds. A bead
 that was claimed, closed, annotated or edited since keeps all of that:
-status, notes, assignee and fields are never compared and never written.
+status, notes and assignee are preserved. Advanced re-pour compares and
+updates changed plan-owned fields as specified in the Phase W amendment.
 
 ### UC-5: Resume after an interruption (#613 required behaviour)
 
-The apply is one transaction, so an interrupted `attach` left either nothing
-or everything. Re-running the same request creates whatever is missing (all of
-it, or none). If a matching bead was deleted by hand, a re-run recreates just
-that bead and its edges, again in one transaction.
+The original create-only apply uses one transaction. Advanced re-pour may
+be interrupted between writes; rerunning completes remaining work. If a
+matching bead was deleted by hand, rerunning recreates it and its edges.
 
 ### UC-6: A changed formula or scope is refused (#613 required behaviour)
 
@@ -245,12 +246,12 @@ pub struct StepId(String);        // ^[A-Za-z0-9_]{1,64}$   (never '-')
 pub struct Sha256Digest(String);  // "sha256:" + 64 lowercase hex
 
 // existing enums gain variants (serde: snake_case, as today)
-pub enum BeadOperation { Render, Validate, PreviewPour, Pour, PreviewAttach, Attach }
-pub enum BeadStage { Render, Validate, ResolveActiveRegistry, PreviewPour, Pour, PreviewAttach, Attach }
+pub enum BeadOperation { Render, Validate, PreviewPour, Pour, PreviewAttach, Attach, Repour }
+pub enum BeadStage { Render, Validate, ResolveActiveRegistry, PreviewPour, Pour, PreviewAttach, Attach, Repour }
 // BeadStageOutcome { Succeeded, Skipped, Failed { code } } is unchanged.
 
 // BeadComposeRequest gains (all serde-default, so Phase R requests parse unchanged):
-pub parent: Option<BeadId>,                        // attach ops: required, an existing bead id; others: must be absent
+pub parent: Option<BeadId>,                        // attach parent or repour root; otherwise absent
 #[serde(rename = "ref")] pub ref_: Option<GraphRef>,   // attach ops: required; others: must be absent
 pub relations: Vec<BeadRelation>,                  // attach ops and graph-mode pour only
 
@@ -285,8 +286,8 @@ pub struct BeadGraph {
 }
 pub struct BeadGraphNode { pub step: Option<StepId> /* None = pour root */, pub id: Option<BeadId>, pub action: BeadNodeAction }
 pub struct BeadGraphEdge { pub from: String, pub to: String /* bead id, or "step:<id>" before bd assigns ids */, #[serde(rename = "type")] pub kind: String, pub action: BeadEdgeAction }
-#[serde(rename_all = "snake_case")] pub enum BeadNodeAction { Create, Created, Existing }
-#[serde(rename_all = "snake_case")] pub enum BeadEdgeAction { Add, Added, Existing }
+#[serde(rename_all = "snake_case")] pub enum BeadNodeAction { Create, Created, Existing, Update, Updated, Retained }
+#[serde(rename_all = "snake_case")] pub enum BeadEdgeAction { Add, Added, Existing, Retained }
 pub struct MissingEdge { pub from: BeadId, pub to: BeadId, #[serde(rename = "type")] pub kind: String }
 
 // bead metadata[PROVENANCE_KEY] on every bead the graph engine creates
@@ -318,11 +319,11 @@ execution, CLI exit 3 or 2) and a fallback arm, never variant by variant.
 | `GraphScopeMismatch { field, value }` | `BEADS_GRAPH_SCOPE_MISMATCH` | refused / 2 (validate) | make `compose_variables` agree with `parent` / `ref` |
 | `GraphFormulaUnsupported { reason }` | `BEADS_GRAPH_FORMULA_UNSUPPORTED` | refused / 2 (validate) | express the construct in the template, or use registry pour |
 | `GraphRelationInvalid { index, reason }` | `BEADS_GRAPH_RELATION_INVALID` | refused / 2 (validate or plan) | correct the relation |
-| `GraphConflict { id, reason }` | `BEADS_GRAPH_CONFLICT` | refused / 2 (plan) | inspect the named bead (sc-compose never edits it) or use a new `ref` |
+| `GraphConflict { id, reason }` | `BEADS_GRAPH_CONFLICT` | refused / 2 (plan) | inspect the named bead identity or use a new `ref` |
 | `GraphEdgeConflict { from, to, existing, requested }` | `BEADS_GRAPH_EDGE_CONFLICT` | refused / 2 (plan) | inspect the existing edge, or change the relation |
 | `GraphEdgeMissing { edges }` | `BEADS_GRAPH_EDGE_MISSING` | refused / 2 (plan) | run the `bd dep add` command the message gives for each edge, then re-run |
 | `GraphReadFailed { command, status }` | `BEADS_GRAPH_READ_FAILED` | failed / 2 (plan) | fix the bd failure and re-run; nothing was written |
-| `GraphApplyFailed { command, status }` | `BEADS_GRAPH_APPLY_FAILED` | failed / 2 (pour or attach) | fix the bd failure and re-run; nothing was written |
+| `GraphApplyFailed { command, status }` | `BEADS_GRAPH_APPLY_FAILED` | failed / 2 (pour or attach) | fix the bd failure and rerun; earlier writes may have succeeded |
 | `GraphApplyUnconfirmed { command, cause, ids }` | `BEADS_GRAPH_APPLY_UNCONFIRMED` | failed / 2 (pour or attach) | bd exited 0, so beads may exist: reconcile with `bd show` on `ids` (`bd list` when `ids` is empty) before pouring again |
 
 Field types: `command` is the bd argv as `Vec<String>`; `status` is
@@ -484,7 +485,8 @@ Preview runs `bd create --graph <plan> --dry-run --json` and apply runs `bd
 create --graph <plan> --json`. bd validates the whole plan (types, priority,
 ids, cycles, blocking paths through the hierarchy) before writing and applies
 it in one transaction, returning `{"ids": {key: id}}`. A non-zero exit of
-either command is `GraphApplyFailed`; bd has written nothing. When apply exits
+either command is `GraphApplyFailed`; that individual graph transaction wrote
+nothing. Earlier re-pour writes may already have succeeded. When apply exits
 0 but its response cannot be consumed (not JSON, `ids` missing, or ids that do
 not match the plan), the transaction may have committed: that is
 `GraphApplyUnconfirmed`, whose `ids` lists the attach parent and planned step
@@ -557,7 +559,8 @@ stage. Exit codes follow the existing policy: 0 succeeded, 2 refused or failed
 receipt, 3 request or usage error.
 
 ### Write rule
-For the preserved bd-owned graph path:
+For the preserved bd-owned graph path (advanced re-pour is governed by the
+Phase W amendment):
 The only mutating bd command sc-compose issues for these operations is one
 `bd create --graph` per request. It never issues `bd update`, `bd close`, `bd
 reopen`, `bd delete`, `bd dep add`, `bd mol pour` or `bd mol bond` for them,
@@ -607,7 +610,7 @@ These corrections bring the text above in line with the shipped behaviour.
 | #613: preview shows hierarchy and blocking edges before mutation | UC-3 |
 | #613: explicit persistent-write authorization | Authorization |
 | #613: same request is a no-op or a clear conflict; never reset status, notes, claims, evidence | Conflict rules; UC-4, UC-6 |
-| #613: recover from partial execution | Atomic apply; UC-5 |
+| #613: recover from partial execution | Phase W re-pour amendment; UC-5 |
 | #613: reject a conflicting revision or scope | Revision, Scope; UC-6 |
 | #613: receipt mapping parent and generated ids | `BeadGraph`; UC-10 |
 | #613: children directly under the parent or under a container | directly under the parent; UC-2 |
@@ -621,7 +624,8 @@ These corrections bring the text above in line with the shipped behaviour.
   formulas, same stages and codes.
 - A formula rendered anywhere in the workspace pours on production bd v1.3.1,
   with no registry directory, no proto and no Beads fork.
-- Attach is safe to re-run and to resume; a request is all-or-nothing.
+- Attach is safe to re-run and resume; advanced re-pour completes partial
+  sequential updates on rerun.
 - Workflow structure (loops, per-item chains, optional steps) is written once,
   in the sc-compose template language, and Beads' substitution and expansion
   engine is not on the path.
@@ -648,8 +652,8 @@ accumulating, can leave a proto behind on failure, and still uses Beads'
 substitution. One `bd create --graph` writes the same beads directly.
 
 ### One `bd create` / `bd dep add` per bead and edge
-Not atomic: an interruption leaves part of a workflow and forces partial-apply
-recovery rules. `bd create --graph` is one transaction.
+Originally rejected for lacking atomicity. Phase W accepts resumable
+sequential writes for single-writer re-pour.
 
 ### Use Beads `vars`, `loop` and `expand` for structure
 A second, more limited template language next to sc-compose's, with its own
@@ -671,91 +675,67 @@ leaves stale, request-specific formulas in a shared by-name registry.
   `cmd/bd/cook.go`, `cmd/bd/template.go`, `internal/formula/parser.go`,
   `internal/types/types.go` (dependency types)
 
-## Phase V amendment — additive advanced graphs (2026-11-04)
+## Phase W amendment — convergent re-pour (2026-11-14)
 
-FR-24.34–35 authorize missing-edge repair, newly declared edges between
-existing beads, and conditional bead/edge additions in advanced mode.
-This amendment does not change explicit --render-by bd compatibility.
+This amendment supersedes the earlier atomic-apply and immutable-node rules
+for advanced re-pour.
+One writer per plan is supported without a concurrency precondition or a new
+bd primitive. `sc-compose bead repour FORMULA --root <bead-id>` targets a
+prior pour root; attach graphs use their existing parent and ref. Existing
+steps are matched by provenance identity (mode, formula, parent, ref, step),
+not revision, input or node-definition hashes.
 
-### Ownership and revisions
+Before any write, validate the entire plan and target. Reject malformed plans,
+dangling references, conflicting edge types, invalid targets and foreign or
+unowned planned IDs; do not reject otherwise valid input. Existing external
+endpoints are references and are not updated.
 
-Advanced-created nodes use versioned provenance v2. Its stable ownership
-identity is (mode, formula, parent, ref, step). It also records a
-node_definition SHA-256 over that node's original rendered creation payload,
-excluding edges and runtime mutable state. The creation template revision and
-input hashes remain audit provenance. The request graph retains its own
-revision for the currently rendered nodes/edges in the receipt.
+Apply changed plan-owned fields to existing beads, create missing nodes and
+edges, preserve IDs and runtime state, and read back and report changes.
+Merge metadata without clobbering unrelated user keys. Explicit plan values
+update existing beads, including closed beads; unspecified fields are retained.
+Removed nodes and edges are reported, not deleted. An interrupted apply is
+completed by rerunning; an exact replay changes nothing. There is no
+all-or-nothing promise across writes. Partial failure uses `GraphApplyPartial` (`BEADS_GRAPH_APPLY_PARTIAL`,
+execution class, failed receipt and CLI exit 2) with applied and pending
+work where known and a rerun hint; its text must not claim nothing was written.
 
-Existing v2 nodes must match both ownership identity and node_definition.
-An edge-only change or a condition enabling another node does not change the
-identity/hash of unchanged nodes; it may add declared edges/nodes. Do not
-compare current user status, notes or assignee against creation values and
-do not overwrite them. Changed node definitions are provenance conflicts,
-not implicit updates. No automatic edge type replacement or deletion.
+Operation and stage `Repour` serialize as `repour`; node action `Update`
+serializes as `update` for a planned field change. Receipts distinguish
+existing, created, updated and retained nodes and
+existing, added and retained edges; the JSON CLI and Python adapter retain
+compatibility with these additive actions. `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`
+is retired and its refusal branches are deleted. FR-24.35 and FR-24.36 remain
+applicable.
 
-A v1 node can only be upgraded when its original creation payload/provenance
-can be verified from the original creation snapshot or authoritative bd history.
-Perform any proven v1-to-v2 provenance-only migration inside the same atomic
-apply, preserving all user fields. Otherwise refuse with the existing provenance conflict and
-explain the missing migration proof. No unowned or foreign planned id is
-adopted. Existing explicitly named external endpoints remain references,
-with the prior authorization/validation rules; their fields are untouched.
+## Phase W amendment — re-pour plan revisions (2026-11-15)
 
-### One atomic apply
+This amendment supersedes the Phase W retained-internal-edge policy above.
+`pour` and `repour` remain separate commands. Pouring a changed existing graph,
+including `pour --dry-run` and `preview_pour`, refuses with
+`BEADS_GRAPH_CONFLICT`; the human error and JSON recovery explain the conflict
+and name `repour` as the recommended command. Repour updates plan-owned fields
+without writing runtime status, notes or assignee, even on closed beads.
 
-Preview renders and validates the complete selected graph and reports its
-node/edge additions without persistent writes. Apply requires the existing
-CreatePersistentBeads authorization. Use one transactional bd operation for
-the allowed additions, including the mixed case of new nodes and edges among
-existing nodes. Verify existing-node ownership preconditions at the apply
-boundary. Any error rolls back the whole mutation; an ambiguous response is
-GraphApplyUnconfirmed and requires readback/reconciliation, never blind retry.
+Internal edges have both endpoints owned by the graph. Repour removes internal
+edges absent from the new plan, including those of removed nodes. External
+edges have an endpoint outside the graph: retain and report every such edge
+in either direction, including gates and graph beads blocking outside beads.
+Removed nodes are retained in their existing status, labelled `repour:removed`,
+and listed with a recommended separate remove command in dry-run and apply
+output. When a bead is deleted later, its edges go with it.
 
-The current bd CLI exposes bulk `bd dep add --file edges.jsonl` for a pure
-edge batch and `bd create --graph` for graph creation. V1 verifies the selected
-binary's transactional guarantees with controlled failures and checks whether
-one supported graph primitive can handle the mixed case and ownership
-preconditions. Help output is not that proof. If the required primitive is
-missing, coordinate its minimal canonical bd extension and adopt the supported
-version before V3's apply acceptance. Do not patch a local fork, invent a
-storage writer, split create+edges into two commits, or loop per edge with
-best-effort rollback. This dependency blocks only the affected apply path;
-it cannot be reported as automatic-edge completion.
+Dry-run and apply list every change a user may or may not accept: field changes
+on closed or in-progress beads, removed edges, retained external edges and
+removed nodes. Dry-run predicts conflicts assuming the bd graph does not change
+between runs. Conflict recovery says exactly why it failed; partial failure
+reports exactly what was done and what was not. Dry-run and the corresponding
+apply agree under that unchanged-graph assumption.
 
-A capability refusal is the planned typed code
-BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE, exit 2, before any mutation. V1 records
-the exact supported command/schema/version in the existing implementation PR once verified;
-V3 cannot dispatch this apply path against an unspecified protocol.
-
-V1 is contract verification only. Qualifying the bd ownership capability for
-pure-edge and mixed node-edge apply is not implemented by V1. An unsupported
-capability is recorded on the bead `comp-v-1-bd-ownership` for phase-end
-discussion. It blocks only the affected apply acceptance, never V1 or
-independent downstream development, and adds no new ledger.
-
-### Conditional graph and required cases
-
-Jinja renders the source before graph validation. Optional beads and edges
-may be omitted together. Dangling step references are rejected before any
-write. A later true condition may add elements; a later false condition does
-not prune stored graph state. Test both typed booleans and explicitly compared
-string flags, with stored-state readback.
-
-V3 must exercise: fresh graph; existing owned endpoints with a missing edge;
-newly declared same-type relation with unchanged node definitions; enabled
-optional node plus edges to existing nodes; conflicting edge type; changed
-node/provenance identity; foreign planned id; dangling conditional reference;
-unauthorized request; controlled atomic-apply failure; ambiguous response;
-verified v1 ownership migration and missing-proof refusal; and successful
-no-op replay preserving status/notes/assignee. Positive cases
-verify actual typed directed edges in bd, without manual dependency commands.
-V1 reproduces the original BEADS_GRAPH_EDGE_MISSING behavior using
-edge_conflict_missing_edge_and_noop_preserve_the_prior_plan and an isolated
-real-bd equivalent, recording formula, mode, binary and readback in the
-existing PR discussion. Fresh graph success alone is not the defect repro.
-
-FR-24.36 governs typed identifier/path constraints, safe argv and recovery rendering,
-non-UTF8 path diagnostics and error precedence. It does not authorize extra
-restrictions on valid bd-compatible inputs. Transaction qualification runs
-and exact binary/schema evidence are recorded in the existing implementation PR;
-this ADR specifies the required atomic capability rather than becoming a run log.
+Repour refuses when the entire bd database has uncommitted Dolt changes;
+`--allow-uncommitted` overrides this refusal. An unknown dirty state also
+refuses, with the exact reason and two ways forward: `bd dolt commit` or rerun
+with `--allow-uncommitted`. The dirty-state probe uses only `bd sql --readonly` through the injected
+runner. If bd cannot answer, including in unsupported embedded or older bd
+modes, the state is unknown; no separate Dolt executable is invoked. Dolt commit and sync is the rollback, which is why clear
+reporting is enough risk control.

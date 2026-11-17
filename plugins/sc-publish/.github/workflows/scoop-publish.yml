@@ -120,7 +120,12 @@ jobs:
               "windows_url": url,
               "windows_sha256": hashlib.file_digest(archive.open("rb"), "sha256").hexdigest(),
               "extract_dir": f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{target['target']}",
-              "binary": channel["binary"],
+              # A string keeps the single-shim manifest; a list renders one shim per binary.
+              "binary": (
+                  [f"bin/{name}.exe" for name in channel["binaries"]]
+                  if "binaries" in channel
+                  else channel["binary"]
+              ),
           }
           Path("scoop-vars.json").write_text(json.dumps(variables), encoding="utf-8")
           PY

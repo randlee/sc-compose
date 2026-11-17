@@ -34,6 +34,7 @@ pub struct BeadExecutionOptions {
 /// Requested Beads composition operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum BeadOperation {
     /// Render a template without invoking Beads.
     Render,
@@ -47,9 +48,19 @@ pub enum BeadOperation {
     PreviewAttach,
     /// Atomically attach graph children under an existing parent.
     Attach,
+    /// Converge the beads of an earlier graph pour onto the updated plan.
+    ///
+    /// The request's `parent` names the pour root; `ref` must be absent.
+    Repour,
+    /// Preview the changes of a graph revision without writing beads.
+    PreviewRepour,
 }
 
 impl BeadOperation {
+    pub(crate) const fn is_repour(self) -> bool {
+        matches!(self, Self::Repour | Self::PreviewRepour)
+    }
+
     /// Return the operation's stable serde wire name.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
@@ -60,6 +71,8 @@ impl BeadOperation {
             Self::Pour => "pour",
             Self::PreviewAttach => "preview_attach",
             Self::Attach => "attach",
+            Self::Repour => "repour",
+            Self::PreviewRepour => "preview_repour",
         }
     }
 }
@@ -267,6 +280,7 @@ pub struct BeadComposeReceipt {
 /// One discrete execution stage.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum BeadStage {
     /// Template rendering.
     Render,
@@ -282,6 +296,8 @@ pub enum BeadStage {
     PreviewAttach,
     /// Atomically attach graph children under an existing parent.
     Attach,
+    /// Converge an earlier graph pour onto its updated plan.
+    Repour,
 }
 
 impl BeadStage {
@@ -296,6 +312,7 @@ impl BeadStage {
             Self::Pour => "pour",
             Self::PreviewAttach => "preview_attach",
             Self::Attach => "attach",
+            Self::Repour => "repour",
         }
     }
 }
@@ -349,6 +366,7 @@ pub struct BeadStageReceipt {
 /// Final operation outcome.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum BeadOutcome {
     /// All requested stages succeeded.
     Succeeded,
@@ -653,6 +671,7 @@ pub struct BeadRelation {
 
 /// The planned or applied graph and its resolved bead identities.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct BeadGraph {
     /// Construction mode.
     pub mode: BeadGraphMode,
@@ -674,6 +693,28 @@ pub struct BeadGraph {
     pub nodes: Vec<BeadGraphNode>,
     /// Edges in plan order.
     pub edges: Vec<BeadGraphEdge>,
+    /// Detailed changes planned or applied during graph revision.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub changes: Vec<crate::revision::GraphChange>,
+}
+
+impl BeadGraph {
+    /// Start an empty graph receipt for a formula revision.
+    #[must_use]
+    pub fn new(mode: BeadGraphMode, formula: FormulaName, revision: Sha256Digest) -> Self {
+        Self {
+            mode,
+            formula,
+            revision,
+            parent: None,
+            ref_: None,
+            plan_path: None,
+            ids: BTreeMap::new(),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            changes: Vec::new(),
+        }
+    }
 }
 
 /// One planned or applied graph node.
@@ -860,6 +901,12 @@ pub enum BeadNodeAction {
     Created,
     /// Already exists and remains untouched.
     Existing,
+    /// Already exists and its plan-owned fields will be updated.
+    Update,
+    /// Already existed and its plan-owned fields were updated.
+    Updated,
+    /// Exists but is no longer in the plan; it is left in place, not deleted.
+    Retained,
 }
 
 /// Outcome for a graph edge.
@@ -873,6 +920,8 @@ pub enum BeadEdgeAction {
     Added,
     /// Already exists and remains untouched.
     Existing,
+    /// Exists but is no longer in the plan; it is left in place, not deleted.
+    Retained,
 }
 
 /// An absent dependency between existing beads requiring manual repair.

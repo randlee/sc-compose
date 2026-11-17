@@ -1,7 +1,11 @@
 #[path = "cli/bead.rs"]
 mod bead;
+#[path = "cli/examples.rs"]
+mod examples;
 #[path = "cli/extract.rs"]
 mod extract;
+#[path = "cli/frontmatter_discovery.rs"]
+mod frontmatter_discovery;
 #[path = "cli/fuzz_regressions.rs"]
 mod fuzz_regressions;
 #[path = "cli/help.rs"]

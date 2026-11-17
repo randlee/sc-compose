@@ -51,6 +51,11 @@ pub(super) struct Step {
 pub(super) struct ValidatedGraph {
     pub mode: BeadGraphMode,
     pub parent: Option<BeadId>,
+    /// Pour root of a repour. The root is the repour target, not a provenance
+    /// parent: beads converged onto it keep the identity of the original pour.
+    pub root: Option<BeadId>,
+    /// The request is a repour, in either pour (root) or attach (parent and ref) form.
+    pub repour: bool,
     pub reference: Option<GraphRef>,
     pub formula: crate::FormulaName,
     pub description: String,
@@ -75,7 +80,7 @@ pub(super) struct ProvenanceV2 {
 }
 
 impl ValidatedGraph {
-    pub fn provenance_v2(&self, step: Option<&Step>) -> Result<ProvenanceV2, BeadComposeError> {
+    pub fn provenance_v2(&self, step: Option<&Step>) -> ProvenanceV2 {
         let mut definition = step.map_or_else(
             || json!({"type": "molecule", "title": self.formula, "description": self.description}),
             |step| Value::Object(step.fields.clone()),
@@ -86,17 +91,17 @@ impl ValidatedGraph {
             }
         }
         let bytes = serde_json::to_vec(&definition).expect("node definition serializes");
-        Ok(ProvenanceV2 {
+        ProvenanceV2 {
             v: 2,
             mode: self.mode,
             formula: self.formula.clone(),
             parent: self.parent.clone(),
             reference: self.reference.clone(),
             step: step.map(|item| item.id.clone()),
-            node_definition: digest(&bytes)?,
+            node_definition: json_digest(&bytes),
             revision: self.revision.clone(),
             inputs: self.inputs.clone(),
-        })
+        }
     }
     pub fn provenance(&self, step: Option<StepId>) -> BeadGraphProvenance {
         BeadGraphProvenance {
@@ -145,6 +150,14 @@ fn nonempty(value: &Value) -> bool {
         Value::String(v) => !v.is_empty(),
         _ => true,
     }
+}
+
+fn json_digest(bytes: &[u8]) -> Sha256Digest {
+    let hash = calculate_hash(HashInput::TextFileBytes {
+        utf8_file_bytes: bytes,
+    })
+    .expect("serde_json emits valid UTF-8");
+    Sha256Digest::new(format!("sha256:{}", hash.template())).expect("SHA-256 digest is valid")
 }
 
 pub(super) fn digest(bytes: &[u8]) -> Result<Sha256Digest, BeadComposeError> {
@@ -214,9 +227,13 @@ pub(super) fn validate(
     });
     let inputs = serde_json::to_vec(&json!({"mode": mode, "relations": relations}))
         .expect("contract serializes");
+    let repour = req.operation.is_repour();
+    let attached = repour && req.ref_.is_some();
     Ok(ValidatedGraph {
         mode,
-        parent: req.parent.clone(),
+        parent: req.parent.clone().filter(|_| !repour || attached),
+        root: req.parent.clone().filter(|_| repour && !attached),
+        repour,
         reference: req.ref_.clone(),
         formula: req
             .formula_name

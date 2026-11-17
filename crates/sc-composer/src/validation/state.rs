@@ -6,7 +6,7 @@ use time::format_description::well_known::Rfc3339;
 use time::macros::format_description;
 
 use crate::ExpandedTemplate;
-use crate::discovery::{discover_all_pass_tokens_for, discover_tokens_for};
+use crate::discovery::{ScanMode, discover_all_pass_tokens_for, discover_tokens_for};
 use crate::frontmatter::{Frontmatter, ParsedTemplate};
 use crate::types::{ComposeRequest, VariableName, VariableSource};
 
@@ -60,16 +60,30 @@ pub(crate) fn collect_validation_state(
     populate_pass_validation_maps(
         &mut state,
         expanded,
-        request.policy.strict_undeclared_variables,
+        discovery_scan_mode(expanded, request.policy.strict_undeclared_variables),
     );
     state
 }
 
-/// `strict` also skips Jinja comments and raw blocks (GH #785); the default scan keeps v1.7.0 tokens.
+/// Root frontmatter opts into argument-only discovery independently of strict
+/// diagnostics. Schema-less templates retain their existing strict/default scan.
+pub(super) fn discovery_scan_mode(expanded: &ExpandedTemplate, strict: bool) -> ScanMode {
+    let root = expanded.resolved_files.first();
+    let has_frontmatter = expanded
+        .frontmatters
+        .iter()
+        .any(|(path, passes)| Some(path) == root && !passes.is_empty());
+    if has_frontmatter || strict {
+        ScanMode::ArgumentsOnly
+    } else {
+        ScanMode::WholeStatement
+    }
+}
+
 fn populate_pass_validation_maps(
     state: &mut ValidationState,
     expanded: &ExpandedTemplate,
-    strict: bool,
+    mode: ScanMode,
 ) {
     let root_path = expanded.resolved_files.first();
     let root_passes = expanded
@@ -82,13 +96,13 @@ fn populate_pass_validation_maps(
         })
         .unwrap_or_default();
     if root_passes.is_empty() {
-        state.referenced_variables = discover_tokens_for(&expanded.text, 2, strict);
+        state.referenced_variables = discover_tokens_for(&expanded.text, 2, mode);
         return;
     }
 
     let parsed = ParsedTemplate::from_parts(root_passes, expanded.text.clone());
 
-    let referenced_variables_by_pass = discover_all_pass_tokens_for(&parsed, strict);
+    let referenced_variables_by_pass = discover_all_pass_tokens_for(&parsed, mode);
     let root_pass_declared = parsed
         .passes()
         .iter()

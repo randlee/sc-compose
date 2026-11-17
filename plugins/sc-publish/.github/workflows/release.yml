@@ -134,9 +134,28 @@ jobs:
           RELEASE_SHA: ${{ steps.release_gate.outputs.release_sha }}
         run: python3 .github/scripts/npm_release.py check-source --manifest "$RELEASE_ARTIFACT_MANIFEST" --tag "$RELEASE_TAG" --source-ref "$RELEASE_SHA"
 
+      - name: Verify declared publication continuity before any publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.meta.outputs.release_version }}
+          RELEASE_SHA: ${{ steps.release_gate.outputs.release_sha }}
+        run: python3 .github/scripts/publication_continuity.py --manifest "$RELEASE_ARTIFACT_MANIFEST" --version "$RELEASE_VERSION" --source-ref "$RELEASE_SHA"
+
+      - name: Read Go declaration at the resolved release commit
+        id: go_declaration
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release_gate.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          plan="$(python3 .github/scripts/go_release.py plan --manifest "$RELEASE_ARTIFACT_MANIFEST" --source-ref "$RELEASE_SHA")"
+          echo "enabled=$(jq -r '.enabled' <<<"$plan")" >> "$GITHUB_OUTPUT"
+
       - name: Ensure tag is correct or create it
         id: release-ref
         shell: bash
+        env:
+          GO_ENABLED: ${{ steps.go_declaration.outputs.enabled }}
         run: |
           set -euo pipefail
           git fetch origin --prune --tags
@@ -145,7 +164,9 @@ jobs:
           main_sha='${{ steps.release_gate.outputs.release_sha }}'
           git rev-parse --verify "${main_sha}^{commit}" >/dev/null
           candidate_tag="release-candidate-${tag}"
-          if [[ "$target" == "production" ]]; then
+          if [[ "${GO_ENABLED:-false}" == "true" ]]; then
+            echo "Go modules declared: defer production tag until bundles are verified"
+          elif [[ "$target" == "production" ]]; then
             if git ls-remote --exit-code --refs origin "refs/tags/${tag}" >/dev/null; then
               remote_tag_sha="$(git rev-parse "refs/tags/${tag}^{commit}")"
               if ! git merge-base --is-ancestor "$remote_tag_sha" origin/main; then
@@ -165,6 +186,87 @@ jobs:
             echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"
           fi
           echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"
+
+  go-plan:
+    needs: gate-and-tag
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.plan.outputs.enabled }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.build_ref }}
+      - id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan="$(python3 .github/scripts/go_release.py plan)"
+          echo "enabled=$(jq -r '.enabled' <<<"$plan")" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(jq -c '.matrix' <<<"$plan")" >> "$GITHUB_OUTPUT"
+
+  build-go-modules:
+    needs: [gate-and-tag, go-plan]
+    if: ${{ needs.go-plan.outputs.enabled == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.go-plan.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.build_ref }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ${{ matrix.source }}/go.mod
+          cache: false
+      - uses: dtolnay/rust-toolchain@master
+        if: ${{ matrix.rust_toolchain != '' }}
+        with:
+          toolchain: ${{ matrix.rust_toolchain }}
+          targets: ${{ matrix.target }}
+      - name: Prepare declared native Go toolchain
+        shell: bash
+        env:
+          GO_ARTIFACT: ${{ matrix.artifact }}
+          GO_VERSION: ${{ needs.gate-and-tag.outputs.release_version }}
+        run: python3 .github/scripts/go_release.py prepare --artifact "$GO_ARTIFACT" --version "$GO_VERSION"
+      - name: Build and qualify staged and unpacked Go modules
+        shell: bash
+        env:
+          GO_ARTIFACT: ${{ matrix.artifact }}
+          GO_VERSION: ${{ needs.gate-and-tag.outputs.release_version }}
+          CGO_ENABLED: '1'
+        run: python3 .github/scripts/go_release.py build --artifact "$GO_ARTIFACT" --version "$GO_VERSION"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: go-bundle-${{ matrix.artifact }}
+          path: go-bundles/${{ matrix.artifact }}.zip
+          if-no-files-found: error
+
+  go-verified:
+    needs: [gate-and-tag, go-plan, build-go-modules]
+    if: ${{ !failure() && !cancelled() && needs.go-plan.result == 'success' && (needs.go-plan.outputs.enabled != 'true' || needs.build-go-modules.result == 'success') }}
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ needs.go-plan.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.build_ref }}
+      - uses: actions/download-artifact@v7
+        if: ${{ needs.go-plan.outputs.enabled == 'true' }}
+        with:
+          pattern: go-bundle-*
+          path: go-bundles
+      - name: Verify exact declared native Go bundle set
+        run: python3 .github/scripts/go_release.py verify
+      - name: Create production release tag only after Go verification
+        if: ${{ needs.go-plan.outputs.enabled == 'true' && needs.gate-and-tag.outputs.release_target == 'production' }}
+        env:
+          RELEASE_VERSION: ${{ needs.gate-and-tag.outputs.release_version }}
+          RELEASE_COMMIT: ${{ needs.gate-and-tag.outputs.build_ref }}
+        run: python3 .github/scripts/go_release.py release-tag --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT"
 
   build:
     if: ${{ needs.release-plan.outputs.has_release_binaries == 'true' }}
@@ -272,7 +374,7 @@ jobs:
 
   publish:
     if: ${{ needs.gate-and-tag.outputs.release_target == 'production' && needs.release-plan.outputs.has_crates == 'true' && needs.gate-and-tag.outputs.crates_already_published != 'true' }}
-    needs: [gate-and-tag, release-plan]
+    needs: [gate-and-tag, release-plan, go-verified]
     runs-on: ubuntu-latest
     environment: crates-io
     steps:
@@ -436,7 +538,7 @@ jobs:
         if: ${{ matrix.platform != '' }}
         env:
           WHEEL_PLATFORM: ${{ matrix.platform }}
-        run: python3 .github/scripts/release_python.py --asset-dir dist --platform "$WHEEL_PLATFORM"
+        run: python3 .github/scripts/release_python.py --asset-dir dist --platform "$WHEEL_PLATFORM" --manifest "$RELEASE_ARTIFACT_MANIFEST"
       - uses: actions/upload-artifact@v6
         with:
           name: python-wheel-${{ matrix.artifact }}-${{ matrix.id || matrix.os }}
@@ -503,9 +605,10 @@ jobs:
     # the manifest declares no matching Python distributions.
     if: >-
       ${{ !failure() && !cancelled() &&
+          needs.go-verified.result == 'success' &&
           needs.gate-and-tag.outputs.release_target == 'testpypi' &&
           (needs.build-python-wheels.result == 'success' || needs.build-python-sdists.result == 'success') }}
-    needs: [gate-and-tag, release-plan, build-python-wheels, build-python-sdists]
+    needs: [gate-and-tag, release-plan, build-python-wheels, build-python-sdists, go-verified]
     runs-on: ubuntu-latest
     environment: testpypi
     steps:
@@ -560,9 +663,10 @@ jobs:
     # the release and its dependent post-release channels proceed.
     if: >-
       ${{ !failure() && !cancelled() &&
+          needs.go-verified.result == 'success' &&
           needs.gate-and-tag.outputs.release_target == 'production' &&
           (needs.build.result == 'success' || needs.build.result == 'skipped') }}
-    needs: [gate-and-tag, build, build-python-wheels, build-python-sdists, build-npm]
+    needs: [gate-and-tag, build, build-python-wheels, build-python-sdists, build-npm, go-verified]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -652,6 +756,18 @@ jobs:
       - name: Verify collected Python distributions
         if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}
         run: python3 .github/scripts/release_artifacts.py verify-python-release-assets --manifest "$RELEASE_ARTIFACT_MANIFEST" --asset-dir "$RELEASE_ASSET_DIR"
+
+      - uses: actions/setup-go@v6
+        if: ${{ needs.go-verified.outputs.enabled == 'true' && steps.published_release_probe.outputs.release_state != 'complete' }}
+        with:
+          go-version: stable
+          cache: false
+      - name: Verify Go bundles, publish immutable module tags and check proxy
+        if: ${{ steps.published_release_probe.outputs.release_state != 'complete' }}
+        env:
+          RELEASE_VERSION: ${{ needs.gate-and-tag.outputs.release_version }}
+          RELEASE_COMMIT: ${{ needs.gate-and-tag.outputs.build_ref }}
+        run: python3 .github/scripts/go_release.py publish --directory "$RELEASE_ASSET_DIR" --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT"
 
       - name: Generate checksums
         if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}

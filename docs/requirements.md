@@ -670,8 +670,12 @@ Command behavior:
   - emits the documented JSON schema when `--json` is provided.
 - `examples`
   - supports:
+    - bare `examples` as an alias for `examples list`, including `--json`
     - `examples list`
     - `examples <name>` for implicit named render
+  - listing advertises declared required variables or an adjacent sample JSON
+    var-file and the `--var-file` option; unknown names suggest a close pack
+    using names and template-extension mentions, with deterministic tie order,
   - resolves example packs from the bundled examples root,
   - uses the same render flags and output semantics as `render` for implicit
     named render.
@@ -1124,7 +1128,9 @@ Schema rules:
     "packs": [
       {
         "name": "hello",
-        "path": "/path/to/share/sc-compose/examples/hello.md.j2"
+        "path": "/path/to/share/sc-compose/examples/hello.md.j2",
+        "required_variables": ["name"],
+        "sample_vars": null
       }
     ]
   },
@@ -1505,16 +1511,13 @@ checked ([ADR-0026](adrs/0026-fuzz-contract-decisions.md) D6).
 - **FR-23.5 Safe repetition (#613).** Re-running an attach request whose beads
   all exist with matching provenance shall write nothing (no `bd` write and no
   plan file) and succeed. Status,
-  notes, assignee, claims and other fields of existing beads are never compared
-  or written; sc-compose never updates, closes, reopens or deletes a bead. A
-  changed formula revision, changed relations, a bead without matching
-  provenance at a planned id, a conflicting edge, or a planned edge between two
-  existing beads that is absent in `bd` shall refuse the whole request before
-  any write. A bead counts as absent only on `bd`'s not-found response; any
+  notes, assignee and claims of existing beads are preserved. For advanced
+  re-pour, FR-24.34 supersedes the original immutable-node and missing-edge
+  refusals; invalid ownership and conflicting edges still refuse before writes. A bead counts as absent only on `bd`'s not-found response; any
   other read failure fails the request.
-- **FR-23.6 Atomic apply (#613).** Everything one request creates is written
-  by a single `bd create --graph` call, so an interrupted request leaves all or
-  none of its missing beads and edges; a re-run creates what is missing.
+- **FR-23.6 Atomic apply (#613).** The original create-only graph path uses
+  a single `bd create --graph` transaction. Advanced re-pour follows the
+  resumable sequential-write contract in FR-24.34.
 - **FR-23.7 Edges.** `needs` / `depends_on` become `blocks` edges.
   `relations[]` adds edges of any well-known `bd` dependency type except
   `parent-child`, between steps and existing beads, in either direction; an
@@ -1654,7 +1657,7 @@ With advanced pour, graph pour by path and attach accept caller bead inputs; wit
 
 #### FR-24.22 — Approved item 11
 
-Advanced attach keeps today's safety behavior: preview writes nothing to bd; creation happens once, atomically, and only when authorized; repeating it preserves existing status and notes.
+Advanced attach preview writes nothing to bd; creation requires authorization. Re-pour follows the convergent single-writer contract in FR-24.34 and preserves existing runtime state.
 
 #### FR-24.23 — Approved item 12
 
@@ -1732,19 +1735,13 @@ beads, and verify stored fields by reading them back from bd. Missing source
 or unresolved input must fail without creating beads. Confirm the actual
 formula source/registry identity before claiming that example passes.
 
-#### FR-24.34 — Automatic declared edges during pour
+#### FR-24.34 — Convergent re-pour of updated plans
 
-Advanced pour creates declared dependency/relationship edges without manual
-bd dep add follow-up, including missing edges and newly declared edges
-between existing beads (user decision, 2026-11-04). Existing operation-owned
-beads retain their state. Conflicting edge types and foreign-owned planned
-ids are refused. Explicit external relation endpoints remain governed by
-ADR-0023; they are not adopted as operation-owned beads.
-The operation validates rendered references and applies its allowed node/edge
-additions atomically. Added relations alone must not invalidate ownership of
-unchanged nodes. Changed node definitions are a conflict, not implicit field
-updates. Preview and failed validation write nothing. Replays do not duplicate
-edges, reset status/notes/assignee, or remove prior graph state.
+Separate pour and repour commands support updating plan-owned fields while
+preserving runtime state. Repour removes obsolete internal edges, preserves and
+reports external edges, and labels and reports removed nodes without deleting
+them. Dry-run and apply report the changes and risks; dirty or unknown Dolt
+state refuses unless explicitly overridden. ADR-0023 specifies the contract.
 
 #### FR-24.35 — Conditional beads and edges
 
@@ -1753,8 +1750,8 @@ renders conditions, loops and includes before validating the resulting graph.
 Both enabled and disabled branches must work. A remaining relation to an
 omitted step is a dangling reference and fails before mutation. Enabling an
 optional bead or edge on a later advanced pour adds the requested elements
-under FR-24.34; disabling one later does not delete existing beads or edges.
-Deletion/pruning is a separate operation and is not inferred from omission.
+under FR-24.34; disabling one later retains the bead and prunes its internal
+edges as specified by ADR-0023. Bead deletion is a separate operation.
 Use typed booleans from structured request inputs, or explicit comparisons
 for string-valued CLI --var inputs; do not treat the nonempty string "false"
 as a boolean false. Test typed true/false and documented string flag forms,
@@ -1780,6 +1777,12 @@ and [ADR-0024](adrs/0024-advanced-beads-pour.md). Pair each refusal with a permi
 do not extend these graph constraints into a generic template-input ban.
 Existing valid bd-compatible inputs remain accepted.
 
+#### FR-24.37 — Re-pour documentation
+
+Ship markdown documentation for re-pour and re-pour strategy, covering when to
+use pour or re-pour, risks, reading dry-run output, and cleanup of removed
+nodes. Make it available in the installed CLI and reference it from `--help`.
+
 #### Existing FR-24 cross-references
 
 The former background ids remain references to the approved behavior above:
@@ -1792,12 +1795,35 @@ FR-24.12 (documentation/regressions) to FR-24.30–32. They do not retain the
 superseded legacy-default assumption.
 
 Additional retained contract details are: bead render emits the rendered body
-only and removes frontmatter (historical issue #785); variable validation
-counts only selected brace expressions and does not treat comments, raw bodies,
-Jinja syntax names, or literal data as input variables; JSON/TOML escaping is
+only and removes frontmatter (historical issue #785); for a template whose
+root declares frontmatter, or under `--strict` (the matching API option),
+variable validation counts only selected brace expressions and does not treat
+comments, raw bodies, Jinja syntax names (for example `autoescape`,
+`endautoescape`, `raw` or a `filter`/`call` name), or literal data as input
+variables; a template without frontmatter keeps the v1.7.0 whole-statement
+token scan unchanged (issues #783 and #1043); JSON/TOML escaping is
 applied once, while expression results and nested values remain data and are
-not reparsed as template source. These are current contract details for V1 to
-pin and V3 to implement, not additional historical corpus or fuzz gates.
+not reparsed as template source. These details are implemented and pinned by
+regression tests; they are not additional historical corpus or fuzz gates.
+
+Token-scan contract (issue #1043, narrow ruling), as implemented:
+
+- The scan mode is chosen once per composition from the root template: a root
+  that declares frontmatter, or `--strict` (the matching API option), selects
+  the argument-only scan. Included fragments are scanned in the root's mode,
+  whether or not they declare frontmatter themselves. The missing-frontmatter
+  warning follows the root's frontmatter only: argument-only under a root with
+  frontmatter, and the v1.7.0 heuristic under a root without it, even with
+  `--strict`.
+- The argument-only scan drops a block tag's own name (`autoescape`,
+  `endautoescape`, `raw`/`endraw`, and the leading `filter`/`call` name) and
+  does not read comments or raw bodies. In both modes, Jinja test names and the
+  `is` keyword (`x is defined`, `y is not none`) and filter names after `|` are
+  never input variables.
+- Choosing the mode adds no public field: `ComposePolicy` is unchanged, so
+  library callers keep compiling. A caller that passes a tag name such as
+  `autoescape` as an undeclared input under a root with frontmatter now gets
+  the configured unknown-variable diagnostic.
 
 #### Design contract and unresolved evidence
 
@@ -1805,8 +1831,8 @@ ADR-0024 records the additive Rust options/runner signatures, Python keyword
 mapping, direct-CLI request mapping, duplicate/conflict policy and scoped
 default precedence. These are the V1 contract consumed by V3, not choices
 silently deferred to implementation. Public request layouts remain unchanged.
-FR-24.34–35 fix additive existing-node edges and conditional elements;
-ADR-0023 records the atomic-write and provenance contract. The FR-24.24 byte
+FR-24.34–35 govern convergent re-pour and conditional graph elements;
+ADR-0023 records the convergent re-pour and state-preservation contract. The FR-24.24 byte
 comparison remains an evidence input to pin. The user ruling recorded in the
 `comp-phase-v` bead notes on 2026-11-05
 replaces abandoned historical fuzz/corpus recovery with bounded deterministic

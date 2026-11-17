@@ -1,6 +1,6 @@
 # sc-compose CLI Reference
 
-Version 1.8.0
+Version 1.9.0
 
 Generated from the CLI command tree. Do not hand-edit.
 
@@ -36,15 +36,15 @@ Usage: sc-compose bead attach [OPTIONS] [FORMULA]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
+- `--json` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
-- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--strict` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead pour`
 
-Render, validate, and persist an authorized Beads formula pour
+Render, validate, and persist an authorized Beads formula pour. For revision guidance, run sc-compose help repour and sc-compose help repour-strategy.
 
 ```text
 Usage: sc-compose bead pour [OPTIONS] [FORMULA]
@@ -56,10 +56,12 @@ Usage: sc-compose bead pour [OPTIONS] [FORMULA]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
+- `--dry-run` — Preview graph changes without writing beads
+- `--json` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
-- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--root <BEAD_ID>` — Existing pour root to compare
+- `--strict` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead preview-attach`
@@ -76,10 +78,10 @@ Usage: sc-compose bead preview-attach [OPTIONS] [FORMULA]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
+- `--json` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
-- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--strict` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead preview-pour`
@@ -96,10 +98,12 @@ Usage: sc-compose bead preview-pour [OPTIONS] [FORMULA]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
+- `--dry-run` — Preview graph changes without writing beads
+- `--json` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
-- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--root <BEAD_ID>` — Existing pour root to compare
+- `--strict` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead render`
@@ -116,10 +120,33 @@ Usage: sc-compose bead render [OPTIONS] [FORMULA]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
+- `--json` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
-- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--strict` — Enable schema-scoped undeclared-variable validation
+- `--var <VARS>` — Supply a direct pour variable as key=value
+
+#### `sc-compose bead repour`
+
+Converge an earlier graph onto its updated plan. For details, run sc-compose help repour and sc-compose help repour-strategy.
+
+```text
+Usage: sc-compose bead repour [OPTIONS] [FORMULA]
+```
+
+**Arguments:**
+
+- `formula` — Formula template path or registry name for direct pour
+
+**Options:**
+
+- `--allow-uncommitted` — Allow repour when database changes are uncommitted or unknown
+- `--dry-run` — Preview graph changes without writing beads
+- `--json` — Emit the Beads receipt in the standard diagnostic JSON envelope
+- `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
+- `--request <JSON>` — Complete sc-compose/beads/v1 request file
+- `--root <BEAD_ID>` — Existing pour root to compare or revise
+- `--strict` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
 #### `sc-compose bead validate`
@@ -136,10 +163,10 @@ Usage: sc-compose bead validate [OPTIONS] [FORMULA]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit the Beads receipt in the standard diagnostic JSON envelope
+- `--json` — Emit the Beads receipt in the standard diagnostic JSON envelope
 - `--render-by <RENDER_BY>` — default: `sc-compose` — choices: `sc-compose, bd` — Choose the formula renderer
 - `--request <JSON>` — Complete sc-compose/beads/v1 request file
-- `--strict <STRICT>` — choices: `true, false` — Enable schema-scoped undeclared-variable validation
+- `--strict` — Enable schema-scoped undeclared-variable validation
 - `--var <VARS>` — Supply a direct pour variable as key=value
 
 ### `sc-compose examples`
@@ -158,16 +185,16 @@ Usage: sc-compose examples [OPTIONS] [NAME]
 **Options:**
 
 - `--append <APPEND>` — Append one rendered JSON object to a JSON Lines file
-- `--check-render <CHECK_RENDER>` — choices: `true, false` — Check rendered output before emitting stdout or writing a file
-- `--dry-run <DRY_RUN>` — choices: `true, false` — Report the derived output target without writing files
+- `--check-render` — Check rendered output before emitting stdout or writing a file
+- `--dry-run` — Report the derived output target without writing files
 - `--env-prefix <ENV_PREFIX>` — Absorb environment variables that match the given prefix
 - `--guidance <GUIDANCE>` — Append a guidance block after the rendered body
 - `--guidance-file <GUIDANCE_FILE>` — Read the guidance block from a file or stdin
-- `--json <JSON>` — choices: `true, false` — Emit machine-readable JSON output
+- `--json` — Emit machine-readable JSON output
 - `--output <OUTPUT>` — Write rendered output to the given path instead of stdout
 - `--prompt <PROMPT>` — Append a user prompt block after the rendered body and guidance
 - `--prompt-file <PROMPT_FILE>` — Read the user prompt block from a file or stdin
-- `--strict <STRICT>` — choices: `true, false` — Treat undeclared referenced variables as errors
+- `--strict` — Treat undeclared referenced variables as errors
 - `--unknown-var-mode <UNKNOWN_VAR_MODE>` — default: `ignore` — choices: `error, warn, ignore` — Control how extra caller-provided and referenced-but-unbound variables are reported
 - `--var-file <VAR_FILE>` — Load input variables from a JSON or YAML object file
 - `--var <VARS>` — Provide one explicit input variable as key=value
@@ -182,7 +209,7 @@ Usage: sc-compose examples list [OPTIONS]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit machine-readable JSON output
+- `--json` — Emit machine-readable JSON output
 
 ### `sc-compose extract`
 
@@ -202,7 +229,7 @@ Usage: sc-compose extract [OPTIONS] <TEMPLATE> <RENDERED>
 - `--exclude <NAME>` — Exclude this variable; repeat for multiple names
 - `--format <FORMAT>` — default: `xml` — choices: `xml, json, yaml, toml, raw` — Rendered format: xml, json, yaml, toml, or raw known-template text
 - `--include <NAME>` — Only recover this variable; repeat for multiple names
-- `--json <JSON>` — choices: `true, false` — Emit machine-readable JSON output (format is XML by default)
+- `--json` — Emit machine-readable JSON output (format is XML by default)
 
 ### `sc-compose frontmatter-init`
 
@@ -214,10 +241,10 @@ Usage: sc-compose frontmatter-init [OPTIONS] --file <FILE>
 
 **Options:**
 
-- `--dry-run <DRY_RUN>` — choices: `true, false`
+- `--dry-run`
 - `--file <FILE>` *(required)*
-- `--force <FORCE>` — choices: `true, false`
-- `--json <JSON>` — choices: `true, false`
+- `--force`
+- `--json`
 
 ### `sc-compose help`
 
@@ -233,8 +260,8 @@ Usage: sc-compose help [OPTIONS] [TOPIC]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit the manual response as a diagnostic JSON envelope
-- `--list <LIST>` — choices: `true, false` — List available manual topics
+- `--json` — Emit the manual response as a diagnostic JSON envelope
+- `--list` — List available manual topics
 
 ### `sc-compose init`
 
@@ -246,8 +273,8 @@ Usage: sc-compose init [OPTIONS]
 
 **Options:**
 
-- `--dry-run <DRY_RUN>` — choices: `true, false`
-- `--json <JSON>` — choices: `true, false`
+- `--dry-run`
+- `--json`
 - `--root <ROOT>` — default: `.`
 
 ### `sc-compose lint`
@@ -260,7 +287,7 @@ Usage: sc-compose lint [OPTIONS]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit the sc-lint envelope as machine-readable JSON
+- `--json` — Emit the sc-lint envelope as machine-readable JSON
 - `--root <ROOT>` — default: `.` — Repository root passed to sc-lint
 - `--target <TARGET>` — default: `full` — Allowlisted sc-lint target
 
@@ -274,7 +301,7 @@ Usage: sc-compose observability-health [OPTIONS]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false`
+- `--json`
 
 ### `sc-compose reference`
 
@@ -286,7 +313,7 @@ Usage: sc-compose reference [OPTIONS]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit the reference model in the diagnostic JSON envelope
+- `--json` — Emit the reference model in the diagnostic JSON envelope
 
 ### `sc-compose render`
 
@@ -300,16 +327,16 @@ Usage: sc-compose render [OPTIONS]
 
 - `--agent <AGENT>` — Profile name in profile mode
 - `--agent-type <AGENT_TYPE>` — Alias for --agent
-- `--all <ALL>` — choices: `true, false` — Render all stacked template passes
+- `--all` — Render all stacked template passes
 - `--append <APPEND>` — Append one rendered JSON object to a JSON Lines file
 - `--brace-count <BRACE_COUNT>` — Render with custom brace-count delimiters (for example 3 => {{{ }}})
-- `--check-render <CHECK_RENDER>` — choices: `true, false` — Check rendered output before emitting stdout or writing a file
-- `--dry-run <DRY_RUN>` — choices: `true, false` — Report the derived output target without writing files
+- `--check-render` — Check rendered output before emitting stdout or writing a file
+- `--dry-run` — Report the derived output target without writing files
 - `--env-prefix <ENV_PREFIX>` — Absorb environment variables that match the given prefix
 - `--file <FILE>` — Template path in file mode
 - `--guidance <GUIDANCE>` — Append a guidance block after the rendered body
 - `--guidance-file <GUIDANCE_FILE>` — Read the guidance block from a file or stdin
-- `--json <JSON>` — choices: `true, false` — Emit machine-readable JSON output
+- `--json` — Emit machine-readable JSON output
 - `--json-escape-mode <JSON_ESCAPE_MODE>` — choices: `auto, legacy` — Select JSON interpolation mode; default is auto unless frontmatter declares one
 - `--kind <KIND>` — default: `agent` — choices: `agent, command, skill` — Choose the profile kind in profile mode
 - `--mode <MODE>` — default: `file` — choices: `profile, file` — Choose file or profile resolution mode
@@ -318,7 +345,7 @@ Usage: sc-compose render [OPTIONS]
 - `--prompt-file <PROMPT_FILE>` — Read the user prompt block from a file or stdin
 - `--root <ROOT>` — default: `.` — Workspace root for resolution and confinement
 - `--runtime <RUNTIME>` — choices: `claude, hermes, codex, gemini, opencode` — Optional runtime selector in profile mode
-- `--strict <STRICT>` — choices: `true, false` — Treat undeclared referenced variables as errors
+- `--strict` — Treat undeclared referenced variables as errors
 - `--unknown-var-mode <UNKNOWN_VAR_MODE>` — default: `ignore` — choices: `error, warn, ignore` — Control how extra caller-provided and referenced-but-unbound variables are reported
 - `--var-file <VAR_FILE>` — Load input variables from a JSON or YAML object file
 - `--variable-delimiters <OPEN>` — Render with explicit variable delimiters
@@ -342,10 +369,10 @@ Usage: sc-compose reports finalize [OPTIONS] --report-id <REPORT_ID> --kind <KIN
 
 **Options:**
 
-- `--archive <ARCHIVE>` — choices: `true, false`
+- `--archive`
 - `--artifact <ARTIFACTS>`
 - `--entrypoint <ENTRYPOINT>` *(required)*
-- `--json <JSON>` — choices: `true, false`
+- `--json`
 - `--kind <KIND>` *(required)*
 - `--report-id <REPORT_ID>` *(required)*
 - `--root <ROOT>` — default: `.`
@@ -361,7 +388,7 @@ Usage: sc-compose reports index [OPTIONS]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false`
+- `--json`
 - `--root <ROOT>` — default: `.`
 
 #### `sc-compose reports init`
@@ -374,7 +401,7 @@ Usage: sc-compose reports init [OPTIONS]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false`
+- `--json`
 - `--root <ROOT>` — default: `.`
 
 #### `sc-compose reports publish-manifest`
@@ -387,7 +414,7 @@ Usage: sc-compose reports publish-manifest [OPTIONS]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false`
+- `--json`
 - `--root <ROOT>` — default: `.`
 
 #### `sc-compose reports render-spec`
@@ -400,8 +427,8 @@ Usage: sc-compose reports render-spec [OPTIONS] --spec <SPEC_PATH>
 
 **Options:**
 
-- `--archive <ARCHIVE>` — choices: `true, false`
-- `--json <JSON>` — choices: `true, false`
+- `--archive`
+- `--json`
 - `--root <ROOT>` — default: `.`
 - `--spec <SPEC_PATH>` *(required)*
 
@@ -415,9 +442,9 @@ Usage: sc-compose reports smoke [OPTIONS] --fixture <FIXTURE> --vars <VARS>
 
 **Options:**
 
-- `--archive <ARCHIVE>` — choices: `true, false`
+- `--archive`
 - `--fixture <FIXTURE>` *(required)*
-- `--json <JSON>` — choices: `true, false`
+- `--json`
 - `--root <ROOT>` — default: `.`
 - `--vars <VARS>` *(required)*
 
@@ -431,7 +458,7 @@ Usage: sc-compose reports verify [OPTIONS]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false`
+- `--json`
 - `--root <ROOT>` — default: `.`
 
 ### `sc-compose resolve`
@@ -448,13 +475,13 @@ Usage: sc-compose resolve [OPTIONS]
 - `--agent-type <AGENT_TYPE>` — Alias for --agent
 - `--env-prefix <ENV_PREFIX>` — Absorb environment variables that match the given prefix
 - `--file <FILE>` — Template path in file mode
-- `--json <JSON>` — choices: `true, false`
+- `--json`
 - `--json-escape-mode <JSON_ESCAPE_MODE>` — choices: `auto, legacy` — Select JSON interpolation mode; default is auto unless frontmatter declares one
 - `--kind <KIND>` — default: `agent` — choices: `agent, command, skill` — Choose the profile kind in profile mode
 - `--mode <MODE>` — default: `file` — choices: `profile, file` — Choose file or profile resolution mode
 - `--root <ROOT>` — default: `.` — Workspace root for resolution and confinement
 - `--runtime <RUNTIME>` — choices: `claude, hermes, codex, gemini, opencode` — Optional runtime selector in profile mode
-- `--strict <STRICT>` — choices: `true, false` — Treat undeclared referenced variables as errors
+- `--strict` — Treat undeclared referenced variables as errors
 - `--unknown-var-mode <UNKNOWN_VAR_MODE>` — default: `ignore` — choices: `error, warn, ignore` — Control how extra caller-provided and referenced-but-unbound variables are reported
 - `--var-file <VAR_FILE>` — Load input variables from a JSON or YAML object file
 - `--var <VARS>` — Provide one explicit input variable as key=value
@@ -473,9 +500,9 @@ Usage: sc-compose template-init [OPTIONS] <FILE>
 
 **Options:**
 
-- `--dry-run <DRY_RUN>` — choices: `true, false`
-- `--force <FORCE>` — choices: `true, false`
-- `--json <JSON>` — choices: `true, false`
+- `--dry-run`
+- `--force`
+- `--json`
 
 ### `sc-compose templates`
 
@@ -493,16 +520,16 @@ Usage: sc-compose templates [OPTIONS] [NAME]
 **Options:**
 
 - `--append <APPEND>` — Append one rendered JSON object to a JSON Lines file
-- `--check-render <CHECK_RENDER>` — choices: `true, false` — Check rendered output before emitting stdout or writing a file
-- `--dry-run <DRY_RUN>` — choices: `true, false` — Report the derived output target without writing files
+- `--check-render` — Check rendered output before emitting stdout or writing a file
+- `--dry-run` — Report the derived output target without writing files
 - `--env-prefix <ENV_PREFIX>` — Absorb environment variables that match the given prefix
 - `--guidance <GUIDANCE>` — Append a guidance block after the rendered body
 - `--guidance-file <GUIDANCE_FILE>` — Read the guidance block from a file or stdin
-- `--json <JSON>` — choices: `true, false` — Emit machine-readable JSON output
+- `--json` — Emit machine-readable JSON output
 - `--output <OUTPUT>` — Write rendered output to the given path instead of stdout
 - `--prompt <PROMPT>` — Append a user prompt block after the rendered body and guidance
 - `--prompt-file <PROMPT_FILE>` — Read the user prompt block from a file or stdin
-- `--strict <STRICT>` — choices: `true, false` — Treat undeclared referenced variables as errors
+- `--strict` — Treat undeclared referenced variables as errors
 - `--unknown-var-mode <UNKNOWN_VAR_MODE>` — default: `ignore` — choices: `error, warn, ignore` — Control how extra caller-provided and referenced-but-unbound variables are reported
 - `--var-file <VAR_FILE>` — Load input variables from a JSON or YAML object file
 - `--var <VARS>` — Provide one explicit input variable as key=value
@@ -522,7 +549,7 @@ Usage: sc-compose templates add [OPTIONS] <SRC> [NAME]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit machine-readable JSON output
+- `--json` — Emit machine-readable JSON output
 
 #### `sc-compose templates list`
 
@@ -534,7 +561,7 @@ Usage: sc-compose templates list [OPTIONS]
 
 **Options:**
 
-- `--json <JSON>` — choices: `true, false` — Emit machine-readable JSON output
+- `--json` — Emit machine-readable JSON output
 
 ### `sc-compose validate`
 
@@ -548,18 +575,18 @@ Usage: sc-compose validate [OPTIONS]
 
 - `--agent <AGENT>` — Profile name in profile mode
 - `--agent-type <AGENT_TYPE>` — Alias for --agent
-- `--all <ALL>` — choices: `true, false` — Validate all stacked template passes
-- `--check-render <CHECK_RENDER>` — choices: `true, false` — Render in memory and check the exact output without emitting a body or file
+- `--all` — Validate all stacked template passes
+- `--check-render` — Render in memory and check the exact output without emitting a body or file
 - `--env-prefix <ENV_PREFIX>` — Absorb environment variables that match the given prefix
 - `--file <FILE>` — Template path in file mode
-- `--json <JSON>` — choices: `true, false`
+- `--json`
 - `--json-escape-mode <JSON_ESCAPE_MODE>` — choices: `auto, legacy` — Select JSON interpolation mode; default is auto unless frontmatter declares one
 - `--kind <KIND>` — default: `agent` — choices: `agent, command, skill` — Choose the profile kind in profile mode
-- `--lint <LINT>` — choices: `true, false` — Report redundant filter chains and other lint findings with source locations
+- `--lint` — Report redundant filter chains and other lint findings with source locations
 - `--mode <MODE>` — default: `file` — choices: `profile, file` — Choose file or profile resolution mode
 - `--root <ROOT>` — default: `.` — Workspace root for resolution and confinement
 - `--runtime <RUNTIME>` — choices: `claude, hermes, codex, gemini, opencode` — Optional runtime selector in profile mode
-- `--strict <STRICT>` — choices: `true, false` — Treat undeclared referenced variables as errors
+- `--strict` — Treat undeclared referenced variables as errors
 - `--unknown-var-mode <UNKNOWN_VAR_MODE>` — default: `ignore` — choices: `error, warn, ignore` — Control how extra caller-provided and referenced-but-unbound variables are reported
 - `--var-file <VAR_FILE>` — Load input variables from a JSON or YAML object file
 - `--var <VARS>` — Provide one explicit input variable as key=value
@@ -581,18 +608,18 @@ Usage: sc-compose verify [OPTIONS] <DEPLOYED>
 - `--against <AGAINST>` — Template path in file mode
 - `--agent <AGENT>` — Profile name in profile mode
 - `--agent-type <AGENT_TYPE>` — Alias for --agent
-- `--all <ALL>` — choices: `true, false` — Verify all stacked template passes
+- `--all` — Verify all stacked template passes
 - `--builtin-var <BUILTIN_VARS>` — Override one builtin variable as key=value for deterministic verification
 - `--env-prefix <ENV_PREFIX>` — Absorb environment variables that match the given prefix
 - `--file <FILE>` — Template path in file mode
-- `--json <JSON>` — choices: `true, false` — Emit machine-readable JSON output
+- `--json` — Emit machine-readable JSON output
 - `--json-escape-mode <JSON_ESCAPE_MODE>` — choices: `auto, legacy` — Select JSON interpolation mode; default is auto unless frontmatter declares one
 - `--kind <KIND>` — default: `agent` — choices: `agent, command, skill` — Choose the profile kind in profile mode
 - `--mode <MODE>` — default: `file` — choices: `profile, file` — Choose file or profile resolution mode
-- `--quiet <QUIET>` — choices: `true, false` — Suppress diff output when drift is detected
+- `--quiet` — Suppress diff output when drift is detected
 - `--root <ROOT>` — default: `.` — Workspace root for resolution and confinement
 - `--runtime <RUNTIME>` — choices: `claude, hermes, codex, gemini, opencode` — Optional runtime selector in profile mode
-- `--strict <STRICT>` — choices: `true, false` — Treat undeclared referenced variables as errors
+- `--strict` — Treat undeclared referenced variables as errors
 - `--unknown-var-mode <UNKNOWN_VAR_MODE>` — default: `ignore` — choices: `error, warn, ignore` — Control how extra caller-provided and referenced-but-unbound variables are reported
 - `--var-file <VAR_FILE>` — Load input variables from a JSON or YAML object file
 - `--var <VARS>` — Provide one explicit input variable as key=value

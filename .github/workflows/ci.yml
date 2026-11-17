@@ -248,7 +248,9 @@ jobs:
           cache: false
 
       - name: Run controlled Go release-layout fixtures
-        run: python3 bindings/sc-sha-go/tests/test_release_layout.py
+        run: |
+          python3 bindings/sc-sha-go/tests/test_release_layout.py
+          python3 bindings/sc-sha-go/tests/test_clean_archive.py
 
       - name: Run real-bd qualification (ignored tests; fails if bd is absent)
         run: python3 scripts/test_real_bd.py
@@ -445,6 +447,9 @@ jobs:
         with:
           toolchain: 1.94.1
 
+      - name: Build sc-compose CLI for contract tests
+        run: cargo build -j 2 -p sc-compose --bin sc-compose
+
       - id: beads
         name: Install pinned Beads
         uses: ./.github/actions/setup-beads
@@ -475,6 +480,7 @@ jobs:
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
           SC_COMPOSER_BEADS_ARTIFACT_DIR: ${{ github.workspace }}/dist
+          SC_COMPOSE_TEST_CLI: ${{ format('{0}/target/debug/sc-compose{1}', github.workspace, runner.os == 'Windows' && '.exe' || '') }}
 
       - name: Run installed-wheel attach integration
         working-directory: bindings/sc-composer-beads-python

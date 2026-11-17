@@ -483,6 +483,32 @@ jobs:
       - name: Build the target-native static adapter
         run: cargo build --release -p ${{ matrix.cargo_package }} --target ${{ matrix.target }}
 
+      - name: Install archive cleanup tool on Linux
+        if: ${{ matrix.goos == 'linux' }}
+        run: |
+          if ! command -v llvm-objcopy >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y llvm
+          fi
+
+      - name: Install archive cleanup tool on macOS
+        if: ${{ matrix.goos == 'darwin' }}
+        shell: bash
+        run: |
+          if ! brew list llvm >/dev/null 2>&1; then brew install llvm; fi
+          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+
+      - name: Add LLVM inspection tools on Windows x64
+        if: ${{ matrix.goos == 'windows' && matrix.goarch == 'amd64' }}
+        shell: pwsh
+        run: |
+          $bin = 'C:\Program Files\LLVM\bin'
+          if (!(Test-Path "$bin\llvm-readobj.exe")) { choco install llvm -y --no-progress }
+          "$bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Remove unsupported archive metadata
+        run: python3 bindings/sc-sha-go/clean_archive.py target/${{ matrix.target }}/release/${{ matrix.library }} ${{ matrix.target }}
+
       - name: Stage the self-contained Go module bundle
         id: bundle
         shell: bash

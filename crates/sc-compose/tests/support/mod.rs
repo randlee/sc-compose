@@ -115,6 +115,9 @@ pub struct ScComposeCommand {
     log_root: TempFixture,
 }
 
+#[path = "../../../test-support/bounded_command.rs"]
+pub(crate) mod bounded_command;
+
 impl ScComposeCommand {
     pub fn log_root_path(&self) -> &Path {
         &self.log_root.path
@@ -164,6 +167,14 @@ impl ScComposeCommand {
 
     pub fn output(&mut self) -> std::io::Result<std::process::Output> {
         self.command.output()
+    }
+
+    #[allow(
+        clippy::unnecessary_wraps,
+        reason = "matches the test command's output interface"
+    )]
+    pub fn bounded_output(&mut self) -> std::io::Result<std::process::Output> {
+        Ok(bounded_command::run_command(&mut self.command))
     }
 }
 

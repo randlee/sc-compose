@@ -189,9 +189,17 @@ fn run_examples_command(
                 run_examples_list(list_args)
             })
         }
-        None => observe_command(observer, "examples", args.render.json, |observer| {
-            run_examples_render(args, observer)
-        }),
+        None => observe_command(
+            observer,
+            "examples",
+            args.render.json,
+            |observer| match args.name.as_deref() {
+                Some(name) => run_examples_render(args, name, observer),
+                None => run_examples_list(&crate::cli::ListArgs {
+                    json: args.render.json,
+                }),
+            },
+        ),
     }
 }
 

@@ -357,6 +357,30 @@ fn examples_named_render_dry_run_derives_html_output_path_from_example_name() {
 }
 
 #[test]
+fn bundled_evidence_report_renders_well_formed_xhtml() {
+    use quick_xml::{Reader, events::Event};
+
+    let output = sc_compose()
+        .args(["examples", "evidence-report", "--var-file"])
+        .arg(repo_root().join("examples/evidence-report.sample-vars.json"))
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let rendered = std::str::from_utf8(&output.stdout).unwrap();
+    assert!(rendered.contains("Build &amp; release evidence"));
+    assert!(rendered.contains("&lt;candidate&gt;"));
+    let mut reader = Reader::from_str(rendered);
+    loop {
+        match reader.read_event() {
+            Ok(Event::Eof) => break,
+            Ok(_) => {}
+            Err(error) => panic!("rendered XHTML is not well-formed: {error}"),
+        }
+    }
+}
+
+#[test]
 fn examples_list_includes_report_evidence_summary() {
     let output = sc_compose()
         .arg("examples")
@@ -368,6 +392,7 @@ fn examples_list_includes_report_evidence_summary() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("report-evidence-summary"));
+    assert!(stdout.contains("evidence-report"));
 }
 
 #[test]

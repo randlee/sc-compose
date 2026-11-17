@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
-use crate::discovery::discover_tokens;
+use crate::discovery::{ScanMode, discover_tokens_for};
 use crate::frontmatter::parse_template_document;
 use crate::is_json_template_path;
 use crate::renderer::JSON_LEGACY_WARNING;
@@ -324,11 +324,14 @@ pub(super) fn missing_frontmatter_warnings_for_path(
     resolved_path: &Path,
     expanded: &ExpandedTemplate,
 ) -> Vec<Diagnostic> {
+    // Match the frontmatter root's discovery syntax. For schema-less roots,
+    // preserve the legacy warning heuristic even when strict mode is enabled.
+    let mode = super::state::discovery_scan_mode(expanded, false);
     expanded
         .frontmatters
         .iter()
         .filter_map(|(path, frontmatters)| {
-            if !frontmatters.is_empty() || !file_references_variables(path, expanded) {
+            if !frontmatters.is_empty() || !file_references_variables(path, expanded, mode) {
                 return None;
             }
             let message = if path == resolved_path {
@@ -354,14 +357,14 @@ pub(super) fn missing_frontmatter_warnings_for_path(
         .collect()
 }
 
-fn file_references_variables(path: &Path, expanded: &ExpandedTemplate) -> bool {
+fn file_references_variables(path: &Path, expanded: &ExpandedTemplate, mode: ScanMode) -> bool {
     let Some(raw) = expanded.source_texts.get(path) else {
         return false;
     };
     let Ok(parsed) = parse_template_document(raw) else {
         return false;
     };
-    !discover_tokens(parsed.body()).is_empty()
+    !discover_tokens_for(parsed.body(), 2, mode).is_empty()
 }
 
 fn frontmatter_diagnostics(expanded: &ExpandedTemplate) -> Vec<Diagnostic> {

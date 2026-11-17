@@ -8,11 +8,24 @@ pack is selected by name; the bundled data directory can be overridden with
 
 ## Usage
 
-List available packs:
+List available packs (both forms print the same output and exit successfully):
 
 ```text
+sc-compose examples [--json]
 sc-compose examples list [--json]
 ```
+
+Each entry shows its declared required variables, or the path of its adjacent
+`<pack>.sample-vars.json` with the `--var-file` option to pass it. For example,
+use the path printed for `sprint-report-html` with
+`sc-compose examples sprint-report-html --var-file "<printed path>"`.
+Sample inputs are advertised, not loaded automatically. If no variable schema
+is available, the listing points to the template to inspect.
+
+JSON entries retain `name` and `path` and add `required_variables` and
+`sample_vars`. `required_variables` is null when no valid schema is available;
+`sample_vars` is null when no adjacent JSON sample exists. Pass a non-null
+`sample_vars` path as the value of `--var-file`.
 
 Render one pack:
 
@@ -40,6 +53,7 @@ List packs and render the bundled `hello` example:
 ```console
 $ sc-compose examples list
 hello
+  required variables: name
 $ sc-compose examples hello --var name=Casey
 Hello Casey!
 ```
@@ -50,6 +64,16 @@ Use a JSON var-file for an example with structured inputs:
 $ sc-compose examples pytest-fixture --var-file ./vars.json --output ./fixture.py
 ```
 
+The bundled `evidence-report` pack renders well-formed XHTML using its sample
+variables:
+
+```console
+$ sc-compose examples evidence-report --var-file examples/evidence-report.sample-vars.json --output evidence-report.xhtml
+```
+
+Templates ending in `.html.j2`, `.htm.j2`, `.xml.j2`, or `.xhtml.j2` use
+markup auto-escaping.
+
 When running from a checkout, point discovery at the repository data root:
 
 ```console
@@ -58,8 +82,12 @@ $ SC_COMPOSE_DATA_DIR="$PWD" sc-compose examples list
 
 ## Common failures
 
-- An unknown pack reports `ERR_CONFIG_PACK_NOT_FOUND` and suggests running
-  `sc-compose examples list`.
+- An unknown pack reports `ERR_CONFIG_PACK_NOT_FOUND`, suggests a close pack
+  name when available, and points to `sc-compose examples list`. Matching uses
+  pack names and template extensions in filenames or mentioned as `.ext.j2`
+  in their contents, so a format such as `xhtml` can lead to an example.
+  Equal matches use pack-name order. Suggestions never select or render a
+  pack automatically.
 - A missing or unusable bundled data root reports `ERR_CONFIG_PARSE`; inspect
   or set `SC_COMPOSE_DATA_DIR`.
 - Ambiguous or non-renderable example files report

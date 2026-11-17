@@ -20,13 +20,13 @@ impl ExpressionDelimiters {
 
 /// Walk the tags of `text`, calling `visit` for each expression or statement.
 ///
-/// `strict` additionally skips Jinja comments and raw-block bodies, which
-/// render nothing. Only strict discovery sets it (GH #785); the default scan
-/// keeps the v1.7.0 behavior of reporting tokens inside them (FR-24.2).
+/// `skip_nonrendering` skips Jinja comments and literal raw-block bodies. The
+/// argument-only scan enables it; compatibility discovery keeps the v1.7.0
+/// behavior of reporting tokens inside them (FR-24.2).
 pub(super) fn walk_template<F>(
     text: &str,
     expression_delimiters: &ExpressionDelimiters,
-    strict: bool,
+    skip_nonrendering: bool,
     mut visit: F,
 ) where
     F: FnMut(Delimiter, &str) -> bool,
@@ -36,7 +36,7 @@ pub(super) fn walk_template<F>(
         // A comment renders nothing, so nothing inside it is a reference.
         if let Some(comment) = cursor
             .find("{#")
-            .filter(|comment| strict && *comment < start)
+            .filter(|comment| skip_nonrendering && *comment < start)
         {
             let Some(end) = cursor[comment + 2..].find("#}") else {
                 break;
@@ -71,7 +71,7 @@ pub(super) fn walk_template<F>(
         let expression = without_markers.trim();
         cursor = &after_start[end + end_delimiter.len()..];
         // A raw block renders its body literally, so it holds no references.
-        if strict && matches!(delimiter, Delimiter::Statement) && expression == "raw" {
+        if skip_nonrendering && matches!(delimiter, Delimiter::Statement) && expression == "raw" {
             let Some(body_end) = find_endraw(cursor) else {
                 break;
             };

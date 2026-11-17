@@ -1,16 +1,94 @@
 # Changelog
 
+
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Candidate for 1.8.0. Workspace crates and Python packages carry version
-1.8.0. The release is not published, and production publishing happens after
-Phase V. The release candidate tag, the hosted Release Preflight, and the
-dispatch-only full install matrix (`go-native-preflight.yml`) have not yet run
-on the final candidate; they remain pending and no 1.8.0 tag exists. The
-platform and wheel entries below describe declared and locally checked
-configuration, not qualified deliverables.
+## [1.9.0] - 2026-11-16
+
+### Added
+
+- `sc-compose bead repour FORMULA --root <bead-id>` updates an already poured
+  or attached plan in place (an attach by request file with `parent` and `ref`). Plan-owned fields are updated, missing nodes and edges are
+  created, and ids and runtime state (status, notes, assignee, close state)
+  are kept. Obsolete internal edges are removed; external edges are retained
+  and reported. Removed nodes retain their runtime state, receive the
+  `repour:removed` label, and are reported with a separate remove command. `pour` and `attach` no longer refuse a run that mixes
+  new and existing beads; the retired refusal code is
+  `BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE`. Receipt actions add `update`,
+  `updated`, and `retained`.
+
+- CLI and Python provide dry-run previews and structured revision changes. A
+  changed existing target refuses `pour` and `preview-pour` with a conflict
+  recommending `repour`. Repour refuses dirty or unknown database state by
+  default; `--allow-uncommitted` (Python `allow_uncommitted=True`) overrides
+  it. Partial failures report applied and pending work. Run `sc-compose help
+  repour` and `sc-compose help repour-strategy` for guidance.
+
+- Example pack `evidence-report` (`.xhtml.j2`) renders well-formed XHTML;
+  a test parses the rendered output as XML (#1045).
+
+### Changed
+
+- Templates with frontmatter now use argument-only variable discovery even
+  without `--strict`: Jinja tag names and filter targets no longer count as
+  variables, and comments and literal raw-block bodies are skipped (#1043).
+  Passing an undeclared input such as `autoescape` now produces an unknown/
+  extra-input diagnostic under the configured unknown-variable policy.
+  Templates without frontmatter retain their v1.7.0 default scan; strict
+  diagnostics and the public `ComposePolicy` structure are unchanged.
+
+- Bare `sc-compose examples` lists packs successfully. Listings advertise
+  required variables or sample var-files, and unknown packs suggest close
+  names or matching template formats (#1044).
+
+- Document release binaries as the preferred pinned install and clarify
+  the limits of source installs with Cargo (#1041).
+- Workspace crate dependencies (`sc-sha`, `sc-composer`, `sc-composer-beads`)
+  now require the exact matching version, preventing resolution to a newer
+  sibling release (#1041).
+  The prerelease tag tool preserves these exact `=` requirements when it
+  bumps workspace versions (#1041).
+
+- Release candidates build and smoke-test the three Python packages on the six
+  wheel platforms with CPython 3.9 and 3.11–3.15; Windows ARM64 starts at
+  3.11. Publishing requires a passing check for the candidate commit
+  (#1134, #819).
+- Rust Beads revision APIs now use non-exhaustive enums and receipt/options
+  structs. Use `GraphRevisionOptions::new`, `GraphApplyPartial::new` and
+  `BeadGraph::new` instead of struct literals, and include wildcard match arms
+  for operation, stage, outcome and revision enums. `GraphChange::FieldChange`
+  uses `GraphField` with `as_str()` / `as_flag()`; its JSON field names stay the
+  same. Partial-apply details add `cause_code` and `outcome_uncertain`, and
+  unknown database-state errors retain `cause_code`. Partial-error details are
+  boxed to keep the error type small. These source changes are
+  included without a major version bump because the Beads API has no users.
+
+### Fixed
+
+- Repour rejects a blocking dependency cycle in the resulting graph before
+  applying changes.
+
+- Homebrew installs the bundled examples under `pkgshare/examples`, where
+  pack discovery looks, so `sc-compose examples list` finds them after
+  `brew install` (#1039). Release CI now runs `examples list` against each
+  staged release archive. The README records which install channels ship the
+  examples; winget is not yet verified on Windows.
+
+- The real-bd qualification runner (`scripts/test_real_bd.py`) builds test
+  binaries first and runs each ignored test in its own process group with a
+  hang guard, instead of one wall-clock limit for the whole suite.
+
+### Known limitations
+
+- Server-mode dirty/clean detection, real partial failure, and real graph
+  cycles are deferred to the post-Phase W integration-test suite.
+
+- Winget installs are not yet verified to keep the bundled examples next to
+  the executable (#1039); this is checked after the 1.9.0 publish.
+
+## [1.8.0] - 2026-11-06
 
 ### Added
 
@@ -126,7 +204,7 @@ configuration, not qualified deliverables.
 - `sc-compose bead attach` and `preview-attach`: attach the steps of a rendered
   Beads formula under an existing bead with one `bd create --graph`
   transaction. Requires `parent`, `ref` and `pour_authorization`
-  (`CreatePersistentBeads`). Existing beads are never edited; a re-run
+  (`CreatePersistentBeads`). In this release existing beads are not edited; a re-run
   classifies each planned bead and edge as created or existing, and missing
   edges are reported with `bd dep add` recovery commands. Relations between
   steps and existing beads are supported. Receipts carry `pour_mode`, `graph`

@@ -11,13 +11,18 @@ use std::sync::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "../../test-support/bounded_command.rs"]
+mod bounded_command;
+use bounded_command::{run_command, try_run_command};
+
 #[cfg(unix)]
 #[path = "../../test-support/fake_exec.rs"]
 mod fake_exec;
 
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeRequest, BeadExecutionOptions, BeadOperation, BeadOutcome,
-    BeadRenderBy, PourAuthorization, execute_bead_request_with_options,
+    BeadRenderBy, CommandSpec, PourAuthorization, ProcessOutput, ProcessRunner,
+    execute_bead_request_with_options_and_runner,
 };
 use serde_json::{Map, json};
 
@@ -146,13 +151,59 @@ fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
 fn execute_bead_request(
     request: &BeadComposeRequest,
 ) -> Result<sc_composer_beads::BeadComposeReceipt, sc_composer_beads::BeadComposeError> {
-    execute_bead_request_with_options(
+    execute_bead_request_with_options_and_runner(
         request,
         &BeadExecutionOptions {
             render_by: BeadRenderBy::Bd,
             strict: false,
         },
+        &BoundedRunner {
+            root: &request.working_directory,
+        },
     )
+}
+
+struct BoundedRunner<'a> {
+    root: &'a Path,
+}
+
+impl ProcessRunner for BoundedRunner<'_> {
+    fn run(&self, spec: &CommandSpec) -> io::Result<ProcessOutput> {
+        let mut command = isolated_command(&spec.executable, self.root);
+        command
+            .args(&spec.args)
+            .current_dir(&spec.working_directory);
+        let started = std::time::Instant::now();
+        let output = try_run_command(&mut command)?;
+        Ok(ProcessOutput {
+            exit_status: output.status.code(),
+            stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+            elapsed: started.elapsed(),
+        })
+    }
+}
+
+fn isolated_command(executable: &Path, root: &Path) -> Command {
+    let home = root.join(".home");
+    fs::create_dir_all(home.join(".config")).expect("private config directory");
+    let mut command = Command::new(executable);
+    for (key, _) in std::env::vars_os() {
+        let name = key.to_string_lossy();
+        if name.starts_with("BEADS_") || name.starts_with("BD_DOLT_") {
+            command.env_remove(key);
+        }
+    }
+    command
+        .current_dir(root)
+        .env("HOME", &home)
+        .env("USERPROFILE", &home)
+        .env("XDG_CONFIG_HOME", home.join(".config"))
+        .env("BEADS_DIR", root.join(".beads"))
+        .env("BEADS_NO_DAEMON", "1")
+        .env("BD_DOLT_AUTO_PUSH", "false")
+        .env("BD_DOLT_LOCAL_ONLY", "true");
+    command
 }
 
 fn remove_temporary_workspace(root: &Path) -> io::Result<()> {
@@ -200,10 +251,7 @@ fn fake_executable_runs_while_its_written_script_is_held_open_for_writing() {
         .append(true)
         .open(root.join("fake-bd.sh"))
         .expect("hold the script's write descriptor open");
-    let output = Command::new(&fake)
-        .arg("cook")
-        .output()
-        .expect("spawn fake executable");
+    let output = run_command(isolated_command(&fake, &root).arg("cook"));
     assert!(output.status.success(), "{output:?}");
     assert_eq!(output.stdout, b"ran:cook");
     remove_temporary_workspace(&root).expect("remove temporary workspace");
@@ -226,8 +274,7 @@ fn exec_of_a_script_held_open_for_writing_fails_with_etxtbsy() {
         .write_all(b"#!/bin/sh\nexit 0\n")
         .expect("write script");
     fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).expect("chmod script");
-    let error = Command::new(&script)
-        .status()
+    let error = try_run_command(&mut isolated_command(&script, &root))
         .expect_err("exec must fail while a write descriptor is open");
     assert_eq!(error.raw_os_error(), Some(ETXTBSY), "{error}");
     drop(writer);
@@ -237,10 +284,15 @@ fn exec_of_a_script_held_open_for_writing_fails_with_etxtbsy() {
 #[cfg(unix)]
 fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
     let wrapper = root.join("bd-no-daemon");
+    fs::create_dir_all(root.join(".home").join(".config")).expect("isolated bd home");
     fake_exec::install(
         &wrapper,
         &format!(
-            "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexec {} \"$@\"\n",
+            "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexport HOME={}\nexport USERPROFILE={}\nexport XDG_CONFIG_HOME={}\nexport BEADS_DIR={}\nif [ -f \"$PWD/.beads/redirect\" ]; then export BEADS_DIR=\"$PWD/.beads\"; fi\nexec {} \"$@\"\n",
+            shell_quote(&root.join(".home")),
+            shell_quote(&root.join(".home")),
+            shell_quote(&root.join(".home").join(".config")),
+            shell_quote(&root.join(".beads")),
             shell_quote(bd)
         ),
     );
@@ -250,11 +302,12 @@ fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
 #[cfg(windows)]
 fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
     let wrapper = root.join("bd-no-daemon.cmd");
+    fs::create_dir_all(root.join(".home").join(".config")).expect("isolated bd home");
     fs::write(
         &wrapper,
         format!(
-            "@echo off\r\nsetlocal\r\nset \"BEADS_NO_DAEMON=1\"\r\n\"{}\" %*\r\nexit /b %ERRORLEVEL%\r\n",
-            bd.display()
+            "@echo off\r\nsetlocal\r\nset \"BEADS_NO_DAEMON=1\"\r\nset \"HOME={}\"\r\nset \"USERPROFILE={}\"\r\nset \"XDG_CONFIG_HOME={}\"\r\nset \"BEADS_DIR={}\"\r\nif exist \"%CD%\\.beads\\redirect\" set \"BEADS_DIR=%CD%\\.beads\"\r\n\"{}\" %*\r\nexit /b %ERRORLEVEL%\r\n",
+            root.join(".home").display(), root.join(".home").display(), root.join(".home").join(".config").display(), root.join(".beads").display(), bd.display()
         ),
     )
     .expect("write no-daemon Beads wrapper");
@@ -457,30 +510,93 @@ fn request(
 }
 
 fn initialize_beads(bd: &Path, root: &Path) {
-    // bd discovers a workspace by walking up from the working directory, so an
-    // ancestor `.beads` (for example `$HOME/.beads` when the temp dir lives under
-    // `$HOME`) would otherwise receive this init and later `bd where`. Pin only
-    // the init child to this workspace; the parent process environment is not
-    // touched, and afterwards the workspace's own `.beads` is the nearest one.
+    // Pin init and subsequent wrapped calls to this test's private config and
+    // database. A non-embedded fork can use only an explicitly supplied private
+    // server port, with a database unique to this workspace.
     fs::create_dir_all(root.join(".beads")).expect("create workspace .beads");
-    let output = Command::new(bd)
-        .args([
-            "init",
-            "--non-interactive",
-            "--quiet",
-            "--skip-agents",
-            "--skip-hooks",
-        ])
-        .env("BEADS_DIR", root.join(".beads"))
-        .current_dir(root)
-        .output()
-        .expect("start pinned bd init");
+    let port = std::env::var("SC_COMPOSE_TEST_DOLT_PORT").ok();
+    let sequence = root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .and_then(|name| name.rsplit('-').next())
+        .expect("test workspace sequence");
+    let database = format!("sc_bd_{}_{sequence}", std::process::id());
+    let output =
+        run_command(isolated_command(bd, root).args(init_args(port.as_deref(), &database)));
     assert!(
         output.status.success(),
         "bd init failed: {}",
         String::from_utf8_lossy(&output.stderr)
     );
     fs::create_dir_all(root.join(".beads").join("formulas")).expect("create formula registry");
+}
+
+fn init_args(port: Option<&str>, database: &str) -> Vec<String> {
+    let mut args = [
+        "init",
+        "--non-interactive",
+        "--quiet",
+        "--skip-agents",
+        "--skip-hooks",
+    ]
+    .map(str::to_owned)
+    .to_vec();
+    if let Some(port) = port {
+        let port: u16 = port.parse().expect("numeric private server port");
+        assert!(
+            port > 1023 && port != 3308,
+            "refusing shared or reserved server port"
+        );
+        args.extend([
+            "--server".into(),
+            "--server-port".into(),
+            port.to_string(),
+            "--database".into(),
+            database.into(),
+        ]);
+    }
+    args
+}
+
+#[test]
+fn private_command_configuration_and_spawn_errors_are_preserved() {
+    let root = temporary_workspace();
+    let missing = root.join("missing-bd");
+    let command = isolated_command(&missing, &root);
+    for (key, expected) in [
+        ("HOME", root.join(".home")),
+        ("USERPROFILE", root.join(".home")),
+        ("XDG_CONFIG_HOME", root.join(".home").join(".config")),
+        ("BEADS_DIR", root.join(".beads")),
+    ] {
+        assert_eq!(
+            command
+                .get_envs()
+                .find(|(name, _)| *name == key)
+                .and_then(|(_, value)| value),
+            Some(expected.as_os_str())
+        );
+    }
+    let error = BoundedRunner { root: &root }
+        .run(&CommandSpec {
+            executable: missing,
+            args: Vec::new(),
+            working_directory: root.clone(),
+        })
+        .unwrap_err();
+    assert_eq!(error.kind(), io::ErrorKind::NotFound);
+    assert!(!init_args(None, "private_db").contains(&"--server".to_owned()));
+    assert!(
+        init_args(Some("49152"), "private_db")
+            .ends_with(&["--database".to_owned(), "private_db".to_owned()])
+    );
+    remove_temporary_workspace(&root).unwrap();
+}
+
+#[test]
+#[should_panic(expected = "refusing shared or reserved server port")]
+fn shared_server_port_is_refused_before_init() {
+    init_args(Some("3308"), "private_db");
 }
 
 fn lock_pinned_bd_scenarios() -> std::sync::MutexGuard<'static, ()> {
@@ -510,4 +626,53 @@ fn temporary_workspace() -> PathBuf {
     ));
     fs::create_dir_all(&root).expect("create temporary Beads workspace");
     root
+}
+
+#[cfg(unix)]
+#[test]
+fn isolated_bd_wrapper_sets_a_private_home_and_beads_dir() {
+    let root = temporary_workspace();
+    let probe = root.join("show-environment");
+    fake_exec::install(
+        &probe,
+        "#!/bin/sh\nprintf '%s\n%s\n%s\n%s\n' \"$HOME\" \"$XDG_CONFIG_HOME\" \"$USERPROFILE\" \"$BEADS_DIR\"\n",
+    );
+    let wrapped = isolated_bd(&root, &probe);
+    let output = run_command(&mut isolated_command(&wrapped, &root));
+    assert!(output.status.success());
+    let lines = String::from_utf8(output.stdout).unwrap();
+    let expected = format!(
+        "{}\n{}\n{}\n{}\n",
+        root.join(".home").display(),
+        root.join(".home").join(".config").display(),
+        root.join(".home").display(),
+        root.join(".beads").display()
+    );
+    assert_eq!(lines, expected);
+    let redirected = root.join("redirected-worktree");
+    fs::create_dir_all(redirected.join(".beads")).unwrap();
+    fs::write(
+        redirected.join(".beads/redirect"),
+        root.join(".beads").to_string_lossy().as_bytes(),
+    )
+    .unwrap();
+    let output = run_command(isolated_command(&wrapped, &root).current_dir(&redirected));
+    let lines = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(
+        lines,
+        format!(
+            "{}\n{}\n{}\n{}\n",
+            root.join(".home").display(),
+            root.join(".home").join(".config").display(),
+            root.join(".home").display(),
+            fs::canonicalize(redirected.join(".beads"))
+                .unwrap()
+                .display()
+        )
+    );
+    assert_ne!(
+        std::env::var_os("HOME"),
+        Some(root.join(".home").into_os_string())
+    );
+    remove_temporary_workspace(&root).unwrap();
 }

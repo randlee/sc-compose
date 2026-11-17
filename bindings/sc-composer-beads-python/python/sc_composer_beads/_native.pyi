@@ -2,6 +2,9 @@ from os import PathLike
 from typing import Any, Mapping
 
 BEADS_SCHEMA_V1: str
+BEADS_GRAPH_DIRTY: str
+BEADS_GRAPH_DIRTY_UNKNOWN: str
+BEADS_GRAPH_APPLY_PARTIAL: str
 BEADS_GRAPH_PARENT_NOT_FOUND: str
 BEADS_GRAPH_ID_INVALID: str
 BEADS_GRAPH_SCOPE_MISMATCH: str
@@ -10,7 +13,6 @@ BEADS_GRAPH_RELATION_INVALID: str
 BEADS_GRAPH_CONFLICT: str
 BEADS_GRAPH_EDGE_CONFLICT: str
 BEADS_GRAPH_EDGE_MISSING: str
-BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE: str
 BEADS_GRAPH_READ_FAILED: str
 BEADS_GRAPH_APPLY_FAILED: str
 BEADS_GRAPH_APPLY_UNCONFIRMED: str
@@ -20,7 +22,8 @@ class BeadComposeError(Exception):
     code: str
     stage: str | None
     message: str
-    details: dict[str, str] | None
+    details: dict[str, Any] | None
+    recovery: str | None
 
 
 class BeadOperation:
@@ -30,6 +33,8 @@ class BeadOperation:
     POUR: str
     PREVIEW_ATTACH: str
     ATTACH: str
+    REPOUR: str
+    PREVIEW_REPOUR: str
 
 
 class PourAuthorization:
@@ -44,6 +49,7 @@ class BeadStage:
     POUR: str
     PREVIEW_ATTACH: str
     ATTACH: str
+    REPOUR: str
 
 
 class BeadStageOutcome:
@@ -119,7 +125,11 @@ class BeadComposeRequest:
 def execute(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
 def render(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
 def validate(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
-def preview_pour(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
-def pour(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
+def preview_pour(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False, root: str | None = None) -> BeadComposeReceipt: ...
+def pour(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False, root: str | None = None, dry_run: bool = False) -> BeadComposeReceipt: ...
 def preview_attach(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
 def attach(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False) -> BeadComposeReceipt: ...
+
+def repour(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False, root: str | None = None, dry_run: bool = False, allow_uncommitted: bool = False) -> BeadComposeReceipt: ...
+
+def preview_repour(request: BeadComposeRequest, *, render_by: str = "sc-compose", strict: bool = False, root: str | None = None, allow_uncommitted: bool = False) -> BeadComposeReceipt: ...

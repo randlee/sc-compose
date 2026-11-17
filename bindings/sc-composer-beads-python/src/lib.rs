@@ -11,8 +11,10 @@ use pyo3::types::{PyDict, PyFloat, PyList, PyTuple, PyType};
 use sc_composer_beads::execute_bead_request;
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
-    BeadComposeRequest, BeadExecutionOptions, BeadOperation, BeadOutcome, BeadRenderBy, BeadStage,
-    BeadStageOutcome, BeadStageReceipt, PourAuthorization, execute_bead_request_with_options,
+    BeadComposeRequest, BeadExecutionOptions, BeadId, BeadOperation, BeadOutcome, BeadRenderBy,
+    BeadStage, BeadStageOutcome, BeadStageReceipt, PourAuthorization,
+    execute_bead_request_with_options, execute_graph_revision_with_options,
+    revision_options_for_request,
 };
 use serde_json::Value;
 
@@ -140,13 +142,39 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
 }
 
 fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyErr {
-    error_with_details(
+    let error = error_with_details(
         py,
         error_kind.code(),
         Some(rust_error_stage(error_kind)),
         &error_kind.to_string(),
         rust_error_details(error_kind),
-    )
+    );
+    if matches!(
+        error_kind,
+        RustBeadComposeError::GraphPlanChanged { .. }
+            | RustBeadComposeError::GraphPlanPathInvalid { .. }
+            | RustBeadComposeError::GraphDirty
+            | RustBeadComposeError::GraphDirtyUnknown { .. }
+            | RustBeadComposeError::GraphApplyPartial { .. }
+    ) && let Ok(envelope) = serde_json::to_value(error_kind)
+    {
+        let value = error.value(py);
+        if let Some(details) = envelope.get("details") {
+            let details = match json_to_py(py, details) {
+                Ok(details) => details,
+                Err(error) => return error,
+            };
+            if let Err(error) = value.setattr("_details", details) {
+                return error;
+            }
+        }
+        if let Some(recovery) = envelope.get("recovery").and_then(Value::as_str)
+            && let Err(error) = value.setattr("_recovery", recovery)
+        {
+            return error;
+        }
+    }
+    error
 }
 
 /// Structured `details` of the errors that name an offending field value.
@@ -237,7 +265,7 @@ fn operation_from_str(py: Python<'_>, value: &str) -> PyResult<BeadOperation> {
     serde_json::from_value(Value::String(value.to_owned())).map_err(|_error| {
         request_error(
             py,
-            "operation must be render, validate, preview_pour, pour, preview_attach, or attach",
+            "operation must be render, validate, preview_pour, pour, preview_attach, attach, or repour",
         )
     })
 }
@@ -282,6 +310,10 @@ impl PyBeadOperation {
     const PREVIEW_ATTACH: &'static str = BeadOperation::PreviewAttach.as_str();
     #[classattr]
     const ATTACH: &'static str = BeadOperation::Attach.as_str();
+    #[classattr]
+    const REPOUR: &'static str = BeadOperation::Repour.as_str();
+    #[classattr]
+    const PREVIEW_REPOUR: &'static str = BeadOperation::PreviewRepour.as_str();
 }
 
 #[pyclass(name = "PourAuthorization")]
@@ -312,6 +344,8 @@ impl PyBeadStage {
     const PREVIEW_ATTACH: &'static str = BeadStage::PreviewAttach.as_str();
     #[classattr]
     const ATTACH: &'static str = BeadStage::Attach.as_str();
+    #[classattr]
+    const REPOUR: &'static str = BeadStage::Repour.as_str();
 }
 
 // RBP-F005 (documented non-fix): the enum-like receipt fields below
@@ -437,15 +471,13 @@ fn stage_receipt(inner: &BeadStageReceipt) -> PyBeadStageReceipt {
 }
 
 fn outcome(inner: &BeadOutcome) -> PyBeadOutcome {
-    match inner {
-        BeadOutcome::Succeeded => PyBeadOutcome {
-            kind: inner.as_str().to_owned(),
-            code: None,
-        },
-        BeadOutcome::Refused { code } | BeadOutcome::Failed { code } => PyBeadOutcome {
-            kind: inner.as_str().to_owned(),
-            code: Some(code.clone()),
-        },
+    let code = match inner {
+        BeadOutcome::Refused { code } | BeadOutcome::Failed { code } => Some(code.clone()),
+        _ => None,
+    };
+    PyBeadOutcome {
+        kind: inner.as_str().to_owned(),
+        code,
     }
 }
 
@@ -653,6 +685,45 @@ fn execute_with_operation(
     PyBeadComposeReceipt::from_rust(py, receipt)
 }
 
+fn execute_revision(
+    py: Python<'_>,
+    request: &PyBeadComposeRequest,
+    operation: BeadOperation,
+    render_by: &str,
+    strict: bool,
+    root: Option<&str>,
+    allow_uncommitted: bool,
+) -> PyResult<PyBeadComposeReceipt> {
+    let render_by = match render_by {
+        "sc-compose" => BeadRenderBy::ScCompose,
+        "bd" => BeadRenderBy::Bd,
+        _ => return Err(request_error(py, "render_by must be sc-compose or bd")),
+    };
+    let mut inner = request.inner.clone();
+    inner.operation = operation;
+    let root = root
+        .map(BeadId::new)
+        .transpose()
+        .map_err(|error| rust_error_to_pyerr(py, &error))?;
+    let Some(revision) = revision_options_for_request(&mut inner, root, allow_uncommitted) else {
+        return execute_with_operation(
+            py,
+            request,
+            Some(operation),
+            match render_by {
+                BeadRenderBy::Bd => "bd",
+                BeadRenderBy::ScCompose => "sc-compose",
+            },
+            strict,
+        );
+    };
+    let options = BeadExecutionOptions { render_by, strict };
+    let receipt = py
+        .detach(|| execute_graph_revision_with_options(&inner, &revision, &options))
+        .map_err(|error| rust_error_to_pyerr(py, &error))?;
+    PyBeadComposeReceipt::from_rust(py, receipt)
+}
+
 #[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
 #[allow(
     clippy::needless_pass_by_value,
@@ -664,12 +735,14 @@ fn execute(
     render_by: &str,
     strict: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(
+    execute_revision(
         py,
         &request,
-        Some(request.inner.operation),
+        request.inner.operation,
         render_by,
         strict,
+        None,
+        false,
     )
 }
 
@@ -707,7 +780,7 @@ fn validate(
     )
 }
 
-#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false, root=None))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -717,17 +790,20 @@ fn preview_pour(
     request: PyRef<'_, PyBeadComposeRequest>,
     render_by: &str,
     strict: bool,
+    root: Option<&str>,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(
+    execute_revision(
         py,
         &request,
-        Some(BeadOperation::PreviewPour),
+        BeadOperation::PreviewPour,
         render_by,
         strict,
+        root,
+        false,
     )
 }
 
-#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false, root=None, dry_run=false))]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyO3 extracts the Python-owned request through a PyRef argument."
@@ -737,8 +813,22 @@ fn pour(
     request: PyRef<'_, PyBeadComposeRequest>,
     render_by: &str,
     strict: bool,
+    root: Option<&str>,
+    dry_run: bool,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(py, &request, Some(BeadOperation::Pour), render_by, strict)
+    execute_revision(
+        py,
+        &request,
+        if dry_run {
+            BeadOperation::PreviewPour
+        } else {
+            BeadOperation::Pour
+        },
+        render_by,
+        strict,
+        root,
+        false,
+    )
 }
 
 #[pyfunction(signature = (request, *, render_by="sc-compose", strict=false))]
@@ -774,10 +864,67 @@ fn attach(
     execute_with_operation(py, &request, Some(BeadOperation::Attach), render_by, strict)
 }
 
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false, root=None, dry_run=false, allow_uncommitted=false))]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
+fn repour(
+    py: Python<'_>,
+    request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
+    root: Option<&str>,
+    dry_run: bool,
+    allow_uncommitted: bool,
+) -> PyResult<PyBeadComposeReceipt> {
+    let operation = if dry_run {
+        BeadOperation::PreviewRepour
+    } else {
+        BeadOperation::Repour
+    };
+    execute_revision(
+        py,
+        &request,
+        operation,
+        render_by,
+        strict,
+        root,
+        allow_uncommitted,
+    )
+}
+
+#[pyfunction(signature = (request, *, render_by="sc-compose", strict=false, root=None, allow_uncommitted=false))]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
+fn preview_repour(
+    py: Python<'_>,
+    request: PyRef<'_, PyBeadComposeRequest>,
+    render_by: &str,
+    strict: bool,
+    root: Option<&str>,
+    allow_uncommitted: bool,
+) -> PyResult<PyBeadComposeReceipt> {
+    execute_revision(
+        py,
+        &request,
+        BeadOperation::PreviewRepour,
+        render_by,
+        strict,
+        root,
+        allow_uncommitted,
+    )
+}
+
 #[pymodule]
 #[pyo3(name = "_native")]
 fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("BEADS_SCHEMA_V1", BEADS_SCHEMA_V1)?;
+    module.add("BEADS_GRAPH_DIRTY", "BEADS_GRAPH_DIRTY")?;
+    module.add("BEADS_GRAPH_DIRTY_UNKNOWN", "BEADS_GRAPH_DIRTY_UNKNOWN")?;
+    module.add("BEADS_GRAPH_APPLY_PARTIAL", "BEADS_GRAPH_APPLY_PARTIAL")?;
     for &code in RustBeadComposeError::GRAPH_CODES {
         module.add(code, code)?;
     }
@@ -797,6 +944,8 @@ fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(pour, module)?)?;
     module.add_function(wrap_pyfunction!(preview_attach, module)?)?;
     module.add_function(wrap_pyfunction!(attach, module)?)?;
+    module.add_function(wrap_pyfunction!(repour, module)?)?;
+    module.add_function(wrap_pyfunction!(preview_repour, module)?)?;
     Ok(())
 }
 

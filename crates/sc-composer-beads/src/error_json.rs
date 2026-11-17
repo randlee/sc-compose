@@ -9,10 +9,8 @@ use crate::BeadComposeError;
 struct ErrorEnvelope<'a> {
     code: &'a str,
     message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     details: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    recovery: Option<&'a str>,
+    recovery: Option<String>,
 }
 
 impl Serialize for BeadComposeError {
@@ -47,14 +45,21 @@ fn error_envelope(error: &BeadComposeError) -> ErrorEnvelope<'static> {
         _ => graph_error_context(error),
     };
     let (details, recovery) = match context {
-        Some((details, recovery)) => (Some(details), Some(recovery)),
+        Some((details, recovery)) => (Some(details), Some(recovery.to_owned())),
         None => (None, None),
     };
     ErrorEnvelope {
         code: error.code(),
         message: error.to_string(),
         details,
-        recovery,
+        recovery: if let BeadComposeError::GraphPlanChanged { reason, changes } = error {
+            Some(format!(
+                "The existing graph conflicts because {reason}: {}. Run sc-compose bead repour FORMULA --root ROOT (or sc-compose bead repour --request REQUEST for an attachment) with the original target to apply the intended revision.",
+                crate::revision::change_summary(changes)
+            ))
+        } else {
+            recovery
+        },
     }
 }
 
@@ -82,7 +87,7 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
         )),
         BeadComposeError::GraphConflict { id, reason } => Some((
             json!({ "id": id, "reason": reason }),
-            "Inspect the named bead or use a new ref; existing beads are never edited.",
+            "Inspect the named bead ownership or use a new ref.",
         )),
         BeadComposeError::GraphEdgeConflict {
             from,
@@ -97,22 +102,21 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
             json!({ "edges": edges }),
             "For each missing edge, run bd dep add <from> <to> --type <type>, then retry.",
         )),
-        BeadComposeError::GraphAtomicUpdateUnavailable => Some((
-            json!({}),
-            "Use a qualified bd transaction with ownership preconditions; no mutation was attempted.",
-        )),
         BeadComposeError::GraphReadFailed {
-            command,
-            status,
-            cause,
-        }
-        | BeadComposeError::GraphApplyFailed {
             command,
             status,
             cause,
         } => Some((
             json!({ "command": command, "status": status, "cause": cause }),
-            "Fix the bd failure and retry; nothing was written.",
+            "Fix the bd read or preview failure and retry; no graph write was attempted.",
+        )),
+        BeadComposeError::GraphApplyFailed {
+            command,
+            status,
+            cause,
+        } => Some((
+            json!({ "command": command, "status": status, "cause": cause }),
+            crate::error::graph_apply_recovery(command),
         )),
         BeadComposeError::GraphApplyUnconfirmed {
             command,
@@ -121,6 +125,32 @@ fn graph_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)
         } => Some((
             json!({ "command": command, "cause": cause, "ids": ids }),
             "bd exited 0, so beads may have been created. Reconcile before pouring again: run bd show on the listed ids (bd list when none are listed); a retry can create a second molecule.",
+        )),
+        _ => revision_error_context(error),
+    }
+}
+
+fn revision_error_context(error: &BeadComposeError) -> Option<(Value, &'static str)> {
+    match error {
+        BeadComposeError::GraphPlanChanged { reason, changes } => Some((
+            json!({ "reason": reason, "changes": changes }),
+            "Run repour to apply the requested graph changes.",
+        )),
+        BeadComposeError::GraphDirty => Some((
+            json!({"reason": "dirty"}),
+            "Run bd dolt commit or use --allow-uncommitted.",
+        )),
+        BeadComposeError::GraphDirtyUnknown { cause, cause_code } => Some((
+            json!({"reason": "unknown", "cause": cause, "cause_code": cause_code}),
+            "Run bd dolt commit or use --allow-uncommitted.",
+        )),
+        BeadComposeError::GraphApplyPartial { details } => Some((
+            json!(details),
+            if details.outcome_uncertain {
+                "Reconcile the uncertain operation and rerun repour."
+            } else {
+                "Fix bd and rerun repour to complete the remaining changes."
+            },
         )),
         _ => None,
     }
@@ -138,7 +168,7 @@ impl crate::BeadDiagnostic {
                     code: envelope.code.into(),
                     message: envelope.message,
                     details: envelope.details,
-                    recovery: envelope.recovery.map(str::to_owned),
+                    recovery: envelope.recovery,
                 })
             }
             _ => None,
@@ -161,7 +191,7 @@ impl crate::BeadDiagnostic {
             code: envelope.code.into(),
             message: envelope.message,
             details: envelope.details,
-            recovery: envelope.recovery.map(str::to_owned),
+            recovery: envelope.recovery,
         })
     }
 }

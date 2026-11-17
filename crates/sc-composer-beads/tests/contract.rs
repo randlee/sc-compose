@@ -327,10 +327,6 @@ fn every_advertised_error_has_its_stable_code() {
             "BEADS_GRAPH_EDGE_MISSING",
         ),
         (
-            BeadComposeError::GraphAtomicUpdateUnavailable,
-            "BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE",
-        ),
-        (
             BeadComposeError::GraphReadFailed {
                 command: vec!["bd".into(), "show".into(), "proj-42".into()],
                 status: Some(1),
@@ -399,6 +395,12 @@ fn every_advertised_error_has_its_stable_code() {
         }
     }
     assert_eq!(BeadComposeError::GRAPH_CODES, graph_codes.as_slice());
+    // Phase W retired the atomic-update refusal: no error, code or constant
+    // reports it any more, so a mixed update is applied, never refused.
+    assert!(
+        !BeadComposeError::GRAPH_CODES.contains(&"BEADS_GRAPH_ATOMIC_UPDATE_UNAVAILABLE"),
+        "the retired atomic-update code must not be reported"
+    );
 }
 
 #[test]
@@ -455,6 +457,49 @@ fn library_owns_error_stages_and_the_pour_authorization_token() {
         serde_json::to_value(token).unwrap(),
         serde_json::json!(token.as_str())
     );
+}
+
+#[test]
+fn revision_errors_map_to_repour_and_partial_recovery_matches_uncertainty() {
+    let errors = [
+        BeadComposeError::GraphPlanChanged {
+            reason: GraphConflictReason::PlanChanged,
+            changes: vec![],
+        },
+        BeadComposeError::GraphPlanPathInvalid {
+            path: PathBuf::from("graph.json"),
+            rule: "blocked".into(),
+        },
+        BeadComposeError::GraphDirty,
+        BeadComposeError::GraphDirtyUnknown {
+            cause: "unavailable".into(),
+            cause_code: "PROBE_FAILED".into(),
+        },
+    ];
+    for error in errors {
+        assert_eq!(error.stage(), Some(BeadStage::Repour), "{}", error.code());
+    }
+    for uncertain in [false, true] {
+        let error = BeadComposeError::GraphApplyPartial {
+            details: Box::new(sc_composer_beads::GraphApplyPartial::new(
+                vec![],
+                vec![],
+                "update".into(),
+                "failed".into(),
+                "BD_FAILED".into(),
+                uncertain,
+            )),
+        };
+        assert_eq!(error.stage(), Some(BeadStage::Repour));
+        let value = serde_json::to_value(&error).unwrap();
+        let recovery = value["recovery"].as_str().unwrap();
+        assert_eq!(
+            recovery.contains("uncertain operation"),
+            uncertain,
+            "{recovery}"
+        );
+        assert!(recovery.contains("rerun repour"), "{recovery}");
+    }
 }
 
 #[test]
@@ -650,7 +695,7 @@ fn invalid_identifier_messages_name_only_the_failing_fields_rule() {
             GraphIdField::Bead,
             "a b",
             BeadId::new("a b").expect_err("invalid bead"),
-            "bead ids are non-empty without whitespace",
+            "bead ids are non-empty and contain no whitespace or control characters",
         ),
         (
             GraphIdField::Ref,
