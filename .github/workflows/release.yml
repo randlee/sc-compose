@@ -150,6 +150,8 @@ jobs:
       - name: Ensure tag is correct or create it
         id: release-ref
         shell: bash
+        env:
+          SC_GO_MODULE_TAG_PREFIX: bindings/sc-sha-go
         run: |
           set -euo pipefail
           git fetch origin --prune --tags
@@ -159,6 +161,7 @@ jobs:
           git rev-parse --verify "${main_sha}^{commit}" >/dev/null
           candidate_tag="release-candidate-${tag}"
           if [[ "$target" == "production" ]]; then
+            release_sha="$main_sha"
             if git ls-remote --exit-code --refs origin "refs/tags/${tag}" >/dev/null; then
               remote_tag_sha="$(git rev-parse "refs/tags/${tag}^{commit}")"
               if ! git merge-base --is-ancestor "$remote_tag_sha" origin/main; then
@@ -169,10 +172,22 @@ jobs:
                 echo "Tag ${tag} exists at ${remote_tag_sha} but does not descend from ${candidate_tag}" >&2
                 exit 1
               fi
+              release_sha="$remote_tag_sha"
               echo "Tag ${tag} already exists at verified ancestor ${remote_tag_sha}; reusing immutable tag while building from origin/main (${main_sha})"
             else
               git tag "$tag" "$main_sha"
               git push origin "$tag"
+            fi
+            if [[ -n "${SC_GO_MODULE_TAG_PREFIX:-}" ]]; then
+              module_tag="${SC_GO_MODULE_TAG_PREFIX}/${tag}"
+              remote_module_tag="$(git ls-remote --refs origin "refs/tags/${module_tag}")"
+              if [[ -n "$remote_module_tag" ]]; then
+                module_sha="$(git rev-parse "${module_tag}^{commit}")"
+                [[ "$module_sha" == "$release_sha" ]] || { echo "Go module tag ${module_tag} points to ${module_sha}, expected ${release_sha}" >&2; exit 1; }
+              else
+                git tag "$module_tag" "$release_sha"
+                git push origin "refs/tags/${module_tag}"
+              fi
             fi
           else
             echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"
@@ -493,7 +508,9 @@ jobs:
           path: dist/*.tar.gz
 
   build-npm:
-    needs: gate-and-tag
+    # The release waits for the Go bundles through this existing dependency.
+    needs: [gate-and-tag, build-go-bundles]
+    if: ${{ !failure() && !cancelled() && (needs.gate-and-tag.outputs.release_target != 'production' || needs.build-go-bundles.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -570,6 +587,16 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: python -m twine upload --repository testpypi --skip-existing dist/*.whl dist/*.tar.gz
 
+  # The reusable preflight builds, cleans, and tests all six Go bundles on
+  # their native runners; its candidate identity check refuses a different SHA.
+  build-go-bundles:
+    needs: gate-and-tag
+    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
+    uses: ./.github/workflows/go-native-preflight.yml
+    with:
+      version: ${{ needs.gate-and-tag.outputs.release_version }}
+      candidate_sha: ${{ needs.gate-and-tag.outputs['build_ref'] }}
+
   release:
     # Runs whenever every needed job succeeded or was legitimately skipped
     # (crates or Python legs may be absent for this consumer). The GitHub
@@ -579,6 +606,7 @@ jobs:
     if: >-
       ${{ !failure() && !cancelled() &&
           needs.gate-and-tag.outputs.release_target == 'production' &&
+          needs.build-npm.result == 'success' &&
           (needs.build.result == 'success' || needs.build.result == 'skipped') }}
     needs: [gate-and-tag, build, build-python-wheels, build-python-sdists, build-npm]
     runs-on: ubuntu-latest
@@ -600,11 +628,21 @@ jobs:
       - id: expected_assets
         name: Read expected release asset patterns from manifest
         shell: bash
+        env:
+          REQUIRE_GO_BUNDLES: 'true'
         run: |
           set -euo pipefail
           {
             echo 'patterns<<EOF'
             python3 .github/scripts/release_artifacts.py release-asset-patterns --manifest "${RELEASE_ARTIFACT_MANIFEST}"
+            if [[ "${REQUIRE_GO_BUNDLES:-false}" == 'true' ]]; then
+            echo '^sc-sha-go-x86_64-unknown-linux-gnu\.zip$'
+            echo '^sc-sha-go-aarch64-unknown-linux-gnu\.zip$'
+            echo '^sc-sha-go-x86_64-apple-darwin\.zip$'
+            echo '^sc-sha-go-aarch64-apple-darwin\.zip$'
+            echo '^sc-sha-go-x86_64-pc-windows-gnu\.zip$'
+            echo '^sc-sha-go-aarch64-pc-windows-gnullvm\.zip$'
+            fi
             echo '^checksums\.txt$'
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
@@ -655,6 +693,8 @@ jobs:
       - name: Collect archives
         if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}
         shell: bash
+        env:
+          REQUIRE_GO_BUNDLES: 'true'
         run: |
           set -euo pipefail
           # The preceding setup step supplies runner-temp staging paths in
@@ -664,7 +704,30 @@ jobs:
           RELEASE_ASSET_DIR="${RELEASE_ASSET_DIR:-release}"
           # SDK-only builds may have no uploaded artifacts (and no download directory).
           mkdir -p "$RELEASE_DOWNLOAD_DIR" "$RELEASE_ASSET_DIR"
-          find "$RELEASE_DOWNLOAD_DIR" -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.tgz' -o -name '*.whl' \) -exec mv -f {} "$RELEASE_ASSET_DIR/" \;
+          find "$RELEASE_DOWNLOAD_DIR" -type f ! -path "$RELEASE_DOWNLOAD_DIR/matrix-cell-*/*" ! -path "$RELEASE_DOWNLOAD_DIR/release-files/*" \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.tgz' -o -name '*.whl' \) -exec mv -f {} "$RELEASE_ASSET_DIR/" \;
+          if [[ "${REQUIRE_GO_BUNDLES:-false}" == 'true' ]]; then
+            export RELEASE_DOWNLOAD_DIR RELEASE_ASSET_DIR
+            python3 - <<'PYCODE'
+          import os
+          from pathlib import Path
+          import shutil
+
+          source = Path(os.environ['RELEASE_DOWNLOAD_DIR'])
+          destination = Path(os.environ['RELEASE_ASSET_DIR'])
+          targets = (
+              'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu',
+              'x86_64-apple-darwin', 'aarch64-apple-darwin',
+              'x86_64-pc-windows-gnu', 'aarch64-pc-windows-gnullvm',
+          )
+          expected = {f'sc-sha-go-{target}.zip' for target in targets}
+          files = [path for path in source.glob('matrix-cell-go-*/*.zip') if path.is_file() and path.stat().st_size > 0]
+          actual = {path.name for path in files}
+          if actual != expected or len(files) != len(expected):
+              raise SystemExit(f'Go release bundles mismatch: missing={sorted(expected - actual)}, unexpected={sorted(actual - expected)}')
+          for path in files:
+              shutil.copy2(path, destination / path.name)
+          PYCODE
+          fi
           ls -la "$RELEASE_ASSET_DIR/"
 
       - name: Verify collected Python distributions

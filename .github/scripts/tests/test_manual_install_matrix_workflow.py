@@ -161,6 +161,116 @@ class ManualInstallMatrixWorkflow(unittest.TestCase):
         self.assertTrue(upload[0]["with"]["name"].startswith("matrix-cell-"))
         self.assertTrue(upload[0]["with"]["path"].endswith("${{ matrix.artifact_prefix }}-${{ matrix.target }}.zip"))
 
+    def test_release_requires_the_reused_go_matrix_and_each_target(self):
+        import copy
+        import re
+
+        release = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
+        jobs = release["jobs"]
+        producer = jobs["build-go-bundles"]
+        self.assertEqual(producer["uses"], MATRIX_USES)
+        self.assertEqual(producer["needs"], "gate-and-tag")
+        self.assertEqual(producer["with"]["candidate_sha"], "${{ needs.gate-and-tag.outputs['build_ref'] }}")
+        self.assertIn("build-go-bundles", jobs["build-npm"]["needs"])
+        self.assertIn("needs.build-go-bundles.result == 'success'", jobs["build-npm"]["if"])
+        self.assertIn("build-npm", jobs["release"]["needs"])
+        self.assertIn("needs.build-npm.result == 'success'", jobs["release"]["if"])
+        broken = copy.deepcopy(release)
+        del broken["jobs"]["build-go-bundles"]
+        self.assertNotIn("build-go-bundles", broken["jobs"])
+        steps = jobs["release"]["steps"]
+        probe = next(step for step in steps if step.get("id") == "expected_assets")
+        require = next(step for step in steps if step.get("name") == "Collect archives")
+        upload = next(i for i, step in enumerate(steps) if step.get("name") == "Create GitHub Release")
+        self.assertLess(steps.index(require), upload)
+        self.assertEqual(require["env"]["REQUIRE_GO_BUNDLES"], "true")
+        contract = tomllib.loads((ROOT / "bindings/sc-sha-go/native/targets.toml").read_text())
+        targets = {entry["rust_target"] for entry in contract["targets"]}
+        self.assertEqual(len(targets), 6)
+        for target in targets:
+            self.assertIn(f"'{target}'", require["run"])
+            self.assertIn(f"sc-sha-go-{target}\\.zip", probe["run"])
+        self.assertEqual(len(re.findall(r"echo '\^sc-sha-go-", probe["run"])), 6)
+
+    def test_release_go_collection_refuses_missing_target_before_copy(self):
+        import os
+        import subprocess
+        import tempfile
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
+        steps = workflow["jobs"]["release"]["steps"]
+        script = next(step["run"] for step in steps if step.get("name") == "Collect archives")
+        script = script.split("python3 - <<'PYCODE'\n", 1)[1].rsplit("\nPYCODE", 1)[0]
+        contract = tomllib.loads((ROOT / "bindings/sc-sha-go/native/targets.toml").read_text())
+        names = [f"sc-sha-go-{entry['rust_target']}.zip" for entry in contract["targets"]]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "release-artifacts"
+            destination = root / "release-assets"
+            source.mkdir()
+            destination.mkdir()
+            for name in names[:-1]:
+                cell = source / f"matrix-cell-go-{name.removeprefix('sc-sha-go-').removesuffix('.zip')}"
+                cell.mkdir()
+                (cell / name).write_bytes(b"bundle")
+            env = {**os.environ, "RELEASE_DOWNLOAD_DIR": str(source), "RELEASE_ASSET_DIR": str(destination)}
+            missing = subprocess.run([sys.executable, "-c", script], env=env, capture_output=True, text=True, check=False)
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn(names[-1], missing.stderr)
+            self.assertEqual(list(destination.iterdir()), [])
+            cell = source / f"matrix-cell-go-{names[-1].removeprefix('sc-sha-go-').removesuffix('.zip')}"
+            cell.mkdir()
+            (cell / names[-1]).write_bytes(b"bundle")
+            complete = subprocess.run([sys.executable, "-c", script], env=env, capture_output=True, text=True, check=False)
+            self.assertEqual(complete.returncode, 0, complete.stderr)
+            self.assertEqual({p.name for p in destination.iterdir()}, set(names))
+
+    def test_release_go_tag_is_created_reused_and_conflicts_fail(self):
+        import os
+        import subprocess
+        import tempfile
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
+        steps = workflow["jobs"]["gate-and-tag"]["steps"]
+        step = next(step for step in steps if step.get("id") == "release-ref")
+        self.assertEqual(step["env"]["SC_GO_MODULE_TAG_PREFIX"], "bindings/sc-sha-go")
+        self.assertGreater(step["run"].index("module_tag="), step["run"].index('git push origin "$tag"'))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            remote = root / "origin.git"
+            repo = root / "repo"
+            subprocess.run(["git", "init", "--bare", "-q", str(remote)], check=True)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            def git(*args):
+                return subprocess.run(["git", *args], cwd=repo, check=True, text=True, capture_output=True).stdout.strip()
+            git("config", "user.name", "Release Test")
+            git("config", "user.email", "test@example.invalid")
+            git("config", "commit.gpgsign", "false")
+            git("remote", "add", "origin", str(remote))
+            git("commit", "--allow-empty", "-qm", "first")
+            first = git("rev-parse", "HEAD")
+            git("commit", "--allow-empty", "-qm", "release")
+            release = git("rev-parse", "HEAD")
+            git("tag", "release-candidate-v1.9.0")
+            git("push", "-q", "origin", "HEAD:refs/heads/main", "refs/tags/release-candidate-v1.9.0")
+            env = {**os.environ, "SC_GO_MODULE_TAG_PREFIX": "bindings/sc-sha-go", "GITHUB_OUTPUT": str(root / "output")}
+            script = (step["run"]
+                .replace("'${{ steps.meta.outputs.release_tag }}'", "'v1.9.0'")
+                .replace("'${{ steps.meta.outputs.release_target }}'", "'production'")
+                .replace("'${{ steps.release_gate.outputs.release_sha }}'", repr(release)))
+            def execute():
+                return subprocess.run(["bash", "-c", script], cwd=repo, env=env, capture_output=True, text=True, check=False)
+            created = execute()
+            self.assertEqual(created.returncode, 0, created.stderr)
+            self.assertEqual(git("rev-parse", "bindings/sc-sha-go/v1.9.0^{commit}"), release)
+            self.assertEqual(execute().returncode, 0)
+            git("tag", "-f", "bindings/sc-sha-go/v1.9.0", first)
+            git("push", "-q", "--force", "origin", "refs/tags/bindings/sc-sha-go/v1.9.0")
+            conflict = execute()
+            self.assertNotEqual(conflict.returncode, 0)
+            self.assertIn("expected", conflict.stderr)
+            self.assertEqual(git("rev-parse", "bindings/sc-sha-go/v1.9.0^{commit}"), first)
+
     def test_gnullvm_toolchain_is_pinned_by_digest_in_the_go_job_only(self):
         step = next(s for s in self.jobs["go-native-matrix"]["steps"] if "LLVM-MinGW" in s.get("name", ""))
         self.assertEqual(len(step["env"]["LLVM_MINGW_SHA256"]), 64)
